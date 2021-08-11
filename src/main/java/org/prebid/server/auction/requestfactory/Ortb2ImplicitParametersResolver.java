@@ -1,6 +1,5 @@
 package org.prebid.server.auction.requestfactory;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -13,7 +12,6 @@ import com.iab.openrtb.request.Source;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -21,6 +19,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -46,10 +45,8 @@ import org.prebid.server.util.StreamUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -58,10 +55,6 @@ import java.util.stream.Collectors;
 public class Ortb2ImplicitParametersResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(Ortb2ImplicitParametersResolver.class);
-
-    private static final TypeReference<Map<String, JsonNode>> EXT_PREBID_BIDDER_PARAMS =
-            new TypeReference<Map<String, JsonNode>>() {
-            };
 
     public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
@@ -436,7 +429,7 @@ public class Ortb2ImplicitParametersResolver {
         }
 
         final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
-        final Map<String, JsonNode> globalBidderParams = extractGlobalBidderParams(bidRequest);
+        final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
         if (!shouldModifyImps(imps, secureFromRequest, globalBidderParams)) {
             return imps;
@@ -447,34 +440,28 @@ public class Ortb2ImplicitParametersResolver {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Returns {@link Map}&lt;{@link String}, {@link JsonNode}&gt; where keys are bidders and values are
-     * bidder parameters from request level bidderparams.
-     */
-    private Map<String, JsonNode> extractGlobalBidderParams(BidRequest bidRequest) {
+    private ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extBidPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ObjectNode bidderParams = extBidPrebid != null ? extBidPrebid.getBidderparams() : null;
-        return parseBidderParams(bidderParams).entrySet().stream()
-                .filter(bidderParamEntry -> !IMP_EXT_NON_BIDDER_FIELDS.contains(bidderParamEntry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        return isObjectNode(bidderParams)
+                ? removeNonBidderFields(bidderParams)
+                : mapper.mapper().createObjectNode();
     }
 
-    /**
-     * Converts {@link ObjectNode} bidderparams to {@link Map}&lt;{@link String}, {@link JsonNode}&gt;
-     * where key is bidder and value is bidder's parameters.
-     */
-    private Map<String, JsonNode> parseBidderParams(ObjectNode bidderParams) {
-        return bidderParams != null && bidderParams.isObject()
-                ? mapper.mapper().convertValue(bidderParams, EXT_PREBID_BIDDER_PARAMS)
-                : Collections.emptyMap();
+    private static ObjectNode removeNonBidderFields(ObjectNode node) {
+        for (String field : IMP_EXT_NON_BIDDER_FIELDS) {
+            node.remove(field);
+        }
+
+        return node;
     }
 
-    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest,
-                                     Map<String, JsonNode> globalBidderParams) {
+    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest, ObjectNode globalBidderParams) {
         return imps.stream()
                 .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp)
-                        || MapUtils.isNotEmpty(globalBidderParams));
+                        || !globalBidderParams.isEmpty());
     }
 
     private boolean shouldSetImpSecure(Imp imp, Integer secureFromRequest) {
@@ -490,10 +477,10 @@ public class Ortb2ImplicitParametersResolver {
         return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
-    private Imp populateImp(Imp imp, Integer secureFromRequest, Map<String, JsonNode> globalBidderParams) {
+    private Imp populateImp(Imp imp, Integer secureFromRequest, ObjectNode globalBidderParams) {
         final boolean shouldSetSecure = shouldSetImpSecure(imp, secureFromRequest);
         final boolean shouldMoveBidderParams = shouldMoveBidderParams(imp);
-        final boolean shouldUpdateImpExt = shouldMoveBidderParams || MapUtils.isNotEmpty(globalBidderParams);
+        final boolean shouldUpdateImpExt = shouldMoveBidderParams || !globalBidderParams.isEmpty();
 
         if (shouldSetSecure || shouldUpdateImpExt) {
             final ObjectNode impExt = imp.getExt();
@@ -510,13 +497,15 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private ObjectNode populateImpExt(ObjectNode impExt,
-                                      Map<String, JsonNode> globalBidderParams,
+                                      ObjectNode globalBidderParams,
                                       boolean shouldMoveBidderParams) {
         final ObjectNode impExtCopy = prepareValidImpExtCopy(impExt);
         final ObjectNode normalizedExt = shouldMoveBidderParams ? moveBidderParamsToPrebid(impExtCopy) : impExtCopy;
-        return MapUtils.isEmpty(globalBidderParams)
-                ? normalizedExt
-                : mergeGlobalBidderParamsToImp(normalizedExt, globalBidderParams);
+        if (!globalBidderParams.isEmpty()) {
+            mergeGlobalBidderParamsToImp(normalizedExt, globalBidderParams);
+        }
+
+        return normalizedExt;
     }
 
     private ObjectNode prepareValidImpExtCopy(ObjectNode impExt) {
@@ -558,31 +547,23 @@ public class Ortb2ImplicitParametersResolver {
         return node != null && node.isObject();
     }
 
-    /**
-     * Merges bidder parameters for shred bidders between request and imp levels.
-     * Impression parameters has priority over the request level.
-     */
-    private ObjectNode mergeGlobalBidderParamsToImp(ObjectNode impExt, Map<String, JsonNode> requestBidderParams) {
+    private void mergeGlobalBidderParamsToImp(ObjectNode impExt, ObjectNode requestBidderParams) {
         final ObjectNode modifiedExtPrebid = (ObjectNode) impExt.get(PREBID_EXT);
         final ObjectNode modifiedExtBidder = (ObjectNode) modifiedExtPrebid.get(BIDDER_EXT);
-        final Map<String, JsonNode> impBidderParams = parseBidderParams(modifiedExtBidder);
-        final Map<String, JsonNode> result = new HashMap<>(impBidderParams);
-        final Map<String, JsonNode> mergedBidderParams = requestBidderParams.entrySet().stream()
-                .filter(bidderToParam -> isImpExtBidderField(bidderToParam.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey,
-                        bidderToParams -> mergeBidderParams(bidderToParams.getValue(),
-                                impBidderParams.get(bidderToParams.getKey()))));
-        result.putAll(mergedBidderParams);
-        modifiedExtPrebid.replace(BIDDER_EXT, mapper.mapper().valueToTree(result));
-        return impExt;
+
+        StreamUtil.asStream(requestBidderParams.fields())
+                .forEach(bidderToParam -> mergeBidderParams(
+                        Tuple2.of(bidderToParam.getKey(), bidderToParam.getValue()), modifiedExtBidder));
     }
 
-    /**
-     * Returns requestParams {@link JsonNode} if impParams is null, otherwise merges
-     * requestParams and impParams with impParams priority.
-     */
-    private JsonNode mergeBidderParams(JsonNode requestParams, JsonNode impParams) {
-        return impParams == null ? requestParams : jsonMerger.merge(impParams, requestParams);
+    private void mergeBidderParams(Tuple2<String, JsonNode> bidderToParam, ObjectNode extBidder) {
+        final String bidder = bidderToParam.getLeft();
+        final JsonNode impParams = extBidder.get(bidder);
+        final JsonNode requestParams = bidderToParam.getRight();
+        final JsonNode mergedParams = impParams == null
+                ? requestParams
+                : jsonMerger.merge(impParams, requestParams);
+        extBidder.set(bidder, mergedParams);
     }
 
     /**
