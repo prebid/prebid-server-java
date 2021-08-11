@@ -1,69 +1,85 @@
 package org.prebid.server.bidder.adagio;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.request.*;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.*;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adagio.ExtImpAdagio;
-import org.prebid.server.proto.openrtb.ext.request.adkernel.ExtImpAdkernel;
-import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class AdagioBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<ExtPrebid<?, ExtImpAdagio>> AGADIO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdagio>>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
+    public AdagioBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = endpointUrl;
+        this.mapper = mapper;
+    }
+
+    private static MultiMap resolveHeaders(Device device, Site site) {
+        final MultiMap headers = HttpUtil.headers();
+
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+        }
+        return headers;
+    }
+
+    private static Integer resolveSecure(Site site) {
+        return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage().startsWith("https") ? 1 : 0;
+    }
+
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final Integer secure = resolveSecure(request.getSite());
         final List<BidderError> errors = new ArrayList<>();
-        final Map<ExtImpAdagio, List<Imp>> pubToImps = new HashMap<>();
-        for (Imp imp : request.getImp()) {
+        Imp imp = request.getImp().get(0);
             try {
-                processImp(imp, pubToImps);
+
+                validateImp(imp);
+                imp = (modifyImp(imp, secure));
+
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
-        }
 
-        if (hasNoImpressions(pubToImps)) {
+        if (errors.size() > 0) {
             return Result.withErrors(errors);
         }
 
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
-        final List<HttpRequest<BidRequest>> httpRequests = pubToImps.entrySet().stream()
-                .map(extAndImp -> createHttpRequest(extAndImp, requestBuilder, request.getSite(), request.getApp()))
-                .collect(Collectors.toList());
-
-        return Result.of(httpRequests, errors);
+        return Result.withValue(createRequest(extImpBetween, request, imps));
     }
 
-    private void processImp(Imp imp, Map<ExtImpAdagio, List<Imp>> pubToImps) {
-        validateImp(imp);
-        final ExtImpAdagio extImpAdagio = parseAndValidateImpExt(imp);
-        dispatchImpression(imp, extImpAdagio, pubToImps);
+    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp imp) {
+        final String url =
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+
+        return
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(url)
+                        .headers(resolveHeaders(request.getDevice(), request.getSite()))
+                        .payload(outgoingRequest)
+                        .body(mapper.encode(outgoingRequest))
+                        .build();
+    }
+
+    private static Imp modifyImp(Imp imp, Integer secure) {
+        final Banner resolvedBanner = resolveBanner(imp.getBanner());
+
+        return imp.toBuilder()
+                .banner(resolvedBanner)
+                .secure(secure)
+                .build();
     }
 
     private static void validateImp(Imp imp) {
@@ -73,121 +89,21 @@ public class AdagioBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtImpAdagio parseAndValidateImpExt(Imp imp) {
-        final ExtImpAdagio extImpAdagio;
-        try {
-            extImpAdagio = mapper.mapper().convertValue(imp.getExt(), AGADIO_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+    private static Banner resolveBanner(Banner banner) {
+        if (banner.getW() == null && banner.getH() == null) {
+            final List<Format> bannerFormat = banner.getFormat();
+            final Format firstFormat = bannerFormat.get(0);
+            final List<Format> formatSkipFirst = bannerFormat.subList(1, bannerFormat.size());
+            return banner.toBuilder()
+                    .format(formatSkipFirst)
+                    .w(firstFormat.getW())
+                    .h(firstFormat.getH())
+                    .build();
         }
-
-        final Integer organizationId = extImpAdagio.getOrganizationId();
-        if (organizationId == null || organizationId < 1) {
-            throw new PreBidException(String.format("Invalid organizationId value: %d. Ignoring imp id=%s",
-                    organizationId, imp.getId()));
-        }
-
-        if (StringUtils.isBlank(extImpAdagio.getSite())) {
-            throw new PreBidException(String.format("Site is empty. Ignoring imp id=%s", imp.getId()));
-        }
-
-        if(StringUtils.isBlank(extImpAdagio.getPlacement())){
-            throw new PreBidException(String.format("Placement is empty. Ignoring imp id=%s", imp.getId()));
-        }
-        return extImpAdagio;
+        return banner;
     }
 
-    private static void dispatchImpression(Imp imp, ExtImpAdagio extImpAdagio,
-                                           Map<ExtImpAdagio, List<Imp>> pubToImp) {
-        pubToImp.putIfAbsent(extImpAdagio, new ArrayList<>());
-        pubToImp.get(extImpAdagio).add(compatImpression(imp));
-    }
 
-    private static Imp compatImpression(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null)
-                .audio(null)
-                .xNative(null);
-        return imp.getBanner() != null ? impBuilder.video(null).build() : impBuilder.build();
-    }
 
-    private static boolean hasNoImpressions(Map<ExtImpAdagio, List<Imp>> pubToImps) {
-        return pubToImps.values().stream()
-                .allMatch(CollectionUtils::isEmpty);
-    }
 
-    @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
-    private Object extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || bidResponse.getSeatbid() == null) {
-            return Collections.emptyList();
-        }
-        if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
-        }
-        return bidsFromResponse(bidRequest, bidResponse);
-    }
-
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
-    }
-    private static BidType getType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getBanner() != null) {
-                return BidType.banner;
-            }
-        }
-        return BidType.video;
-    }
-
-    public AdagioBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.mapper = Objects.requireNonNull(mapper);
-
-    }
-
-    private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdagio, List<Imp>> extAndImp,
-                                                      BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
-        final ExtImpAdagio impExt = extAndImp.getKey();
-        final String uri = String.format(endpointUrl, impExt.getOrganizationId(), impExt.getSite(), impExt.getPlacement());
-
-        final MultiMap headers = HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
-
-        final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
-        final String body = mapper.encode(outgoingRequest);
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(uri)
-                .headers(headers)
-                .body(body)
-                .payload(outgoingRequest)
-                .build();
-    }
-
-    private static BidRequest createBidRequest(List<Imp> imps,
-                                               BidRequest.BidRequestBuilder requestBuilder,
-                                               Site site,
-                                               App app) {
-
-        requestBuilder.imp(imps);
-
-        if (site != null) {
-            requestBuilder.site(site.toBuilder().publisher(null).build());
-        } else {
-            requestBuilder.app(app.toBuilder().publisher(null).build());
-        }
-        return requestBuilder.build();
-    }
 }
