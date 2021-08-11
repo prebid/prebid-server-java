@@ -9,6 +9,7 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -73,6 +74,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
@@ -182,6 +184,16 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    DebugResolver debugResolver() {
+        return DebugResolver.withoutDebugOverrideCapability();
+    }
+
+    @Bean
+    DebugResolver videoDebugResolver(@Value("${video.debug-override-token:#{null}") String debugOverrideToken) {
+        return DebugResolver.withDebugOverrideCapability(debugOverrideToken);
+    }
+
+    @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
@@ -204,12 +216,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @Primary
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator,
             TimeoutResolver timeoutResolver,
+            DebugResolver debugResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
@@ -224,6 +238,36 @@ public class ServiceConfiguration {
                 uidsCookieService,
                 requestValidator,
                 timeoutResolver,
+                debugResolver,
+                timeoutFactory,
+                storedRequestProcessor,
+                applicationSettings,
+                ipAddressHelper,
+                hookStageExecutor);
+    }
+
+    @Bean
+    Ortb2RequestFactory videoOpenRtb2RequestFactory(
+            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            UidsCookieService uidsCookieService,
+            RequestValidator requestValidator,
+            TimeoutResolver timeoutResolver,
+            DebugResolver videoDebugResolver,
+            TimeoutFactory timeoutFactory,
+            StoredRequestProcessor storedRequestProcessor,
+            ApplicationSettings applicationSettings,
+            IpAddressHelper ipAddressHelper,
+            HookStageExecutor hookStageExecutor) {
+
+        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
+        return new Ortb2RequestFactory(
+                enforceValidAccount,
+                blacklistedAccounts,
+                uidsCookieService,
+                requestValidator,
+                timeoutResolver,
+                videoDebugResolver,
                 timeoutFactory,
                 storedRequestProcessor,
                 applicationSettings,
@@ -298,7 +342,7 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             VideoStoredRequestProcessor storedRequestProcessor,
-            Ortb2RequestFactory ortb2RequestFactory,
+            Ortb2RequestFactory videoOpenRtb2RequestFactory,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
@@ -307,7 +351,7 @@ public class ServiceConfiguration {
         return new VideoRequestFactory(
                 maxRequestSize,
                 enforceStoredRequest,
-                ortb2RequestFactory,
+                videoOpenRtb2RequestFactory,
                 ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
                 privacyEnforcementService,

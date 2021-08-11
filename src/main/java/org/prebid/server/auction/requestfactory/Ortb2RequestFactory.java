@@ -14,6 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -68,6 +69,7 @@ public class Ortb2RequestFactory {
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
+    private final DebugResolver debugResolver;
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
@@ -79,6 +81,7 @@ public class Ortb2RequestFactory {
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
+                               DebugResolver debugResolver,
                                TimeoutFactory timeoutFactory,
                                StoredRequestProcessor storedRequestProcessor,
                                ApplicationSettings applicationSettings,
@@ -90,6 +93,7 @@ public class Ortb2RequestFactory {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
@@ -118,7 +122,7 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugContext(debugContext(bidRequest))
+                .debugContext(debugResolver.getDebugContext(httpRequest, bidRequest))
                 .build();
     }
 
