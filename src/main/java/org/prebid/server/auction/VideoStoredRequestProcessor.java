@@ -260,7 +260,7 @@ public class VideoStoredRequestProcessor {
                 Integer maxDuration;
                 Integer minDuration = null;
                 if (BooleanUtils.isTrue(requireExactDuration)) {
-                    int durationIndex = (i + 1) / impDivNumber;
+                    int durationIndex = i / impDivNumber;
                     if (durationIndex > durationRangeSec.size() - 1) {
                         durationIndex = durationRangeSec.size() - 1;
                     }
