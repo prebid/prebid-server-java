@@ -692,8 +692,8 @@ public class BidResponseCreator {
         return cacheResult;
     }
 
-    private Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
-                                                          CacheServiceResult cacheResult) {
+    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
+                                                                 CacheServiceResult cacheResult) {
 
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
                 .collect(Collectors.toMap(
