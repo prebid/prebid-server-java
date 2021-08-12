@@ -753,6 +753,8 @@ public class ExchangeService {
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
+        final App bidRequestApp = bidRequest.getApp();
+        final Site bidRequestSite = bidRequestApp == null ? bidRequest.getSite() : null;
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
@@ -766,8 +768,8 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData))
-                .app(prepareApp(bidRequest.getApp(), fpdApp, useFirstPartyData))
-                .site(prepareSite(bidRequest.getSite(), fpdSite, useFirstPartyData))
+                .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
+                .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
@@ -1008,7 +1010,7 @@ public class ExchangeService {
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, headers, debugEnabled, aliases))
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
-                        bidderResponse, auctionContext)
+                                bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 
