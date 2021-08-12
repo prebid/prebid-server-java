@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotNull;
+
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,6 +19,7 @@ public class GdprConfig {
 
     Boolean enabled;
 
+    @NotNull
     @JsonProperty("default-value")
     String defaultValue;
 
