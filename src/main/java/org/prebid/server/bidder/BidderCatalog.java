@@ -108,10 +108,10 @@ public class BidderCatalog {
     }
 
     /**
-     * Tells if given bidder is allows debug.
+     * Tells if given bidder allows debug.
      */
     public boolean isDebugAllowed(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isAllowedDebug();
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isDebugAllowed();
     }
 
     /**
