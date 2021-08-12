@@ -10,5 +10,6 @@ import lombok.Value;
 @Value
 public class ExtImpInteractiveoffers {
 
+    @JsonProperty("partnerId")
     String partnerId;
 }
