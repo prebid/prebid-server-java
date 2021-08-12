@@ -381,10 +381,10 @@ public class BidResponseCreator {
                                                                             AuctionContext auctionContext) {
 
         return CompositeFuture.join(bidderResponses.stream()
-                        .map(bidderResponse -> hookStageExecutor
-                                .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
-                                .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
-                        .collect(Collectors.toList()))
+                .map(bidderResponse -> hookStageExecutor
+                        .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
+                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
+                .collect(Collectors.toList()))
                 .map(CompositeFuture::list);
     }
 
@@ -694,7 +694,6 @@ public class BidResponseCreator {
 
     private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
                                                                  CacheServiceResult cacheResult) {
-
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getBidder,
