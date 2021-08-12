@@ -7,6 +7,8 @@ adapters:
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: platform@mobfox.com
       app-media-types:

@@ -1,12 +1,14 @@
 package org.prebid.server.spring.config.bidder.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
 
-@Value
-@AllArgsConstructor
+@Validated
+@Data
+@NoArgsConstructor
 public class Debug {
 
     @NotNull

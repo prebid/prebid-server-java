@@ -7,6 +7,8 @@ adapters:
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: y1dev@platform-one.co.jp
       app-media-types:

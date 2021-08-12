@@ -7,6 +7,8 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
+    debug:
+      allowed: true
     aliases:
       '33across':
         enabled: false

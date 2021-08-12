@@ -7,6 +7,8 @@ adapters:
     modifying-vast-xml-allowed: false
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: dev@brightmountainmedia.com
       app-media-types:

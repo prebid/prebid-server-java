@@ -6,7 +6,9 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases: { }
+    aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: tech@smilewanted.com
       app-media-types:

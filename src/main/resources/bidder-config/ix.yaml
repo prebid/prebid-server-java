@@ -7,6 +7,8 @@ adapters:
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:

@@ -8,6 +8,8 @@ adapters:
     modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: prebid@beachfront.com
       app-media-types:
