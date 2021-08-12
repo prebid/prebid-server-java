@@ -1,6 +1,8 @@
 package org.prebid.server.handler.info;
 
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.AsciiString;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -43,7 +45,10 @@ public class BiddersHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "false"));
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
+        given(httpResponse.setStatusCode(any(Integer.class))).willReturn(httpResponse);
         given(bidderCatalog.names()).willReturn(emptySet());
 
         handler = new BiddersHandler(bidderCatalog, jacksonMapper);
@@ -65,7 +70,47 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithExpectedBody() {
+    public void shouldRespondWithExpectedMessageAndStatusBadRequestWhenEnabledOnlyNotProvided() {
+        // given
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
+        verify(httpResponse).end(eq("Invalid value for 'enabledonly' query param, must be of boolean type"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedMessageAndStatusBadRequestWhenEnabledOnlyFlagHasInvalidValue() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "yes"));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
+        verify(httpResponse).end(eq("Invalid value for 'enabledonly' query param, must be of boolean type"));
+    }
+
+    @Test
+    public void shouldTolerateWithEnabledOnlyFlagInCaseInsensitiveMode() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "tRuE"));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyAndStatusOkForEnabledOnlyFalseFlag() {
         // given
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
         handler = new BiddersHandler(bidderCatalog, jacksonMapper);
@@ -74,6 +119,24 @@ public class BiddersHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
         verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\",\"bidder3\"]"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyAndStatusOkForEnabledOnlyTrueFlag() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "true"));
+        given(bidderCatalog.isActive("bidder3")).willReturn(true);
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end(eq("[\"bidder3\"]"));
     }
 }
