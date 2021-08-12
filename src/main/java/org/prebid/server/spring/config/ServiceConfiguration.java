@@ -247,6 +247,7 @@ public class ServiceConfiguration {
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new AuctionRequestFactory(
@@ -259,6 +260,7 @@ public class ServiceConfiguration {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 

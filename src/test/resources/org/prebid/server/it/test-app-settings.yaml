@@ -9,6 +9,7 @@ accounts:
   - id: 2763
   - id: 5001
     eventsEnabled: true
+    allowedDebug: true
   - id: 6001
     hooks:
       execution-plan:

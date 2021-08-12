@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
@@ -1002,11 +1003,14 @@ public class ExchangeService {
                                                              BidderAliases aliases) {
 
         final CaseInsensitiveMultiMap headers = auctionContext.getHttpRequest().getHeaders();
-        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+
+        final DebugContext debugContext = auctionContext.getDebugContext();
+        final boolean debugEnabled = debugContext.isDebugEnabled();
+        final boolean debugOverride = debugContext.isDebugOverride();
 
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
-                        stageResult, bidderRequest, timeout, headers, debugEnabled, aliases))
+                        stageResult, bidderRequest, timeout, headers, debugEnabled, debugOverride, aliases))
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
                         bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
@@ -1018,6 +1022,7 @@ public class ExchangeService {
             Timeout timeout,
             CaseInsensitiveMultiMap requestHeaders,
             boolean debugEnabled,
+            boolean debugOverride,
             BidderAliases aliases) {
 
         return hookStageResult.isShouldReject()
@@ -1027,6 +1032,7 @@ public class ExchangeService {
                 timeout,
                 requestHeaders,
                 debugEnabled,
+                debugOverride,
                 aliases);
     }
 
@@ -1049,13 +1055,18 @@ public class ExchangeService {
                                                Timeout timeout,
                                                CaseInsensitiveMultiMap requestHeaders,
                                                boolean debugEnabled,
+                                               boolean debugOverride,
                                                BidderAliases aliases) {
 
         final String bidderName = bidderRequest.getBidder();
-        final Bidder<?> bidder = bidderCatalog.bidderByName(aliases.resolveBidder(bidderName));
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
+        final boolean debugEnabledForBidder = (bidderCatalog.isDebugAllowed(resolvedBidderName) && debugEnabled)
+                || debugOverride;
+
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabled)
+        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabledForBidder)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 

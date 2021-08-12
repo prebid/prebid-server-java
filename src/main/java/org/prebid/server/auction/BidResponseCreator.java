@@ -28,7 +28,6 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -609,12 +608,10 @@ public class BidResponseCreator {
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final DebugContext debugContext = auctionContext.getDebugContext();
-        final boolean debugEnabled = debugContext.isDebugEnabled();
-        final boolean debugOverride = debugContext.isDebugOverride();
+        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
 
         final ExtResponseDebug extResponseDebug = debugEnabled
-                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult, debugOverride), bidRequest)
+                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult), bidRequest)
                 : null;
 
         final Map<String, List<ExtBidderError>> errors =
@@ -696,12 +693,9 @@ public class BidResponseCreator {
     }
 
     private Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
-                                                          CacheServiceResult cacheResult,
-                                                          boolean debugOverride) {
+                                                          CacheServiceResult cacheResult) {
 
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
-                .filter(bidderResponseInfo -> debugOverride
-                        || bidderCatalog.isDebugAllowed(bidderResponseInfo.getBidder()))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));

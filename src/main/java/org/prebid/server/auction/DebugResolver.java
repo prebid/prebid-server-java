@@ -49,7 +49,7 @@ public class DebugResolver {
 
     private boolean isDebugOverridden(HttpRequestContext httpRequestContext) {
         return StringUtils.isNotEmpty(debugOverrideToken)
-                && httpRequestContext.getHeaders().get(DEBUG_OVERRIDE_HEADER).equals(debugOverrideToken);
+                && StringUtils.equals(httpRequestContext.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
