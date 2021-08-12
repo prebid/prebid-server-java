@@ -1,0 +1,27 @@
+adapters:
+  medianet:
+    enabled: false
+    endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: prebid@media.net
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 142
+    usersync:
+      url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect=
+      redirect-url: /setuid?bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=<vsid>
+      cookie-family-name: medianet
+      type: redirect
+      support-cors: false

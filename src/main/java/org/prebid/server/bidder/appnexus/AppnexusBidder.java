@@ -3,6 +3,7 @@ package org.prebid.server.bidder.appnexus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.Lists;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -11,10 +12,12 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.appnexus.model.ImpWithMemberId;
+import org.prebid.server.bidder.appnexus.model.ImpWithExtProperties;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
@@ -182,47 +185,33 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
         final String defaultDisplayManagerVer = makeDefaultDisplayManagerVer(bidRequest);
-
         final List<Imp> processedImps = new ArrayList<>();
-        final Set<String> memberIds = new HashSet<>();
+        final Set<String> uniqueIds = new HashSet<>();
+        Boolean generateAdPodId = null;
+
         for (final Imp imp : bidRequest.getImp()) {
             try {
-                final ImpWithMemberId impWithMemberId = makeImpWithMemberId(imp, defaultDisplayManagerVer);
-                processedImps.add(impWithMemberId.getImp());
-                memberIds.add(impWithMemberId.getMemberId());
+                final ImpWithExtProperties impWithExtProperties = processImp(imp, defaultDisplayManagerVer);
+                final Boolean impGenerateAdPodId = impWithExtProperties.getGenerateAdPodId();
+
+                generateAdPodId = ObjectUtils.defaultIfNull(generateAdPodId, impGenerateAdPodId);
+                if (!Objects.equals(generateAdPodId, impGenerateAdPodId)) {
+                    return Result.withError(BidderError.badInput(
+                            "Generate ad pod option should be same for all pods in request"));
+                }
+
+                processedImps.add(impWithExtProperties.getImp());
+                final String memberId = impWithExtProperties.getMemberId();
+                if (memberId != null) {
+                    uniqueIds.add(memberId);
+                }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final Set<String> uniqueIds = memberIds.stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        final String url;
-        if (CollectionUtils.isNotEmpty(uniqueIds)) {
-            url = String.format("%s?member_id=%s", endpointUrl, uniqueIds.iterator().next());
-            try {
-                validateMemberId(uniqueIds);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-        } else {
-            url = endpointUrl;
-        }
-
-        final List<HttpRequest<BidRequest>> httpRequests;
-        if (isVideoRequest(bidRequest)) {
-            httpRequests = groupImpsByPod(processedImps)
-                    .values().stream()
-                    .map(podImps -> splitHttpRequests(bidRequest, updateRequestExtForVideo(bidRequest), podImps, url))
-                    .flatMap(Collection::stream)
-                    .collect(Collectors.toList());
-        } else {
-            httpRequests = splitHttpRequests(bidRequest, updateRequestExt(bidRequest), processedImps, url);
-        }
-
-        return Result.of(httpRequests, errors);
+        final String url = constructUrl(uniqueIds, errors);
+        return Result.of(constructRequests(bidRequest, processedImps, url, generateAdPodId), errors);
     }
 
     private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
@@ -290,6 +279,34 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return includebrandcategory != null;
     }
 
+    private String constructUrl(Set<String> ids, List<BidderError> errors) {
+        if (CollectionUtils.isNotEmpty(ids)) {
+            final String url = String.format("%s?member_id=%s", endpointUrl, ids.iterator().next());
+            try {
+                validateMemberId(ids);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+            return url;
+        }
+        return endpointUrl;
+    }
+
+    private List<HttpRequest<BidRequest>> constructRequests(BidRequest bidRequest,
+                                                            List<Imp> imps,
+                                                            String url,
+                                                            Boolean generateAdPodId) {
+        if (isVideoRequest(bidRequest) && BooleanUtils.isTrue(generateAdPodId)) {
+            return groupImpsByPod(imps)
+                    .values().stream()
+                    .map(podImps -> splitHttpRequests(bidRequest, updateRequestExtForVideo(bidRequest), podImps, url))
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+        } else {
+            return splitHttpRequests(bidRequest, updateRequestExt(bidRequest), imps, url);
+        }
+    }
+
     private Map<String, List<Imp>> groupImpsByPod(List<Imp> processedImps) {
         return processedImps.stream()
                 .collect(Collectors.groupingBy(imp -> StringUtils.substringBefore(imp.getId(), POD_SEPARATOR)));
@@ -297,37 +314,22 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
                                                             ExtRequest requestExt,
-                                                            List<Imp> processedImps,
+                                                            List<Imp> imps,
                                                             String url) {
+        final List<HttpRequest<BidRequest>> result = Lists.partition(imps, MAX_IMP_PER_REQUEST)
+                .stream()
+                .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
+                .collect(Collectors.toList());
 
-        // Let's say there are 35 impressions and limit impressions per request equals to 10.
-        // In this case we need to create 4 requests with 10, 10, 10 and 5 impressions.
-        // With this formula initial capacity=(35+10-1)/10 = 4
-        final int impSize = processedImps.size();
-        final int numberOfRequests = (impSize + MAX_IMP_PER_REQUEST - 1) / MAX_IMP_PER_REQUEST;
-        final List<HttpRequest<BidRequest>> spitedRequests = new ArrayList<>(numberOfRequests);
-
-        int startIndex = 0;
-        boolean impsLeft = true;
-        while (impsLeft) {
-            int endIndex = startIndex + MAX_IMP_PER_REQUEST;
-            if (endIndex >= impSize) {
-                impsLeft = false;
-                endIndex = impSize;
-            }
-            spitedRequests.add(
-                    createHttpRequest(bidRequest, requestExt, processedImps.subList(startIndex, endIndex), url));
-            startIndex = endIndex;
-        }
-
-        return spitedRequests;
+        return result.isEmpty()
+                ? Collections.singletonList(createHttpRequest(bidRequest, requestExt, imps, url))
+                : result;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest,
                                                       ExtRequest requestExt,
                                                       List<Imp> imps,
                                                       String url) {
-
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(imps)
                 .ext(requestExt)
@@ -342,7 +344,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ImpWithMemberId makeImpWithMemberId(Imp imp, String defaultDisplayManagerVer) {
+    private ImpWithExtProperties processImp(Imp imp, String defaultDisplayManagerVer) {
         if (imp.getAudio() != null) {
             throw new PreBidException(
                     String.format("Appnexus doesn't support audio Imps. Ignoring Imp ID=%s", imp.getId()));
@@ -369,7 +371,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             impBuilder.displaymanagerver(defaultDisplayManagerVer);
         }
 
-        return ImpWithMemberId.of(impBuilder.build(), appnexusExt.getMember());
+        return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(),
+                appnexusExt.getGenerateAdPodId());
     }
 
     private static boolean bidFloorIsValid(BigDecimal bidFloor) {

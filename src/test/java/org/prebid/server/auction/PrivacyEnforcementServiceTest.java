@@ -383,7 +383,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -424,7 +424,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -520,7 +520,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -561,7 +561,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -599,7 +599,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device)
@@ -634,7 +634,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -674,7 +674,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -726,7 +726,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user));
 
@@ -763,7 +763,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -806,7 +806,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -848,7 +848,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -918,7 +918,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(notMaskedDevice()));
@@ -949,7 +949,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user));
         final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
@@ -975,7 +975,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         TcfResponse.of(true, singletonMap(BIDDER_NAME, privacyEnforcementAction), null)));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .device(Device.builder().model("blackberry").build()));
         final PrivacyContext privacyContext = givenPrivacyContext("0", Ccpa.EMPTY, 0);
@@ -1002,7 +1002,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -1122,7 +1122,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user));
 
@@ -1154,7 +1154,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -1206,7 +1206,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         bidderToUser.put(bidder3Name, notMaskedUser());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device)
@@ -1220,10 +1220,10 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         // when
         final List<BidderPrivacyResult> result = privacyEnforcementService.mask(
-                context,
-                bidderToUser,
-                asList(bidder1Name, bidder2Name, bidder3Name),
-                BidderAliases.of(null, null, bidderCatalog))
+                        context,
+                        bidderToUser,
+                        asList(bidder1Name, bidder2Name, bidder3Name),
+                        BidderAliases.of(null, null, bidderCatalog))
                 .result();
 
         // then
@@ -1264,7 +1264,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, notMaskedUser());
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device)
@@ -1416,7 +1416,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap("someAlias", user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap("someAlias", 1)),
+                        singletonMap("someAlias", 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -1582,6 +1582,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {
         return BidderInfo.of(
+                true,
                 true,
                 null,
                 null,

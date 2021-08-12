@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Video;
 import lombok.Builder;
 import lombok.Value;
@@ -32,5 +33,5 @@ public class ExtBidPrebid {
 
     ExtBidPrebidVideo video;
 
-    ExtBidPrebidMeta meta;
+    ObjectNode meta;
 }
