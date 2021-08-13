@@ -387,13 +387,16 @@ public class VideoStoredRequestProcessor {
             durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
         }
 
-        PriceGranularity updatedPriceGranularity = PriceGranularity.createFromString("med");
+        PriceGranularity updatedPriceGranularity;
         final PriceGranularity priceGranularity = videoRequest.getPriceGranularity();
-        if (priceGranularity != null) {
-            final Integer precision = priceGranularity.getPrecision();
-            if (precision != null && precision != 0) {
-                updatedPriceGranularity = priceGranularity;
-            }
+        final Integer precision = priceGranularity != null
+                ? priceGranularity.getPrecision()
+                : null;
+
+        if (precision != null && precision != 0) {
+            updatedPriceGranularity = priceGranularity;
+        } else {
+            updatedPriceGranularity = PriceGranularity.createFromString("med");
         }
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
