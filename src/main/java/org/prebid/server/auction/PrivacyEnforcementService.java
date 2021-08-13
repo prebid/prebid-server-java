@@ -10,7 +10,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -34,7 +34,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -201,7 +203,7 @@ public class PrivacyEnforcementService {
 
         updateCcpaMetrics(privacy.getCcpa());
         final Map<String, BidderPrivacyResult> ccpaResult =
-                ccpaResult(bidRequest, account, bidders, aliases, device, bidderToUser, privacy);
+                ccpaResult(bidRequest, account, bidders, aliases, device, bidderToUser, privacy, requestType);
 
         final Set<String> biddersToApplyTcf = new HashSet<>(bidders);
         biddersToApplyTcf.removeAll(ccpaResult.keySet());
@@ -226,9 +228,10 @@ public class PrivacyEnforcementService {
                                                         BidderAliases aliases,
                                                         Device device,
                                                         Map<String, User> bidderToUser,
-                                                        Privacy privacy) {
+                                                        Privacy privacy,
+                                                        MetricName requestType) {
 
-        if (isCcpaEnforced(privacy.getCcpa(), account)) {
+        if (isCcpaEnforced(privacy.getCcpa(), account, requestType)) {
             return maskCcpa(extractCcpaEnforcedBidders(bidders, bidRequest, aliases), device, bidderToUser);
         }
 
@@ -236,14 +239,42 @@ public class PrivacyEnforcementService {
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
-        final boolean shouldEnforceCcpa = BooleanUtils.toBooleanDefaultIfNull(account.getEnforceCcpa(), ccpaEnforce);
+        final boolean shouldEnforceCcpa = isCcpaEnabled(account);
 
         return shouldEnforceCcpa && ccpa.isEnforced();
     }
 
-    private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
-                                                      Device device,
-                                                      Map<String, User> bidderToUser) {
+    private boolean isCcpaEnforced(Ccpa ccpa, Account account, MetricName requestType) {
+        final boolean shouldEnforceCcpa = isCcpaEnabled(account, requestType);
+        return shouldEnforceCcpa && ccpa.isEnforced();
+    }
+
+    private Boolean isCcpaEnabled(Account account) {
+        final AccountCcpaConfig accountCcpaConfig = account.getCcpa();
+        final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
+
+        return ObjectUtils.firstNonNull(accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
+    }
+
+    private boolean isCcpaEnabled(Account account, MetricName requestType) {
+        final AccountCcpaConfig accountCcpaConfig = account.getCcpa();
+        final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
+        if (requestType == null) {
+            return ObjectUtils.firstNonNull(accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
+        }
+
+        final EnabledForRequestType enabledForRequestType = accountCcpaConfig != null
+                ? accountCcpaConfig.getEnabledForRequestType()
+                : null;
+
+        final Boolean enabledForType = enabledForRequestType != null
+                ? enabledForRequestType.isEnabledFor(requestType)
+                : null;
+        return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, account.getEnforceCcpa(), ccpaEnforce);
+    }
+
+    private Map<String, BidderPrivacyResult> maskCcpa(
+            Set<String> biddersToMask, Device device, Map<String, User> bidderToUser) {
 
         return biddersToMask.stream()
                 .collect(Collectors.toMap(Function.identity(),
@@ -347,7 +378,8 @@ public class PrivacyEnforcementService {
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 
-    private Set<String> extractCcpaEnforcedBidders(List<String> bidders, BidRequest bidRequest, BidderAliases aliases) {
+    private Set<String> extractCcpaEnforcedBidders(List<String> bidders, BidRequest bidRequest, BidderAliases
+            aliases) {
         final Set<String> ccpaEnforcedBidders = new HashSet<>(bidders);
 
         final ExtRequest extBidRequest = bidRequest.getExt();
