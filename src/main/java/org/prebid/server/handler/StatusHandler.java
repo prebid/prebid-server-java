@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
@@ -38,6 +39,7 @@ public class StatusHandler implements Handler<RoutingContext> {
 
             HttpUtil.executeSafely(routingContext, Endpoint.status,
                     response -> response
+                            .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                             .end(mapper.encode(nameToStatus)));
         }
     }

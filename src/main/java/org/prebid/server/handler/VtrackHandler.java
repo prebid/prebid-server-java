@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -191,6 +192,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
         HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
                 response -> response
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())
                         .end(body));
     }

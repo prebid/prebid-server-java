@@ -245,6 +245,37 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldAcceptDifferentSiteIdAliases() {
+        final List<Imp> imps = asList(
+                givenImp(impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.createObjectNode().set("bidder",
+                                mapper.createObjectNode().put("siteid", "siteId1")))),
+                givenImp(impBuilder -> impBuilder
+                        .id("346")
+                        .ext(mapper.createObjectNode().set("bidder",
+                                mapper.createObjectNode().put("siteId", "siteId2")))),
+                givenImp(impBuilder -> impBuilder
+                        .id("678")
+                        .ext(mapper.createObjectNode().set("bidder",
+                                mapper.createObjectNode().put("siteID", "siteId3")))));
+        final BidRequest bidRequest = givenBidRequest(requestBuilder ->
+                requestBuilder.imp(imps).site(Site.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getPublisher)
+                .extracting(Publisher::getId)
+                .containsExactlyInAnyOrder("siteId1", "siteId2", "siteId3");
+    }
+
+    @Test
     public void makeHttpRequestsShouldLimitTotalAmountOfRequests() {
         // given
         final List<Imp> imps = new ArrayList<>();
@@ -620,7 +651,7 @@ public class IxBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
-                        .banner(Banner.builder().build())
+                        .banner(Banner.builder().w(1).h(1).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIx.of(SITE_ID, null)))))
                 .build();
     }
