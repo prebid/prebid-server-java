@@ -1,0 +1,38 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "7001"
+    }
+  },
+  "tmax": 5000
+}

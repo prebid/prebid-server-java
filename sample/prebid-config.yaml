@@ -14,12 +14,10 @@ cache:
 settings:
   filesystem:
     settings-filename: sample/sample-app-settings.yaml
-    stored-requests-dir: /var/tmp
-    stored-imps-dir: /var/tmp
-    stored-responses-dir: /var/tmp
+    stored-requests-dir:
+    stored-imps-dir:
+    stored-responses-dir:
 gdpr:
   vendorlist:
-    v1:
-      cache-dir: /var/tmp/vendor1
     v2:
       cache-dir: /var/tmp/vendor2

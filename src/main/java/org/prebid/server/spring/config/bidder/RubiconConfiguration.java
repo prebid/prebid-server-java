@@ -5,11 +5,10 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +32,9 @@ public class RubiconConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
+    private CurrencyConversionService currencyConversionService;
+
+    @Autowired
     @Qualifier("rubiconConfigurationProperties")
     private RubiconConfigurationProperties configProperties;
 
@@ -44,15 +46,16 @@ public class RubiconConfiguration {
 
     @Bean
     BidderDeps rubiconBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+        return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, null))
-                .bidderCreator(() -> new RubiconBidder(configProperties.getEndpoint(),
-                        configProperties.getXapi().getUsername(), configProperties.getXapi().getPassword(),
-                        configProperties.getMetaInfo().getSupportedVendors(), configProperties.getGenerateBidId(),
+                .usersyncerCreator(UsersyncerCreator.create(null))
+                .bidderCreator(config -> new RubiconBidder(
+                        config.getEndpoint(),
+                        config.getXapi().getUsername(),
+                        config.getXapi().getPassword(),
+                        config.getMetaInfo().getSupportedVendors(),
+                        config.getGenerateBidId(),
+                        currencyConversionService,
                         mapper))
                 .assemble();
     }

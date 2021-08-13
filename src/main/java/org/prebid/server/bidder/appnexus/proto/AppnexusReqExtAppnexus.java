@@ -10,4 +10,6 @@ public class AppnexusReqExtAppnexus {
     Boolean includeBrandCategory;
 
     Boolean brandCategoryUniqueness;
+
+    String adpodId;
 }

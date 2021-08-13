@@ -118,16 +118,30 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if PBS server provides GDPR support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
-- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
+- `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
-But feel free to add additional bidder's specific options.
+In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
+Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
+support the same configuration options that their bidder counterparts support except `aliases` (i.e. it's not possible 
+to declare alias of an alias). Another restriction of aliases configuration is that they cannot declare support for media types 
+not supported by their bidders (however aliases could narrow down media types they support). For example: if the bidder 
+is written to not support native site requests, then an alias cannot magically decide to change that; however, if a bidder 
+supports native site requests, and the alias does not want to for some reason, it has the ability to remove that support.
+
+Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
@@ -206,6 +220,9 @@ For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
+For `prometheus` backend type available next options:
+- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
 - `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
@@ -261,24 +278,24 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:
 ```yaml
 settings:  
-  default-account-config:
-    events-enabled: true
-    enforce-ccpa: true
-    gdpr: '{"enabled": true}'
-    analytics-sampling-factor: 1
-    default-integration: pbjs
-    analytics-config: '{"auction-events":{"amp":true}}'
+  default-account-config: >
+    {
+      "eventsEnabled": true,
+      "enforceCcpa": true,
+      "gdpr": {
+        "enabled": true
+      },
+      "analyticsSamplingFactor": 1,
+      "defaultIntegration": "pbjs"
+    }
 ```
 See [application settings](application-settings.md) for full reference of available configuration parameters.
-Be aware that individual configuration values will not be merged with concrete 
-account values if they exist in account configuration but account value will completely replace the default value. For 
-example, if account configuration defines `gdpr` field, it will completely replace `settings.default-account-config.gdpr` 
-value in the final account configuration model.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
@@ -340,11 +357,11 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
-- `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
-- `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
-- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
-- `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+- `gdpr.vendorlist.v2.http-endpoint-template` - template string for vendor list url version 2.
+- `gdpr.vendorlist.v2.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
+- `gdpr.vendorlist.v2.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.v2.deprecated` - Flag to show is this vendor list is deprecated or not.
+- `gdpr.vendorlist.v2.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
@@ -361,3 +378,13 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+
+## Analytics
+- `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
+- `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
+- `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
+- `analytics.pubstack.configuration-refresh-delay-ms` - delay in milliseconds between remote config updates.
+- `analytics.pubstack.timeout-ms` - timeout in milliseconds for report and fetch config requests.
+- `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
+- `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
+- `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.

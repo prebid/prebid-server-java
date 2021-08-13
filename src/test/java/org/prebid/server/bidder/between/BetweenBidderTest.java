@@ -26,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -59,11 +58,11 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId", null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId", null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -86,11 +85,11 @@ public class BetweenBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId", null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId", null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -111,7 +110,7 @@ public class BetweenBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpBetween.of("host", "pubId", null, null)))));
+                        ExtImpBetween.of("host", "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
@@ -140,11 +139,11 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPublisherIdParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "", null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", null, null, null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -197,7 +196,7 @@ public class BetweenBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldEnrichEveryImpWithSecureBidFlorAndBidFloorCurParams() {
+    public void makeHttpRequestsShouldEnrichEveryImpWithSecureBidFlor() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("https://page.com").build()),
@@ -213,8 +212,8 @@ public class BetweenBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getSecure, Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(1, BigDecimal.ONE, "EUR"));
+                .extracting(Imp::getSecure)
+                .containsExactly(1);
     }
 
     @Test
@@ -223,10 +222,7 @@ public class BetweenBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("http://page.com").build()),
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId",
-                                BigDecimal.valueOf(-1), ""))))
-                        .bidfloor(BigDecimal.valueOf(12))
-                        .bidfloorcur("USD"));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
@@ -236,8 +232,8 @@ public class BetweenBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getSecure, Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(0, BigDecimal.valueOf(0.00001), "USD"));
+                .extracting(Imp::getSecure)
+                .containsExactly(0);
     }
 
     @Test
@@ -357,8 +353,7 @@ public class BetweenBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId",
-                        BigDecimal.ONE, "EUR")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 
