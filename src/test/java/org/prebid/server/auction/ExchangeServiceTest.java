@@ -108,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
@@ -118,6 +119,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -151,6 +153,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -360,11 +363,11 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(singletonMap("someBidder", 1), builder -> builder
-                        .id("impId")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(singletonMap("someBidder", 1), builder -> builder
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
@@ -396,11 +399,11 @@ public class ExchangeServiceTest extends VertxTest {
                 "UAH", singletonMap("EUR", BigDecimal.valueOf(1.1565)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(singletonMap("someBidder", 1), builder -> builder
-                        .id("impId")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(singletonMap("someBidder", 1), builder -> builder
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder
                         .id("requestId")
                         .ext(ExtRequest.of(
@@ -569,8 +572,8 @@ public class ExchangeServiceTest extends VertxTest {
                         .build());
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap(bidder1Name, 1), identity()),
-                givenImp(singletonMap(bidder2Name, 2), identity())),
+                        givenImp(singletonMap(bidder1Name, 1), identity()),
+                        givenImp(singletonMap(bidder2Name, 2), identity())),
                 builder -> builder.ext(extRequest));
 
         // when
@@ -705,7 +708,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(singletonMap("bidderAlias", 1), identity())),
+                        givenImp(singletonMap("bidderAlias", 1), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .build())));
@@ -724,7 +727,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(singletonMap("bidderAlias", 1), identity())),
+                        givenImp(singletonMap("bidderAlias", 1), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -748,7 +751,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(doubleMap("bidder", 1, "bidderAlias", 2), identity())),
+                        givenImp(doubleMap("bidder", 1, "bidderAlias", 2), identity())),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .aliases(singletonMap("bidderAlias", "bidder"))
                         .auctiontimestamp(1000L)
@@ -838,6 +841,141 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldOverrideDebugEnabledFlag() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+                .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
+                        singletonList(ExtHttpCall.builder().build()), emptyList())));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        BidResponse.builder()
+                                .ext(ExtBidResponse.builder()
+                                        .debug(ExtResponseDebug.of(null, null))
+                                        .build())
+                                .build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, true, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(true, true, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNotNull();
+    }
+
+    @Test
+    public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(),
+                singletonList(ExtHttpCall.builder().build()), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        BidResponse.builder()
+                                .ext(ExtBidResponse.builder()
+                                        .debug(ExtResponseDebug.of(null, null))
+                                        .build())
+                                .build()));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext())
+                .isEqualTo(DebugContext.of(true, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNotNull();
+    }
+
+    @Test
+    public void shouldNotAddDebugInfoIfPublisherIsNotAllowedToDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
+                        Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(false, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(false, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNull();
+    }
+
+    @Test
+    public void shouldNotAddDebugInfoIfBidderDisabledDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(true, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNull();
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void shouldCallBidResponseCreatorWithExpectedParamsAndUpdateDebugErrors() {
         // given
@@ -860,9 +998,9 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestTargeting targeting = givenTargeting(true);
         final ObjectNode events = mapper.createObjectNode();
         final BidRequest bidRequest = givenBidRequest(asList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .auctiontimestamp(1000L)
@@ -945,9 +1083,9 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestTargeting targeting = givenTargeting(false);
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .cache(ExtRequestPrebidCache.of(null, null, true))
@@ -985,9 +1123,9 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestTargeting targeting = givenTargeting(false);
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
-                givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1")),
+                        givenImp(doubleMap("bidder1", 1, "bidder2", 2), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(targeting)
                         .cache(ExtRequestPrebidCache.of(null, null, null))
@@ -1052,8 +1190,8 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .auctiontimestamp(1000L)
                         .build())));
@@ -1092,8 +1230,8 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build()))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .auctiontimestamp(1000L)
                         .build())));
@@ -1129,8 +1267,8 @@ public class ExchangeServiceTest extends VertxTest {
                         "USDD"))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .auctiontimestamp(1000L)
                         .build())));
@@ -1160,16 +1298,16 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(asList(
-                givenImp(singletonMap("someBidder1", 1), builder -> builder
-                        .id("impId1")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build())),
-                givenImp(singletonMap("someBidder2", 1), builder -> builder
-                        .id("impId2")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(singletonMap("someBidder1", 1), builder -> builder
+                                .id("impId1")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build())),
+                        givenImp(singletonMap("someBidder2", 1), builder -> builder
+                                .id("impId2")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
@@ -1205,11 +1343,11 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenEmptySeatBid());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
-                        .id("impId")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
@@ -1241,11 +1379,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.failedFuture(new InvalidRequestException("Error")));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
-                        .id("impId")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
@@ -1265,11 +1403,11 @@ public class ExchangeServiceTest extends VertxTest {
                 .willThrow(new PreBidException("Error"));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
-                        .id("impId")
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(300).build()))
-                                .build()))),
+                        givenImp(doubleMap("prebid", 0, "someBidder", 1), builder -> builder
+                                .id("impId")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(400).h(300).build()))
+                                        .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
@@ -1903,8 +2041,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .auctiontimestamp(1000L)
-                        .data(ExtRequestPrebidData.of(singletonList("someBidder"), null)).build()))
+                                .auctiontimestamp(1000L)
+                                .data(ExtRequestPrebidData.of(singletonList("someBidder"), null)).build()))
                         .site(Site.builder()
                                 .keywords("keyword")
                                 .search("search")
@@ -1952,7 +2090,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(bidderToGdpr),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(null, null)).build()))
+                                .data(ExtRequestPrebidData.of(null, null)).build()))
                         .app(App.builder()
                                 .keywords("keyword")
                                 .ext(ExtApp.of(null, dataNode))
@@ -2228,8 +2366,8 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenSeatBid(singletonList(givenBid(bid))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
-                // imp ids are not really used for matching, included them here for clarity
-                givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(givenTargeting(true))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null), null, null))
@@ -3332,8 +3470,8 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static <T> Imp givenImp(T ext, Function<ImpBuilder, ImpBuilder> impBuilderCustomizer) {
         return impBuilderCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(singletonMap(
-                        "prebid", ext != null ? singletonMap("bidder", ext) : emptyMap()))))
+                        .ext(mapper.valueToTree(singletonMap(
+                                "prebid", ext != null ? singletonMap("bidder", ext) : emptyMap()))))
                 .build();
     }
 
@@ -3355,8 +3493,8 @@ public class ExchangeServiceTest extends VertxTest {
     private static SeatBid givenSeatBid(List<Bid> bids,
                                         Function<SeatBid.SeatBidBuilder, SeatBid.SeatBidBuilder> seatBidCustomizer) {
         return seatBidCustomizer.apply(SeatBid.builder()
-                .seat("someBidder")
-                .bid(bids))
+                        .seat("someBidder")
+                        .bid(bids))
                 .build();
     }
 
@@ -3382,9 +3520,9 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilder) {
         return bidBuilder.apply(Bid.builder()
-                .id("bidId")
-                .price(BigDecimal.ONE)
-                .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
+                        .id("bidId")
+                        .price(BigDecimal.ONE)
+                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
                 .build();
     }
 
@@ -3405,8 +3543,8 @@ public class ExchangeServiceTest extends VertxTest {
 
     private static ExtRequestTargeting givenTargeting(boolean includebidderkeys) {
         return ExtRequestTargeting.builder().pricegranularity(mapper.valueToTree(
-                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                        BigDecimal.valueOf(0.5))))))
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
                 .includewinners(true)
                 .includebidderkeys(includebidderkeys)
                 .build();
