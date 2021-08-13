@@ -100,7 +100,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private AuctionContext defaultActionContext;
 
     @Before
-    public void setUp() {
+    public void setUp() throws JsonProcessingException {
         defaultBidRequest = BidRequest.builder().build();
         defaultAccount = Account.empty(ACCOUNT_ID);
 
@@ -118,6 +118,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(BidRequest.builder().build()));
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
@@ -272,6 +273,20 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future).succeededWith(auctionContext);
+    }
+
+    @Test
+    public void shouldEnrichAuctionContextWithDebugContext() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).getDebugContext(any());
+        assertThat(result.result().getDebugContext()).isEqualTo(
+                DebugContext.of(true, true, null));
     }
 
     @Test

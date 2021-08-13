@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -104,6 +105,9 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
+        given(debugResolver.getDebugContext(any()))
+                .willReturn(DebugContext.of(true, true, null));
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
@@ -239,6 +243,23 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .ua("user-agent-456")
                         .build())
                 .build()));
+    }
+
+    @Test
+    public void shouldEnrichAuctionContextWithDebugContext() throws JsonProcessingException {
+        // given
+        final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
+                Device.builder().ua("123").build()).build();
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        givenBidRequest(BidRequest.builder().build(), emptyList());
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).getDebugContext(any());
+        assertThat(result.result().getData().getDebugContext())
+                .isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test
