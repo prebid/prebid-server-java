@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -107,6 +108,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     private AmpRequestFactory target;
 
@@ -164,6 +167,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 

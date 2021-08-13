@@ -183,7 +183,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DebugResolver debugResolver(@Value("${video.debug-override-token:#{null}") String debugOverrideToken) {
+    DebugResolver debugResolver(@Value("${debug.override-token:#{null}") String debugOverrideToken) {
         return new DebugResolver(debugOverrideToken);
     }
 
@@ -287,6 +287,7 @@ public class ServiceConfiguration {
                                         FpdResolver fpdResolver,
                                         PrivacyEnforcementService privacyEnforcementService,
                                         TimeoutResolver timeoutResolver,
+                                        DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
@@ -298,6 +299,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 

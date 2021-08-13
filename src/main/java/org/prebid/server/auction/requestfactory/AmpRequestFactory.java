@@ -18,6 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -94,6 +95,7 @@ public class AmpRequestFactory {
     private final FpdResolver fpdResolver;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
+    private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
@@ -104,6 +106,7 @@ public class AmpRequestFactory {
                              FpdResolver fpdResolver,
                              PrivacyEnforcementService privacyEnforcementService,
                              TimeoutResolver timeoutResolver,
+                             DebugResolver debugResolver,
                              JacksonMapper mapper) {
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -113,6 +116,7 @@ public class AmpRequestFactory {
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -133,6 +137,8 @@ public class AmpRequestFactory {
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(debugResolver.getDebugContext(auctionContext)))
 
                 .compose(auctionContext -> updateBidRequest(auctionContext)
                         .map(auctionContext::with))

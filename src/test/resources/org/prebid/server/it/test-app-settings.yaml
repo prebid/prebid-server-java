@@ -11,6 +11,7 @@ accounts:
     eventsEnabled: true
     allowedDebug: true
   - id: 6001
+    allowedDebug: true
     hooks:
       execution-plan:
         endpoints:
