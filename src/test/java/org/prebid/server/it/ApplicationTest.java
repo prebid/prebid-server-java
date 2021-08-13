@@ -510,6 +510,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(SPEC)
                 .when()
+                .queryParam("enabledonly", "false")
                 .get("/info/bidders");
 
         // then
