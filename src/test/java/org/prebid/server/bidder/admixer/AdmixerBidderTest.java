@@ -182,7 +182,7 @@ public class AdmixerBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
                 BidRequest.builder()
-                        .imp(singletonList(givenImp(builder -> builder)))
+                        .imp(singletonList(givenImp(UnaryOperator.identity())))
                         .build());
 
         // then
@@ -382,11 +382,9 @@ public class AdmixerBidderTest extends VertxTest {
 
     //method where zoneId cut from ext and passed to tagId field
     private static Imp givenImpWithParsedTagID(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
+        return givenImp(builder -> builder
                 .tagid("veryVeryVerySuperLongZoneIdValue")
                 .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                        givenCustomParams("foo1", singletonList("bar1"))))))
-                .build();
+                        givenCustomParams("foo1", singletonList("bar1"))))));
     }
 }

@@ -85,7 +85,9 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
         }
-        if (StringUtils.length(extImpAdmixer.getZone()) < 32 || StringUtils.length(extImpAdmixer.getZone()) > 36) {
+        String zoneId = extImpAdmixer.getZone();
+
+        if (StringUtils.length(zoneId) < 32 || StringUtils.length(zoneId) > 36) {
             throw new PreBidException("ZoneId must be UUID/GUID");
         }
 
@@ -93,24 +95,21 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
-        final BigDecimal bidFloor = calculateBifLoor(extImpAdmixer.getCustomFloor(), imp.getBidfloor());
-
         return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
-                .bidfloor(bidFloor)
+                .bidfloor(resolveBidFloor(extImpAdmixer.getCustomFloor(), imp.getBidfloor()))
                 .ext(makeImpExt(extImpAdmixer.getCustomParams()))
                 .build();
     }
 
-    private BigDecimal calculateBifLoor(BigDecimal customFloor, BigDecimal bidFloor) {
-        customFloor = isValidBidFloor(customFloor) ? customFloor : null;
+    private BigDecimal resolveBidFloor(BigDecimal customBidFloor, BigDecimal bidFloor) {
+        final BigDecimal resolvedCustomBidFloor = isValidBidFloor(customBidFloor) ? customBidFloor : null;
 
-        return isValidBidFloor(bidFloor) ? bidFloor : customFloor;
-
+        return isValidBidFloor(bidFloor) ? bidFloor : resolvedCustomBidFloor;
     }
 
-    private static boolean isValidBidFloor(BigDecimal impFloor) {
-        return impFloor != null && impFloor.compareTo(BigDecimal.ZERO) > 0;
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {
