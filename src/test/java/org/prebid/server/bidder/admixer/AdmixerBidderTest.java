@@ -268,7 +268,7 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorNullCustomFloorNull() {
+    public void makeHttpRequestsShouldReturnBidFloorAsNullIfGivenBidFloorNullCustomFloorNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(builder -> builder.bidfloor(null))))
@@ -286,7 +286,7 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorZeroCustomFloorNull() {
+    public void makeHttpRequestsShouldReturnBidFloorAsNullIfGivenBidFloorZeroCustomFloorNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(builder -> builder.bidfloor(BigDecimal.ZERO))))
@@ -304,7 +304,7 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorZeroCustomFloorZero() {
+    public void makeHttpRequestsShouldReturnBidFloorAsNullIfGivenBidFloorZeroCustomFloorZero() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(builder -> builder
@@ -329,7 +329,7 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNullIfBidFloorNullCustomFloorZero() {
+    public void makeHttpRequestsShouldReturnBidFloorAsNullIfGivenBidFloorNullCustomFloorZero() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(builder -> builder
