@@ -1,7 +1,7 @@
 adapters:
   adagio:
     enabled: false
-    endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
+    endpoint: https://adagio.io/
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
@@ -18,8 +18,8 @@ adapters:
       supported-vendors:
       vendor-id: 617
     usersync:
-      url: https://ads.betweendigital.com/match?bidder_id=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback_url=
-      redirect-url: /setuid?bidder=between&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=${USER_ID}
-      cookie-family-name: between
+      url: https://adagio.io/
+      redirect-url: https://adagio.io/
+      cookie-family-name: adagio
       type: redirect
       support-cors: false
