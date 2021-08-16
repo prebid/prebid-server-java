@@ -6,14 +6,13 @@ import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -58,30 +57,27 @@ public class HttpBidderRequestEnricher {
     }
 
     private void addXPrebidHeader(MultiMap headers, BidRequest bidRequest) {
-        final String channelRecord = resolveChannelVersionRecord(bidRequest.getExt());
-        final String sdkRecord = resolveSdkVersionRecord(bidRequest.getApp());
-        final String value = Stream.of(channelRecord, sdkRecord, pbsRecord)
+        final Optional<String> channelRecord = resolveChannelVersionRecord(bidRequest.getExt());
+        final Optional<String> sdkRecord = resolveSdkVersionRecord(bidRequest.getApp());
+        final String value = Stream.of(channelRecord, sdkRecord, Optional.of(pbsRecord))
+                .flatMap(Optional::stream)
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(","));
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_PREBID_HEADER, value);
     }
 
-    private static String resolveChannelVersionRecord(ExtRequest extRequest) {
-        final ExtRequestPrebid extPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final ExtRequestPrebidChannel channel = extPrebid != null ? extPrebid.getChannel() : null;
-        final String channelName = channel != null ? channel.getName() : null;
-        final String channelVersion = channel != null ? channel.getVersion() : null;
-
-        return createNameVersionRecord(channelName, channelVersion);
+    private static Optional<String> resolveChannelVersionRecord(ExtRequest extRequest) {
+        return Optional.ofNullable(extRequest)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .map(channel -> createNameVersionRecord(channel.getName(), channel.getVersion()));
     }
 
-    private static String resolveSdkVersionRecord(App app) {
-        final ExtApp extApp = app != null ? app.getExt() : null;
-        final ExtAppPrebid extPrebid = extApp != null ? extApp.getPrebid() : null;
-        final String sdkSource = extPrebid != null ? extPrebid.getSource() : null;
-        final String sdkVersion = extPrebid != null ? extPrebid.getVersion() : null;
-
-        return createNameVersionRecord(sdkSource, sdkVersion);
+    private static Optional<String> resolveSdkVersionRecord(App app) {
+        return Optional.ofNullable(app)
+                .map(App::getExt)
+                .map(ExtApp::getPrebid)
+                .map(extPrebid -> createNameVersionRecord(extPrebid.getSource(), extPrebid.getVersion()));
     }
 
     private static String createNameVersionRecord(String name, String version) {
