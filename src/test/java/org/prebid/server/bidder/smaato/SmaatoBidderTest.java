@@ -611,6 +611,28 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldSetTtlToZeroIfExpirationHeaderIsPresentInResponseButLessThanCurrentTime()
+            throws JsonProcessingException {
+        // given
+        when(clock.millis()).thenReturn(999999L);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.adm("<?xml"))),
+                MultiMap.caseInsensitiveMultiMap().set("X-Smt-Expires", String.valueOf(10000)));
+
+        // when
+        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isNotEmpty()
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExp)
+                .containsExactly(0);
+    }
+
+    @Test
     public void makeBidsShouldSetDefaultTtlIfExpirationHeaderIsAbsentInResponse() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
