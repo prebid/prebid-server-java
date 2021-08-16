@@ -229,13 +229,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String tagId) {
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId) {
         final Video modifiedVideo = imp.getVideo().toBuilder()
                 .sequence(sequence)
                 .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
                 .build();
         return imp.toBuilder()
-                .tagid(tagId)
+                .tagid(adBreakId)
                 .video(modifiedVideo)
                 .ext(null)
                 .build();
