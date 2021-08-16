@@ -8,6 +8,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class DebugResolverTest {
 
     @Test
-    public void debugResolverShouldSetDebugEnabledAndDebugOverrideIfDebugOverrideTokenHeaderPresentInHttpRequest() {
+    public void shouldSetDebugEnabledAndDebugOverrideIfDebugOverrideTokenHeaderPresentInHttpRequest() {
         // given
         final String debugOverrideToken = "override_token";
         final DebugResolver debugResolver = new DebugResolver(debugOverrideToken);
@@ -37,7 +38,7 @@ public class DebugResolverTest {
     }
 
     @Test
-    public void debugResolverShouldSetDebugEnabledIfPublisherAllowedAndDebugSetInBidRequestExt() {
+    public void shouldSetDebugEnabledIfPublisherAllowedAndDebugSetInBidRequestExt() {
         // given
         final DebugResolver debugResolver = new DebugResolver(null);
 
@@ -59,7 +60,7 @@ public class DebugResolverTest {
     }
 
     @Test
-    public void debugResolverShouldDisableDebugIfPublisherDebugIsNotAllowed() {
+    public void shouldDisableDebugIfPublisherDebugIsNotAllowed() {
         // given
         final DebugResolver debugResolver = new DebugResolver(null);
 
@@ -78,5 +79,27 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, false, null));
+    }
+
+    @Test
+    public void shouldPassTraceLevelThrough() {
+        // given
+        final DebugResolver debugResolver = new DebugResolver(null);
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().trace(TraceLevel.basic).build()))
+                        .build())
+                .httpRequest(HttpRequestContext.builder()
+                        .headers(CaseInsensitiveMultiMap.empty())
+                        .build())
+                .account(Account.builder().allowedDebug(false).build())
+                .build();
+
+        // when
+        final DebugContext result = debugResolver.getDebugContext(auctionContext);
+
+        // then
+        assertThat(result).isEqualTo(DebugContext.of(false, false, TraceLevel.basic));
     }
 }
