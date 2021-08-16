@@ -882,7 +882,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeBidsShouldReturnCorrectBidIfAdMarkTypeIsVideo() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
+                givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder ->
                         bidBuilder
                                 .adm("<?xml version=\"1.0\" encoding="
