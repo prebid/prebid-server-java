@@ -98,7 +98,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getKeywords, User::getGender, User::getYob)
@@ -117,7 +117,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getKeywords, Site::getExt)
@@ -134,7 +134,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
@@ -566,9 +566,8 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Empty ad markup in bid with id: test"));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Empty ad markup in bid with id: test"));
     }
 
     @Test
@@ -585,8 +584,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Invalid markupType anyType"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid markupType anyType"));
     }
 
     @Test
@@ -604,7 +602,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isNotEmpty()
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExp)
                 .containsExactly(9);
@@ -626,7 +624,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isNotEmpty()
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExp)
                 .containsExactly(0);
@@ -645,7 +643,7 @@ public class SmaatoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isNotEmpty()
+        assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExp)
                 .containsExactly(300);
@@ -663,9 +661,8 @@ public class SmaatoBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Invalid ad markup adm."));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid ad markup adm."));
     }
 
     @Test
@@ -719,8 +716,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -757,8 +753,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -773,6 +768,7 @@ public class SmaatoBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
 
+        // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("bid.adm.richmedia is empty"));
     }
@@ -797,9 +793,9 @@ public class SmaatoBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null)))
                 .exp(300)
                 .build();
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
     }
 
     @Test
@@ -839,8 +835,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -880,8 +875,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -911,8 +905,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
     }
 
     @Test
