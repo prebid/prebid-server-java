@@ -169,7 +169,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureIfRequestBodyIsMissing() {
         // given
-        given(routingContext.getBody()).willReturn(null);
+        given(routingContext.getBodyAsString()).willReturn(null);
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
