@@ -52,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -78,10 +79,12 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final Clock clock;
 
-    public SmaatoBidder(String endpointUrl, JacksonMapper mapper) {
+    public SmaatoBidder(String endpointUrl, JacksonMapper mapper, Clock clock) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.clock = Objects.requireNonNull(clock);
     }
 
     @Override
@@ -387,10 +390,10 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static int getTtl(MultiMap headers) {
+    private int getTtl(MultiMap headers) {
         try {
             final long expiresAtMillis = Long.parseLong(headers.get(SMT_EXPIRES_HEADER));
-            final long currentTimeMillis = System.currentTimeMillis();
+            final long currentTimeMillis = clock.millis();
             return (int) Math.max((expiresAtMillis - currentTimeMillis) / 1000, 0);
         } catch (NumberFormatException e) {
             return DEFAULT_TTL;
