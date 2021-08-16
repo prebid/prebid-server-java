@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -11,6 +12,8 @@ public class BidderInfo {
     boolean enabled;
 
     boolean debugAllowed;
+
+    boolean usesHttps;
 
     String aliasOf;
 
@@ -28,6 +31,7 @@ public class BidderInfo {
 
     public static BidderInfo create(boolean enabled,
                                     boolean debugAllowed,
+                                    String endpoint,
                                     String aliasOf,
                                     String maintainerEmail,
                                     List<String> appMediaTypes,
@@ -41,6 +45,7 @@ public class BidderInfo {
         return of(
                 enabled,
                 debugAllowed,
+                StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
                 new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),

@@ -443,6 +443,7 @@ public class BidderParamValidatorTest extends VertxTest {
         return BidderInfo.create(
                 true,
                 true,
+                "https://endpoint.com",
                 aliasOf,
                 null,
                 null,

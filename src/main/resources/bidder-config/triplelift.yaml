@@ -1,7 +1,7 @@
 adapters:
   triplelift:
     enabled: false
-    endpoint: https://tlx.3lift.com/s2s/auction?sra=1&supplier_id=20
+    endpoint: https://tlx.3lift.com/s2s/auction?sra=1&supplier_id=39
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true

@@ -2329,6 +2329,28 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRemoveSiteIfBothSiteAndAppPresent() {
+        // given
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(App.builder().build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest captureBidRequest = captureBidRequest();
+        assertThat(captureBidRequest)
+                .extracting(BidRequest::getSite)
+                .containsNull();
+        assertThat(captureBidRequest)
+                .extracting(BidRequest::getApp)
+                .doesNotContainNull();
+    }
+
+    @Test
     public void shouldPassGlobalTimeoutToConnectorUnchangedIfCachingIsNotRequested() {
         // given
         givenBidder(givenEmptySeatBid());

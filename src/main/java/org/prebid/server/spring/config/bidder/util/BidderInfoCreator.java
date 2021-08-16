@@ -19,6 +19,7 @@ public class BidderInfoCreator {
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
                 configurationProperties.getDebug().getAllowed(),
+                configurationProperties.getEndpoint(),
                 aliasOf,
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
