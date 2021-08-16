@@ -16,14 +16,14 @@
           }
         }
       ],
-      "seat": "generic_adapter",
+      "seat": "generic",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "generic_adapter": "{{ generic_adapter.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

@@ -3,5 +3,11 @@
   "title": "Generic Adapter Params",
   "description": "A schema which validates params accepted by the Generic adapter",
   "type": "object",
-  "properties": {}
+  "properties": {
+    "exampleProperty": {
+      "type": "string",
+      "description": "Example property",
+      "minLength": 1
+    }
+  }
 }

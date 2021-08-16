@@ -8,8 +8,8 @@
         "h": 250
       },
       "ext": {
-        "generic_adapter": {
-          "supplyPartnerId": "1701"
+        "generic": {
+          "exampleProperty": "exampleProperty"
         }
       }
     }

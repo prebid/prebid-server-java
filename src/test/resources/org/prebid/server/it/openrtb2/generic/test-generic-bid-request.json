@@ -9,7 +9,7 @@
       },
       "ext": {
         "bidder": {
-          "supplyPartnerId": "1701"
+          "exampleProperty": "exampleProperty"
         }
       }
     }

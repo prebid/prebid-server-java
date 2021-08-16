@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.generic_adapter;
+package org.prebid.server.bidder.generic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Audio;
@@ -23,9 +23,10 @@ import org.prebid.server.bidder.model.Result;
 
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
@@ -50,7 +51,7 @@ public class GenericBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
+    public void makeHttpRequestsShouldCreateExpectedUrl() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -112,9 +113,7 @@ public class GenericBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -123,15 +122,14 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), banner, null));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -140,16 +138,14 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(givenBid(), video, null));
     }
 
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -158,16 +154,14 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
+                .containsExactly(BidderBid.of(givenBid(), xNative, null));
     }
 
     @Test
     public void makeBidsShouldReturnAudioBidIfAudioIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.audio(Audio.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -176,7 +170,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), audio, null));
+                .containsExactly(BidderBid.of(givenBid(), audio, null));
     }
 
     @Test
@@ -184,9 +178,7 @@ public class GenericBidderTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
+                givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
@@ -195,10 +187,10 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), banner, null));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
 
@@ -206,7 +198,7 @@ public class GenericBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder()).build())))
+                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
                 .build();
     }
 
@@ -215,6 +207,10 @@ public class GenericBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
+    }
+
+    private static Bid givenBid() {
+        return Bid.builder().impid("123").build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {

@@ -24,6 +24,6 @@ adapters:
     usersync:
       url:
       redirect-url:
-      cookie-family-name: generic_adapter
+      cookie-family-name: generic
       type: redirect
       support-cors: false

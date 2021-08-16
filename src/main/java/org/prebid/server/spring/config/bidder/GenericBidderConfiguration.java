@@ -18,10 +18,10 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/generic_adapter.yaml", factory = YamlPropertySourceFactory.class)
+@PropertySource(value = "classpath:/bidder-config/generic.yaml", factory = YamlPropertySourceFactory.class)
 public class GenericBidderConfiguration {
 
-    private static final String BIDDER_NAME = "generic_adapter";
+    private static final String BIDDER_NAME = "generic";
 
     @Value("${external-url}")
     @NotBlank

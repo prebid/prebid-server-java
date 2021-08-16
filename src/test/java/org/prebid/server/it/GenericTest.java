@@ -21,18 +21,18 @@ public class GenericTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheGenericBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic_adapter-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/generic_adapter/test-generic_adapter-bid-request.json")))
+                        jsonFrom("openrtb2/generic/test-generic-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/generic_adapter/test-generic_adapter-bid-response.json"))));
+                        jsonFrom("openrtb2/generic/test-generic-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/generic_adapter/test-auction-generic_adapter-request.json",
+        final Response response = responseFor("openrtb2/generic/test-auction-generic-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/generic_adapter/test-auction-generic_adapter-response.json", response,
-                singletonList("generic_adapter"));
+        assertJsonEquals("openrtb2/generic/test-auction-generic-response.json", response,
+                singletonList("generic"));
     }
 }
