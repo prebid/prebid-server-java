@@ -61,7 +61,6 @@ public class HttpBidderRequestEnricher {
         final Optional<String> sdkRecord = resolveSdkVersionRecord(bidRequest.getApp());
         final String value = Stream.of(channelRecord, sdkRecord, Optional.of(pbsRecord))
                 .flatMap(Optional::stream)
-                .filter(Objects::nonNull)
                 .collect(Collectors.joining(","));
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_PREBID_HEADER, value);
     }
