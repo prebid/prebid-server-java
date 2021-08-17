@@ -41,9 +41,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Gumgum {@link Bidder} implementation.
- */
 public class GumgumBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
@@ -71,13 +68,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encode(outgoingRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encode(outgoingRequest))
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

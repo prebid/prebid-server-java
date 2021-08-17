@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Mobfoxpb {@link Bidder} implementation.
- */
 public class MobfoxpbBidder implements Bidder<BidRequest> {
 
     private static final String ROUTE_RTB = "rtb";

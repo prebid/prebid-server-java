@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * InteractiveOffers {@link Bidder} implementation.
- */
 public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

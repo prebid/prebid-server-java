@@ -52,9 +52,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Smaato {@link Bidder} implementation.
- */
 public class SmaatoBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
@@ -107,13 +104,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(mapper.encode(outgoingRequest))
+                                .build()),
                 errors);
     }
 

@@ -44,9 +44,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Ix {@link Bidder} implementation.
- */
 public class IxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE = new
@@ -288,7 +285,8 @@ public class IxBidder implements Bidder<BidRequest> {
                         || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue()))
                 .collect(Collectors.toList());
         final List<String> impTrackers = Stream.concat(
-                impressionAndImageTrackers.stream().map(EventTracker::getUrl), response.getImptrackers().stream())
+                        impressionAndImageTrackers.stream().map(EventTracker::getUrl),
+                        response.getImptrackers().stream())
                 .distinct()
                 .collect(Collectors.toList());
 

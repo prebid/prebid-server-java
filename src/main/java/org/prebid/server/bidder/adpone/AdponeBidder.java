@@ -44,14 +44,14 @@ public class AdponeBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers()
-                                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION))
-                        .body(mapper.encode(bidRequest))
-                        .payload(bidRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers()
+                                        .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION))
+                                .body(mapper.encode(bidRequest))
+                                .payload(bidRequest)
+                                .build()),
                 Collections.emptyList());
     }
 

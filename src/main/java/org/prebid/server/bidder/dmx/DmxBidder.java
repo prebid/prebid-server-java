@@ -43,9 +43,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Dmx {@link Bidder} implementation.
- */
 public class DmxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpDmx>> DMX_EXT_TYPE_REFERENCE =
@@ -116,13 +113,13 @@ public class DmxBidder implements Bidder<BidRequest> {
         final String uri = String.format("%s%s", endpointUrl, urlParameter);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(uri)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(uri)
+                                .headers(HttpUtil.headers())
+                                .body(mapper.encode(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

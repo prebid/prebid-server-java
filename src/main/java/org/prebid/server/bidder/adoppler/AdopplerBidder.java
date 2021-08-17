@@ -37,9 +37,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adoppler {@link Bidder} implementation.
- */
 public class AdopplerBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =

@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * ImproveDigital {@link Bidder} implementation.
- */
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * ConnectAd {@link Bidder} implementation.
- */
 public class ConnectadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
@@ -77,13 +74,13 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(resolveHeaders(request.getDevice()))
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(resolveHeaders(request.getDevice()))
+                                .payload(outgoingRequest)
+                                .body(body)
+                                .build()),
                 errors);
     }
 
