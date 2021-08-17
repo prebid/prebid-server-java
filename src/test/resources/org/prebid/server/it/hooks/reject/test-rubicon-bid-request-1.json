@@ -1,0 +1,76 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 300,
+            "h": 600
+          }
+        ],
+        "ext": {
+          "rp": {
+            "size_id": 15,
+            "alt_size_ids": [
+              10
+            ],
+            "mime": "text/html"
+          }
+        }
+      },
+      "ext": {
+        "rp": {
+          "zone_id": 4001,
+          "target": {
+            "page": [
+              "http://www.example.com"
+            ]
+          },
+          "track": {
+            "mint": "",
+            "mint_version": ""
+          }
+        },
+        "maxbids": 1
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "ext": {
+        "rp": {
+          "account_id": 2001
+        }
+      }
+    },
+    "ext": {
+      "rp": {
+        "site_id": 3001
+      },
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "language": "en",
+    "ext": {
+      "rp": {
+      }
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+    }
+  },
+  "at": 1,
+  "tmax": 5000
+}

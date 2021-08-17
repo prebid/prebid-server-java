@@ -63,11 +63,6 @@ public class AdformBidder implements Bidder<Void> {
         this.httpUtil = new AdformHttpUtil();
     }
 
-    /**
-     * Makes the HTTP requests which should be made to fetch bids.
-     * <p>
-     * Creates GET http request with all parameters in url and headers with empty body.
-     */
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
@@ -286,8 +281,6 @@ public class AdformBidder implements Bidder<Void> {
     private List<BidderBid> toBidderBid(List<AdformBid> adformBids, List<Imp> imps) {
         final List<BidderBid> bidderBids = new ArrayList<>();
 
-        final String currency = CollectionUtils.isNotEmpty(adformBids) ? adformBids.get(0).getWinCur() : null;
-
         for (int i = 0; i < adformBids.size(); i++) {
             final AdformBid adformBid = adformBids.get(i);
             final String adm = resolveAdm(adformBid);
@@ -307,7 +300,7 @@ public class AdformBidder implements Bidder<Void> {
                             .crid(adformBid.getWinCrid())
                             .build(),
                     bidType,
-                    currency));
+                    adformBid.getWinCur()));
         }
 
         return bidderBids;

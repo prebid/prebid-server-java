@@ -1,0 +1,15 @@
+{
+  "adserverRequestId": "arid",
+  "bidId": "bid_id",
+  "creatives": [
+    {
+      "cpm": 10,
+      "creative": {
+        "campaign_key": "cmpKey",
+        "creative_key": "creaKey"
+      },
+      "version": 0
+    }
+  ]
+}
+

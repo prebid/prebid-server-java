@@ -22,9 +22,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
@@ -310,8 +310,9 @@ public class AuctionHandlerTest extends VertxTest {
                 .build();
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
-                        .ext(mapper.valueToTree(ExtBidResponse.of(ExtResponseDebug.of(null, resolvedRequest),
-                                null, null, null, null, null, null)))
+                        .ext(ExtBidResponse.builder()
+                                .debug(ExtResponseDebug.of(null, resolvedRequest))
+                                .build())
                         .build()));
 
         // when
@@ -555,8 +556,8 @@ public class AuctionHandlerTest extends VertxTest {
     public void shouldIncrementRejectedMetricsIfUnknownUser() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(
-                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id 1", "1"))
-        );
+                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id 1", "1")));
+
         // when
         auctionHandler.handle(routingContext);
 
@@ -574,9 +575,6 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        // TODO adminManager: enable when admin endpoints can be bound on application port
-        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
-
         final AuctionEvent auctionEvent = captureAuctionEvent();
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
                 .httpContext(givenHttpContext())

@@ -1,0 +1,51 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "539439964",
+      "bidfloor": 0.1,
+      "ext": {
+        "customParams": {
+          "foo": "bar",
+          "multifoo": [
+            "bar1",
+            "bar2"
+          ]
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "delDomain": "se-demo-d.openx.net",
+    "bc": "hb_pbs_1.0.0"
+  }
+}

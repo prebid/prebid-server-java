@@ -27,4 +27,8 @@ public class BidderBid {
      * Will be used for converting to ad server currency
      */
     String bidCurrency;
+
+    public BidderBid with(Bid bid) {
+        return BidderBid.of(bid, this.type, this.bidCurrency);
+    }
 }

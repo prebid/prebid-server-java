@@ -497,43 +497,6 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSendRequestToTestUrlWithHeadersWhenTestIsOne() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpEmxDigital.of("1", "asd"))))
-                        .build()))
-                .device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
-                .site(Site.builder().page("myPage").build())
-                .test(1)
-                .tmax(1000L)
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
-                .makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getUri)
-                .allSatisfy(uri -> assertThat(uri).isEqualTo("https://test.endpoint.com?t=1000&ts=2060541160"));
-
-        assertThat(result.getValue()).hasSize(1)
-                .flatExtracting(r -> r.getHeaders().entries())
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"),
-                        tuple("User-Agent", "Agent"),
-                        tuple("X-Forwarded-For", "ip"),
-                        tuple("Referer", "myPage"),
-                        tuple("DNT", "1"),
-                        tuple("Accept-Language", "fr"));
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");

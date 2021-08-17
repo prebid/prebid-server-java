@@ -96,7 +96,6 @@ public class ConsumableBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-
     }
 
     @Test

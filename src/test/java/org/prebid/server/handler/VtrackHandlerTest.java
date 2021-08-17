@@ -2,6 +2,8 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -23,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,9 +38,9 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -69,6 +72,7 @@ public class VtrackHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
         given(httpRequest.getParam("a")).willReturn("accountId");
         given(httpRequest.getParam("int")).willReturn("pbjs");
@@ -92,6 +96,15 @@ public class VtrackHandlerTest extends VertxTest {
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Account 'a' is required query parameter and can't be empty"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedHeaders() {
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 
     @Test

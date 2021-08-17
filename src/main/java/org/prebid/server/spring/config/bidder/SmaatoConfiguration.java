@@ -4,9 +4,7 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.smaato.SmaatoBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,13 +42,10 @@ public class SmaatoConfiguration {
 
     @Bean
     BidderDeps smaatoBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
-
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new SmaatoBidder(configProperties.getEndpoint(), mapper))
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new SmaatoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
+
 @Builder
 @Value
 public class AccountGdprConfig {
@@ -21,4 +23,7 @@ public class AccountGdprConfig {
 
     @JsonProperty("purpose-one-treatment-interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
+
+    @JsonProperty("basic-enforcement-vendors")
+    List<String> basicEnforcementVendors;
 }

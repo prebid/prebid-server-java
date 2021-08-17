@@ -1,50 +1,30 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "7706636740145184841",
-          "impid": "impId1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.5,
           "adm": "some-test-ad",
-          "adid": "29681110",
+          "adid": "adid",
           "adomain": [
             "triplelift.com"
           ],
           "iurl": "http://nym1-ib.adnxs.com/cr?id=29681110",
-          "cid": "958",
-          "crid": "29681110",
+          "cid": "cid",
+          "crid": "crid",
           "w": 300,
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "0.50",
-                "hb_cache_path_triplelift": "{{ cache.path }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_size_triplelift": "300x250",
-                "hb_bidder_triplelift": "triplelift",
-                "hb_size": "300x250",
-                "hb_bidder": "triplelift",
-                "hb_cache_id": "5b9f507f-2ae9-4111-a697-796f3174df10",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_pb_triplelift": "0.50",
-                "hb_cache_id_triplelift": "5b9f507f-2ae9-4111-a697-796f3174df10",
-                "hb_cache_host_triplelift": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}5b9f507f-2ae9-4111-a697-796f3174df10",
-                  "cacheId": "5b9f507f-2ae9-4111-a697-796f3174df10"
-                }
-              }
+              "type": "banner"
             },
-            "bidder": {
-              "triplelift_pb": {
-                "format": 2
-              }
+            "origbidcpm": 0.5,
+            "origbidcur": "USD",
+            "triplelift_pb": {
+              "format": 2
             }
           }
         }
@@ -56,11 +36,10 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "triplelift": "{{ triplelift.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "triplelift": "{{ triplelift.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

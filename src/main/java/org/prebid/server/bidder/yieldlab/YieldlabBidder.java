@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -70,9 +71,16 @@ public class YieldlabBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
+        final String uri;
+        try {
+            uri = makeUrl(modifiedExtImp, request);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
         return Result.withValue(HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(makeUrl(modifiedExtImp, request))
+                .uri(uri)
                 .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
                 .build());
     }
@@ -121,8 +129,14 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final String updatedPath = String.format("%s/%s", endpointUrl, extImpYieldlab.getAdslotId());
 
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(updatedPath)
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(updatedPath);
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Invalid url: %s, error: %s", updatedPath, e.getMessage()));
+        }
+
+        uriBuilder
                 .addParameter("content", "json")
                 .addParameter("pvid", "true")
                 .addParameter("ts", timestamp)

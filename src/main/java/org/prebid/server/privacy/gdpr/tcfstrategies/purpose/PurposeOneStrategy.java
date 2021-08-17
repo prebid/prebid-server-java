@@ -4,7 +4,7 @@ import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
 public class PurposeOneStrategy extends PurposeStrategy {
 
@@ -25,8 +25,8 @@ public class PurposeOneStrategy extends PurposeStrategy {
     }
 
     @Override
-    public Purpose getPurpose() {
-        return Purpose.ONE;
+    public PurposeCode getPurpose() {
+        return PurposeCode.ONE;
     }
 }
 

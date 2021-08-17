@@ -14,4 +14,8 @@ public class BidderRequest {
     String storedResponse;
 
     BidRequest bidRequest;
+
+    public BidderRequest with(BidRequest bidRequest) {
+        return of(this.bidder, this.storedResponse, bidRequest);
+    }
 }
