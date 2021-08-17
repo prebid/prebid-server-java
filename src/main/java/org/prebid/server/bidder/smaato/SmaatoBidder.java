@@ -16,7 +16,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -43,13 +42,13 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -107,13 +106,13 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(mapper.encode(outgoingRequest))
+                                .build()),
                 errors);
     }
 
@@ -306,10 +305,10 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return String.format("<div style=\"cursor:pointer\" onclick=\"%s;window.open(decodeURIComponent"
                         + "('%s'.replace(/\\+/g, ' ')));\"><img src=\"%s\" width=\"%d\" height=\"%d\"/>%s</div>",
                 clickEvent.toString(),
-                HttpUtil.encodeUrl(StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getCtaurl))),
-                StringUtils.stripToEmpty(getIfNotNull(img, SmaatoImg::getUrl)),
-                stripToZero(getIfNotNull(img, SmaatoImg::getW)),
-                stripToZero(getIfNotNull(img, SmaatoImg::getH)),
+                HttpUtil.encodeUrl(StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(img, SmaatoImg::getCtaurl))),
+                StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(img, SmaatoImg::getUrl)),
+                stripToZero(ObjectUtils.getIfNotNull(img, SmaatoImg::getW)),
+                stripToZero(ObjectUtils.getIfNotNull(img, SmaatoImg::getH)),
                 impressionTracker.toString());
     }
 
@@ -333,7 +332,8 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
         return String.format("<div onclick=\"%s\">%s%s</div>",
                 clickEvent.toString(),
-                StringUtils.stripToEmpty(getIfNotNull(richmedia.getMediadata(), SmaatoMediaData::getContent)),
+                StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(richmedia.getMediadata(),
+                        SmaatoMediaData::getContent)),
                 impressionTracker.toString());
     }
 
@@ -355,10 +355,6 @@ public class SmaatoBidder implements Bidder<BidRequest> {
             default:
                 throw new PreBidException(String.format("Invalid markupType %s", markupType));
         }
-    }
-
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
     }
 
     private static int stripToZero(Integer target) {
