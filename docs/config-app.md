@@ -286,13 +286,18 @@ unspecified or missing at all. Example:
 settings:  
   default-account-config: >
     {
-      "eventsEnabled": true,
-      "enforceCcpa": true,
-      "gdpr": {
-        "enabled": true
+      "auction": {
+        "default-integration": "pbjs"
+        "events": {
+          "enabled": true
+        }
       },
-      "analyticsSamplingFactor": 1,
-      "defaultIntegration": "pbjs"
+      "privacy": {
+        "enforce-ccpa": true,
+        "gdpr": {
+          "enabled": true
+        }
+      }
     }
 ```
 See [application settings](application-settings.md) for full reference of available configuration parameters.
