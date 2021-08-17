@@ -44,6 +44,10 @@ public class ConditionalLogger {
         this(null, logger);
     }
 
+    public void infoWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.info(message));
+    }
+
     public void info(String message, int limit) {
         log(message, limit, logger -> logger.info(message));
     }
@@ -52,12 +56,28 @@ public class ConditionalLogger {
         log(message, duration, unit, logger -> logger.info(message));
     }
 
+    public void info(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.warn(message);
+        }
+    }
+
+    public void errorWithKey(String key, String message, int limit) {
+        log(key, limit, logger -> logger.error(message));
+    }
+
     public void error(String message, int limit) {
         log(message, limit, logger -> logger.error(message));
     }
 
     public void error(String message, long duration, TimeUnit unit) {
         log(message, duration, unit, logger -> logger.error(message));
+    }
+
+    public void error(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.error(message);
+        }
     }
 
     public void debug(String message, int limit) {

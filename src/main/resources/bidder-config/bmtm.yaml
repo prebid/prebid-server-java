@@ -1,0 +1,23 @@
+adapters:
+  bmtm:
+    enabled: false
+    endpoint: https://one.elitebidder.com/api/pbs
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: false
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: dev@brightmountainmedia.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: bmtm
+      type: redirect
+      support-cors: false

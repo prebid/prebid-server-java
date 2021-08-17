@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.amx.ExtImpAmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +45,7 @@ public class AmxBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAmx>>() {
             };
 
-    private static final String ADAPTER_VERSION = "pbs1.0";
+    private static final String ADAPTER_VERSION = "pbs1.1";
     private static final String VERSION_PARAM = "v";
     private static final String VAST_SEARCH_POINT = "</Impression>";
     private static final String VAST_IMPRESSION_FORMAT = "<Impression><![CDATA[%s]]></Impression>";
@@ -54,8 +55,17 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     public AmxBidder(String endpointUrl, JacksonMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.endpointUrl = new URIBuilder()
-                .setPath(HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)))
+        this.endpointUrl = resolveEndpointUrl(endpointUrl);
+    }
+
+    private static String resolveEndpointUrl(String url) {
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(HttpUtil.validateUrl(Objects.requireNonNull(url)));
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(String.format("Invalid url: %s, error: %s", url, e.getMessage()));
+        }
+        return uriBuilder
                 .addParameter(VERSION_PARAM, ADAPTER_VERSION)
                 .toString();
     }
@@ -162,11 +172,12 @@ public class AmxBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid createBidderBid(Bid bid, String cur, List<BidderError> errors) {
-        AmxBidExt amxBidExt = null;
+        final AmxBidExt amxBidExt;
         try {
             amxBidExt = parseBidderExt(bid.getExt());
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
+            return null;
         }
 
         final BidType bidType = getMediaType(amxBidExt);

@@ -26,8 +26,11 @@
     }
   ],
   "site": {
-    "domain": "example.com",
-    "page": "prebid.com",
+    "domain": "prebid.com",
+    "page": "https://prebid.com",
+    "publisher": {
+      "domain": "prebid.com"
+    },
     "content": {
       "episode": 6,
       "title": "episodeName",
@@ -44,7 +47,7 @@
     "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
     "dnt": 33,
     "lmt": 44,
-    "ip": "123.145.167.10",
+    "ip": "123.145.167.0",
     "devicetype": 1,
     "os": "mac os",
     "h": 480,
@@ -58,12 +61,11 @@
     "macmd5": "macmd5"
   },
   "user": {
-    "buyeruid": "appnexus",
     "yob": 1991,
     "gender": "F",
     "keywords": "Hotels, Travelling",
     "ext": {
-      "consent": "BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA"
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
     }
   },
   "at": 1,
@@ -90,14 +92,26 @@
           "precision": 2
         },
         "includewinners": true,
-        "includebidderkeys": true
+        "includebidderkeys": true,
+        "includebrandcategory": {
+          "primaryadserver": 1,
+          "publisher": "",
+          "with_category": true
+        }
       },
       "cache": {
         "vastxml": {}
       },
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/video"
       }
+    },
+    "appnexus": {
+      "include_brand_category": true,
+      "brand_category_uniqueness": true
     }
   }
 }

@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -22,12 +23,12 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -60,37 +61,32 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                responseBidValidator.validate(
-                        BidderBid.of(
-                                Bid.builder()
-                                        .id("bidId1")
-                                        .impid("impId1")
-                                        .crid("crid1")
-                                        .price(BigDecimal.ONE)
-                                        .build(),
-                                null,
-                                "USDD"),
-                        BIDDER_NAME,
-                        givenBidRequest(),
-                        givenAccount()));
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.banner, "invalid", identity()),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getErrors()).containsOnly("BidResponse currency \"invalid\" is not valid");
     }
 
     @Test
     public void validateShouldFailIfMissingBid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                BidderBid.of(null, null, "USD"), BIDDER_NAME, givenBidRequest(), givenAccount());
+                BidderBid.of(null, null, "USD"), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
-        assertThat(result.getErrors()).containsOnly("Empty bid object submitted.");
+        assertThat(result.getErrors()).containsOnly("Empty bid object submitted");
     }
 
     @Test
     public void validateShouldFailIfBidHasNoId() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.id(null)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.id(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid missing required field 'id'");
@@ -100,7 +96,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoImpId() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.impid(null)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.impid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing required field 'impid'");
@@ -110,7 +106,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoPrice() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(null)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.price(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" does not contain a 'price'");
@@ -122,8 +118,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(-1))),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" `price `has negative value");
@@ -131,24 +127,27 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailedIfNonDealBidHasZeroPrice() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(0))),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Non deal bid \"bidId1\" has 0 price");
+        // then
+        assertThat(result.getErrors()).hasSize(1).containsOnly("Non deal bid \"bidId1\" has 0 price");
     }
 
     @Test
     public void validateShouldSuccessForDealZeroPriceBid() {
+        // when
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.price(BigDecimal.valueOf(0)).dealid("dealId")),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
+        // then
         assertThat(result.hasErrors()).isFalse();
     }
 
@@ -156,7 +155,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBidHasNoCrid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.crid(null)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.crid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors()).containsOnly("Bid \"bidId1\" missing creative ID");
@@ -166,33 +165,42 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(null).h(null)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.w(null).h(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size "
+                        + "validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200', bid "
+                        + "response size='nullxnull'");
     }
 
     @Test
     public void validateShouldFailIfBannerBidWidthIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(150).h(150)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.w(150).h(150)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '150x150'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size"
+                        + " validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='150x150'");
     }
 
     @Test
     public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.w(50).h(250)), BIDDER_NAME, givenBidRequest(), givenAccount());
+                givenBid(builder -> builder.w(50).h(250)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: '50x250'");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers creative size"
+                        + " validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='50x250'");
     }
 
     @Test
@@ -201,8 +209,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(BidType.video, builder -> builder.w(3).h(3)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -214,8 +222,9 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(150)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount(builder -> builder.bidValidations(AccountBidValidationConfig.of(skip))));
+                givenAuctionContext(
+                        givenAccount(builder -> builder.bidValidations(AccountBidValidationConfig.of(skip)))),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -227,8 +236,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.impid("nonExistentsImpid")),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
@@ -241,12 +250,14 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative "
+                        + "validation for bid bidId1, account=account, referrer=unknown,"
+                        + " adm=<tag>http://site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -255,12 +266,14 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative"
+                        + " validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>http%3A//site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -269,12 +282,14 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.getErrors())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `enforce`: bidder `bidder` response triggers secure creative"
+                        + " validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>//site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -283,8 +298,49 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.adm(null).nurl(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.getErrors())
+                .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER_NAME, MetricName.badserverresponse);
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.adm(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
+    public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
+        // when
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.nurl(null)),
+                BIDDER_NAME,
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -296,8 +352,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(identity()),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -312,8 +368,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(identity()),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -328,13 +384,15 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.w(null).h(null)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
         assertThat(result.getWarnings())
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' that are not valid. Bid dimensions: 'nullxnull'");
+                .containsOnly("BidResponse validation `warn`: bidder `bidder` response triggers creative size "
+                        + "validation for bid bidId1, account=account, referrer=unknown, max imp size='100x200',"
+                        + " bid response size='nullxnull'");
     }
 
     @Test
@@ -346,8 +404,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
@@ -362,13 +420,15 @@ public class ResponseBidValidatorTest extends VertxTest {
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         assertThat(result.hasErrors()).isFalse();
         assertThat(result.getWarnings())
-                .containsOnly("Bid \"bidId1\" has insecure creative but should be in secure context");
+                .containsOnly("BidResponse validation `warn`: bidder `bidder` response triggers secure creative "
+                        + "validation for bid bidId1, account=account, referrer=unknown, "
+                        + "adm=<tag>http://site.com/creative.jpg</tag>");
     }
 
     @Test
@@ -377,8 +437,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
@@ -390,8 +450,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
@@ -406,8 +466,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         responseBidValidator.validate(
                 givenBid(builder -> builder.w(150).h(200)),
                 BIDDER_NAME,
-                givenBidRequest(),
-                givenAccount());
+                givenAuctionContext(),
+                bidderAliases);
 
         // then
         verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
@@ -419,8 +479,8 @@ public class ResponseBidValidatorTest extends VertxTest {
         responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
@@ -435,20 +495,26 @@ public class ResponseBidValidatorTest extends VertxTest {
         responseBidValidator.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
-                givenBidRequest(builder -> builder.secure(1)),
-                givenAccount());
+                givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
+                bidderAliases);
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
     }
 
-    private static BidderBid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return givenBid(BidType.banner, bidCustomizer);
     }
 
-    private static BidderBid givenBid(BidType type, Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidderBid givenBid(BidType type, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return givenBid(type, "USD", bidCustomizer);
+    }
+
+    private static BidderBid givenBid(BidType type, String bidCurrency, UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         final Bid.BidBuilder bidBuilder = Bid.builder()
                 .id("bidId1")
+                .adm("adm1")
+                .nurl("nurl")
                 .impid("impId1")
                 .crid("crid1")
                 .w(1)
@@ -456,14 +522,33 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .adm("<tag>https://site.com/creative.jpg</tag>")
                 .price(BigDecimal.ONE);
 
-        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, "USD");
+        return BidderBid.of(bidCustomizer.apply(bidBuilder).build(), type, bidCurrency);
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static AuctionContext givenAuctionContext(BidRequest bidRequest, Account account) {
+        return AuctionContext.builder()
+                .account(account)
+                .bidRequest(bidRequest)
+                .build();
+    }
+
+    private static AuctionContext givenAuctionContext(BidRequest bidRequest) {
+        return givenAuctionContext(bidRequest, givenAccount());
+    }
+
+    private static AuctionContext givenAuctionContext(Account account) {
+        return givenAuctionContext(givenBidRequest(identity()), account);
+    }
+
+    private static AuctionContext givenAuctionContext() {
+        return givenAuctionContext(givenBidRequest(identity()), givenAccount());
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         final Imp.ImpBuilder impBuilder = Imp.builder()
                 .id("impId1")
                 .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(100).h(200).build()))
+                        .format(asList(Format.builder().w(100).h(200).build(), Format.builder().w(50).h(50).build()))
                         .build());
 
         return BidRequest.builder()
@@ -471,15 +556,11 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest() {
-        return givenBidRequest(identity());
-    }
-
     private static Account givenAccount() {
         return givenAccount(identity());
     }
 
-    private static Account givenAccount(Function<Account.AccountBuilder, Account.AccountBuilder> accountCustomizer) {
+    private static Account givenAccount(UnaryOperator<Account.AccountBuilder> accountCustomizer) {
         return accountCustomizer.apply(Account.builder().id(ACCOUNT_ID)).build();
     }
 }

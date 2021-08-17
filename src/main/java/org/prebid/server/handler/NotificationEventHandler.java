@@ -6,20 +6,24 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -38,16 +42,16 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private static final long DEFAULT_TIMEOUT = 1000L;
 
-    private final AnalyticsReporter analyticsReporter;
+    private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final TrackingPixel trackingPixel;
 
-    public NotificationEventHandler(AnalyticsReporter analyticsReporter,
+    public NotificationEventHandler(AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings) {
 
-        this.analyticsReporter = Objects.requireNonNull(analyticsReporter);
+        this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
 
@@ -66,32 +70,32 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         try {
-            EventUtil.validateType(context);
-            EventUtil.validateBidId(context);
-            EventUtil.validateTimestamp(context);
-            EventUtil.validateFormat(context);
-            EventUtil.validateAnalytics(context);
-            EventUtil.validateIntegration(context);
+            EventUtil.validateType(routingContext);
+            EventUtil.validateBidId(routingContext);
+            EventUtil.validateTimestamp(routingContext);
+            EventUtil.validateFormat(routingContext);
+            EventUtil.validateAnalytics(routingContext);
+            EventUtil.validateIntegration(routingContext);
         } catch (IllegalArgumentException e) {
-            respondWithBadStatus(context, e.getMessage());
+            respondWithBadRequest(routingContext, e.getMessage());
             return;
         }
 
         try {
-            EventUtil.validateAccountId(context);
+            EventUtil.validateAccountId(routingContext);
         } catch (IllegalArgumentException e) {
-            respondWithUnauthorized(context, e.getMessage());
+            respondWithUnauthorized(routingContext, e.getMessage());
             return;
         }
 
-        final EventRequest eventRequest = EventUtil.from(context);
+        final EventRequest eventRequest = EventUtil.from(routingContext);
         if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
             getAccountById(eventRequest.getAccountId())
-                    .setHandler(async -> handleEvent(async, eventRequest, context));
+                    .setHandler(async -> handleEvent(async, eventRequest, routingContext));
         } else {
-            respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
+            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
         }
     }
 
@@ -110,13 +114,12 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         if (exception instanceof PreBidException) {
             return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
         }
-        logger.warn("Error occurred while fetching account", exception);
         return Future.failedFuture(exception);
     }
 
-    private void handleEvent(AsyncResult<Account> async, EventRequest eventRequest, RoutingContext context) {
+    private void handleEvent(AsyncResult<Account> async, EventRequest eventRequest, RoutingContext routingContext) {
         if (async.failed()) {
-            respondWithServerError(context, async.cause());
+            respondWithServerError(routingContext, "Error occurred while fetching account", async.cause());
         } else {
             final Account account = async.result();
 
@@ -129,43 +132,49 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .bidder(eventRequest.getBidder())
                         .timestamp(eventRequest.getTimestamp())
                         .integration(eventRequest.getIntegration())
-                        .httpContext(HttpContext.from(context))
+                        .httpContext(HttpContext.from(routingContext))
                         .build();
-                analyticsReporter.processEvent(notificationEvent);
+                analyticsDelegator.processEvent(notificationEvent);
 
-                respondWithOkStatus(context, eventRequest.getFormat() == EventRequest.Format.image);
+                respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
             } else {
-                respondWithUnauthorized(context, String.format("Account '%s' doesn't support events", account.getId()));
+                respondWithUnauthorized(routingContext,
+                        String.format("Account '%s' doesn't support events", account.getId()));
             }
         }
     }
 
-    private void respondWithOkStatus(RoutingContext context, boolean respondWithPixel) {
+    private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {
         if (respondWithPixel) {
-            context.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
-                    .end(Buffer.buffer(trackingPixel.getContent()));
+            HttpUtil.executeSafely(routingContext, Endpoint.event,
+                    response -> response
+                            .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
+                            .end(Buffer.buffer(trackingPixel.getContent())));
         } else {
-            context.response().end();
+            HttpUtil.executeSafely(routingContext, Endpoint.event,
+                    HttpServerResponse::end);
         }
     }
 
-    private static void respondWithBadStatus(RoutingContext context, String message) {
-        respondWithError(context, HttpResponseStatus.BAD_REQUEST, message);
+    private static void respondWithBadRequest(RoutingContext routingContext, String message) {
+        respondWith(routingContext, HttpResponseStatus.BAD_REQUEST, message);
     }
 
-    private static void respondWithUnauthorized(RoutingContext context, String message) {
-        respondWithError(context, HttpResponseStatus.UNAUTHORIZED, message);
+    private static void respondWithUnauthorized(RoutingContext routingContext, String message) {
+        respondWith(routingContext, HttpResponseStatus.UNAUTHORIZED, message);
     }
 
-    private static void respondWithServerError(RoutingContext context, Throwable exception) {
-        final String message = "Error occurred while fetching account";
+    private static void respondWithServerError(RoutingContext routingContext, String message, Throwable exception) {
         logger.warn(message, exception);
-        respondWithError(context, HttpResponseStatus.INTERNAL_SERVER_ERROR, message);
+        final String body = String.format("%s: %s", message, exception.getMessage());
+        respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, body);
     }
 
-    private static void respondWithError(RoutingContext context, HttpResponseStatus status, String message) {
-        context.response().setStatusCode(status.code()).end(message);
+    private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
+        HttpUtil.executeSafely(routingContext, Endpoint.event,
+                response -> response
+                        .setStatusCode(status.code())
+                        .end(body));
     }
 
     /**

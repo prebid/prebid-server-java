@@ -101,6 +101,8 @@ final class RubiconSize {
         SIZES.put(size(320, 500), 278);
         SIZES.put(size(320, 400), 282);
         SIZES.put(size(640, 380), 288);
+        SIZES.put(size(500, 1000), 548);
+        SIZES.put(size(300, 200), 552);
     }
 
     private final Integer w;

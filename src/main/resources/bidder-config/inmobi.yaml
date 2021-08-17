@@ -6,18 +6,20 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
-      maintainer-email: prebid-support@inmobi.com
+      maintainer-email: technology-irv@inmobi.com
       app-media-types:
         - banner
         - video
       site-media-types:
+        - banner
+        - video
       supported-vendors:
       vendor-id: 333
     usersync:
-      url:
-      redirect-url:
+      url: https://id5-sync.com/i/495/0.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback=
+      redirect-url: /setuid?bidder=inmobi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={ID5UID}
       cookie-family-name: inmobi
       type: redirect
       support-cors: false

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.vrtcal;
 
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -19,7 +20,7 @@ public class VrtcalBidder extends OpenrtbBidder<ExtImpVrtcal> {
     }
 
     @Override
-    protected BidType getBidType(String impId, List<Imp> imps) {
+    protected BidType getBidType(Bid bid, List<Imp> imps) {
         return BidType.banner;
     }
 }

@@ -40,10 +40,17 @@ public enum MetricName {
     openrtb2app("openrtb2-app"),
     amp,
     video,
-    legacy,
     cookiesync,
     setuid,
 
+    // event types
+    event_auction("auction"),
+    event_amp("amp"),
+    event_video("video"),
+    event_notification("event"),
+    event_cookie_sync("cookie_sync"),
+    event_setuid("setuid"),
+    event_unknown("unknown"),
 
     // request and adapter statuses
     ok,
@@ -110,10 +117,10 @@ public enum MetricName {
     // cache
     creative_size,
 
-    //account.*.requests.
+    // account.*.requests.
     rejected,
 
-    //currency rates
+    // currency rates
     stale,
 
     // settings cache
@@ -123,7 +130,17 @@ public enum MetricName {
     initialize,
     update,
     hit,
-    miss;
+    miss,
+
+    // hooks
+    call,
+    success,
+    noop,
+    reject,
+    unknown,
+    failure,
+    execution_error("execution-error"),
+    duration;
 
     private final String name;
 

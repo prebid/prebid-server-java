@@ -12,28 +12,28 @@ import java.util.function.Function;
  */
 class AccountMetrics extends UpdatableMetrics {
 
-    private final Function<String, AdapterMetrics> adapterMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
-    private final Map<String, AdapterMetrics> adapterMetrics;
     private final Function<MetricName, RequestTypeMetrics> requestTypeMetricsCreator;
     private final Map<MetricName, RequestTypeMetrics> requestTypeMetrics;
+    private final AdapterMetrics adapterMetrics;
     private final RequestMetrics requestsMetrics;
     private final CacheMetrics cacheMetrics;
     private final ResponseMetrics responseMetrics;
+    private final HooksMetrics hooksMetrics;
 
     AccountMetrics(MetricRegistry metricRegistry, CounterType counterType, String account) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 nameCreator(createPrefix(Objects.requireNonNull(account))));
-        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, account, adapterType);
-        adapterMetrics = new HashMap<>();
         requestTypeMetricsCreator = requestType ->
                 new RequestTypeMetrics(metricRegistry, counterType, createPrefix(account), requestType);
+        adapterMetrics = new AdapterMetrics(metricRegistry, counterType, createPrefix(account));
         requestTypeMetrics = new HashMap<>();
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(account));
         cacheMetrics = new CacheMetrics(metricRegistry, counterType, createPrefix(account));
         responseMetrics = new ResponseMetrics(metricRegistry, counterType, createPrefix(account));
+        hooksMetrics = new HooksMetrics(metricRegistry, counterType, createPrefix(account));
     }
 
     private static String createPrefix(String account) {
@@ -44,8 +44,8 @@ class AccountMetrics extends UpdatableMetrics {
         return metricName -> String.format("%s.%s", prefix, metricName.toString());
     }
 
-    AdapterMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    AdapterMetrics adapter() {
+        return adapterMetrics;
     }
 
     RequestTypeMetrics requestType(MetricName requestType) {
@@ -62,5 +62,9 @@ class AccountMetrics extends UpdatableMetrics {
 
     ResponseMetrics response() {
         return responseMetrics;
+    }
+
+    HooksMetrics hooks() {
+        return hooksMetrics;
     }
 }

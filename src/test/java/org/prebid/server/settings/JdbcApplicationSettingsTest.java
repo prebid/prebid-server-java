@@ -25,7 +25,9 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.StoredDataResult;
@@ -63,7 +65,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private static final String SELECT_ACCOUNT_QUERY =
             "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
                     + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, "
-                    + "default_integration, analytics_config, bid_validations "
+                    + "default_integration, analytics_config, bid_validations, status, config "
                     + "FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
 
     private static final String SELECT_QUERY =
@@ -114,9 +116,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
                 + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
                 + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
-                + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512));");
-        connection.createStatement().execute("CREATE TABLE s2sconfig_config (id SERIAL PRIMARY KEY, uuid varchar(40) "
-                + "NOT NULL, config varchar(512));");
+                + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512), "
+                + "status varchar(25), config varchar(4096));");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, "
                 + "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, "
@@ -133,12 +134,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         connection.createStatement().execute("insert into accounts_account "
                 + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
                 + "tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, "
-                + "bid_validations) "
+                + "bid_validations, status, config) "
                 + "values ('1001','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
-                + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}');");
-        connection.createStatement().execute(
-                "insert into s2sconfig_config (uuid, config) values ('adUnitConfigId', 'config');");
+                + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}', "
+                + "'active', "
+                + "'{\"cookie-sync\": {\"default-limit\": 5, \"max-limit\": 8, \"default-coop-sync\": true}}');");
         connection.createStatement().execute(
                 "insert into stored_requests (accountId, reqid, requestData) values ('1001', '1','value1');");
         connection.createStatement().execute(
@@ -209,6 +210,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .defaultIntegration("web")
                     .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
                     .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                    .status(AccountStatus.active)
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                     .build());
             async.complete();
         }));
@@ -229,28 +232,21 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnConfig(TestContext context) {
+    public void getAccountByIdShouldTolerateAccountWithoutStatusDefined(TestContext context) throws SQLException {
+        // given
+        connection.createStatement()
+                .execute("insert into accounts_account (uuid, status) values ('1002', NULL);");
+
         // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("adUnitConfigId", timeout);
+        final Future<Account> future = jdbcApplicationSettings.getAccountById("1002", timeout);
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(config -> {
-            assertThat(config).isEqualTo("config");
-            async.complete();
-        }));
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldFailIfConfigNotFound(TestContext context) {
-        // when
-        final Future<String> future = jdbcApplicationSettings.getAdUnitConfigById("non-existing", timeout);
-
-        // then
-        final Async async = context.async();
-        future.setHandler(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(PreBidException.class)
-                    .hasMessage("AdUnitConfig not found: non-existing");
+        future.setHandler(context.asyncAssertSuccess(account -> {
+            assertThat(account).isEqualTo(Account.builder()
+                    .id("1002")
+                    .status(null)
+                    .build());
             async.complete();
         }));
     }

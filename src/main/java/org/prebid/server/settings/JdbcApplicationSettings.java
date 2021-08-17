@@ -15,6 +15,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -108,9 +109,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return jdbcClient.executeQuery(selectAccountQuery,
+        return jdbcClient.executeQuery(
+                selectAccountQuery,
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> Account.builder()
+                result -> mapToModelOrError(result, row -> partialAccountBuilderFrom(row.getString(13))
                         .id(row.getString(0))
                         .priceGranularity(row.getString(1))
                         .bannerCacheTtl(row.getInteger(2))
@@ -123,22 +125,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                         .defaultIntegration(row.getString(9))
                         .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
                         .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
+                        .status(toAccountStatus(row.getString(12)))
                         .build()),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
-    }
-
-    /**
-     * Runs a process to get AdUnit config by id from database
-     * and returns {@link Future&lt;{@link String}&gt;}.
-     */
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return jdbcClient.executeQuery("SELECT config FROM s2sconfig_config where uuid = ? LIMIT 1",
-                Collections.singletonList(adUnitConfigId),
-                result -> mapToModelOrError(result, row -> row.getString(0)),
-                timeout)
-                .compose(result -> failedIfNull(result, adUnitConfigId, "AdUnitConfig"));
     }
 
     /**
@@ -163,10 +153,27 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
+    private Account.AccountBuilder partialAccountBuilderFrom(String config) {
+        final Account partialAccount = toModel(config, Account.class);
+
+        return partialAccount != null ? partialAccount.toBuilder() : Account.builder();
+    }
+
     private <T> T toModel(String source, Class<T> targetClass) {
         try {
             return source != null ? mapper.decodeValue(source, targetClass) : null;
         } catch (DecodeException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static AccountStatus toAccountStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+        try {
+            return AccountStatus.valueOf(status);
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -70,15 +69,13 @@ public class TtxBidderTest extends VertxTest {
                     assertThat(error.getMessage()).startsWith("Cannot deserialize instance of");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
-
-        assertThat(result.getValue()).hasSize(1);
     }
 
     @Test
-    public void makeHttpRequestsShouldSetSiteIdFromImpExt() {
+    public void makeHttpRequestsShouldNotUpdateSiteIfSiteNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.site(Site.builder().build()), identity());
+                bidRequestBuilder.site(null), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
@@ -88,8 +85,7 @@ public class TtxBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getSite)
-                .extracting(Site::getId)
-                .containsOnly("siteId");
+                .containsNull();
     }
 
     @Test
@@ -109,36 +105,11 @@ public class TtxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldGetDetailsOnlyFromFirstImpExt() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().build())
-                .imp(asList(
-                        givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", "2", "3")))))))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSite)
-                .extracting(Site::getId)
-                .containsOnly("siteId");
-    }
-
-    @Test
     public void makeHttpRequestsShouldChangeOnlyFirstImpExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
-                        givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                        givenImp(identity())))
                 .build();
 
         // when
@@ -151,8 +122,7 @@ public class TtxBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(
-                        mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3"))));
+                        mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))));
     }
 
     @Test
@@ -255,8 +225,7 @@ public class TtxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("At least one of [banner, video] "
-                        + "formats must be defined in Imp. None found"));
+                .containsExactly(BidderError.badInput("Imp ID 123 must have at least one of [Banner, Video] defined"));
         assertThat(result.getValue()).isEmpty();
     }
 

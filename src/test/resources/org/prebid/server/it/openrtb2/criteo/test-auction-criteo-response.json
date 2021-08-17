@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.5,
+          "adm": "<iframe id='789abc' name='789abc' src='http://creative-url.criteo.com'></iframe>",
+          "crid": "creative-123",
+          "w": 250,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 0.5
+          }
+        }
+      ],
+      "seat": "criteo",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "criteo": "{{ criteo.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

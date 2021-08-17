@@ -1,8 +1,8 @@
 package org.prebid.server.handler;
 
-import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -60,7 +60,7 @@ public class OptoutHandlerTest extends VertxTest {
         given(googleRecaptchaVerifier.verify(anyString())).willReturn(Future.succeededFuture());
 
         given(uidsCookieService.toCookie(any())).willReturn(Cookie.cookie("cookie", "value"));
-        given(uidsCookieService.parseFromRequest(any()))
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         optoutHandler = new OptoutHandler(googleRecaptchaVerifier, uidsCookieService,
@@ -179,8 +179,8 @@ public class OptoutHandlerTest extends VertxTest {
     }
 
     private String captureResponseLocationHeader() {
-        final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
-        verify(httpResponse).putHeader(eq(new AsciiString("Location")), captor.capture());
-        return captor.getValue();
+        final ArgumentCaptor<CharSequence> captor = ArgumentCaptor.forClass(CharSequence.class);
+        verify(httpResponse).putHeader(eq(HttpHeaders.createOptimized("Location")), captor.capture());
+        return captor.getValue().toString();
     }
 }

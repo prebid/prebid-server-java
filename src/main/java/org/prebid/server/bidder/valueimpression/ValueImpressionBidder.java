@@ -114,18 +114,15 @@ public class ValueImpressionBidder implements Bidder<BidRequest> {
         final List<BidderBid> bidderBids = new ArrayList<>();
         for (Bid bid : responseBids) {
             try {
-                final BidType bidType = resolveBidType(bid.getImpid(), imps);
-                bidderBids.add(BidderBid.of(bid, bidType, currency));
+                bidderBids.add(BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency));
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(
-                        String.format("bid id=%s %s", bid.getId(), e.getMessage()))
-                );
+                errors.add(BidderError.badInput(String.format("bid id=%s %s", bid.getId(), e.getMessage())));
             }
         }
         return bidderBids;
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {

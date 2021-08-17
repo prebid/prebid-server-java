@@ -40,6 +40,7 @@ import org.prebid.server.validation.VideoRequestValidator;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
@@ -60,6 +61,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
     private static final String STORED_REQUEST_ID = "storedReqId";
     private static final String STORED_POD_ID = "storedPodId";
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -102,8 +104,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
     @Test
     public void shouldReturnFailedFutureWhenFetchStoredIsFailed() {
         // given
-        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
-                Future.failedFuture("ERROR"));
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.failedFuture("ERROR"));
 
         // when
         final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
@@ -127,7 +129,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .livestream(0)
                 .build();
 
-        final BidRequestVideo storedVideo = givenValidDataResult(requestBuilder -> requestBuilder
+        final BidRequestVideo storedVideo = givenValidDataResult(builder -> builder
                         .user(user)
                         .content(content)
                         .cacheconfig(CacheConfig.of(42))
@@ -137,17 +139,17 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
         final BidRequestVideo requestVideo = givenValidDataResult(
                 UnaryOperator.identity(),
-                podconfigBuilder -> podconfigBuilder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
+                builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
                 singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
-                Future.succeededFuture(storedDataResult));
-        given(validator.validPods(any(), any())).willReturn(
-                WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+        given(validator.validPods(any(), any()))
+                .willReturn(WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
 
         // when
         final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
@@ -155,8 +157,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
         // then
         verify(applicationSettings).getVideoStoredData(any(), eq(singleton(STORED_REQUEST_ID)),
-                eq(singleton(STORED_POD_ID)),
-                any());
+                eq(singleton(STORED_POD_ID)), any());
+
         verify(metrics).updateStoredRequestMetric(true);
         verify(metrics).updateStoredImpsMetric(true);
 
@@ -165,14 +167,21 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
         final Imp expectedImp1 = Imp.builder()
                 .id("123_0")
-                .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(
-                        singletonList(123)).build())
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .maxduration(200)
+                        .protocols(singletonList(123))
+                        .build())
                 .build();
         final Imp expectedImp2 = Imp.builder()
                 .id("123_1")
-                .video(Video.builder().mimes(singletonList("mime")).maxduration(100).protocols(
-                        singletonList(123)).build())
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .maxduration(200)
+                        .protocols(singletonList(123))
+                        .build())
                 .build();
+
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null))
                 .targeting(ExtRequestTargeting.builder()
@@ -181,11 +190,12 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false))
                         .build())
                 .build();
+
         final BidRequest expectedMergedRequest = BidRequest.builder()
                 .id("bid_id")
                 .at(1)
-                .imp(Arrays.asList(expectedImp1, expectedImp2))
-                .user(User.builder().buyeruid("appnexus").yob(123).gender("gender").keywords("keywords").build())
+                .imp(asList(expectedImp1, expectedImp2))
+                .user(User.builder().buyeruid("value").yob(123).gender("gender").keywords("keywords").build())
                 .site(Site.builder().id("siteId").content(content).build())
                 .bcat(singletonList("bcat"))
                 .badv(singletonList("badv"))
@@ -204,18 +214,18 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         final Pod pod2 = Pod.of(2, 3, "222");
         final BidRequestVideo requestVideo = givenValidDataResult(
                 UnaryOperator.identity(),
-                podconfigBuilder -> podconfigBuilder.pods(Arrays.asList(pod1, pod2)));
+                builder -> builder.pods(asList(pod1, pod2)));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(emptyMap(), emptyMap(), emptyList());
 
-        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any())).willReturn(
-                Future.succeededFuture(storedDataResult));
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
 
         final PodError podError1 = PodError.of(1, 1, singletonList("ERROR1"));
         final PodError podError2 = PodError.of(2, 2, singletonList("ERROR2"));
 
-        given(validator.validPods(any(), any())).willReturn(
-                WithPodErrors.of(emptyList(), Arrays.asList(podError1, podError2)));
+        given(validator.validPods(any(), any()))
+                .willReturn(WithPodErrors.of(emptyList(), asList(podError1, podError2)));
 
         // when
         final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
@@ -228,8 +238,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         verify(validator).validateStoredBidRequest(any(), anyBoolean(), any());
 
         final Podconfig expectedPodConfig = Podconfig.builder()
-                .durationRangeSec(Arrays.asList(200, 100))
-                .pods(Arrays.asList(pod1, pod2))
+                .durationRangeSec(asList(200, 100))
+                .pods(asList(pod1, pod2))
                 .build();
         verify(validator).validPods(eq(expectedPodConfig), eq(emptySet()));
 
@@ -239,13 +249,83 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .hasMessage("Stored request fetching failed: all pods are incorrect:  ERROR1; ERROR2");
     }
 
+    @Test
+    public void shouldReturnFutureWithCorrectAdPodDurationIfRequireExactDurationIsTrue() {
+        // given
+        final BidRequestVideo storedVideo = givenValidDataResult(builder -> builder
+                        .cacheconfig(CacheConfig.of(42)),
+                UnaryOperator.identity());
+
+        final BidRequestVideo requestVideo = givenValidDataResult(
+                UnaryOperator.identity(),
+                builder -> builder.requireExactDuration(true)
+                        .durationRangeSec(Arrays.asList(30, 60, 80))
+                        .pods(singletonList(Pod.of(123, 30, STORED_POD_ID))));
+
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_POD_ID, "{}"),
+                emptyList());
+
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+        given(validator.validPods(any(), any()))
+                .willReturn(WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
+
+        // when
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
+                singleton(STORED_POD_ID), requestVideo);
+
+        // then
+        verify(applicationSettings).getVideoStoredData(any(), eq(singleton(STORED_REQUEST_ID)),
+                eq(singleton(STORED_POD_ID)), any());
+
+        verify(metrics).updateStoredRequestMetric(true);
+        verify(metrics).updateStoredImpsMetric(true);
+
+        verify(validator).validateStoredBidRequest(any(), anyBoolean(), any());
+        verify(validator).validPods(any(), eq(singleton(STORED_POD_ID)));
+
+        final Imp expectedImp1 = Imp.builder()
+                .id("123_0")
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .minduration(30)
+                        .maxduration(30)
+                        .protocols(singletonList(123))
+                        .build())
+                .build();
+        final Imp expectedImp2 = Imp.builder()
+                .id("123_1")
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .minduration(60)
+                        .maxduration(60)
+                        .protocols(singletonList(123))
+                        .build())
+                .build();
+        final Imp expectedImp3 = Imp.builder()
+                .id("123_2")
+                .video(Video.builder()
+                        .mimes(singletonList("mime"))
+                        .minduration(80)
+                        .maxduration(80)
+                        .protocols(singletonList(123))
+                        .build())
+                .build();
+
+        assertThat(result.result().getData().getImp())
+                .isEqualTo(Arrays.asList(expectedImp1, expectedImp2, expectedImp3));
+    }
+
     private BidRequestVideo givenValidDataResult(
             UnaryOperator<BidRequestVideo.BidRequestVideoBuilder> requestCustomizer,
             UnaryOperator<Podconfig.PodconfigBuilder> podconfigCustomizer) {
+
         return requestCustomizer.apply(BidRequestVideo.builder()
                 .storedrequestid("storedrequestid")
                 .podconfig(podconfigCustomizer.apply(Podconfig.builder()
-                        .durationRangeSec(Arrays.asList(200, 100)))
+                        .durationRangeSec(asList(200, 100)))
                         .build())
                 .site(Site.builder().id("siteId").build())
                 .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))

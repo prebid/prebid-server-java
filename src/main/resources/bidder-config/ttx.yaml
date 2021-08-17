@@ -7,12 +7,12 @@ adapters:
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases: 33across
+    aliases:
+      '33across':
+        enabled: false
     meta-info:
       maintainer-email: headerbidding@33across.com
       app-media-types:
-        - banner
-        - video
       site-media-types:
         - banner
         - video

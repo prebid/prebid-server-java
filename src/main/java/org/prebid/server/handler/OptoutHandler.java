@@ -1,6 +1,7 @@
 package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.logging.Logger;
@@ -9,7 +10,9 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.net.MalformedURLException;
@@ -39,54 +42,59 @@ public class OptoutHandler implements Handler<RoutingContext> {
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final String recaptcha = getRequestParam(context, RECAPTCHA_PARAM);
+    public void handle(RoutingContext routingContext) {
+        final String recaptcha = getRequestParam(routingContext, RECAPTCHA_PARAM);
         if (StringUtils.isBlank(recaptcha)) {
-            sendRedirect(context);
+            respondWithRedirect(routingContext);
             return;
         }
 
         googleRecaptchaVerifier.verify(recaptcha)
-                .setHandler(result -> {
-                    if (result.failed()) {
-                        sendUnauthorized(context, result.cause());
-                    } else {
-                        final boolean optout = isOptout(context);
-                        sendResponse(context, optCookie(optout, context), optUrl(optout));
-                    }
-                });
+                .setHandler(result -> handleVerification(routingContext, result));
     }
 
-    private void sendRedirect(RoutingContext context) {
-        context.response()
-                .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
-                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                .end();
+    private void handleVerification(RoutingContext routingContext, AsyncResult<RecaptchaResponse> result) {
+        if (result.failed()) {
+            respondWithUnauthorized(routingContext, result.cause());
+        } else {
+            final boolean optout = isOptout(routingContext);
+            respondWithRedirectAndCookie(routingContext, optCookie(optout, routingContext), optUrl(optout));
+        }
     }
 
-    private void sendUnauthorized(RoutingContext context, Throwable cause) {
-        logger.warn("Opt Out failed optout", cause);
-        context.response()
-                .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
-                .end();
+    private void respondWithRedirect(RoutingContext routingContext) {
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                        .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
+                        .end());
     }
 
-    private void sendResponse(RoutingContext context, Cookie cookie, String url) {
-        context.response()
-                .putHeader(HttpUtil.LOCATION_HEADER, url)
-                .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
-                .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
-                .end();
+    private void respondWithUnauthorized(RoutingContext routingContext, Throwable exception) {
+        logger.warn("Opt Out failed optout", exception);
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
+                        .end());
     }
 
-    private static boolean isOptout(RoutingContext context) {
-        final String optoutValue = getRequestParam(context, OPTOUT_PARAM);
+    private void respondWithRedirectAndCookie(RoutingContext routingContext, Cookie cookie, String url) {
+        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+                response -> response
+                        .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
+                        .putHeader(HttpUtil.LOCATION_HEADER, url)
+                        .putHeader(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie))
+                        .end());
+    }
+
+    private static boolean isOptout(RoutingContext routingContext) {
+        final String optoutValue = getRequestParam(routingContext, OPTOUT_PARAM);
         return StringUtils.isNotEmpty(optoutValue);
     }
 
-    private Cookie optCookie(boolean optout, RoutingContext context) {
+    private Cookie optCookie(boolean optout, RoutingContext routingContext) {
         final UidsCookie uidsCookie = uidsCookieService
-                .parseFromRequest(context)
+                .parseFromRequest(routingContext)
                 .updateOptout(optout);
         return uidsCookieService.toCookie(uidsCookie);
     }
@@ -95,9 +103,9 @@ public class OptoutHandler implements Handler<RoutingContext> {
         return optout ? optoutUrl : optinUrl;
     }
 
-    private static String getRequestParam(RoutingContext context, String paramName) {
-        final String recaptcha = context.request().getFormAttribute(paramName);
-        return StringUtils.isNotEmpty(recaptcha) ? recaptcha : context.request().getParam(paramName);
+    private static String getRequestParam(RoutingContext routingContext, String paramName) {
+        final String recaptcha = routingContext.request().getFormAttribute(paramName);
+        return StringUtils.isNotEmpty(recaptcha) ? recaptcha : routingContext.request().getParam(paramName);
     }
 
     public static String getOptoutRedirectUrl(String externalUrl) {

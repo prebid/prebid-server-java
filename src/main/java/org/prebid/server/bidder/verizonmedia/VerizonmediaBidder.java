@@ -2,6 +2,7 @@ package org.prebid.server.bidder.verizonmedia;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -110,12 +111,18 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
             impBuilder.banner(modifyBanner(banner));
         }
 
-        final Site site = request.getSite();
-        final Site.SiteBuilder siteBuilder = site == null ? Site.builder() : site.toBuilder();
+        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
-        return request.toBuilder()
+        final Site site = request.getSite();
+        final App app = request.getApp();
+        if (site != null) {
+            requestBuilder.site(site.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+        } else if (app != null) {
+            requestBuilder.app(app.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+        }
+
+        return requestBuilder
                 .imp(Collections.singletonList(impBuilder.build()))
-                .site(siteBuilder.id(extImpVerizonmedia.getDcn()).build())
                 .build();
     }
 
@@ -163,13 +170,13 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
-        final List<SeatBid> seatbid = bidResponse != null ? bidResponse.getSeatbid() : null;
-        if (seatbid == null) {
+        final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
+        if (seatBids == null) {
             return Collections.emptyList();
         }
 
-        if (seatbid.isEmpty()) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", seatbid.size()));
+        if (seatBids.isEmpty()) {
+            throw new PreBidException(String.format("Invalid SeatBids count: %d", seatBids.size()));
         }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }

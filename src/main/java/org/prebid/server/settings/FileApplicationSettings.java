@@ -5,12 +5,10 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AdUnitConfig;
 import org.prebid.server.settings.model.SettingsFile;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
@@ -41,7 +39,6 @@ public class FileApplicationSettings implements ApplicationSettings {
     private static final String JSON_SUFFIX = ".json";
 
     private final Map<String, Account> accounts;
-    private final Map<String, String> configs;
     private final Map<String, String> storedIdToRequest;
     private final Map<String, String> storedIdToImp;
     private final Map<String, String> storedIdToSeatBid;
@@ -56,10 +53,6 @@ public class FileApplicationSettings implements ApplicationSettings {
                 Account::getId,
                 Function.identity());
 
-        configs = toMap(settingsFile.getConfigs(),
-                AdUnitConfig::getId,
-                config -> ObjectUtils.defaultIfNull(config.getConfig(), StringUtils.EMPTY));
-
         this.storedIdToRequest = readStoredData(fileSystem, Objects.requireNonNull(storedRequestsDir));
         this.storedIdToImp = readStoredData(fileSystem, Objects.requireNonNull(storedImpsDir));
         this.storedIdToSeatBid = readStoredData(fileSystem, Objects.requireNonNull(storedResponsesDir));
@@ -68,11 +61,6 @@ public class FileApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return mapValueToFuture(accounts, accountId, "Account");
-    }
-
-    @Override
-    public Future<String> getAdUnitConfigById(String adUnitConfigId, Timeout timeout) {
-        return mapValueToFuture(configs, adUnitConfigId, "AdUnitConfig");
     }
 
     /**

@@ -22,4 +22,6 @@ public class ExtImpSharethrough {
     List<Integer> iframeSize;
 
     BigDecimal bidfloor;
+
+    ExtData data;
 }

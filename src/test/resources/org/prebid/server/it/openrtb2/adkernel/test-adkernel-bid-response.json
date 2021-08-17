@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid02",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 2.25,
           "cid": "1001",
           "crid": "2002",
@@ -18,5 +18,5 @@
       ]
     }
   ],
-  "bidid": "wehM-93KGr0"
+  "bidid": "bid_id"
 }

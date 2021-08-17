@@ -1,12 +1,8 @@
 package org.prebid.server.auction;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
-import org.prebid.server.proto.response.Bid;
-import org.prebid.server.proto.response.MediaType;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -30,8 +26,6 @@ import java.util.stream.Collectors;
  * be made on Prebid Server and the Ad Server's line items.
  */
 public class TargetingKeywordsCreator {
-
-    private static final Logger logger = LoggerFactory.getLogger(TargetingKeywordsCreator.class);
 
     /**
      * Exists to support the Prebid Universal Creative. If it exists, the only legal value is mobile-app.
@@ -81,6 +75,8 @@ public class TargetingKeywordsCreator {
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String HB_FORMAT_KEY = "hb_format";
+
+    private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -139,67 +135,9 @@ public class TargetingKeywordsCreator {
     }
 
     /**
-     * Creates {@link TargetingKeywordsCreator} for string price granularity representation.
-     */
-    public static TargetingKeywordsCreator create(String stringPriceGranularity,
-                                                  boolean includeWinners,
-                                                  boolean includeBidderKeys,
-                                                  boolean includeFormat,
-                                                  boolean isApp,
-                                                  int truncateAttrChars) {
-
-        return new TargetingKeywordsCreator(
-                convertToCustomPriceGranularity(stringPriceGranularity),
-                includeWinners,
-                includeBidderKeys,
-                includeFormat,
-                isApp,
-                truncateAttrChars,
-                null,
-                null,
-                null);
-    }
-
-    /**
-     * Converts string price granularity value to custom view.
-     * In case of invalid string value returns null. In case of null, returns default custom value.
-     */
-    private static PriceGranularity convertToCustomPriceGranularity(String stringPriceGranularity) {
-        if (stringPriceGranularity == null) {
-            return PriceGranularity.DEFAULT;
-        }
-
-        try {
-            return PriceGranularity.createFromString(stringPriceGranularity);
-        } catch (PreBidException e) {
-            logger.error("Price range granularity error: ''{0}'' is not a recognized granularity",
-                    stringPriceGranularity);
-        }
-        return null;
-    }
-
-    /**
      * Creates map of keywords for the given {@link Bid}.
      */
-    public Map<String, String> makeFor(Bid bid, boolean winningBid) {
-        final MediaType mediaType = bid.getMediaType();
-        return truncateKeys(makeFor(
-                bid.getBidder(),
-                winningBid,
-                bid.getPrice(),
-                StringUtils.EMPTY,
-                bid.getWidth(),
-                bid.getHeight(),
-                bid.getCacheId(),
-                null,
-                mediaType != null ? mediaType.name() : null,
-                bid.getDealId()));
-    }
-
-    /**
-     * Creates map of keywords for the given {@link com.iab.openrtb.response.Bid}.
-     */
-    Map<String, String> makeFor(com.iab.openrtb.response.Bid bid,
+    Map<String, String> makeFor(Bid bid,
                                 String bidder,
                                 boolean winningBid,
                                 String cacheId,
@@ -210,7 +148,6 @@ public class TargetingKeywordsCreator {
                 bidder,
                 winningBid,
                 bid.getPrice(),
-                "0.0",
                 bid.getW(),
                 bid.getH(),
                 cacheId,
@@ -234,7 +171,6 @@ public class TargetingKeywordsCreator {
     private Map<String, String> makeFor(String bidder,
                                         boolean winningBid,
                                         BigDecimal price,
-                                        String defaultCpm,
                                         Integer width,
                                         Integer height,
                                         String cacheId,
@@ -245,7 +181,7 @@ public class TargetingKeywordsCreator {
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
         keywordMap.put(HB_PB_KEY, roundedCpm);
 
         keywordMap.put(HB_BIDDER_KEY, bidder);
@@ -299,7 +235,8 @@ public class TargetingKeywordsCreator {
     private Map<String, String> truncateKeys(Map<String, String> keyValues) {
         return truncateAttrChars > 0
                 ? keyValues.entrySet().stream()
-                .collect(Collectors.toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue))
+                .collect(Collectors
+                        .toMap(keyValue -> truncateKey(keyValue.getKey()), Map.Entry::getValue, (key1, key2) -> key1))
                 : keyValues;
     }
 

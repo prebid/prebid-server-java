@@ -93,10 +93,10 @@ Following metrics are collected and submitted if account is configured with `bas
 
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
 - `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
-- `account.<account-id>.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
-- `account.<account-id>.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
-- `account.<account-id>.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
+- `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
+- `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`
+- `account.<account-id>.adapter.<bidder-name>.requests.(gotbids|nobid)` - number of requests made to `<bidder-name>` broken down by result status  when incoming request was from `<account-id>`
 
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
@@ -119,6 +119,8 @@ Following metrics are collected and submitted if account is configured with `det
 - `usersync.bad_requests` - number of requests received with bidder not specified
 - `usersync.<bidder-name>.sets` - number of requests received resulted in `uid` cookie update for `<bidder-name>`
 - `usersync.<bidder-name>.tcf.blocked` - number of requests received that didn't result in `uid` cookie update for `<bidder-name>` because of lack of user consent for this action according to TCF
+- `usersync.<bidder-name>.tcf.invalid` - number of requests received that are lacking of a valid consent string for `<bidder-name>` in setuid endpoint
+- `usersync.all.tcf.invalid` - number of requests received that are lacking of a valid consent string for all requested bidders cookieSync endpoint
 
 ## Privacy metrics
 - `privacy.tcf.(missing|invalid)` - number of requests lacking a valid consent string
@@ -131,3 +133,9 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
 - `privacy.lmt` - number of requests that required privacy enforcement according to LMT flag
 - `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules
+
+## Analytics metrics
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause

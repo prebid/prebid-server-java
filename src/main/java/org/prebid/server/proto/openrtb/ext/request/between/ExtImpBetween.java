@@ -8,4 +8,6 @@ import lombok.Value;
 public class ExtImpBetween {
 
     String host;
+
+    String publisherId;
 }

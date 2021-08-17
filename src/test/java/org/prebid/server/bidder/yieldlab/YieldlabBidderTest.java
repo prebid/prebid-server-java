@@ -27,11 +27,11 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -59,9 +59,31 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpYieldlab.builder()
+                                        .adslotId("invalid path")
+                                        .build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Invalid url: https://test.endpoint.com/invalid path");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldSendRequestToModifiedUrlWithHeaders() {
         // given
-
         final Map<String, String> targeting = new HashMap<>();
         targeting.put("key1", "value1");
         targeting.put("key2", "value2");
@@ -112,9 +134,60 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
+    public void constructExtImpShouldWorkWithDuplicateKeysTargeting() {
+        // given
+        final Map<String, String> targeting = new HashMap<>();
+        targeting.put("key1", "value1");
+
+        final List<Imp> imps = new ArrayList<>();
+        imps.add(Imp.builder()
+                .banner(Banner.builder().w(1).h(1).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                                .adslotId("1")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(targeting)
+                                .extId("extId")
+                                .build())))
+                .build());
+        imps.add(Imp.builder()
+                .banner(Banner.builder().w(1).h(1).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                                .adslotId("2")
+                                .supplyId("2")
+                                .adSize("adSize")
+                                .targeting(targeting)
+                                .extId("extId")
+                                .build())))
+                .build());
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(imps)
+                .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
+                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
+                .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
+                .site(Site.builder().page("http://www.example.com").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .allSatisfy(uri -> {
+                    assertThat(uri).startsWith("https://test.endpoint.com/1,2?content=json&pvid=true&ts=");
+                    assertThat(uri).endsWith("&t=key1%3Dvalue1&ids=buyeruid&yl_rtb_ifa&"
+                            + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
+                });
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
@@ -129,10 +202,6 @@ public class YieldlabBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
-
-        final Map<String, String> targeting = new HashMap<>();
-        targeting.put("key1", "value1");
-        targeting.put("key2", "value2");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("test-imp-id")
@@ -154,7 +223,7 @@ public class YieldlabBidderTest extends VertxTest {
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
                 "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
 
-        final HttpCall<Void> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(yieldlabResponse));
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
@@ -162,7 +231,9 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String adm = String.format("<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>", timestamp);
+        final String adm = String.format(
+                "<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>",
+                timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("1")
@@ -180,31 +251,7 @@ public class YieldlabBidderTest extends VertxTest {
         assertThat(result.getValue()).containsExactly(expected);
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpYieldlab.builder()
-                                .adslotId("1")
-                                .supplyId("2")
-                                .adSize("adSize")
-                                .targeting(singletonMap("key", "value"))
-                                .extId("extId")
-                                .build()))))
-                .build();
-    }
-
-    private static HttpCall<Void> givenHttpCall(BidRequest bidRequest, String body) {
+    private static HttpCall<Void> givenHttpCall(String body) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),

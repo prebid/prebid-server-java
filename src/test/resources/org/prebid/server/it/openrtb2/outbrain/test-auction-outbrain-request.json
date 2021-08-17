@@ -1,0 +1,34 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "outbrain": {
+          "publisher": {
+            "id": "extPubId",
+            "name": "extPubName",
+            "domain": "extPubDomain"
+          },
+          "tagid": "tag_id",
+          "bcat": [
+            "bcatVal"
+          ],
+          "badv": [
+            "badvVal"
+          ]
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

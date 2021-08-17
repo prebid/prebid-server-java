@@ -1,6 +1,6 @@
 {
   "decisions": {
-    "impId001": {
+    "imp_id": {
       "adId": 1234567890,
       "pricing": {
         "clearPrice": 0.5

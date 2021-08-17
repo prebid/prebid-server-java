@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -56,25 +55,27 @@ public class TtxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
         final List<BidderError> errors = new ArrayList<>();
-        Imp updatedFirstImp = null;
-        ExtImpTtx extImpTtx = null;
-        try {
-            extImpTtx = parseImpExt(firstImp);
-            updatedFirstImp = updatedImp(firstImp, extImpTtx.getProductId(), extImpTtx.getZoneId(), errors);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+
+        for (Imp imp : request.getImp()) {
+            try {
+                validateImp(imp);
+                final ExtImpTtx extImpTtx = parseImpExt(imp);
+                final Imp updatedImp = updateImp(imp, extImpTtx);
+                requests.add(createRequest(request, updatedImp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
         }
+        return Result.of(requests, errors);
+    }
 
-        if (updatedFirstImp != null && updatedFirstImp.getBanner() == null && updatedFirstImp.getVideo() == null) {
-            return Result.withError(BidderError.badInput("At least one of [banner, video] "
-                    + "formats must be defined in Imp. None found"));
+    private void validateImp(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException(
+                    String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
         }
-
-        final HttpRequest<BidRequest> httpRequest = createRequest(request, extImpTtx, updatedFirstImp);
-
-        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private ExtImpTtx parseImpExt(Imp imp) {
@@ -85,15 +86,15 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updatedImp(Imp imp, String productId, String zoneId, List<BidderError> errors) {
-
+    private Imp updateImp(Imp imp, ExtImpTtx extImpTtx) {
+        final String productId = extImpTtx.getProductId();
         return imp.toBuilder()
-                .video(updatedVideo(imp.getVideo(), productId, errors))
-                .ext(createImpExt(productId, zoneId))
+                .video(updatedVideo(imp.getVideo(), productId))
+                .ext(createImpExt(productId, extImpTtx.getZoneId(), extImpTtx.getSiteId()))
                 .build();
     }
 
-    private static Video updatedVideo(Video video, String productId, List<BidderError> errors) {
+    private static Video updatedVideo(Video video, String productId) {
         if (video == null) {
             return null;
         }
@@ -102,9 +103,8 @@ public class TtxBidder implements Bidder<BidRequest> {
                 || CollectionUtils.isEmpty(video.getProtocols())
                 || CollectionUtils.isEmpty(video.getMimes())
                 || CollectionUtils.isEmpty(video.getPlaybackmethod())) {
-            errors.add(BidderError.badInput("One or more invalid or missing video field(s) "
-                    + "w, h, protocols, mimes, playbackmethod"));
-            return null;
+            throw new PreBidException("One or more invalid or missing video field(s) "
+                    + "w, h, protocols, mimes, playbackmethod");
         }
         final Integer videoPlacement = video.getPlacement();
 
@@ -132,14 +132,16 @@ public class TtxBidder implements Bidder<BidRequest> {
         return videoPlacement;
     }
 
-    private ObjectNode createImpExt(String productId, String zoneId) {
-        final TtxImpExt ttxImpExt = TtxImpExt.of(TtxImpExtTtx.of(productId, StringUtils.stripToNull(zoneId)));
+    private ObjectNode createImpExt(String productId, String zoneId, String siteId) {
+        final TtxImpExt ttxImpExt = TtxImpExt.of(
+                TtxImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request, ExtImpTtx extImpTtx, Imp updatedFirstImp) {
-        final Site updatedSite = extImpTtx != null ? updateSite(request.getSite(), extImpTtx.getSiteId()) : null;
-        final BidRequest modifiedRequest = updateRequest(request, updatedSite, updatedFirstImp);
+    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp) {
+        final BidRequest modifiedRequest = request.toBuilder()
+                .imp(Collections.singletonList(requestImp))
+                .build();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -148,27 +150,6 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .payload(modifiedRequest)
                 .body(mapper.encode(modifiedRequest))
                 .build();
-    }
-
-    private static Site updateSite(Site site, String siteId) {
-        return site == null ? null : site.toBuilder().id(siteId).build();
-    }
-
-    private static BidRequest updateRequest(BidRequest request, Site updatedSite, Imp updatedFirstImp) {
-        if (updatedSite == null && updatedFirstImp == null) {
-            return request;
-        }
-        final List<Imp> requestImps = request.getImp();
-        return request.toBuilder()
-                .site(updatedSite != null ? updatedSite : request.getSite())
-                .imp(updatedFirstImp != null ? replaceFirstImp(requestImps, updatedFirstImp) : requestImps)
-                .build();
-    }
-
-    private static List<Imp> replaceFirstImp(List<Imp> imps, Imp firstImp) {
-        final List<Imp> updatedImpList = new ArrayList<>(imps);
-        updatedImpList.set(0, firstImp);
-        return updatedImpList;
     }
 
     @Override
@@ -198,7 +179,8 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid bid) {
+    private BidType getBidType(Bid
+                                       bid) {
         try {
             final TtxBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), TtxBidExt.class);
             return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;

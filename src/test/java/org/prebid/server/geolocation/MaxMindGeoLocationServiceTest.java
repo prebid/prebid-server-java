@@ -94,4 +94,21 @@ public class MaxMindGeoLocationServiceTest {
                         .lon(2.3522f)
                         .build());
     }
+
+    @Test
+    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException {
+        // given
+        final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
+        given(databaseReader.city(any())).willReturn(null);
+
+        FieldSetter.setField(maxMindGeoLocationService,
+                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+
+        // when
+        final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(GeoInfo.builder().vendor("maxmind").build());
+    }
 }

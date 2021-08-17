@@ -24,7 +24,12 @@ There are two ways to configure application settings: database and file. This do
 - `default-integration` - Default integration to assume.
 - `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
+- `status` - allows to mark account as `active` or `inactive`.
+- `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
+- `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this value
+- `cookie-sync.default-coop-sync` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 
+Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
 ----------|---------------------------------|---------------------------------------------
@@ -43,11 +48,13 @@ sf1       | Precise geo                     | Verifies user opt-in. If the user 
 sf2       | Fingerprinting                  | n\a
 ```
 
-## File application setting
+## Setting Account Configuration in Files
 
 In file based approach all configuration stores in .yaml files, path to which are defined in application properties.
 
 ### Configuration in application.yaml
+
+The general idea is that you'll place all the account-specific settings in a separate YAML file and point to that file.
 
 ```yaml
 settings:
@@ -56,9 +63,11 @@ settings:
 ```
 ### File format
 
+Here's an example YAML file containing account-specific settings:
+
 ```yaml
 accounts:
-  - id: 14062
+  - id: 1111
     bannerCacheTtl: 100
     videoCacheTtl: 100
     eventsEnabled: true
@@ -70,6 +79,11 @@ accounts:
     analytics-config:
       auction-events:
         amp: true
+    status: active
+    cookie-sync:
+      default-limit: 5
+      max-limit: 8
+      default-coop-sync: true
     gdpr:
       enabled: true
       integration-enabled:
@@ -152,7 +166,7 @@ accounts:
       purpose-one-treatment-interpretation: ignore
 ```
 
-## Database application setting
+## Setting Account Configuration in the Database
 
 In database approach account properties are stored in database table.
 
@@ -171,10 +185,20 @@ settings:
     account-query: <SQL query for account>
 ```
 
-### SQL query for account requirements
+### Configurable SQL query for account requirements
+
+The general approach is that each host company can set up their database however they wish, so long as the configurable query run by
+Prebid Server returns expected data in the expected order. Here's an example configuration:
+
+```yaml
+settings:
+  database:
+    type: mysql
+    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status, config FROM accounts_account where uuid = ? LIMIT 1
+```
 
 The SQL query for account must:
-* return following columns, with specified type, in that order:
+* return following columns, with specified type, in this order:
     * account ID, string
     * price granularity, string
     * banner cache TTL, integer
@@ -186,12 +210,27 @@ The SQL query for account must:
     * maximum targeting attribute size, integer
     * default integration value, string
     * analytics configuration, JSON string, see below
+    * bid validations configuration, JSON string, see below
+    * status, string. Expected values: "active", "inactive", NULL. Only "inactive" has any effect and only when settings.enforce-valid-account is on.
+    * consolidated configuration, JSON string, see below   
 * specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
 runtime
 
 It is recommended to include `LIMIT 1` clause in the query because only the very first result returned will be taken.
 
-TCF configuration column format:
+If a host company doesn't support a given field, or they have a different table name, they can just update the query with whatever values are needed. e.g.
+
+```yaml
+settings:
+  database:
+    type: mysql
+    account-query: SELECT uuid, 'med', banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 0, null, default_integration, '{}', '{}', status, '{}' FROM myaccountstable where uuid = ? LIMIT 1
+```
+### Configuration Details
+
+#### TCF configuration JSON
+
+Here's an example of the value that the `tcf_config` column can take:
 
 ```json
 {
@@ -304,7 +343,9 @@ TCF configuration column format:
 }
 ```
 
-and bid_validations column is json with next format
+#### Bid Validations configuration JSON
+
+The `bid_validations` column is json with this format:
 
 ```json
 {
@@ -312,22 +353,44 @@ and bid_validations column is json with next format
 }
 ```
 
+Valid values are:
+- "skip": don't do anything about creative max size for this publisher
+- "warn": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, log an operational warning.
+- "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject the bid and log an operational warning.
 
-Analytics configuration column format:
+#### Analytics Validations configuration JSON
+
+The `analytics_config` configuration column format:
 
 ```json
 {
   "auction-events": {
-    "web": true,
-    "amp": true,
-    "app": false
+    "web": true,   // the analytics adapter should log auction events when the channel is web
+    "amp": true,   // the analytics adapter should log auction events when the channel is AMP
+    "app": false   // the analytics adapter should not log auction events when the channel is app
   }
 }
 ```
 
-#### Example
+#### Consolidated configuration JSON
 
-Query to create accounts_account table:
+The `config` column is envisioned as a new home for all configuration values. All new configuration values are added here. 
+The schema of this JSON document has following format so far:
+
+```json
+{
+  "cookie-sync": {
+    "default-limit": 5,
+    "max-limit": 8,
+    "default-coop-sync": true
+  }
+}
+```
+
+#### Creating the accounts table
+
+Traditionally the table name used by Prebid Server is `accounts_account`. No one remembers why. But here's SQL 
+you could use to create your table:
 
 ```sql
 'CREATE TABLE `accounts_account` (
@@ -347,19 +410,11 @@ Query to create accounts_account table:
     `analytics_config` varchar(512) DEFAULT NULL,
     `bid_validations` json DEFAULT NULL,
     `status` enum('active','inactive') DEFAULT 'active',
+    `config` json DEFAULT NULL,
     `updated_by` int(11) DEFAULT NULL,
     `updated_by_user` varchar(64) DEFAULT NULL,
     `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
 ENGINE=InnoDB DEFAULT CHARSET=utf8'
-```
-
-Query used to get an account:
-
-```sql
-SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 
-    analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations 
-FROM accounts_account where uuid = %ACCOUNT_ID%
-LIMIT 1
 ```

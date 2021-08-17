@@ -27,11 +27,13 @@ import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -57,10 +59,12 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static final String DISPLAY_MANAGER_VER = "2.0.0";
 
     private final String endpointUrl;
+    private final boolean generateBidId;
     private final JacksonMapper mapper;
 
-    public ConversantBidder(String endpointUrl, JacksonMapper mapper) {
+    public ConversantBidder(String endpointUrl, boolean generateBidId, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.generateBidId = generateBidId;
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -135,12 +139,27 @@ public class ConversantBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VER)
-                .bidfloor(impExt.getBidfloor())
-                .tagid(impExt.getTagId())
+                .bidfloor(getBidFloor(imp.getBidfloor(), impExt.getBidfloor()))
+                .tagid(getTagId(imp.getTagid(), impExt.getTagId()))
                 .secure(getSecure(imp, impExt))
                 .banner(modifyBanner(banner, impExt.getPosition()))
                 .video(video != null && banner == null ? modifyVideo(video, impExt) : video)
                 .build();
+    }
+
+    private static String getTagId(String tagId, String impExtTagId) {
+        return StringUtils.isNotEmpty(impExtTagId) ? impExtTagId : tagId;
+    }
+
+    private static BigDecimal getBidFloor(BigDecimal impBidFloor, BigDecimal impExtBidFloor) {
+
+        return isValidBidFloor(impExtBidFloor) && !isValidBidFloor(impBidFloor)
+                ? impExtBidFloor
+                : impBidFloor;
+    }
+
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static Integer getSecure(Imp imp, ExtImpConversant impExt) {
@@ -211,7 +230,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         return bidsFromResponse(httpCall.getRequest().getPayload(), bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
         final List<Bid> bids = firstSeatBid.getBid();
 
@@ -220,8 +239,15 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
         return bids.stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(updateBidWithId(bid), getType(bid.getImpid(),
+                        bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private Bid updateBidWithId(Bid bid) {
+        return generateBidId
+                ? bid.toBuilder().id(UUID.randomUUID().toString()).build()
+                : bid;
     }
 
     private static BidType getType(String impId, List<Imp> imps) {

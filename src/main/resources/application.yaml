@@ -82,7 +82,7 @@ auction:
     log-failure-only: false
     log-sampling-rate: 0.0
   max-request-size: 262144
-  id-generator-type: uuid
+  generate-source-tid: true
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
@@ -90,6 +90,7 @@ auction:
   validations:
     banner-creative-max-size: skip
     secure-markup: skip
+  host-schain-node:
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -123,6 +124,7 @@ metrics:
   accounts:
     default-verbosity: none
 settings:
+  generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
   database:
     pool-size: 20
@@ -133,6 +135,7 @@ settings:
     account-invalidation-enabled: true
   targeting:
     truncate-attr-chars: 20
+  default-account-config:
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -142,16 +145,15 @@ host-cookie:
   max-cookie-size-bytes: 0
 gdpr:
   enabled: true
-  default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     default-timeout-ms: 2000
     v1:
-      http-endpoint-template: https://vendorlist.consensu.org/v-{VERSION}/vendorlist.json
+      http-endpoint-template: https://vendor-list.consensu.org/v-{VERSION}/vendorlist.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
     v2:
-      http-endpoint-template: https://vendorlist.consensu.org/v2/archives/vendor-list-v{VERSION}.json
+      http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
   purposes:
@@ -219,3 +221,14 @@ ipv6:
   always-mask-right: 64
   anon-left-mask-bits: 56
   private-networks: ::1/128, 2001:db8::/32, fc00::/7, fe80::/10, ff00::/8
+analytics:
+  pubstack:
+    enabled: false
+    endpoint: http://localhost:8090
+    scopeid: change-me
+    configuration-refresh-delay-ms: 7200000
+    timeout-ms: 5000
+    buffers:
+      size-bytes: 2097152
+      count: 100
+      report-ttl-ms: 900000

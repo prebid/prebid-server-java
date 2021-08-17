@@ -1,40 +1,21 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "600527793",
-          "impid": "impId13",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 5.78,
           "adm": "adm 13",
-          "crid": "crid13",
+          "crid": "crid",
           "w": 300,
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "5.70",
-                "hb_size": "300x250",
-                "hb_bidder_sovrn": "sovrn",
-                "hb_pb_sovrn": "5.70",
-                "hb_bidder": "sovrn",
-                "hb_cache_id": "1e6fb739-d0e7-4b7c-9b00-21aa40dc3301",
-                "hb_size_sovrn": "300x250",
-                "hb_cache_id_sovrn": "1e6fb739-d0e7-4b7c-9b00-21aa40dc3301",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_sovrn": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_sovrn": "{{ cache.path }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}1e6fb739-d0e7-4b7c-9b00-21aa40dc3301",
-                  "cacheId": "1e6fb739-d0e7-4b7c-9b00-21aa40dc3301"
-                }
-              }
-            }
+              "type": "banner"
+            },
+            "origbidcpm": 5.78
           }
         }
       ],
@@ -45,11 +26,10 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "sovrn": "{{ sovrn.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "sovrn": "{{ sovrn.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

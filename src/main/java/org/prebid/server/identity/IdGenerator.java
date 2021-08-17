@@ -6,4 +6,6 @@ package org.prebid.server.identity;
 public interface IdGenerator {
 
     String generateId();
+
+    IdGeneratorType getType();
 }

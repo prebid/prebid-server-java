@@ -6,9 +6,13 @@
   "properties": {
     "host": {
       "type": "string",
-      "description": "Network Host to request from"
+      "description": "Network Host to request from",
+      "enum": ["lbs-eu1.ads", "lbs-ru1.ads", "lbs-us-east1.ads", "lbs-asia1.ads"]
+    },
+    "publisher_id": {
+      "type": "string",
+      "description": "Publisher ID from Between Exchange control panel"
     }
-
   },
-  "required": ["host"]
+  "required": ["host", "publisher_id"]
 }

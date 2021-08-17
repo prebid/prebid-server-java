@@ -10,6 +10,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
+
+import java.util.Objects;
 
 /**
  * Handles HTTP request for pbs project version.
@@ -18,9 +21,12 @@ public class VersionHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VersionHandler.class);
 
+    private final String endpoint;
+
     private final String revisionResponseBody;
 
-    public VersionHandler(String version, String commitHash, JacksonMapper mapper) {
+    public VersionHandler(String version, String commitHash, JacksonMapper mapper, String endpoint) {
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.revisionResponseBody = createRevisionResponseBody(version, commitHash, mapper);
     }
 
@@ -37,11 +43,16 @@ public class VersionHandler implements Handler<RoutingContext> {
      * Responds with commit revision.
      */
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         if (StringUtils.isNotBlank(revisionResponseBody)) {
-            context.response().end(revisionResponseBody);
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .end(revisionResponseBody));
         } else {
-            context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code())
+                            .end());
         }
     }
 

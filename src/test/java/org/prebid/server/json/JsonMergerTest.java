@@ -7,7 +7,7 @@ import com.iab.openrtb.request.Site;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigFpd;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,24 +26,24 @@ public class JsonMergerTest extends VertxTest {
         final ObjectNode siteWithPage = mapper.valueToTree(Site.builder().page("testPage").build());
         final Publisher publisherWithId = Publisher.builder().id("testId").build();
         final ObjectNode appWithPublisherId = mapper.valueToTree(App.builder().publisher(publisherWithId).build());
-        final ExtBidderConfigFpd firstBidderConfigFpd = ExtBidderConfigFpd.of(siteWithPage, appWithPublisherId, null);
+        final ExtBidderConfigOrtb firstBidderConfigFpd = ExtBidderConfigOrtb.of(siteWithPage, appWithPublisherId, null);
 
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("testDomain").build());
         final Publisher publisherWithIdAndDomain = Publisher.builder().id("shouldNotBe").domain("domain").build();
         final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(App.builder()
                 .publisher(publisherWithIdAndDomain).build());
-        final ExtBidderConfigFpd secondBidderConfigFpd = ExtBidderConfigFpd.of(siteWithDomain, appWithUpdatedPublisher,
-                null);
+        final ExtBidderConfigOrtb secondBidderConfigFpd =
+                ExtBidderConfigOrtb.of(siteWithDomain, appWithUpdatedPublisher, null);
 
         // when
-        final ExtBidderConfigFpd result = target.merge(firstBidderConfigFpd, secondBidderConfigFpd,
-                ExtBidderConfigFpd.class);
+        final ExtBidderConfigOrtb result = target.merge(firstBidderConfigFpd, secondBidderConfigFpd,
+                ExtBidderConfigOrtb.class);
 
         // then
         final ObjectNode mergedSite = mapper.valueToTree(Site.builder().page("testPage").domain("testDomain").build());
         final Publisher mergedPublisher = Publisher.builder().id("testId").domain("domain").build();
         final ObjectNode mergedApp = mapper.valueToTree(App.builder().publisher(mergedPublisher).build());
-        final ExtBidderConfigFpd mergedConfigFpd = ExtBidderConfigFpd.of(mergedSite, mergedApp, null);
+        final ExtBidderConfigOrtb mergedConfigFpd = ExtBidderConfigOrtb.of(mergedSite, mergedApp, null);
 
         assertThat(result).isEqualTo(mergedConfigFpd);
     }
