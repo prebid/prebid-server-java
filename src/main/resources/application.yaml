@@ -102,7 +102,7 @@ setuid:
   default-timeout-ms: 2000
 vtrack:
   default-timeout-ms: 2000
-  allow-unkonwn-bidder: true
+  allow-unknown-bidder: true
   modify-vast-for-unknown-bidder: true
 cookie-sync:
   coop-sync:
