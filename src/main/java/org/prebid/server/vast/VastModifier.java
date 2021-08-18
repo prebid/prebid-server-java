@@ -111,11 +111,11 @@ public class VastModifier {
                 String.format("VastXml does not contain neither InLine nor Wrapper for %s response", bidder));
     }
 
-    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, String element) {
+    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, String elementCloseTag) {
         if (vastXml.contains(IMPRESSION_CLOSE_TAG)) {
             return insertAfterExistingImpressionTag(vastXml, vastUrlTracking);
         }
-        return insertBeforeElementCloseTag(vastXml, vastUrlTracking, element);
+        return insertBeforeElementCloseTag(vastXml, vastUrlTracking, elementCloseTag);
     }
 
     private static String insertAfterExistingImpressionTag(String vastXml, String vastUrlTracking) {
