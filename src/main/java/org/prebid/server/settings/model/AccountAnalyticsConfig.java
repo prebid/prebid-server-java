@@ -1,6 +1,7 @@
 package org.prebid.server.settings.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
 import java.util.Collections;
@@ -18,11 +19,13 @@ public class AccountAnalyticsConfig {
         events.put("amp", true);
         events.put("app", true);
 
-        FALLBACK = AccountAnalyticsConfig.of(Collections.unmodifiableMap(events));
+        FALLBACK = AccountAnalyticsConfig.of(Collections.unmodifiableMap(events), null);
     }
 
     @JsonProperty("auction-events")
     Map<String, Boolean> auctionEvents;
+
+    Map<String, ObjectNode> modules;
 
     public static AccountAnalyticsConfig fallback() {
         return FALLBACK;

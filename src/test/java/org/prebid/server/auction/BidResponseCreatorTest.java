@@ -1755,7 +1755,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true)))
+                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -1944,7 +1944,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true)))
+                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),

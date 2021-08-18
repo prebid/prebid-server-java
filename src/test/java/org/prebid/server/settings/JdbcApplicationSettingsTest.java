@@ -157,7 +157,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "}"
                 + "},"
                 + "\"analytics\": {"
-                + "\"auction-events\": {\"amp\": true}"
+                + "\"auction-events\": {\"amp\": true},"
+                + "\"modules\": {\"some-analytics\": {\"supported-endpoints\": [\"auction\"]}}"
                 + "},"
                 + "\"cookie-sync\": {"
                 + "\"default-limit\": 5,"
@@ -239,7 +240,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
                                     .build(),
                             null))
-                    .analytics(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                    .analytics(AccountAnalyticsConfig.of(
+                            singletonMap("amp", true),
+                            singletonMap(
+                                    "some-analytics",
+                                    mapper.createObjectNode()
+                                            .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
                     .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                     .build());
             async.complete();

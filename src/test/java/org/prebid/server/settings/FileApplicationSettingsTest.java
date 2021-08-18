@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -43,7 +44,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-public class FileApplicationSettingsTest {
+public class FileApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -119,7 +120,8 @@ public class FileApplicationSettingsTest {
                         + "}"
                         + "},"
                         + "analytics: {"
-                        + "auction-events: {amp: true}"
+                        + "auction-events: {amp: true},"
+                        + "modules: {some-analytics: {supported-endpoints: [auction]}}"
                         + "},"
                         + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
@@ -161,7 +163,12 @@ public class FileApplicationSettingsTest {
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
                                 .build(),
                         null))
-                .analytics(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                .analytics(AccountAnalyticsConfig.of(
+                        singletonMap("amp", true),
+                        singletonMap(
+                                "some-analytics",
+                                mapper.createObjectNode()
+                                        .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
                 .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
