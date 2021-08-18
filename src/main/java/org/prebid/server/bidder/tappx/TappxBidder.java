@@ -15,10 +15,12 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.tappx.model.TappxBidderExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -34,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
-    private static final String VERSION = "1.2";
+    private static final String VERSION = "1.3";
     private static final String TYPE_CNN = "prebid";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
@@ -59,11 +61,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        final BigDecimal extBidfloor = extImpTappx.getBidfloor();
-        final BidRequest outgoingRequest = extBidfloor != null && extBidfloor.signum() > 0
-                ? modifyRequest(request, extBidfloor)
-                : request;
+        final BidRequest outgoingRequest = modifyRequest(request, extImpTappx);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -144,12 +142,24 @@ public class TappxBidder implements Bidder<BidRequest> {
     /**
      * Modify request's first imp.
      */
-    private static BidRequest modifyRequest(BidRequest request, BigDecimal extBidfloor) {
-        final Imp modifiedFirstImp = request.getImp().get(0).toBuilder().bidfloor(extBidfloor).build();
+    private BidRequest modifyRequest(BidRequest request, ExtImpTappx extImpTappx) {
         final List<Imp> modifiedImps = new ArrayList<>(request.getImp());
-        modifiedImps.set(0, modifiedFirstImp);
+        final BigDecimal extBidfloor = extImpTappx.getBidfloor();
+        if (extBidfloor != null && extBidfloor.signum() > 0) {
+            final Imp modifiedFirstImp = request.getImp().get(0).toBuilder().bidfloor(extBidfloor).build();
+            modifiedImps.set(0, modifiedFirstImp);
+        }
 
-        return request.toBuilder().imp(modifiedImps).build();
+        return request.toBuilder().imp(modifiedImps).ext(getExtRequest(extImpTappx)).build();
+    }
+
+    private ExtRequest getExtRequest(ExtImpTappx extImpTappx) {
+        final ExtRequest extRequest = ExtRequest.empty();
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.of(extImpTappx.getTappxkey(), extImpTappx.getMktag(),
+                extImpTappx.getBcid(), extImpTappx.getBcrid());
+        extRequest.addProperty("bidder", mapper.mapper().valueToTree(tappxBidderExt));
+
+        return extRequest;
     }
 
     @Override

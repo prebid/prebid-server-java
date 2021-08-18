@@ -23,6 +23,8 @@ public class Account {
 
     AccountGdprConfig gdpr;
 
+    AccountCcpaConfig ccpa;
+
     Integer analyticsSamplingFactor;
 
     Integer truncateTargetAttr;
