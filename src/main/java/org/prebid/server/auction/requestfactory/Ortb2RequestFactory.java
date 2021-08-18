@@ -178,10 +178,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                        body,
-                        auctionContext.getHookExecutionContext())
+                toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                body,
+                auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
