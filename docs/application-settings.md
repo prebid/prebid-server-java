@@ -40,6 +40,7 @@ There are two ways to configure application settings: database and file. This do
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
