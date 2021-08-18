@@ -52,7 +52,7 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
+    public void makeHttpRequestsShouldCorrectlyAddAllHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
@@ -72,6 +72,94 @@ public class AdagioBidderTest extends VertxTest {
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddToForwardHeaderIpv6IfIpNotPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("someUa").dnt(5).ip(null).ipv6("someIpv6").language("someLanguage").build())
+                .site(Site.builder().page("somePage").build())
+                .imp(singletonList(imp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIpv6"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddToForwardHeaderIpv6IfIpPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder()
+                        .ua("someUa")
+                        .dnt(5)
+                        .ipv6("someIpv6")
+                        .ip("someIp")
+                        .language("someLanguage")
+                        .build())
+                .site(Site.builder().page("somePage").build())
+                .imp(singletonList(imp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddToForwardHeaderIpIfIpv6NotPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("someUa").dnt(5).ipv6(null).ip("someIp").language("someLanguage").build())
+                .site(Site.builder().page("somePage").build())
+                .imp(singletonList(imp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAddForwardHeaderIfNoneIpIpv6Present() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder);
+        final BidRequest bidRequest = BidRequest.builder()
+                .device(Device.builder().ua("someUa").dnt(5).ipv6(null).ip(null).language("someLanguage").build())
+                .site(Site.builder().page("somePage").build())
+                .imp(singletonList(imp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(res -> res.getHeaders().entries())
+                .extracting(Map.Entry::getKey).doesNotContain(HttpUtil.X_FORWARDED_FOR_HEADER.toString());
     }
 
     @Test
@@ -121,10 +209,11 @@ public class AdagioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorAndEmptyValuesIfExtIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(null))));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(null))));
 
         // when
-        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall,  null);
+        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -135,17 +224,18 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNoErrorIfExtIsEmpty() throws JsonProcessingException {
-        //givenBidResponse(e-> e.id("123"), e-> e.id("456").ext( mapper.createObjectNode().set("Prebid", mapper.valueToTree(ExtBidPrebid.builder().type(BidType.banner).build()))));
+    public void makeBidsShouldReturnErrorIfExtIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.createObjectNode()))));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.createObjectNode()))));
 
         // when
-        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall,  null);
+        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
-        //assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getValue()).hasSize(0);
     }
 
     @Test
@@ -159,7 +249,7 @@ public class AdagioBidderTest extends VertxTest {
                         firstBuilder -> firstBuilder
                                 .ext(mapper
                                         .createObjectNode()
-                                        .set("Prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
                                                 .type(checkType)
                                                 .build())))
                                 .id(checkId),
@@ -167,7 +257,7 @@ public class AdagioBidderTest extends VertxTest {
                         secondBuilder -> secondBuilder
                                 .ext(mapper
                                         .createObjectNode()
-                                        .set("Prebid", mapper.valueToTree(ExtBidPrebid.builder()
+                                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
                                         .type(checkType)
                                         .build())))
                                 .id(checkId),
@@ -175,7 +265,7 @@ public class AdagioBidderTest extends VertxTest {
                         thirdBuilder -> thirdBuilder.ext(null))));
 
         // when
-        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall,  null);
+        final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -198,7 +288,6 @@ public class AdagioBidderTest extends VertxTest {
                 .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
-
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
