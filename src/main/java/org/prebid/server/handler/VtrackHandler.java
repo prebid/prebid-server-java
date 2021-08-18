@@ -26,6 +26,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -130,7 +132,12 @@ public class VtrackHandler implements Handler<RoutingContext> {
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
         return exception instanceof PreBidException
-                ? Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build())
+                ? Future.succeededFuture(Account.builder()
+                    .id(accountId)
+                    .auction(AccountAuctionConfig.builder()
+                            .events(AccountEventsConfig.of(false))
+                            .build())
+                    .build())
                 : Future.failedFuture(exception);
     }
 
@@ -146,11 +153,19 @@ public class VtrackHandler implements Handler<RoutingContext> {
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
             final Account account = asyncAccount.result();
-            final Boolean isEventEnabled = account.getEventsEnabled();
+            final Boolean isEventEnabled = accountEventsEnabled(asyncAccount.result());
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
+    }
+
+    private static Boolean accountEventsEnabled(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final AccountEventsConfig accountEventsConfig =
+                accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
+
+        return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
     }
 
     /**

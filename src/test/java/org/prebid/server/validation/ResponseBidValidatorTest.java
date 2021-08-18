@@ -19,6 +19,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -223,7 +224,9 @@ public class ResponseBidValidatorTest extends VertxTest {
                 givenBid(builder -> builder.w(150).h(150)),
                 BIDDER_NAME,
                 givenAuctionContext(
-                        givenAccount(builder -> builder.bidValidations(AccountBidValidationConfig.of(skip)))),
+                        givenAccount(builder -> builder.auction(AccountAuctionConfig.builder()
+                                .bidValidations(AccountBidValidationConfig.of(skip))
+                                .build()))),
                 bidderAliases);
 
         // then
