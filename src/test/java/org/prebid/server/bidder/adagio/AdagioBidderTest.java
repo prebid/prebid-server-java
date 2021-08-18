@@ -54,17 +54,17 @@ public class AdagioBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectlyAddAllHeaders() {
         // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
                 .site(Site.builder().page("somePage").build())
-                .imp(singletonList(firstImp))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -75,19 +75,19 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddToForwardHeaderIpv6IfIpNotPresent() {
+    public void makeHttpRequestsShouldAddForwardedForHeaderIfIpv6PresentAndIpIsAbsent() {
         // given
-        final Imp imp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip(null).ipv6("someIpv6").language("someLanguage").build())
                 .site(Site.builder().page("somePage").build())
-                .imp(singletonList(imp))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -96,9 +96,8 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddToForwardHeaderIpv6IfIpPresent() {
+    public void makeHttpRequestsShouldAddForwardedForHeaderIfIpv6PresentAndIpIsPresent() {
         // given
-        final Imp imp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder()
                         .ua("someUa")
@@ -108,13 +107,14 @@ public class AdagioBidderTest extends VertxTest {
                         .language("someLanguage")
                         .build())
                 .site(Site.builder().page("somePage").build())
-                .imp(singletonList(imp))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -123,19 +123,19 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddToForwardHeaderIpIfIpv6NotPresent() {
+    public void makeHttpRequestsShouldAddForwardedForHeaderIfIpv6AbsentAndIpIsPresent() {
         // given
-        final Imp imp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ipv6(null).ip("someIp").language("someLanguage").build())
                 .site(Site.builder().page("somePage").build())
-                .imp(singletonList(imp))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adagioBidder.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -144,13 +144,12 @@ public class AdagioBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotAddForwardHeaderIfNoneIpIpv6Present() {
+    public void makeHttpRequestsShouldAddForwardedForHeaderIfIpv6AbsentAndIpIsAbsent() {
         // given
-        final Imp imp = givenImp(impBuilder -> impBuilder);
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ipv6(null).ip(null).language("someLanguage").build())
                 .site(Site.builder().page("somePage").build())
-                .imp(singletonList(imp))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when
@@ -160,6 +159,7 @@ public class AdagioBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey).doesNotContain(HttpUtil.X_FORWARDED_FOR_HEADER.toString());
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -233,9 +233,11 @@ public class AdagioBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adagioBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

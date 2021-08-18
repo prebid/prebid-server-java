@@ -18,8 +18,8 @@ adapters:
       supported-vendors:
       vendor-id: 617
     usersync:
-      url:
-      redirect-url:
+      url: https://mp.4dex.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=adagio&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
       cookie-family-name: adagio
       type: redirect
       support-cors: false
