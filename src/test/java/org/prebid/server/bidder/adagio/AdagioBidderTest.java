@@ -243,26 +243,21 @@ public class AdagioBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldProccedWithErrorsAndValues() throws JsonProcessingException {
         // given
-        BidType checkType = BidType.banner;
-        String checkId = "123";
-
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(
                         firstBuilder -> firstBuilder
                                 .ext(mapper
                                         .createObjectNode()
                                         .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                                .type(checkType)
-                                                .build())))
-                                .id(checkId),
+                                                .type(BidType.banner)
+                                                .build()))),
 
                         secondBuilder -> secondBuilder
                                 .ext(mapper
                                         .createObjectNode()
                                         .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                        .type(checkType)
-                                        .build())))
-                                .id(checkId),
+                                        .type(BidType.banner)
+                                        .build()))),
 
                         thirdBuilder -> thirdBuilder.ext(null))));
 
@@ -277,8 +272,7 @@ public class AdagioBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(2)
                 .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(checkType);
-                    assertThat(value.getBid().getId()).isEqualTo(checkId);
+                    assertThat(value.getType()).isEqualTo(BidType.banner);
                 });
     }
 
