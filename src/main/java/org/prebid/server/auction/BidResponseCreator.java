@@ -1190,9 +1190,10 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = ObjectUtils.defaultIfNull(
-                auctionContext.getAccount().getAnalytics(), AccountAnalyticsConfig.fallback());
-        final Map<String, Boolean> channelConfig = analyticsConfig.getAuctionEvents();
+        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalytics();
+        final Map<String, Boolean> channelConfig = ObjectUtils.defaultIfNull(
+                analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null,
+                AccountAnalyticsConfig.fallbackAuctionEvents());
 
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
