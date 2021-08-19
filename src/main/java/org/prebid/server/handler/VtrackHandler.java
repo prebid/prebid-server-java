@@ -1,5 +1,6 @@
 package org.prebid.server.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
@@ -41,9 +42,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     private static final String ACCOUNT_PARAMETER = "a";
     private static final String INTEGRATION_PARAMETER = "int";
+    private static final String TYPE_XML = "xml";
 
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;
+    private final boolean modifyVastForUnknownBidder;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
     private final CacheService cacheService;
@@ -52,6 +55,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     public VtrackHandler(long defaultTimeout,
                          boolean allowUnknownBidder,
+                         boolean modifyVastForUnknownBidder,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          CacheService cacheService,
@@ -60,6 +64,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         this.defaultTimeout = defaultTimeout;
         this.allowUnknownBidder = allowUnknownBidder;
+        this.modifyVastForUnknownBidder = modifyVastForUnknownBidder;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -112,14 +117,29 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         final List<PutObject> putObjects = ListUtils.emptyIfNull(bidCacheRequest.getPuts());
         for (PutObject putObject : putObjects) {
-            if (StringUtils.isEmpty(putObject.getBidid())) {
-                throw new IllegalArgumentException("'bidid' is required field and can't be empty");
-            }
-            if (StringUtils.isEmpty(putObject.getBidder())) {
-                throw new IllegalArgumentException("'bidder' is required field and can't be empty");
-            }
+            validatePutObject(putObject);
         }
         return putObjects;
+    }
+
+    private static void validatePutObject(PutObject putObject) {
+        if (StringUtils.isEmpty(putObject.getBidid())) {
+            throw new IllegalArgumentException("'bidid' is required field and can't be empty");
+        }
+
+        if (StringUtils.isEmpty(putObject.getBidder())) {
+            throw new IllegalArgumentException("'bidder' is required field and can't be empty");
+        }
+
+        if (!StringUtils.equals(putObject.getType(), TYPE_XML)) {
+            throw new IllegalArgumentException("vtrack only accepts type xml");
+        }
+
+        final JsonNode value = putObject.getValue();
+        final String valueAsString = value != null ? value.asText() : null;
+        if (!StringUtils.containsIgnoreCase(valueAsString, "<vast")) {
+            throw new IllegalArgumentException("vtrack content must be vast");
+        }
     }
 
     public static String integration(RoutingContext routingContext) {
@@ -182,7 +202,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
         if (bidderCatalog.isValidName(bidderName)) {
             return bidderCatalog.isModifyingVastXmlAllowed(bidderName);
         } else {
-            return allowUnknownBidder;
+            return allowUnknownBidder && modifyVastForUnknownBidder;
         }
     }
 

@@ -110,7 +110,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
 ## Vtrack
-- `vtrack.allow-unkonwn-bidder` - flag allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.modify-vast-for-unknown-bidder` - flag that allows modifying the VAST value and adding the impression tag to it, for bidders who were not configured in Prebid Server.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
