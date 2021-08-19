@@ -387,7 +387,6 @@ public class VideoStoredRequestProcessor {
             durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
         }
 
-
         final PriceGranularity priceGranularity = videoRequest.getPriceGranularity();
         final Integer precision = priceGranularity != null
                 ? priceGranularity.getPrecision()
