@@ -11,7 +11,7 @@ import java.util.Map;
 @Value(staticConstructor = "of")
 public class AccountAnalyticsConfig {
 
-    private static final AccountAnalyticsConfig FALLBACK;
+    private static final Map<String, Boolean> FALLBACK_AUCTION_EVENTS;
 
     static {
         final Map<String, Boolean> events = new HashMap<>();
@@ -19,7 +19,7 @@ public class AccountAnalyticsConfig {
         events.put("amp", true);
         events.put("app", true);
 
-        FALLBACK = AccountAnalyticsConfig.of(Collections.unmodifiableMap(events), null);
+        FALLBACK_AUCTION_EVENTS = Collections.unmodifiableMap(events);
     }
 
     @JsonProperty("auction-events")
@@ -27,7 +27,7 @@ public class AccountAnalyticsConfig {
 
     Map<String, ObjectNode> modules;
 
-    public static AccountAnalyticsConfig fallback() {
-        return FALLBACK;
+    public static Map<String, Boolean> fallbackAuctionEvents() {
+        return FALLBACK_AUCTION_EVENTS;
     }
 }
