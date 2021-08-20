@@ -1,8 +1,13 @@
 package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Pmp;
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -36,9 +41,11 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -47,6 +54,7 @@ import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.anyLong;
@@ -278,6 +286,136 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
+    }
+
+    @Test
+    public void shouldNotWaitForResponsesWhenAllDealsIsGathered() {
+        // given
+        httpBidderRequester = new HttpBidderRequester(httpClient, new DealsBidderRequestCompletionTrackerFactory(),
+                bidderErrorNotifier, requestEnricher);
+
+        final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2");
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(Arrays.asList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal1"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r2")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal1"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r3")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal2"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r4")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal1"))
+                        .build()),
+                emptyList()));
+
+        final HttpClientResponse respWithDeal1 = HttpClientResponse.of(200, null,
+                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal1\"}]}]}");
+        final HttpClientResponse respWithDeal2 = HttpClientResponse.of(200, null,
+                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal2\"}]}]}");
+
+        given(httpClient.request(any(), anyString(), any(), eq("r1"), anyLong()))
+                .willReturn(Future.succeededFuture(respWithDeal1));
+        given(httpClient.request(any(), anyString(), any(), eq("r2"), anyLong()))
+                .willReturn(Promise.<HttpClientResponse>promise().future());
+        given(httpClient.request(any(), anyString(), any(), eq("r3"), anyLong()))
+                .willReturn(Future.succeededFuture(respWithDeal2));
+        given(httpClient.request(any(), anyString(), any(), eq("r4"), anyLong()))
+                .willReturn(Promise.<HttpClientResponse>promise().future());
+
+        final BidderBid bidderBidDeal1 = BidderBid.of(Bid.builder().impid("deal1").dealid("deal1").build(), null, null);
+        final BidderBid bidderBidDeal2 = BidderBid.of(Bid.builder().impid("deal2").dealid("deal2").build(), null, null);
+        given(bidder.makeBids(any(), any())).willReturn(
+                Result.of(singletonList(bidderBidDeal1), emptyList()),
+                Result.of(singletonList(bidderBidDeal2), emptyList()));
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                httpBidderRequester.requestBids(
+                        bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
+                        .result();
+
+        // then
+        verify(bidder, times(1)).makeHttpRequests(any());
+        verify(httpClient, times(4)).request(any(), any(), any(), anyString(), anyLong());
+        verify(bidder, times(2)).makeBids(any(), any());
+
+        assertThat(bidderSeatBid.getBids()).containsOnly(bidderBidDeal1, bidderBidDeal2);
+    }
+
+    @Test
+    public void shouldFinishWhenAllDealRequestsAreFinishedAndNoDealsProvided() {
+        // given
+        final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2", "deal2");
+        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+
+        given(bidder.makeHttpRequests(any())).willReturn(Result.of(Arrays.asList(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r1")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal1"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r2")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal2"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r3")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal2"))
+                        .build(),
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(EMPTY)
+                        .body("r4")
+                        .headers(new CaseInsensitiveHeaders())
+                        .payload(bidRequestWithDeals("deal2"))
+                        .build()),
+                emptyList()));
+
+        givenHttpClientReturnsResponse(200, "responseBody");
+
+        final BidderBid bidderBid = BidderBid.of(Bid.builder().dealid("deal2").build(), null, null);
+        given(bidder.makeBids(any(), any())).willReturn(Result.of(singletonList(bidderBid), emptyList()));
+
+        // when
+        final BidderSeatBid bidderSeatBid =
+                httpBidderRequester.requestBids(
+                        bidder, bidderRequest, timeout, CaseInsensitiveMultiMap.empty(), false)
+                        .result();
+
+        // then
+        verify(bidder, times(1)).makeHttpRequests(any());
+        verify(httpClient, times(4)).request(any(), any(), any(), anyString(), anyLong());
+        verify(bidder, times(4)).makeBids(any(), any());
+
+        assertThat(bidderSeatBid.getBids()).contains(bidderBid, bidderBid, bidderBid, bidderBid);
     }
 
     @Test
@@ -564,7 +702,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
 
         given(bidder.makeBids(any(), any())).willReturn(
-                Result.of(singletonList(BidderBid.of(null, null, null)),
+                Result.of(singletonList(BidderBid.of(Bid.builder().impid("123").build(), null, null)),
                         singletonList(BidderError.badServerResponse("makeBidsError"))));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
@@ -608,6 +746,22 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // then
         verify(bidder, never()).makeBids(any(), any());
+    }
+
+    private static BidRequest bidRequestWithDeals(String... ids) {
+        final List<Imp> impsWithDeals = Arrays.stream(ids)
+                .map(HttpBidderRequesterTest::impWithDeal)
+                .collect(Collectors.toList());
+        return BidRequest.builder().imp(impsWithDeals).build();
+    }
+
+    private static Imp impWithDeal(String dealId) {
+        return Imp.builder()
+                .id(dealId)
+                .pmp(Pmp.builder()
+                        .deals(singletonList(Deal.builder().id(dealId).build()))
+                        .build())
+                .build();
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

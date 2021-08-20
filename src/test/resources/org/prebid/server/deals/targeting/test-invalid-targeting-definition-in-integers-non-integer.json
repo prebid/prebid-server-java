@@ -1,0 +1,7 @@
+{
+  "user.ext.time.userhour": {
+    "$in": [
+      "abc"
+    ]
+  }
+}
