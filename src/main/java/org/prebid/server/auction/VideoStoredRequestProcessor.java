@@ -141,7 +141,7 @@ public class VideoStoredRequestProcessor {
                 : Collections.emptySet();
 
         return applicationSettings.getVideoStoredData(accountId, storedRequestIds, podIds,
-                timeoutFactory.create(defaultTimeout))
+                        timeoutFactory.create(defaultTimeout))
                 .compose(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
                 .map(storedData -> mergeToBidRequest(storedData, videoRequest, storedBidRequestId))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
@@ -387,14 +387,14 @@ public class VideoStoredRequestProcessor {
             durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
         }
 
-        PriceGranularity updatedPriceGranularity = PriceGranularity.createFromString("med");
         final PriceGranularity priceGranularity = videoRequest.getPriceGranularity();
-        if (priceGranularity != null) {
-            final Integer precision = priceGranularity.getPrecision();
-            if (precision != null && precision != 0) {
-                updatedPriceGranularity = priceGranularity;
-            }
-        }
+        final Integer precision = priceGranularity != null
+                ? priceGranularity.getPrecision()
+                : null;
+
+        PriceGranularity updatedPriceGranularity = precision != null && precision != 0
+                ? priceGranularity
+                : PriceGranularity.createFromString("med");
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.mapper().valueToTree(updatedPriceGranularity))

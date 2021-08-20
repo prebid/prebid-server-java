@@ -55,6 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -751,7 +752,12 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 "ip");
 
         final String integration = "integration";
-        final Account account = Account.builder().id(accountId).defaultIntegration(integration).build();
+        final Account account = Account.builder()
+                .id(accountId)
+                .auction(AccountAuctionConfig.builder()
+                        .defaultIntegration(integration)
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         final AuctionContext auctionContext = AuctionContext.builder()
