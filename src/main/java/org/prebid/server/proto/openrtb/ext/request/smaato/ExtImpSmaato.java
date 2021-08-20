@@ -4,9 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-/**
- * Defines the contract for bidRequest.imp[i].ext.smaato
- */
 @AllArgsConstructor(staticName = "of")
 @Value
 public class ExtImpSmaato {
@@ -16,4 +13,7 @@ public class ExtImpSmaato {
 
     @JsonProperty("adspaceId")
     String adspaceId;
+
+    @JsonProperty("adbreakId")
+    String adbreakId;
 }
