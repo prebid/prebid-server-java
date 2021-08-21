@@ -39,6 +39,12 @@ public class Account {
 
     AccountStatus status;
 
+    AccountAuctionConfig auction;
+
+    AccountPrivacyConfig privacy;
+
+    AccountAnalyticsConfig analytics;
+
     @JsonProperty("cookie-sync")
     AccountCookieSyncConfig cookieSync;
 

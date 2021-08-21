@@ -23,6 +23,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ResourceUtil;
 
@@ -112,7 +114,12 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
         if (exception instanceof PreBidException) {
-            return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
+            return Future.succeededFuture(Account.builder()
+                    .id(accountId)
+                    .auction(AccountAuctionConfig.builder()
+                            .events(AccountEventsConfig.of(false))
+                            .build())
+                    .build());
         }
         return Future.failedFuture(exception);
     }
@@ -123,7 +130,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         } else {
             final Account account = async.result();
 
-            if (Objects.equals(account.getEventsEnabled(), true)) {
+            if (Objects.equals(accountEventsEnabled(account), true)) {
                 final NotificationEvent notificationEvent = NotificationEvent.builder()
                         .type(eventRequest.getType() == EventRequest.Type.win
                                 ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
@@ -142,6 +149,14 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         String.format("Account '%s' doesn't support events", account.getId()));
             }
         }
+    }
+
+    private static Boolean accountEventsEnabled(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final AccountEventsConfig accountEventsConfig =
+                accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
+
+        return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

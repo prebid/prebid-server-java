@@ -110,7 +110,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
 ## Vtrack
-- `vtrack.allow-unkonwn-bidder` - flag allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.modify-vast-for-unknown-bidder` - flag that allows modifying the VAST value and adding the impression tag to it, for bidders who were not configured in Prebid Server.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
@@ -286,13 +287,18 @@ unspecified or missing at all. Example:
 settings:  
   default-account-config: >
     {
-      "eventsEnabled": true,
-      "enforceCcpa": true,
-      "gdpr": {
-        "enabled": true
+      "auction": {
+        "default-integration": "pbjs"
+        "events": {
+          "enabled": true
+        }
       },
-      "analyticsSamplingFactor": 1,
-      "defaultIntegration": "pbjs"
+      "privacy": {
+        "enforce-ccpa": true,
+        "gdpr": {
+          "enabled": true
+        }
+      }
     }
 ```
 See [application settings](application-settings.md) for full reference of available configuration parameters.

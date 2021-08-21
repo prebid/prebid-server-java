@@ -37,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -556,7 +557,11 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(accountBuilder -> accountBuilder.bannerCacheTtl(10), identity()),
+                givenAuctionContext(
+                        accountBuilder -> accountBuilder.auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(10)
+                                .build()),
+                        identity()),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .build(),

@@ -42,6 +42,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.io.IOException;
@@ -293,7 +294,9 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
-        final Account account = Account.builder().gdpr(accountGdprConfig).build();
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.of(null, accountGdprConfig, null))
+                .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));

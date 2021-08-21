@@ -50,6 +50,7 @@ import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCcpaConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 
 import java.time.Clock;
@@ -466,7 +467,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -475,9 +476,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final AuctionContext context = AuctionContext.builder()
                 .account(Account.builder()
-                        .ccpa(AccountCcpaConfig.builder()
-                                .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
-                                .build())
+                        .privacy(AccountPrivacyConfig.of(
+                                null,
+                                null,
+                                AccountCcpaConfig.builder()
+                                        .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
+                                        .build()))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
@@ -516,7 +520,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -524,7 +528,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyContext privacyContext = givenPrivacyContext("1", Ccpa.of("1YYY"), 0);
 
         final AuctionContext context = AuctionContext.builder()
-                .account(Account.builder().enforceCcpa(true).build())
+                .account(Account.builder()
+                        .privacy(AccountPrivacyConfig.of(true, null, null))
+                        .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
@@ -562,7 +568,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(
-                singletonMap(BIDDER_NAME, 1)),
+                        singletonMap(BIDDER_NAME, 1)),
                 bidRequestBuilder -> bidRequestBuilder
                         .user(user)
                         .device(device));
@@ -570,7 +576,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyContext privacyContext = givenPrivacyContext("1", Ccpa.of("1YYY"), 0);
 
         final AuctionContext context = AuctionContext.builder()
-                .account(Account.builder().ccpa(AccountCcpaConfig.builder().enabled(true).build()).build())
+                .account(Account.builder()
+                        .privacy(AccountPrivacyConfig.of(
+                                null,
+                                null,
+                                AccountCcpaConfig.builder().enabled(true).build()))
+                        .build())
                 .requestTypeMetric(null)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
@@ -1454,7 +1465,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
-        final Account account = Account.builder().enforceCcpa(false).build();
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.of(false, null, null))
+                .build();
 
         // when and then
         assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isFalse();
@@ -1482,7 +1495,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 metrics, false, true);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
-        final Account account = Account.builder().ccpa(AccountCcpaConfig.builder().enabled(true).build()).build();
+        final Account account = Account.builder()
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        AccountCcpaConfig.builder().enabled(true).build()))
+                .build();
 
         // when and then
         assertThat(privacyEnforcementService.isCcpaEnforced(ccpa, account)).isTrue();
