@@ -10,6 +10,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountDebugConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,7 +50,7 @@ public class DebugResolverTest {
                 .httpRequest(HttpRequestContext.builder()
                         .headers(CaseInsensitiveMultiMap.empty())
                         .build())
-                .account(Account.builder().allowedDebug(true).build())
+                .account(Account.builder().debug(AccountDebugConfig.builder().allowed(true).build()).build())
                 .build();
 
         // when
@@ -71,7 +72,7 @@ public class DebugResolverTest {
                 .httpRequest(HttpRequestContext.builder()
                         .headers(CaseInsensitiveMultiMap.empty())
                         .build())
-                .account(Account.builder().allowedDebug(false).build())
+                .account(Account.builder().debug(AccountDebugConfig.builder().allowed(false).build()).build())
                 .build();
 
         // when
@@ -93,7 +94,7 @@ public class DebugResolverTest {
                 .httpRequest(HttpRequestContext.builder()
                         .headers(CaseInsensitiveMultiMap.empty())
                         .build())
-                .account(Account.builder().allowedDebug(false).build())
+                .account(Account.builder().debug(AccountDebugConfig.builder().allowed(true).build()).build())
                 .build();
 
         // when

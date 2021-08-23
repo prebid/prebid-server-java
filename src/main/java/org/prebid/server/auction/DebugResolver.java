@@ -10,6 +10,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountDebugConfig;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -39,7 +40,8 @@ public class DebugResolver {
     }
 
     private boolean isPublisherAllowed(AuctionContext auctionContext) {
-        return BooleanUtils.toBoolean(getIfNotNull(auctionContext.getAccount(), Account::getAllowedDebug));
+        final AccountDebugConfig debugConfig = getIfNotNull(auctionContext.getAccount(), Account::getDebug);
+        return BooleanUtils.toBoolean(getIfNotNull(debugConfig, AccountDebugConfig::getAllowed));
     }
 
     private boolean isDebugEnabled(BidRequest bidRequest, ExtRequestPrebid extRequestPrebid) {

@@ -400,6 +400,7 @@ Let's assume following table schema for example:
     `price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
     `banner_cache_ttl` int(11) DEFAULT NULL,
     `video_cache_ttl` int(11) DEFAULT NULL,
+    `debug_allowed` bit(1) DEFAULT NULL,
     `events_enabled` bit(1) DEFAULT NULL,
     `enforce_ccpa` bit(1) DEFAULT NULL,
     `tcf_config` json DEFAULT NULL,
@@ -435,6 +436,9 @@ SELECT
                 'enabled', NOT NOT(events_enabled)
             )
         ), 
+        'debug', JSON_OBJECT(
+            'allowed', debug_allowed
+        ),
         'privacy', JSON_OBJECT(
             'enforce-ccpa', NOT NOT(enforce_ccpa),
             'gdpr', tcf_config

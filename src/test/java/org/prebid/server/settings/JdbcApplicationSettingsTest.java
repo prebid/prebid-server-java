@@ -27,6 +27,7 @@ import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountDebugConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
@@ -149,6 +150,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"enabled\": true"
                 + "}"
                 + "},"
+                + "\"debug\": { \"allowed\": true },"
                 + "\"privacy\": {"
                 + "\"enforce-ccpa\": true,"
                 + "\"gdpr\": {"
@@ -233,6 +235,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                             .events(AccountEventsConfig.of(true))
                             .build())
+                    .debug(AccountDebugConfig.builder().allowed(true).build())
                     .privacy(AccountPrivacyConfig.of(
                             true,
                             AccountGdprConfig.builder()
