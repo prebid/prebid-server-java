@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.verizonmedia;
+package org.prebid.server.bidder.yssp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,7 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.verizonmedia.ExtImpVerizonmedia;
+import org.prebid.server.proto.openrtb.ext.request.yssp.ExtImpYssp;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -36,16 +36,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class VerizonmediaBidder implements Bidder<BidRequest> {
+public class YsspBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpVerizonmedia>> VERIZON_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpVerizonmedia>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpYssp>> YSSP_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpYssp>>() {
             };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public VerizonmediaBidder(String endpointUrl, JacksonMapper mapper) {
+    public YsspBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -59,8 +59,8 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
-                final ExtImpVerizonmedia extImpVerizonmedia = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpVerizonmedia);
+                final ExtImpYssp extImpYssp = parseAndValidateImpExt(imp.getExt(), i);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYssp);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -70,28 +70,28 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private ExtImpVerizonmedia parseAndValidateImpExt(ObjectNode impExtNode, int index) {
-        final ExtImpVerizonmedia extImpVerizonmedia;
+    private ExtImpYssp parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+        final ExtImpYssp extImpYssp;
         try {
-            extImpVerizonmedia = mapper.mapper().convertValue(impExtNode, VERIZON_EXT_TYPE_REFERENCE).getBidder();
+            extImpYssp = mapper.mapper().convertValue(impExtNode, YSSP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
         }
 
-        final String dcn = extImpVerizonmedia.getDcn();
+        final String dcn = extImpYssp.getDcn();
         if (StringUtils.isBlank(dcn)) {
             throw new PreBidException(String.format("imp #%s: missing param dcn", index));
         }
 
-        final String pos = extImpVerizonmedia.getPos();
+        final String pos = extImpYssp.getPos();
         if (StringUtils.isBlank(pos)) {
             throw new PreBidException(String.format("imp #%s: missing param pos", index));
         }
 
-        return extImpVerizonmedia;
+        return extImpYssp;
     }
 
-    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpVerizonmedia extImpVerizonmedia) {
+    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYssp extImpYssp) {
         final Banner banner = imp.getBanner();
         final boolean hasBanner = banner != null;
 
@@ -105,7 +105,7 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(extImpVerizonmedia.getPos());
+                .tagid(extImpYssp.getPos());
 
         if (hasBanner && !hasBannerWidthAndHeight) {
             impBuilder.banner(modifyBanner(banner));
@@ -116,9 +116,9 @@ public class VerizonmediaBidder implements Bidder<BidRequest> {
         final Site site = request.getSite();
         final App app = request.getApp();
         if (site != null) {
-            requestBuilder.site(site.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+            requestBuilder.site(site.toBuilder().id(extImpYssp.getDcn()).build());
         } else if (app != null) {
-            requestBuilder.app(app.toBuilder().id(extImpVerizonmedia.getDcn()).build());
+            requestBuilder.app(app.toBuilder().id(extImpYssp.getDcn()).build());
         }
 
         return requestBuilder

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "VerizonMedia Adapter Params",
-  "description": "A schema which validates params accepted by the VerizonMedia adapter",
+  "title": "YSSP Adapter Params",
+  "description": "A schema which validates params accepted by the YSSP adapter",
   "type": "object",
   "properties": {
     "dcn": {
