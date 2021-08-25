@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Source;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -37,7 +38,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.util.Arrays;
@@ -318,7 +319,7 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
-        final Integer atts = ObjectUtils.getIfNotNull(device.getExt(), ExtDevice::getAtts);
+        final Integer atts = ObjectUtil.getIfNotNull(device.getExt(), ExtDevice::getAtts);
         if (atts == null) {
             return null;
         }
@@ -353,7 +354,7 @@ public class Ortb2ImplicitParametersResolver {
 
         final ExtSite siteExt = site != null ? site.getExt() : null;
         final ExtSite updatedSiteExt = siteExt == null || siteExt.getAmp() == null
-                ? ExtSite.of(0, ObjectUtils.getIfNotNull(siteExt, ExtSite::getData))
+                ? ExtSite.of(0, ObjectUtil.getIfNotNull(siteExt, ExtSite::getData))
                 : null;
 
         if (ObjectUtils.anyNotNull(updatedPage, updatedDomain, updatedPublisher, updatedSiteExt)) {
@@ -524,13 +525,13 @@ public class Ortb2ImplicitParametersResolver {
 
             final ExtRequest updatedExt = ExtRequest.of(prebidBuilder
                     .targeting(ObjectUtils.defaultIfNull(updatedTargeting,
-                            ObjectUtils.getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
+                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getTargeting)))
                     .cache(ObjectUtils.defaultIfNull(updatedCache,
-                            ObjectUtils.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
+                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getCache)))
                     .channel(ObjectUtils.defaultIfNull(updatedChannel,
-                            ObjectUtils.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
+                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel)))
                     .pbs(ObjectUtils.defaultIfNull(updatedPbs,
-                            ObjectUtils.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
+                            ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
                     .build());
             updatedExt.addProperties(ext.getProperties());
 
@@ -564,8 +565,8 @@ public class Ortb2ImplicitParametersResolver {
      * Returns populated {@link ExtRequestPrebidPbs} or null if no changes were applied.
      */
     private ExtRequestPrebidPbs pbsOrNull(BidRequest bidRequest, String endpoint) {
-        final String existingEndpoint = ObjectUtils.getIfNotNull(
-                ObjectUtils.getIfNotNull(bidRequest.getExt().getPrebid(), ExtRequestPrebid::getPbs),
+        final String existingEndpoint = ObjectUtil.getIfNotNull(
+                ObjectUtil.getIfNotNull(bidRequest.getExt().getPrebid(), ExtRequestPrebid::getPbs),
                 ExtRequestPrebidPbs::getEndpoint);
 
         if (StringUtils.isNotBlank(existingEndpoint)) {
@@ -691,8 +692,8 @@ public class Ortb2ImplicitParametersResolver {
         final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
         if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
             return ExtRequestPrebidCache.of(
-                    ObjectUtils.getIfNotNull(cache, ExtRequestPrebidCache::getBids),
-                    ObjectUtils.getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
+                    ObjectUtil.getIfNotNull(cache, ExtRequestPrebidCache::getBids),
+                    ObjectUtil.getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
                     true);
         }
         return null;
@@ -702,7 +703,7 @@ public class Ortb2ImplicitParametersResolver {
      * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
      */
     private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
-        final String existingChannelName = ObjectUtils.getIfNotNull(ObjectUtils.getIfNotNull(prebid,
+        final String existingChannelName = ObjectUtil.getIfNotNull(ObjectUtil.getIfNotNull(prebid,
                         ExtRequestPrebid::getChannel),
                 ExtRequestPrebidChannel::getName);
 

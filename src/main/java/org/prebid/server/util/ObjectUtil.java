@@ -1,14 +1,13 @@
 package org.prebid.server.util;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public final class ObjectUtils {
+public final class ObjectUtil {
 
-    private ObjectUtils() {
+    private ObjectUtil() {
     }
 
     @SafeVarargs
@@ -22,13 +21,5 @@ public final class ObjectUtils {
 
     public static <S, T> T getIfNotNull(S source, Function<S, T> getter) {
         return source != null ? getter.apply(source) : null;
-    }
-
-    public static <T> T defaultIfNull(T object, T defaultValue) {
-        return object != null ? object : defaultValue;
-    }
-
-    public static <T> boolean anyNotNull(T... objects) {
-        return Arrays.stream(objects).anyMatch(Objects::nonNull);
     }
 }

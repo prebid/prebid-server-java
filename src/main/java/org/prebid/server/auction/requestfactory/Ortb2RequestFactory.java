@@ -12,6 +12,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -47,7 +48,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -232,12 +233,12 @@ public class Ortb2RequestFactory {
     }
 
     private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = ObjectUtils.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(ObjectUtils.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
+                || Objects.equals(ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
 
-        final TraceLevel traceLevel = ObjectUtils.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
+        final TraceLevel traceLevel = ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
 
         return DebugContext.of(debugEnabled, traceLevel);
     }
@@ -358,8 +359,8 @@ public class Ortb2RequestFactory {
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
-        final ExtRequestPrebid prebidExt = ObjectUtils.getIfNotNull(ext, ExtRequest::getPrebid);
-        final String integration = ObjectUtils.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
+        final ExtRequestPrebid prebidExt = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
+        final String integration = ObjectUtil.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
         final String accountDefaultIntegration = account.getDefaultIntegration();
 
         if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
@@ -383,17 +384,17 @@ public class Ortb2RequestFactory {
         final String ipAddress = privacyContext.getIpAddress();
         final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
 
-        final String ipV4InRequest = ObjectUtils.getIfNotNull(device, Device::getIp);
+        final String ipV4InRequest = ObjectUtil.getIfNotNull(device, Device::getIp);
         final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.v4 ? ipAddress : null;
         final boolean shouldUpdateIpV4 = ipV4 != null && !Objects.equals(ipV4InRequest, ipV4);
 
-        final String ipV6InRequest = ObjectUtils.getIfNotNull(device, Device::getIpv6);
+        final String ipV6InRequest = ObjectUtil.getIfNotNull(device, Device::getIpv6);
         final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.v6 ? ipAddress : null;
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
-        final Geo geo = ObjectUtils.getIfNotNull(device, Device::getGeo);
-        final String countryInRequest = ObjectUtils.getIfNotNull(geo, Geo::getCountry);
-        final String country = ObjectUtils.getIfNotNull(privacyContext.getTcfContext().getGeoInfo(),
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
+        final String country = ObjectUtil.getIfNotNull(privacyContext.getTcfContext().getGeoInfo(),
                 GeoInfo::getCountry);
         final boolean shouldUpdateCountry = country != null && !Objects.equals(countryInRequest, country);
 

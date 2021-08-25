@@ -34,7 +34,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -258,10 +258,10 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private String updateBidAdmWithNativeAttributes(String adm) {
         final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
-        final Response responseV11 = ObjectUtils.getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
+        final Response responseV11 = ObjectUtil.getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
         final boolean isV11 = responseV11 != null;
         final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
-        final List<EventTracker> trackers = ObjectUtils.getIfNotNull(response, Response::getEventtrackers);
+        final List<EventTracker> trackers = ObjectUtil.getIfNotNull(response, Response::getEventtrackers);
         final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encode(isV11
                 ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
                 : mergeNativeImpTrackers(response, trackers))

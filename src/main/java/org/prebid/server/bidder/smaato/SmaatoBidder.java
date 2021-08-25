@@ -16,6 +16,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,7 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.smaato.ExtImpSmaato;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -305,10 +306,10 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return String.format("<div style=\"cursor:pointer\" onclick=\"%s;window.open(decodeURIComponent"
                         + "('%s'.replace(/\\+/g, ' ')));\"><img src=\"%s\" width=\"%d\" height=\"%d\"/>%s</div>",
                 clickEvent.toString(),
-                HttpUtil.encodeUrl(StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(img, SmaatoImg::getCtaurl))),
-                StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(img, SmaatoImg::getUrl)),
-                stripToZero(ObjectUtils.getIfNotNull(img, SmaatoImg::getW)),
-                stripToZero(ObjectUtils.getIfNotNull(img, SmaatoImg::getH)),
+                HttpUtil.encodeUrl(StringUtils.stripToEmpty(ObjectUtil.getIfNotNull(img, SmaatoImg::getCtaurl))),
+                StringUtils.stripToEmpty(ObjectUtil.getIfNotNull(img, SmaatoImg::getUrl)),
+                stripToZero(ObjectUtil.getIfNotNull(img, SmaatoImg::getW)),
+                stripToZero(ObjectUtil.getIfNotNull(img, SmaatoImg::getH)),
                 impressionTracker.toString());
     }
 
@@ -332,7 +333,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
         return String.format("<div onclick=\"%s\">%s%s</div>",
                 clickEvent.toString(),
-                StringUtils.stripToEmpty(ObjectUtils.getIfNotNull(richmedia.getMediadata(),
+                StringUtils.stripToEmpty(ObjectUtil.getIfNotNull(richmedia.getMediadata(),
                         SmaatoMediaData::getContent)),
                 impressionTracker.toString());
     }
