@@ -29,6 +29,8 @@ public class ExtBidResponse {
      * Defines the contract for bidresponse.ext.responsetimemillis
      */
     Map<String, Integer> responsetimemillis;
+    
+    
     /** 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
