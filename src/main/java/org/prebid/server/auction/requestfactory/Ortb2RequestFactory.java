@@ -46,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -177,10 +178,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                        body,
-                        auctionContext.getHookExecutionContext())
+                toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                body,
+                auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -361,7 +362,7 @@ public class Ortb2RequestFactory {
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
         final ExtRequestPrebid prebidExt = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
         final String integration = ObjectUtil.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
-        final String accountDefaultIntegration = account.getDefaultIntegration();
+        final String accountDefaultIntegration = accountDefaultIntegration(account);
 
         if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidExtBuilder =
@@ -419,6 +420,12 @@ public class Ortb2RequestFactory {
         }
 
         return null;
+    }
+
+    private static String accountDefaultIntegration(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+
+        return accountAuctionConfig != null ? accountAuctionConfig.getDefaultIntegration() : null;
     }
 
     private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {

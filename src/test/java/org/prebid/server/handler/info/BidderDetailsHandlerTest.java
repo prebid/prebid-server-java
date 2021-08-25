@@ -56,12 +56,12 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(
                 asList("bidderName1", "bidderName2", "bidderAlias1", "bidderAlias2")));
-        given(bidderCatalog.isActive("bidderName1")).willReturn(true);
-        given(bidderCatalog.isActive("bidderName2")).willReturn(false);
-        given(bidderCatalog.isActive("bidderAlias1")).willReturn(true);
-        given(bidderCatalog.isActive("bidderAlias2")).willReturn(false);
-        given(bidderCatalog.bidderInfoByName(eq("bidderName1"))).willReturn(givenBidderInfo());
-        given(bidderCatalog.bidderInfoByName(eq("bidderAlias1"))).willReturn(givenBidderInfo("bidderName1"));
+        given(bidderCatalog.bidderInfoByName("bidderName1")).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName("bidderAlias2")).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(eq("bidderName2")))
+                .willReturn(givenBidderInfo(false, "http://", null));
+        given(bidderCatalog.bidderInfoByName(eq("bidderAlias1")))
+                .willReturn(givenBidderInfo(false, "http://", "bidderName1"));
 
         handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
     }
@@ -95,7 +95,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithHttpStatus404IfBidderIsDisabled() {
+    public void shouldRespondWithExpectedBodyForDisabledBidder() {
         // given
         given(httpRequest.getParam(anyString())).willReturn("bidderName2");
 
@@ -103,11 +103,14 @@ public class BidderDetailsHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(404);
+        verify(httpResponse).end("{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}");
     }
 
     @Test
-    public void shouldRespondWithHttpStatus404IfBidderAliasIsDisabled() {
+    public void shouldRespondWithExpecteddBodyForDisabledAlias() {
         // given
         given(httpRequest.getParam(anyString())).willReturn("bidderAlias2");
 
@@ -115,7 +118,10 @@ public class BidderDetailsHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(404);
+        verify(httpResponse).end("{\"status\":\"ACTIVE\",\"usesHttps\":true,"
+                + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}");
     }
 
     @Test
@@ -125,8 +131,9 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}"));
+                eq("{\"status\":\"ACTIVE\",\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}"));
     }
 
     @Test
@@ -139,9 +146,9 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
-                        + "\"aliasOf\":\"bidderName1\"}"));
+                eq("{\"status\":\"DISABLED\",\"usesHttps\":false,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}},\"aliasOf\":\"bidderName1\"}"));
     }
 
     @Test
@@ -154,16 +161,27 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"bidderAlias1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}},"
-                        + "\"aliasOf\":\"bidderName1\"},"
-                        + "\"bidderName1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"mediaType1\"]},\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}}"));
+                eq("{\"bidderAlias1\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}},\"aliasOf\":\"bidderName1\"},"
+                        + "\"bidderAlias2\":{\"status\":\"ACTIVE\",\"usesHttps\":true,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}},\"bidderName1\":{\"status\":\"ACTIVE\","
+                        + "\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}},"
+                        + "\"bidderName2\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"mediaType1\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"mediaType2\"]}}}}"));
     }
 
-    private static BidderInfo givenBidderInfo(String aliasOf) {
+    private static BidderInfo givenBidderInfo(boolean enabled, String endpoint, String aliasOf) {
         return BidderInfo.create(
-                true,
+                enabled,
+                endpoint,
                 aliasOf,
                 "test@email.org",
                 singletonList("mediaType1"),
@@ -176,6 +194,6 @@ public class BidderDetailsHandlerTest extends VertxTest {
     }
 
     private static BidderInfo givenBidderInfo() {
-        return givenBidderInfo(null);
+        return givenBidderInfo(true, "https://endpoint.com", null);
     }
 }

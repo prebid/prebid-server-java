@@ -119,6 +119,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -2191,6 +2193,28 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRemoveSiteIfBothSiteAndAppPresent() {
+        // given
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(App.builder().build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest captureBidRequest = captureBidRequest();
+        assertThat(captureBidRequest)
+                .extracting(BidRequest::getSite)
+                .containsNull();
+        assertThat(captureBidRequest)
+                .extracting(BidRequest::getApp)
+                .doesNotContainNull();
+    }
+
+    @Test
     public void shouldPassGlobalTimeoutToConnectorUnchangedIfCachingIsNotRequested() {
         // given
         givenBidder(givenEmptySeatBid());
@@ -2670,8 +2694,17 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(bidResponsePostProcessor).postProcess(any(), same(uidsCookie), same(bidRequest), any(),
-                eq(Account.builder().id("accountId").eventsEnabled(true).build()));
+        verify(bidResponsePostProcessor).postProcess(
+                any(),
+                same(uidsCookie),
+                same(bidRequest),
+                any(),
+                eq(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
     }
 
     @Test
@@ -3292,7 +3325,14 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {
-        return givenRequestContext(bidRequest, Account.builder().id("accountId").eventsEnabled(true).build());
+        return givenRequestContext(
+                bidRequest,
+                Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build());
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest, Account account) {
