@@ -30,7 +30,8 @@ public class ExtBidResponse {
      */
     Map<String, Integer> responsetimemillis;
 
-    /** private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+    /** 
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
