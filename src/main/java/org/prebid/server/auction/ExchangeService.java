@@ -481,7 +481,7 @@ public class ExchangeService {
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getBidderRequests(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs));
+                                bidderToMultiBid, biddersToConfigs, context.getDebugWarnings()));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -687,7 +687,8 @@ public class ExchangeService {
                                                   Map<String, Map<String, String>> impBidderToStoredBidResponse,
                                                   List<Imp> imps,
                                                   Map<String, MultiBidConfig> bidderToMultiBid,
-                                                  Map<String, ExtBidderConfigOrtb> biddersToConfigs) {
+                                                  Map<String, ExtBidderConfigOrtb> biddersToConfigs,
+                                                  List<String> debugWarnings) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
 
@@ -702,7 +703,8 @@ public class ExchangeService {
                         imps,
                         bidderToMultiBid,
                         biddersToConfigs,
-                        bidderToPrebidBidders))
+                        bidderToPrebidBidders,
+                        debugWarnings))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -740,7 +742,8 @@ public class ExchangeService {
                                               List<Imp> imps,
                                               Map<String, MultiBidConfig> bidderToMultiBid,
                                               Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-                                              Map<String, JsonNode> bidderToPrebidBidders) {
+                                              Map<String, JsonNode> bidderToPrebidBidders,
+                                              List<String> debugWarnings) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (bidderPrivacyResult.isBlockedRequestByTcf()) {
@@ -755,6 +758,11 @@ public class ExchangeService {
 
         final App bidRequestApp = bidRequest.getApp();
         final Site bidRequestSite = bidRequestApp == null ? bidRequest.getSite() : null;
+
+        if (bidRequestApp != null && bidRequest.getSite() != null) {
+            debugWarnings.add("BidRequest contains app and site. Removed site object");
+        }
+
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
