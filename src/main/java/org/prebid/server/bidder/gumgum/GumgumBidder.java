@@ -151,9 +151,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
         final List<Format> format = banner.getFormat();
         if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
             final Format firstFormat = format.get(0);
-            final BigInteger slot = extImpGumgum.getSlot();
 
-            final ObjectNode bannerExt = !slot.equals(BigInteger.ZERO)
+            final BigInteger slot = extImpGumgum.getSlot();
+            final ObjectNode bannerExt = !BigInteger.ZERO.equals(slot)
                     ? mapper.mapper().valueToTree(resolveBannerExt(format, slot))
                     : banner.getExt();
 
