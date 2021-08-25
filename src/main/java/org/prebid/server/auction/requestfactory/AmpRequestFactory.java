@@ -80,7 +80,7 @@ public class AmpRequestFactory {
     private static final String CONSENT_PARAM = "consent_string";
     private static final String GDPR_APPLIES_PARAM = "gdpr_applies";
     private static final String CONSENT_TYPE_PARAM = "consent_type";
-    private static final String ATTL_CONSENT_PARAM = "attl_consent";
+    private static final String ADDTL_CONSENT_PARAM = "addtl_consent";
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
@@ -272,7 +272,7 @@ public class AmpRequestFactory {
     }
 
     private static String attlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
-        return httpRequest.getQueryParams().get(ATTL_CONSENT_PARAM);
+        return httpRequest.getQueryParams().get(ADDTL_CONSENT_PARAM);
     }
 
     private static Integer gdprFromQueryStringParams(HttpRequestContext httpRequest) {
