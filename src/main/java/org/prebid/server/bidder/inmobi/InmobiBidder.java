@@ -134,6 +134,9 @@ public class InmobiBidder implements Bidder<BidRequest> {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
                 return BidType.video;
             }
+            if (imp.getId().equals(impId) && imp.getXNative() != null) {
+                return BidType.xNative;
+            }
         }
         return BidType.banner;
     }
