@@ -106,7 +106,6 @@ public class BidResponseCreator {
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
-    private final BidderAliases bidderAliases;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -123,7 +122,6 @@ public class BidResponseCreator {
 
     public BidResponseCreator(CacheService cacheService,
                               BidderCatalog bidderCatalog,
-                              BidderAliases bidderAliases,
                               VastModifier vastModifier,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -136,7 +134,6 @@ public class BidResponseCreator {
 
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.bidderAliases = Objects.requireNonNull(bidderAliases);
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -729,8 +726,7 @@ public class BidResponseCreator {
     }
 
     private boolean shouldIncludeBidderHttpCalls(BidderResponseInfo bidderResponseInfo, boolean debugOverride) {
-        final String resolvedBidderName = bidderAliases.resolveBidder(bidderResponseInfo.getBidder());
-        return bidderCatalog.isDebugAllowed(resolvedBidderName) || debugOverride;
+        return bidderCatalog.isDebugAllowed(bidderResponseInfo.getBidder()) || debugOverride;
     }
 
     private static ExtHttpCall toExtHttpCall(DebugHttpCall debugHttpCall) {

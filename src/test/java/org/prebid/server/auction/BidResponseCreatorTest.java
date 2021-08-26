@@ -138,8 +138,6 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private BidderAliases bidderAliases;
-    @Mock
     private VastModifier vastModifier;
     @Mock
     private EventsService eventsService;
@@ -181,7 +179,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                bidderAliases,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -1277,7 +1274,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                bidderAliases,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -2413,7 +2409,6 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabledAndBidderAllowedDebug() {
         // given
-        given(bidderAliases.resolveBidder("bidder1")).willReturn("bidder1");
         given(bidderCatalog.isDebugAllowed("bidder1")).willReturn(true);
 
         final BidRequest bidRequest = givenBidRequest(givenImp());
@@ -2466,7 +2461,6 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotPopulateResponseDebugExtensionWithHttpCallsIfDebugIsEnabledAndBidderDisallowedDebug() {
         // given
-        given(bidderAliases.resolveBidder("bidder1")).willReturn("bidder1");
         given(bidderCatalog.isDebugAllowed("bidder1")).willReturn(false);
         givenCacheServiceResult(CacheServiceResult.of(null, null, emptyMap()));
 

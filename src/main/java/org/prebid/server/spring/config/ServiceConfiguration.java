@@ -9,7 +9,6 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
@@ -516,7 +515,6 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            BidderAliases bidderAliases,
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
@@ -530,7 +528,6 @@ public class ServiceConfiguration {
         return new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                bidderAliases,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
