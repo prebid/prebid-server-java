@@ -114,6 +114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
                 .privacyContext(defaultPrivacyContext)
+                .debugContext(DebugContext.of(true, true, null))
                 .build();
 
         given(routingContext.request()).willReturn(httpRequest);
