@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+import java.time.Clock;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/smaato.yaml", factory = YamlPropertySourceFactory.class)
@@ -29,6 +30,9 @@ public class SmaatoConfiguration {
 
     @Autowired
     private JacksonMapper mapper;
+
+    @Autowired
+    private Clock clock;
 
     @Autowired
     @Qualifier("smaatoConfigurationProperties")
@@ -45,7 +49,7 @@ public class SmaatoConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new SmaatoBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new SmaatoBidder(config.getEndpoint(), mapper, clock))
                 .assemble();
     }
 }

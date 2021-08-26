@@ -11,8 +11,6 @@
     }
   ],
   "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com",
     "publisher": {
       "id": "11000"
     }
@@ -32,6 +30,6 @@
     }
   },
   "ext": {
-    "client": "prebid_server_0.2"
+    "client": "prebid_server_0.4"
   }
 }

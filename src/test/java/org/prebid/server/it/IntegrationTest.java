@@ -197,6 +197,10 @@ public abstract class IntegrationTest extends VertxTest {
         return new Customization("ext.debug.httpcalls.cache", arrayValueMatcher);
     }
 
+    static Customization headersDebugCustomization() {
+        return new Customization("**.requestheaders.x-prebid", (o1, o2) -> true);
+    }
+
     protected static void assertJsonEquals(String file,
                                            Response response,
                                            List<String> bidders,
@@ -213,7 +217,7 @@ public abstract class IntegrationTest extends VertxTest {
 
         JSONAssert.assertEquals(expectedRequest, response.asString(),
                 new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
-                        fullCustomizations.stream().toArray(Customization[]::new)));
+                        fullCustomizations.toArray(new Customization[0])));
     }
 
     private static String replaceStaticInfo(String json) {

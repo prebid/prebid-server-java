@@ -46,13 +46,8 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         }
     }
 
-    /**
-     * Returns a {@link Map} with bidder name (or alias, or "all" keyword) as a key
-     * and json-encoded string of {@link BidderInfoResponseModel} as a value.
-     */
     private Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         final Map<String, ObjectNode> nameToInfo = bidderCatalog.names().stream()
-                .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
 
         final Map<String, ObjectNode> allToInfos = Collections.singletonMap(ALL_PARAM_VALUE, allInfos(nameToInfo));
@@ -62,17 +57,11 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encode(map.getValue())));
     }
 
-    /**
-     * Returns bidder info as {@link ObjectNode}.
-     */
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
         final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(name);
         return mapper.mapper().valueToTree(BidderInfoResponseModel.from(bidderInfo));
     }
 
-    /**
-     * Returns a {@link Map} of all bidder's infos sorted by name as {@link ObjectNode}.
-     */
     private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo) {
         return mapper.mapper().valueToTree(new TreeMap<>(nameToInfo));
     }
@@ -98,6 +87,14 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Value(staticConstructor = "of")
     private static class BidderInfoResponseModel {
 
+        private static final String STATUS_ACTIVE = "ACTIVE";
+        private static final String STATUS_DISABLED = "DISABLED";
+
+        String status;
+
+        @JsonProperty("usesHttps")
+        boolean usesHttps;
+
         BidderInfo.MaintainerInfo maintainer;
 
         BidderInfo.CapabilitiesInfo capabilities;
@@ -106,7 +103,12 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         String aliasOf;
 
         private static BidderInfoResponseModel from(BidderInfo bidderInfo) {
-            return of(bidderInfo.getMaintainer(), bidderInfo.getCapabilities(), bidderInfo.getAliasOf());
+            return of(
+                    bidderInfo.isEnabled() ? STATUS_ACTIVE : STATUS_DISABLED,
+                    bidderInfo.isUsesHttps(),
+                    bidderInfo.getMaintainer(),
+                    bidderInfo.getCapabilities(),
+                    bidderInfo.getAliasOf());
         }
     }
 }

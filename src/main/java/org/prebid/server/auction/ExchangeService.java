@@ -753,16 +753,10 @@ public class ExchangeService {
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-        final Site bidRequestSite = bidRequest.getSite();
         final App bidRequestApp = bidRequest.getApp();
+        final Site bidRequestSite = bidRequestApp == null ? bidRequest.getSite() : null;
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
-
-        if (bidRequestSite != null && fpdApp != null || bidRequestApp != null && fpdSite != null) {
-            logger.info("Request to bidder {0} rejected as both bidRequest.site and bidRequest.app are present"
-                    + " after fpd data have been merged", bidder);
-            return null;
-        }
 
         // stored bid response supported only for single imp requests
         final String storedBidResponse = impBidderToStoredBidResponse.size() == 1
@@ -1016,7 +1010,7 @@ public class ExchangeService {
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, timeout, headers, debugEnabled, aliases))
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
-                        bidderResponse, auctionContext)
+                                bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
     }
 

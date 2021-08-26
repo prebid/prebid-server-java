@@ -131,7 +131,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS), openrtbCacheDebugCustomization());
+                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS),
+                openrtbCacheDebugCustomization(), headersDebugCustomization());
     }
 
     @Test
@@ -278,6 +279,9 @@ public class ApplicationTest extends IntegrationTest {
                         + "&targeting=%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
+                        + "&attl_consent=someConsent"
+                        + "&gdpr_applies=false"
+                        + "&consent_type=3"
                         + "&consent_string=1YNN");
 
         // then
@@ -506,6 +510,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(SPEC)
                 .when()
+                .queryParam("enabledonly", "false")
                 .get("/info/bidders");
 
         // then
