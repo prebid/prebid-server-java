@@ -27,6 +27,7 @@ import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountDebugConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
@@ -138,6 +139,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"status\": \"active\","
                 + "\"auction\": {"
                 + "\"price-granularity\": \"med\","
+                + "\"debug\": { \"allowed\": true },"
                 + "\"banner-cache-ttl\": 100,"
                 + "\"video-cache-ttl\": 100,"
                 + "\"truncate-target-attr\": 0,"
@@ -230,6 +232,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .videoCacheTtl(100)
                             .truncateTargetAttr(0)
                             .defaultIntegration("web")
+                            .debug(AccountDebugConfig.builder().allowed(true).build())
                             .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                             .events(AccountEventsConfig.of(true))
                             .build())
