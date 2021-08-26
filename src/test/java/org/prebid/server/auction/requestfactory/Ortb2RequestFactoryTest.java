@@ -643,7 +643,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
-                        .debugContext(DebugContext.empty())
                         .build(),
                 httpRequest,
                 bidRequest,
@@ -665,28 +664,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
                 .build());
-    }
-
-    @Test
-    public void enrichAuctionContextShouldSetDebugOnWhenTestIsOne() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .test(1)
-                .build();
-
-        // when
-        final AuctionContext result = target.enrichAuctionContext(
-                AuctionContext.builder()
-                        .debugContext(DebugContext.empty())
-                        .build(),
-                httpRequest,
-                bidRequest,
-                100);
-
-        // then
-        assertThat(result.getDebugContext()).isEqualTo(DebugContext.of(true, null));
     }
 
     @Test

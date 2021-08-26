@@ -8,6 +8,8 @@ adapters:
     generate-bid-id: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: CNVR_PublisherIntegration@conversantmedia.com
       app-media-types:

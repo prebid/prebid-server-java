@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TimeoutResolver;
@@ -84,6 +85,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     private HttpServerRequest httpServerRequest;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     @Before
     public void setUp() {
@@ -113,6 +116,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -146,6 +150,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         // when
@@ -169,6 +174,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");

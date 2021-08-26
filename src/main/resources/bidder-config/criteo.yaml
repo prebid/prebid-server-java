@@ -8,6 +8,8 @@ adapters:
     generate-slot-id: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:

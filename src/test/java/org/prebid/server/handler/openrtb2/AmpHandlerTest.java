@@ -398,7 +398,7 @@ public class AmpHandlerTest extends VertxTest {
     public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, false, null))
                 .build();
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));

@@ -181,6 +181,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
     private static BidderInfo givenBidderInfo(boolean enabled, String endpoint, String aliasOf) {
         return BidderInfo.create(
                 enabled,
+                true,
                 endpoint,
                 aliasOf,
                 "test@email.org",

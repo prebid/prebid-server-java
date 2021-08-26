@@ -6,6 +6,8 @@ adapters:
     pbs-enforces-ccpa: true
     deprecated-names:
     aliases: {}
+    debug:
+      allowed: true
     modifying-vast-xml-allowed: true
     generate-bid-id: false
     XAPI:
