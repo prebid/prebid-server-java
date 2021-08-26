@@ -38,6 +38,9 @@ public class BidderConfigurationProperties {
     private MetaInfo metaInfo;
 
     @NotNull
+    private Debug debug;
+
+    @NotNull
     private UsersyncConfigurationProperties usersync;
 
     private Map<String, String> extraInfo;

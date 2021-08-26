@@ -11,6 +11,8 @@ public class BidderInfo {
 
     boolean enabled;
 
+    boolean debugAllowed;
+
     boolean usesHttps;
 
     String aliasOf;
@@ -28,6 +30,7 @@ public class BidderInfo {
     boolean modifyingVastXmlAllowed;
 
     public static BidderInfo create(boolean enabled,
+                                    boolean debugAllowed,
                                     String endpoint,
                                     String aliasOf,
                                     String maintainerEmail,
@@ -41,6 +44,7 @@ public class BidderInfo {
 
         return of(
                 enabled,
+                debugAllowed,
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),

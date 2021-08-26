@@ -27,4 +27,6 @@ public class AccountAuctionConfig {
     AccountBidValidationConfig bidValidations;
 
     AccountEventsConfig events;
+
+    AccountDebugConfig debug;
 }

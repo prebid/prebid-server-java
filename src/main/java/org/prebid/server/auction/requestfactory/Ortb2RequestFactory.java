@@ -119,7 +119,6 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugContext(debugContext(bidRequest))
                 .build();
     }
 
@@ -178,10 +177,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                body,
-                auctionContext.getHookExecutionContext())
+                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                        body,
+                        auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -231,17 +230,6 @@ public class Ortb2RequestFactory {
         }
 
         return stageResult.getPayload().bidRequest();
-    }
-
-    private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
-
-        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
-
-        return DebugContext.of(debugEnabled, traceLevel);
     }
 
     /**
