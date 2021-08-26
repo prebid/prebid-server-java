@@ -30,17 +30,16 @@ public class DebugResolver {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
-        final boolean publisherAllowed = isPublisherAllowed(auctionContext);
         final boolean debugOverridden = isDebugOverridden(auctionContext.getHttpRequest());
-        final boolean debugEnabled = (publisherAllowed && isDebugEnabled(bidRequest, extRequestPrebid))
-                || debugOverridden;
+        final boolean debugEnabled = debugOverridden
+                || (isAccountAllowed(auctionContext) && isDebugEnabled(bidRequest, extRequestPrebid));
 
         final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
 
         return DebugContext.of(debugEnabled, debugOverridden, traceLevel);
     }
 
-    private boolean isPublisherAllowed(AuctionContext auctionContext) {
+    private boolean isAccountAllowed(AuctionContext auctionContext) {
         final AccountAuctionConfig auctionConfig = getIfNotNull(auctionContext.getAccount(), Account::getAuction);
         final AccountDebugConfig debugConfig = getIfNotNull(auctionConfig, AccountAuctionConfig::getDebug);
         return BooleanUtils.toBoolean(getIfNotNull(debugConfig, AccountDebugConfig::getAllowed));

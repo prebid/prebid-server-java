@@ -28,6 +28,7 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -105,6 +106,7 @@ public class BidResponseCreator {
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
+    private final BidderAliases bidderAliases;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -121,6 +123,7 @@ public class BidResponseCreator {
 
     public BidResponseCreator(CacheService cacheService,
                               BidderCatalog bidderCatalog,
+                              BidderAliases bidderAliases,
                               VastModifier vastModifier,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -133,6 +136,7 @@ public class BidResponseCreator {
 
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.bidderAliases = Objects.requireNonNull(bidderAliases);
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -390,10 +394,10 @@ public class BidResponseCreator {
                                                                             AuctionContext auctionContext) {
 
         return CompositeFuture.join(bidderResponses.stream()
-                .map(bidderResponse -> hookStageExecutor
-                        .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
-                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
-                .collect(Collectors.toList()))
+                        .map(bidderResponse -> hookStageExecutor
+                                .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
+                                .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
+                        .collect(Collectors.toList()))
                 .map(CompositeFuture::list);
     }
 
@@ -617,15 +621,17 @@ public class BidResponseCreator {
                                             Map<String, List<ExtBidderError>> bidErrors) {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final boolean debugEnabled = auctionContext.getDebugContext().isDebugEnabled();
+        final DebugContext debugContext = auctionContext.getDebugContext();
+        final boolean debugOverride = debugContext.isDebugOverride();
+        final boolean debugEnabledOrOverridden = debugContext.isDebugEnabled() || debugOverride;
 
-        final ExtResponseDebug extResponseDebug = debugEnabled
-                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult), bidRequest)
+        final ExtResponseDebug extResponseDebug = debugEnabledOrOverridden
+                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult, debugOverride), bidRequest)
                 : null;
 
         final Map<String, List<ExtBidderError>> errors =
                 toExtBidderErrors(bidderResponseInfos, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
-        final Map<String, List<ExtBidderError>> warnings = debugEnabled
+        final Map<String, List<ExtBidderError>> warnings = debugEnabledOrOverridden
                 ? toExtBidderWarnings(auctionContext)
                 : null;
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
@@ -701,9 +707,11 @@ public class BidResponseCreator {
         return cacheResult;
     }
 
-    private static Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
-                                                                 CacheServiceResult cacheResult) {
+    private Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
+                                                          CacheServiceResult cacheResult,
+                                                          boolean debugOverride) {
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
+                .filter(bidderResponseInfo -> shouldIncludeBidderHttpCalls(bidderResponseInfo, debugOverride))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
@@ -718,6 +726,11 @@ public class BidResponseCreator {
         httpCalls.putAll(bidderHttpCalls);
         httpCalls.putAll(cacheHttpCalls);
         return httpCalls.isEmpty() ? null : httpCalls;
+    }
+
+    private boolean shouldIncludeBidderHttpCalls(BidderResponseInfo bidderResponseInfo, boolean debugOverride) {
+        final String resolvedBidderName = bidderAliases.resolveBidder(bidderResponseInfo.getBidder());
+        return bidderCatalog.isDebugAllowed(resolvedBidderName) || debugOverride;
     }
 
     private static ExtHttpCall toExtHttpCall(DebugHttpCall debugHttpCall) {
