@@ -1,7 +1,7 @@
 adapters:
   smarthub:
     enabled: false
-    endpoint: http://{{host}}-prebid.smart-hub.io/?seat={{account_id}}&token={{source_id}}
+    endpoint: http://{{Host}}-prebid.smart-hub.io/?seat={{AccountId}}&token={{SourceId}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: false

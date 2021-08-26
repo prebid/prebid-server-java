@@ -10,7 +10,9 @@ public class ExtImpSmarthub {
 
     @JsonProperty("partnerName")
     String partnerName;
+
     String seat;
+
     String token;
 }
 

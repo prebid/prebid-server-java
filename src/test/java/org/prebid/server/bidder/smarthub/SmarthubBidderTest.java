@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -41,9 +39,9 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class SmarthubBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://localhost/prebid_server";
+    private static final String ENDPOINT_URL = "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
+
     private SmarthubBidder smarthubBidder;
-    private static final String ADAPTER_VER = "1.0.0";
 
     @Before
     public void setUp() {
@@ -59,8 +57,6 @@ public class SmarthubBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddAllHeaders() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
-                .site(Site.builder().page("somePage").build())
                 .imp(singletonList(givenImp(identity())))
                 .build();
 
@@ -75,7 +71,23 @@ public class SmarthubBidderTest extends VertxTest {
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple("Prebid-Adapter-Ver", ADAPTER_VER));
+                        tuple("Prebid-Adapter-Ver", "1.0.0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCorrectlyReplaceFieldsInUrl() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))).build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://localhost/prebid_server?host=somePartnerName&AccountID=someSeat&SourceId=someToken");
+
     }
 
     @Test
@@ -127,82 +139,17 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(
-                        firstBuilder -> firstBuilder
+                        builder -> builder
                                 .ext(mapper.createObjectNode()
-                                        .set("mediaType", TextNode.valueOf(BidType.video.toString()))),
-
-                        secondBuilder -> secondBuilder
-                                .ext(mapper.createObjectNode()
-                                                .set("mediaType", TextNode.valueOf(BidType.video.toString()))),
-
-                        thirdBuilder -> thirdBuilder.ext(null))));
+                                        .set("mediaType", TextNode.valueOf(BidType.video.toString()))))));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
-
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(value -> {
                     assertThat(value.getType()).isEqualTo(BidType.video);
-                });
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfImpDoesNotContainPartnerName() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder,
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmarthub.of("", "seatId", "tokenId")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("partnerName parameter is required for smarthub bidder");
-                });
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfImpDoesNotContainSeat() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder,
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmarthub.of("partnerName", "", "tokenId")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("seat parameter is required for smarthub bidder");
-                });
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfImpDoesNotContainToken() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder,
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmarthub.of("partnerName", "seatId", "")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("token parameter is required for smarthub bidder");
                 });
     }
 
@@ -220,7 +167,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("missing bid ext");
                 });
     }
@@ -240,7 +187,7 @@ public class SmarthubBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("array SeatBid cannot be empty");
+                    assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
                 });
     }
 
