@@ -108,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
+import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsActivity;
@@ -118,6 +119,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -153,6 +155,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -837,6 +840,141 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid()).hasSize(2)
                 .extracting(seatBid -> seatBid.getBid().size())
                 .containsOnly(1, 1);
+    }
+
+    @Test
+    public void shouldOverrideDebugEnabledFlag() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+                .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
+                        singletonList(ExtHttpCall.builder().build()), emptyList())));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        BidResponse.builder()
+                                .ext(ExtBidResponse.builder()
+                                        .debug(ExtResponseDebug.of(null, null))
+                                        .build())
+                                .build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, true, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(true, true, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNotNull();
+    }
+
+    @Test
+    public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(),
+                singletonList(ExtHttpCall.builder().build()), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(
+                        BidResponse.builder()
+                                .ext(ExtBidResponse.builder()
+                                        .debug(ExtResponseDebug.of(null, null))
+                                        .build())
+                                .build()));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(true));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext())
+                .isEqualTo(DebugContext.of(true, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNotNull();
+    }
+
+    @Test
+    public void shouldNotAddDebugInfoIfPublisherIsNotAllowedToDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(false, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(false, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNull();
+    }
+
+    @Test
+    public void shouldNotAddDebugInfoIfBidderDisabledDebug() {
+        // given
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
+                .willReturn(Future.succeededFuture(bidderSeatBid));
+
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, false, null))
+                .build();
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
+
+        // then
+        verify(httpBidderRequester).requestBids(any(), any(), any(), any(), eq(false));
+
+        final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(
+                DebugContext.of(true, false, null));
+
+        assertThat(bidResponse.getExt().getDebug()).isNull();
     }
 
     @Test
