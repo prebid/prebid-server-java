@@ -1,0 +1,27 @@
+adapters:
+  iqzone:
+    enabled: false
+    endpoint: http://smartssp-us-east.iqzone.com/pserver
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: false
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: smartssp@iqzone.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: iqzone
+      type: redirect
+      support-cors: false
