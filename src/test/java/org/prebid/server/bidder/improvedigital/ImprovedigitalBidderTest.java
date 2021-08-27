@@ -101,8 +101,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("No placementId provided");
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No placementId provided"));
     }
 
     @Test
@@ -111,8 +110,10 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Imp imp = Imp.builder().ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build();
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
 
-        //when
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).hasSize(2);
     }
 
@@ -200,7 +201,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -216,6 +217,34 @@ public class ImprovedigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidIfBidExtImprovedigitalIsNull() throws JsonProcessingException {
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(null);
+
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        banner,
+                        "USD"));
     }
 
     @Test
@@ -276,8 +305,40 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldNotPopulateDealIdWhenLineItemIsMissing() throws JsonProcessingException {
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
+                ImprovedigitalBidExtImprovedigital
+                        .builder()
+                        .buyingType("classic")
+                        .build());
+
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        video,
+                        "USD"));
+    }
+
+    @Test
     public void makeBidsShouldPopulateDealIdForCampaign() throws JsonProcessingException {
-        final ImprovedigitalBidExt improveExt = ImprovedigitalBidExt.of(
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
                         .lineItemId(2222222)
@@ -291,7 +352,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
-                                .impid("123").ext(mapper.valueToTree(improveExt))))
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
         );
 
         // when
@@ -304,14 +365,14 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .dealid("2222222")
-                                .ext(mapper.valueToTree(improveExt)).build(),
+                                .ext(mapper.valueToTree(bidExt)).build(),
                         video,
                         "USD"));
     }
 
     @Test
     public void makeBidsShouldPopulateDealIdForDeal() throws JsonProcessingException {
-        final ImprovedigitalBidExt improveExt = ImprovedigitalBidExt.of(
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
                         .lineItemId(2222222)
@@ -325,7 +386,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
-                                .impid("123").ext(mapper.valueToTree(improveExt))))
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
         );
 
         // when
@@ -338,14 +399,14 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .dealid("2222222")
-                                .ext(mapper.valueToTree(improveExt)).build(),
+                                .ext(mapper.valueToTree(bidExt)).build(),
                         video,
                         "USD"));
     }
 
     @Test
     public void makeBidsShouldNotPopulateDealIdForRtb() throws JsonProcessingException {
-        final ImprovedigitalBidExt improveExt = ImprovedigitalBidExt.of(
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
                         .lineItemId(2222222)
@@ -359,7 +420,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
-                                .impid("123").ext(mapper.valueToTree(improveExt))))
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
         );
 
         // when
@@ -371,7 +432,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(
                         Bid.builder()
                                 .impid("123")
-                                .ext(mapper.valueToTree(improveExt)).build(),
+                                .ext(mapper.valueToTree(bidExt)).build(),
                         video,
                         "USD"));
     }

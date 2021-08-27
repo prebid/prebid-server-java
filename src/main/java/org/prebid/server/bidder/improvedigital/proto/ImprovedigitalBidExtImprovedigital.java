@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.improvedigital.proto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,9 +7,7 @@ import lombok.Value;
 @Value
 public class ImprovedigitalBidExtImprovedigital {
 
-    @JsonProperty("buying_type")
     String buyingType;
 
-    @JsonProperty("line_item_id")
     Integer lineItemId;
 }

@@ -74,8 +74,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                         .build());
     }
 
-    private ExtImpImprovedigital parseAndValidateImpExt(Imp imp) {
-        ExtImpImprovedigital ext;
+    private void parseAndValidateImpExt(Imp imp) {
+        final ExtImpImprovedigital ext;
         try {
             ext = mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -86,8 +86,6 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         if (placementId == null) {
             throw new PreBidException("No placementId provided");
         }
-
-        return ext;
     }
 
     @Override
@@ -124,26 +122,26 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private Bid bidWithDealId(Bid bid) {
-        if (bid.getExt() != null) {
-            final ImprovedigitalBidExt improvedigitalBidExt;
-            try {
-                improvedigitalBidExt = mapper.mapper().treeToValue(bid.getExt(), ImprovedigitalBidExt.class);
-            } catch (JsonProcessingException e) {
-                throw new PreBidException(e.getMessage(), e);
-            }
-            final ImprovedigitalBidExtImprovedigital improve = improvedigitalBidExt.getImprovedigital();
-            if (improve == null) {
-                return bid;
-            }
-            // Populate dealId
-            String buyingType = improve.getBuyingType();
-            Integer lineItemId = improve.getLineItemId();
-            if (!StringUtils.isBlank(buyingType)
-                    && buyingType.matches("(classic|deal)")
-                    && lineItemId != null
-                    && lineItemId > 0) {
-                return bid.toBuilder().dealid(lineItemId.toString()).build();
-            }
+        if (bid.getExt() == null) {
+            return bid;
+        }
+        final ImprovedigitalBidExt improvedigitalBidExt;
+        try {
+            improvedigitalBidExt = mapper.mapper().treeToValue(bid.getExt(), ImprovedigitalBidExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+        final ImprovedigitalBidExtImprovedigital bidExtImprovedigital = improvedigitalBidExt.getImprovedigital();
+        if (bidExtImprovedigital == null) {
+            return bid;
+        }
+        // Populate dealId
+        final String buyingType = bidExtImprovedigital.getBuyingType();
+        final Integer lineItemId = bidExtImprovedigital.getLineItemId();
+        if (!StringUtils.isBlank(buyingType)
+                && buyingType.matches("(classic|deal)")
+                && lineItemId != null) {
+            return bid.toBuilder().dealid(lineItemId.toString()).build();
         }
         return bid;
     }
