@@ -18,7 +18,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.gumgum.model.ExtImpGumGumBanner;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -127,8 +127,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        if (imp.getBanner() != null) {
-            final Banner resolvedBanner = resolveBanner(imp.getBanner(), extImp);
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
+            final Banner resolvedBanner = resolveBanner(banner, extImp);
             if (resolvedBanner != null) {
                 impBuilder.banner(resolvedBanner);
             }
@@ -153,7 +154,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
             final Format firstFormat = format.get(0);
 
             final BigInteger slot = extImpGumgum.getSlot();
-            final ObjectNode bannerExt = !BigInteger.ZERO.equals(slot)
+            final ObjectNode bannerExt = slot != null && !slot.equals(BigInteger.ZERO)
                     ? mapper.mapper().valueToTree(resolveBannerExt(format, slot))
                     : banner.getExt();
 
@@ -166,14 +167,14 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private ExtImpGumGumBanner resolveBannerExt(List<Format> formats, BigInteger slot) {
+    private ExtImpGumgumBanner resolveBannerExt(List<Format> formats, BigInteger slot) {
         return formats.stream()
                 .filter(format -> ObjectUtils.allNotNull(format.getW(), format.getH()))
                 .max(Comparator.comparing((Format format) -> Math.max(format.getW(), format.getH()))
                         .thenComparing(Format::getW)
                         .thenComparing(Format::getH))
-                .map(format -> ExtImpGumGumBanner.of(slot, format.getW(), format.getH()))
-                .orElse(ExtImpGumGumBanner.of(slot, 0, 0));
+                .map(format -> ExtImpGumgumBanner.of(slot, format.getW(), format.getH()))
+                .orElse(ExtImpGumgumBanner.of(slot, 0, 0));
     }
 
     private void validateVideoParams(Video video) {
