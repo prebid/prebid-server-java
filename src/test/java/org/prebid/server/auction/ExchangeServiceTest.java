@@ -856,7 +856,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
                         singletonList(ExtHttpCall.builder().build()), emptyList())));
 
-
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         BidResponse.builder()
