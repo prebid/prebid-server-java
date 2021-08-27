@@ -153,7 +153,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
 
-        given(debugResolver.getDebugContext(any())).willReturn(DebugContext.of(true, true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                 TcfContext.empty());
@@ -294,7 +294,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
 
         // then
-        verify(debugResolver).getDebugContext(any());
+        verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext())
                 .isEqualTo(DebugContext.of(true, true, null));
     }

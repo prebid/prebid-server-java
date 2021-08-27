@@ -125,7 +125,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(debugResolver.getDebugContext(any())).willReturn(DebugContext.of(true, true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
 
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -284,7 +284,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
 
         // then
-        verify(debugResolver).getDebugContext(any());
+        verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext()).isEqualTo(
                 DebugContext.of(true, true, null));
     }

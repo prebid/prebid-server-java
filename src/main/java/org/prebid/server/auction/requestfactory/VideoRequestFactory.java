@@ -99,7 +99,7 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(debugResolver.getDebugContext(auctionContext)))
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))

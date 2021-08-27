@@ -29,7 +29,7 @@ public class DebugResolver {
         this.debugOverrideToken = debugOverrideToken;
     }
 
-    public DebugContext getDebugContext(AuctionContext auctionContext) {
+    public DebugContext debugContextFrom(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 

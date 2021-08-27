@@ -19,6 +19,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountDebugConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
 
 public class DebugResolverTest {
 
@@ -29,7 +30,7 @@ public class DebugResolverTest {
     private BidderCatalog bidderCatalog;
 
     @Test
-    public void shouldSetDebugEnabledAndDebugOverrideIfDebugOverrideTokenHeaderPresentInHttpRequest() {
+    public void debugContextFromShouldSetDebugEnabledAndDebugOverrideIfDebugOverrideTokenHeaderPresentInHttpRequest() {
         // given
         final String debugOverrideToken = "override_token";
         final DebugResolver debugResolver = new DebugResolver(bidderCatalog, debugOverrideToken);
@@ -44,14 +45,14 @@ public class DebugResolverTest {
                 .build();
 
         // when
-        final DebugContext result = debugResolver.getDebugContext(auctionContext);
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(true, true, null));
     }
 
     @Test
-    public void shouldSetDebugEnabledIfPublisherAllowedAndDebugSetInBidRequestExt() {
+    public void debugContextFromShouldSetDebugEnabledIfPublisherAllowedAndDebugSetInBidRequestExt() {
         // given
         final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
@@ -66,14 +67,14 @@ public class DebugResolverTest {
                 .build();
 
         // when
-        final DebugContext result = debugResolver.getDebugContext(auctionContext);
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(true, false, null));
     }
 
     @Test
-    public void shouldDisableDebugIfPublisherDebugIsNotAllowed() {
+    public void debugContextFromShouldDisableDebugIfPublisherDebugIsNotAllowed() {
         // given
         final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
@@ -88,14 +89,14 @@ public class DebugResolverTest {
                 .build();
 
         // when
-        final DebugContext result = debugResolver.getDebugContext(auctionContext);
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, false, null));
     }
 
     @Test
-    public void shouldPassTraceLevelThrough() {
+    public void debugContextFromShouldPassTraceLevelThrough() {
         // given
         final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
@@ -110,10 +111,52 @@ public class DebugResolverTest {
                 .build();
 
         // when
-        final DebugContext result = debugResolver.getDebugContext(auctionContext);
+        final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, false, TraceLevel.basic));
+    }
+
+    @Test
+    public void resolveDebugForBidderShouldReturnTrueIfDebugEnabledAndBidderAllowedDebug() {
+        // given
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
+
+        given(bidderCatalog.isDebugAllowed("bidder")).willReturn(true);
+
+        // when
+        final boolean result = debugResolver.resolveDebugForBidder("bidder", true, false);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    public void resolveDebugForBidderShouldReturnFalseIfDebugEnabledAndBidderDisallowedDebugAndDebugIsNotOverriden() {
+        // given
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
+
+        given(bidderCatalog.isDebugAllowed("bidder")).willReturn(false);
+
+        // when
+        final boolean result = debugResolver.resolveDebugForBidder("bidder", true, false);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    public void resolveDebugForBidderShouldReturnTrueIfDebugOverriden() {
+        // given
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
+
+        given(bidderCatalog.isDebugAllowed("bidder")).willReturn(false);
+
+        // when
+        final boolean result = debugResolver.resolveDebugForBidder("bidder", true, true);
+
+        // then
+        assertThat(result).isTrue();
     }
 
     private static Account givenAccountWithDebugConfig(boolean debugAllowed) {

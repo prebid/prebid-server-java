@@ -99,7 +99,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
-        given(debugResolver.getDebugContext(any()))
+        given(debugResolver.debugContextFrom(any()))
                 .willReturn(DebugContext.of(true, true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
@@ -255,7 +255,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0);
 
         // then
-        verify(debugResolver).getDebugContext(any());
+        verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getData().getDebugContext())
                 .isEqualTo(DebugContext.of(true, true, null));
     }
