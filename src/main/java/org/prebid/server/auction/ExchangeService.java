@@ -138,6 +138,7 @@ public class ExchangeService {
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
     private final SchainResolver schainResolver;
+    private final DebugResolver debugResolver;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -154,6 +155,7 @@ public class ExchangeService {
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
                            SchainResolver schainResolver,
+                           DebugResolver debugResolver,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -173,6 +175,7 @@ public class ExchangeService {
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.schainResolver = Objects.requireNonNull(schainResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -1061,8 +1064,8 @@ public class ExchangeService {
         final String bidderName = bidderRequest.getBidder();
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
-        final boolean debugEnabledForBidder = (bidderCatalog.isDebugAllowed(resolvedBidderName) && debugEnabled)
-                || debugOverride;
+        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(
+                resolvedBidderName, debugEnabled, debugOverride);
 
         final long startTime = clock.millis();
 

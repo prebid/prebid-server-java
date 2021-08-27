@@ -1,9 +1,14 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -17,11 +22,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class DebugResolverTest {
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidderCatalog bidderCatalog;
+
     @Test
     public void shouldSetDebugEnabledAndDebugOverrideIfDebugOverrideTokenHeaderPresentInHttpRequest() {
         // given
         final String debugOverrideToken = "override_token";
-        final DebugResolver debugResolver = new DebugResolver(debugOverrideToken);
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, debugOverrideToken);
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().build())
@@ -42,7 +53,7 @@ public class DebugResolverTest {
     @Test
     public void shouldSetDebugEnabledIfPublisherAllowedAndDebugSetInBidRequestExt() {
         // given
-        final DebugResolver debugResolver = new DebugResolver(null);
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder()
@@ -64,7 +75,7 @@ public class DebugResolverTest {
     @Test
     public void shouldDisableDebugIfPublisherDebugIsNotAllowed() {
         // given
-        final DebugResolver debugResolver = new DebugResolver(null);
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder()
@@ -86,7 +97,7 @@ public class DebugResolverTest {
     @Test
     public void shouldPassTraceLevelThrough() {
         // given
-        final DebugResolver debugResolver = new DebugResolver(null);
+        final DebugResolver debugResolver = new DebugResolver(bidderCatalog, null);
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder()

@@ -183,8 +183,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DebugResolver debugResolver(@Value("${debug.override-token:#{null}") String debugOverrideToken) {
-        return new DebugResolver(debugOverrideToken);
+    DebugResolver debugResolver(@Value("${debug.override-token:#{null}") String debugOverrideToken,
+                                BidderCatalog bidderCatalog) {
+        return new DebugResolver(bidderCatalog, debugOverrideToken);
     }
 
     @Bean
@@ -515,6 +516,7 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
+            DebugResolver debugResolver,
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
@@ -528,6 +530,7 @@ public class ServiceConfiguration {
         return new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
+                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -547,6 +550,7 @@ public class ServiceConfiguration {
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
+            DebugResolver debugResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -564,6 +568,7 @@ public class ServiceConfiguration {
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
+                debugResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,

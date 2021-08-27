@@ -138,6 +138,8 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
+    private DebugResolver debugResolver;
+    @Mock
     private VastModifier vastModifier;
     @Mock
     private EventsService eventsService;
@@ -179,6 +181,7 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
+                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -1274,6 +1277,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
+                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -2409,7 +2413,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabledAndBidderAllowedDebug() {
         // given
-        given(bidderCatalog.isDebugAllowed("bidder1")).willReturn(true);
+        given(debugResolver.resolveDebugForBidder("bidder1", true, false)).willReturn(true);
 
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final List<String> warnings = asList("warning1", "warning2");

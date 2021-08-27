@@ -5,6 +5,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -20,9 +21,11 @@ public class DebugResolver {
 
     private static final String DEBUG_OVERRIDE_HEADER = "x-pbs-debug-override";
 
+    private final BidderCatalog bidderCatalog;
     private final String debugOverrideToken;
 
-    public DebugResolver(String debugOverrideToken) {
+    public DebugResolver(BidderCatalog bidderCatalog, String debugOverrideToken) {
+        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.debugOverrideToken = debugOverrideToken;
     }
 
@@ -53,6 +56,10 @@ public class DebugResolver {
     private boolean isDebugOverridden(HttpRequestContext httpRequestContext) {
         return StringUtils.isNotEmpty(debugOverrideToken)
                 && StringUtils.equals(httpRequestContext.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
+    }
+
+    public boolean resolveDebugForBidder(String bidderName, boolean debugEnabled, boolean debugOverride) {
+        return (bidderCatalog.isDebugAllowed(bidderName) && debugEnabled) || debugOverride;
     }
 
     private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {

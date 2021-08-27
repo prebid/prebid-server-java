@@ -106,6 +106,7 @@ public class BidResponseCreator {
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
+    private final DebugResolver debugResolver;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -122,6 +123,7 @@ public class BidResponseCreator {
 
     public BidResponseCreator(CacheService cacheService,
                               BidderCatalog bidderCatalog,
+                              DebugResolver debugResolver,
                               VastModifier vastModifier,
                               EventsService eventsService,
                               StoredRequestProcessor storedRequestProcessor,
@@ -134,6 +136,7 @@ public class BidResponseCreator {
 
         this.cacheService = Objects.requireNonNull(cacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -623,7 +626,9 @@ public class BidResponseCreator {
         final boolean debugEnabledOrOverridden = debugContext.isDebugEnabled() || debugOverride;
 
         final ExtResponseDebug extResponseDebug = debugEnabledOrOverridden
-                ? ExtResponseDebug.of(toExtHttpCalls(bidderResponseInfos, cacheResult, debugOverride), bidRequest)
+                ? ExtResponseDebug.of(
+                toExtHttpCalls(bidderResponseInfos, bidRequest, cacheResult, true, debugOverride),
+                bidRequest)
                 : null;
 
         final Map<String, List<ExtBidderError>> errors =
@@ -705,10 +710,13 @@ public class BidResponseCreator {
     }
 
     private Map<String, List<ExtHttpCall>> toExtHttpCalls(List<BidderResponseInfo> bidderResponses,
+                                                          BidRequest bidRequest,
                                                           CacheServiceResult cacheResult,
+                                                          boolean debugEnabled,
                                                           boolean debugOverride) {
         final Map<String, List<ExtHttpCall>> bidderHttpCalls = bidderResponses.stream()
-                .filter(bidderResponseInfo -> shouldIncludeBidderHttpCalls(bidderResponseInfo, debugOverride))
+                .filter(bidderResponseInfo -> shouldIncludeBidderHttpCalls(
+                        bidderResponseInfo, bidRequest, debugEnabled, debugOverride))
                 .collect(Collectors.toMap(
                         BidderResponseInfo::getBidder,
                         bidderResponse -> ListUtils.emptyIfNull(bidderResponse.getSeatBid().getHttpCalls())));
@@ -725,8 +733,21 @@ public class BidResponseCreator {
         return httpCalls.isEmpty() ? null : httpCalls;
     }
 
-    private boolean shouldIncludeBidderHttpCalls(BidderResponseInfo bidderResponseInfo, boolean debugOverride) {
-        return bidderCatalog.isDebugAllowed(bidderResponseInfo.getBidder()) || debugOverride;
+    private boolean shouldIncludeBidderHttpCalls(BidderResponseInfo bidderResponseInfo,
+                                                 BidRequest bidRequest,
+                                                 boolean debugEnabled,
+                                                 boolean debugOverride) {
+        final BidderAliases aliases = aliases(bidRequest);
+        final String resolvedBidderName = aliases.resolveBidder(bidderResponseInfo.getBidder());
+        return debugResolver.resolveDebugForBidder(resolvedBidderName, debugEnabled, debugOverride);
+    }
+
+    private BidderAliases aliases(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
+        final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     private static ExtHttpCall toExtHttpCall(DebugHttpCall debugHttpCall) {

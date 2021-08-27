@@ -193,6 +193,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private SchainResolver schainResolver;
     @Mock
+    private DebugResolver debugResolver;
+    @Mock
     private HttpBidderRequester httpBidderRequester;
     @Mock
     private ResponseBidValidator responseBidValidator;
@@ -280,6 +282,7 @@ public class ExchangeServiceTest extends VertxTest {
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
+                debugResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -301,6 +304,7 @@ public class ExchangeServiceTest extends VertxTest {
                         privacyEnforcementService,
                         fpdResolver,
                         schainResolver,
+                        debugResolver,
                         httpBidderRequester,
                         responseBidValidator,
                         currencyService,
@@ -845,11 +849,13 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldOverrideDebugEnabledFlag() {
         // given
+        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+        given(debugResolver.resolveDebugForBidder("bidder", true, true))
+                .willReturn(true);
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
                         singletonList(ExtHttpCall.builder().build()), emptyList())));
 
-        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -894,7 +900,8 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .build()));
 
-        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+        given(debugResolver.resolveDebugForBidder("bidder", true, false))
+                .willReturn(true);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
@@ -921,8 +928,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
-
-        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(true);
+        given(debugResolver.resolveDebugForBidder("bidder", false, false)).willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
@@ -953,7 +959,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
-        given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
+        given(debugResolver.resolveDebugForBidder("bidder", true, false)).willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
@@ -2376,6 +2382,7 @@ public class ExchangeServiceTest extends VertxTest {
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
+                debugResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
