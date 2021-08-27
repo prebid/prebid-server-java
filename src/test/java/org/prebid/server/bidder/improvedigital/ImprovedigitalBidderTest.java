@@ -83,8 +83,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                });
     }
 
     @Test
@@ -126,9 +129,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -221,9 +226,9 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBidIfBidExtImprovedigitalIsNull() throws JsonProcessingException {
+        // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(null);
 
-        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
@@ -306,13 +311,13 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldNotPopulateDealIdWhenLineItemIsMissing() throws JsonProcessingException {
+        // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
                         .buyingType("classic")
                         .build());
 
-        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
@@ -338,6 +343,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldPopulateDealIdForCampaign() throws JsonProcessingException {
+        // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
@@ -345,7 +351,6 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("classic")
                         .build());
 
-        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
@@ -372,6 +377,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldPopulateDealIdForDeal() throws JsonProcessingException {
+        // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
@@ -379,7 +385,6 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("deal")
                         .build());
 
-        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
@@ -406,6 +411,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldNotPopulateDealIdForRtb() throws JsonProcessingException {
+        // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
                 ImprovedigitalBidExtImprovedigital
                         .builder()
@@ -413,7 +419,6 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("rtb")
                         .build());
 
-        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))

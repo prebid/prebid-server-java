@@ -10,5 +10,4 @@ public class ExtImpImprovedigital {
 
     @JsonProperty("placementId")
     Integer placementId;
-
 }
