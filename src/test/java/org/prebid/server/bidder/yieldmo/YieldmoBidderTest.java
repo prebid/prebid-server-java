@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.yieldmo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
@@ -85,7 +84,7 @@ public class YieldmoBidderTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.valueToTree(YieldmoImpExt.of(PLACEMENT_VALUE, null)));
     }
-    
+
     @Test
     public void makeHttpRequestsShouldAddPbadslotToImpExtIfPresentAndNotEmpty() {
         // given
@@ -266,7 +265,7 @@ public class YieldmoBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -276,9 +275,9 @@ public class YieldmoBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
                 .build();
     }
 
