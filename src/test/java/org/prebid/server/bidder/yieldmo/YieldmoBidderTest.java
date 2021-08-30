@@ -78,14 +78,12 @@ public class YieldmoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
-
-        final YieldmoImpExt expectedExt = YieldmoImpExt.of(PLACEMENT_VALUE, null);
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(expectedExt));
+                .containsExactly(mapper.valueToTree(YieldmoImpExt.of(PLACEMENT_VALUE, null)));
     }
     
     @Test
@@ -155,7 +153,7 @@ public class YieldmoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(
