@@ -16,6 +16,7 @@ import org.prebid.server.bidder.grid.model.KeywordSegment;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             new TypeReference<Map<String, JsonNode>>() {
             };
     private final Set<String> ALLOWED_KEYWORDS_SECTIONS = Set.of("user", "site");
+
+    private final JsonMerger jsonMerger = new JsonMerger(null);
 
     public GridBidder(String endpointUrl, JacksonMapper mapper) {
         super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpGrid.class, mapper);
@@ -70,11 +73,11 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
                                    String siteKeywords,
                                    ObjectNode firstImpExt,
                                    ObjectNode requestExt) {
-        final ObjectNode resolvedOpenRtbUserKeywords = resolveKeywordsFromOpenRtb(userKeywords, "user");
-        final ObjectNode resolvedOpenRtbSiteKeywords = resolveKeywordsFromOpenRtb(siteKeywords, "site");
-        final ObjectNode resolvedRequestKeywordsNode = resolveKeywords(requestExt.at("keywords"));
-        final ObjectNode resolvedFirstImpKeywordsNode = resolveKeywords(firstImpExt.get("keywords"));
-        return null;
+        return merge(
+                resolveKeywords(requestExt.at("keywords")),
+                resolveKeywordsFromOpenRtb(userKeywords, "user"),
+                resolveKeywordsFromOpenRtb(siteKeywords, "site"),
+                resolveKeywords(firstImpExt.get("keywords")));
     }
 
     private ObjectNode resolveKeywordsFromOpenRtb(String keywords, String section) {
@@ -213,6 +216,11 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         } catch (IllegalArgumentException ignored) {
         }
         return Collections.emptyMap();
+    }
+
+    private ObjectNode merge(JsonNode... nodes) {
+        return (ObjectNode) Arrays.stream(nodes)
+                .reduce(mapper.mapper().createObjectNode(), jsonMerger::merge);
     }
 
     @Override
