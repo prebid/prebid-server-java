@@ -21,13 +21,14 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.Collections;
+import java.util.Collection;
+import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
-import java.util.Collection;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +37,7 @@ import java.util.stream.Collectors;
 public class BidscubeBidder implements Bidder<BidRequest> {
 
     private static final Set<String> POSSIBLE_BID_TYPES = Collections.unmodifiableSet(new HashSet<>(
-            List.of("banner", "video", "native")));
+            Arrays.asList("banner", "video", "native")));
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
