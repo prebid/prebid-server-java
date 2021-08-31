@@ -1,0 +1,20 @@
+{
+  "$and": [
+    {
+      "device.ext.deviceatlas.browser": {
+        "$in": [
+          "Chrome",
+          "Firefox"
+        ]
+      }
+    },
+    {
+      "device.geo.ext.netacuity.country": {
+        "$in": [
+          "us",
+          "jp"
+        ]
+      }
+    }
+  ]
+}
