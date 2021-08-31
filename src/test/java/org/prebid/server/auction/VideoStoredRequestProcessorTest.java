@@ -335,7 +335,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         );
 
         final BidRequestVideo requestVideo = givenValidDataResult(
-                bidRequestVideoBuilder -> bidRequestVideoBuilder.priceGranularity(priceGranularity),
+                bidRequestVideoBuilder -> bidRequestVideoBuilder.pricegranularity(priceGranularity),
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
