@@ -10,7 +10,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
@@ -20,13 +22,16 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -65,6 +70,9 @@ public final class HttpUtil {
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
     private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));
+    public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
+
+    private static final String BASIC_AUTH_PATTERN = "Basic %s";
 
     private HttpUtil() {
     }
@@ -125,6 +133,28 @@ public final class HttpUtil {
         }
     }
 
+    public static ZonedDateTime getDateFromHeader(MultiMap headers, String header) {
+        return getDateFromHeader(headers::get, header);
+    }
+
+    public static ZonedDateTime getDateFromHeader(CaseInsensitiveMultiMap headers, String header) {
+        return getDateFromHeader(headers::get, header);
+    }
+
+    private static ZonedDateTime getDateFromHeader(Function<String, String> headerGetter, String header) {
+        final String isoTimeStamp = headerGetter.apply(header);
+        if (isoTimeStamp == null) {
+            return null;
+        }
+
+        try {
+            return ZonedDateTime.parse(isoTimeStamp);
+        } catch (Exception e) {
+            throw new PreBidException(String.format("%s header is not compatible to ISO-8601 format: %s",
+                    header, isoTimeStamp));
+        }
+    }
+
     public static String getHostFromUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return null;
@@ -182,6 +212,14 @@ public final class HttpUtil {
             logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Creates standart basic auth header value
+     */
+    public static String makeBasicAuthHeaderValue(String username, String password) {
+        return String.format(BASIC_AUTH_PATTERN, Base64.getEncoder().encodeToString((username + ':' + password)
+                .getBytes()));
     }
 
     /**

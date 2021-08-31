@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.deals.model.DeepDebugLog;
+import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
@@ -50,6 +52,12 @@ public class AuctionContext {
     DebugContext debugContext;
 
     boolean requestRejected;
+
+    @JsonIgnore
+    TxnLog txnLog;
+
+    @JsonIgnore
+    DeepDebugLog deepDebugLog;
 
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();

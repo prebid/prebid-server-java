@@ -406,7 +406,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(
                         ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest()))
+                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
                                 .prebid(ExtBidResponsePrebid.of(1000L, null))
                                 .build()));
 
@@ -593,7 +593,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
     }
 
     @Test

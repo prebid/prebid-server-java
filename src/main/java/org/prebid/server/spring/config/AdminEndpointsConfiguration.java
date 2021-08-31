@@ -4,14 +4,20 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DeliveryProgressService;
+import org.prebid.server.deals.simulation.DealsSimulationAdminHandler;
 import org.prebid.server.handler.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
+import org.prebid.server.handler.DealsStatusHandler;
 import org.prebid.server.handler.HttpInteractionLogHandler;
+import org.prebid.server.handler.LineItemStatusHandler;
 import org.prebid.server.handler.LoggerControlKnobHandler;
 import org.prebid.server.handler.SettingsCacheNotificationHandler;
+import org.prebid.server.handler.TracerLogHandler;
 import org.prebid.server.handler.VersionHandler;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.settings.CachingApplicationSettings;
@@ -20,6 +26,7 @@ import org.prebid.server.util.VersionInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -155,6 +162,77 @@ public class AdminEndpointsConfiguration {
         return new CustomizedAdminEndpoint(
                 path,
                 new LoggerControlKnobHandler(maxDuration, loggerControlKnob, path),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "admin-endpoints.tracelog", name = "enabled", havingValue = "true")
+    CustomizedAdminEndpoint tracerLogEndpoint(
+            CriteriaManager criteriaManager,
+            @Value("${admin-endpoints.tracelog.path}") String path,
+            @Value("${admin-endpoints.tracelog.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.tracelog.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new TracerLogHandler(criteriaManager),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.deals-status.enabled} == true")
+    CustomizedAdminEndpoint dealsStatusEndpoint(
+            DeliveryProgressService deliveryProgressService,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.deals-status.path}") String path,
+            @Value("${admin-endpoints.deals-status.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.deals-status.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new DealsStatusHandler(deliveryProgressService, mapper),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.lineitem-status.enabled} == true")
+    CustomizedAdminEndpoint lineItemStatusEndpoint(
+            DeliveryProgressService deliveryProgressService,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.lineitem-status.path}") String path,
+            @Value("${admin-endpoints.lineitem-status.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.lineitem-status.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new LineItemStatusHandler(deliveryProgressService, mapper, path),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == true"
+            + " and ${admin-endpoints.e2eadmin.enabled} == true")
+    CustomizedAdminEndpoint dealsSimulationAdminEndpoint(
+            DealsSimulationAdminHandler dealsSimulationAdminHandler,
+            @Value("${admin-endpoints.e2eadmin.path}") String path,
+            @Value("${admin-endpoints.e2eadmin.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.e2eadmin.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                dealsSimulationAdminHandler,
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

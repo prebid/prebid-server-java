@@ -158,7 +158,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                         .end(body));
 
         if (responseSent) {
-            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+            metrics.updateRequestTimeMetric(REQUEST_TYPE_METRIC, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {

@@ -13,6 +13,8 @@ import java.util.Map;
 @Builder
 public class DebugHttpCall {
 
+    private static final DebugHttpCall EMPTY = DebugHttpCall.builder().build();
+
     String endpoint;
 
     String requestUri;
@@ -26,4 +28,8 @@ public class DebugHttpCall {
     Map<String, List<String>> requestHeaders;
 
     Integer responseTimeMillis;
+
+    public static DebugHttpCall empty() {
+        return EMPTY;
+    }
 }
