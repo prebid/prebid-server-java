@@ -4,8 +4,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
@@ -14,9 +18,11 @@ import org.prebid.server.bidder.grid.model.GridExtImpData;
 import org.prebid.server.bidder.grid.model.GridExtImpDataAdServer;
 import org.prebid.server.bidder.grid.model.KeywordSegment;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
+import org.prebid.server.bidder.model.ImpWithExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.ArrayList;
@@ -35,10 +41,11 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             };
     private final Set<String> ALLOWED_KEYWORDS_SECTIONS = Set.of("user", "site");
 
-    private final JsonMerger jsonMerger = new JsonMerger(null);
+    private final JsonMerger jsonMerger;
 
     public GridBidder(String endpointUrl, JacksonMapper mapper) {
         super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpGrid.class, mapper);
+        jsonMerger = new JsonMerger(mapper);
     }
 
     @Override
@@ -69,16 +76,60 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         return imp;
     }
 
+    @Override
+    protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder, List<ImpWithExt<ExtImpGrid>> impsWithExts) {
+        final User user = bidRequest.getUser();
+        final String userKeywords = user != null ? user.getKeywords() : null;
+        final Site site = bidRequest.getSite();
+        final String siteKeywords = site != null ? site.getKeywords() : null;
+
+        final ExtRequest requestExt = bidRequest.getExt();
+        final JsonNode requestExtNode = mapper.mapper().valueToTree(requestExt.getProperties());
+        final ObjectNode constructedRequest = buildReqExt(
+                ObjectUtils.defaultIfNull(userKeywords, ""),
+                ObjectUtils.defaultIfNull(siteKeywords, ""),
+                impsWithExts.get(0).getImp().getExt(),
+                requestExtNode);
+
+
+        requestBuilder.ext();
+    }
+
     private ObjectNode buildReqExt(String userKeywords,
                                    String siteKeywords,
-                                   ObjectNode firstImpExt,
-                                   ObjectNode requestExt) {
+                                   JsonNode firstImpExt,
+                                   JsonNode requestExt) {
+        final JsonNode node1 = resolveKeywords(requestExt.get("keywords"));
+        final JsonNode node2 = resolveKeywordsFromOpenRtb(userKeywords, "user");
+        final JsonNode node3 = resolveKeywordsFromOpenRtb(siteKeywords, "site");
+        final JsonNode node4 = resolveKeywords(firstImpExt.get("keywords"));
         return merge(
-                resolveKeywords(requestExt.at("keywords")),
+                resolveKeywords(requestExt.get("keywords")),
                 resolveKeywordsFromOpenRtb(userKeywords, "user"),
                 resolveKeywordsFromOpenRtb(siteKeywords, "site"),
                 resolveKeywords(firstImpExt.get("keywords")));
     }
+
+//    public static void main(String[] args) throws JsonProcessingException {
+//
+//        JacksonMapper mapper = new JacksonMapper(ObjectMapperProvider.mapper());
+//
+//        GridBidder gridBidder = new GridBidder("http://endpoint.com", mapper);
+//        final ObjectNode requestExt = (ObjectNode) mapper.mapper().readTree(requestExtJson);
+//        final ObjectNode firstImpExt = (ObjectNode) mapper.mapper().readTree(firstImpjson);
+//        final JsonNode result = gridBidder.buildReqExt(userKeywords, siteKeywords, firstImpExt, requestExt);
+//        System.out.println(result.toPrettyString());
+//        final ObjectNode node1 = mapper.mapper().createObjectNode();
+//        final ArrayNode arrayNode1 = mapper.mapper().createArrayNode();
+//        arrayNode1.addAll(Arrays.asList(TextNode.valueOf("rabotai pj")));
+//        node1.set("test", arrayNode1);
+//
+//        final ObjectNode node2 = mapper.mapper().createObjectNode();
+//        final ArrayNode arrayNode2 = mapper.mapper().createArrayNode();
+//        arrayNode2.addAll(Arrays.asList(TextNode.valueOf("nu pojaluysta")));
+//        node2.set("test", arrayNode2);
+//        final ObjectNode result = gridBidder.merge(node1, node2);
+//    }
 
     private ObjectNode resolveKeywordsFromOpenRtb(String keywords, String section) {
         final List<KeywordSegment> segments = Arrays.stream(keywords.split(","))
@@ -88,7 +139,7 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
 
         final ObjectNode keywordsNode = mapper.mapper().createObjectNode();
 
-        if (segments.isEmpty()) {
+        if (!segments.isEmpty()) {
             final List<KeywordsPublisherItem> publisherItems = List.of(KeywordsPublisherItem.of("keywords", segments));
             final ObjectNode publisherNode = mapper.mapper().createObjectNode();
             publisherNode.set("ortb2", mapper.mapper().valueToTree(publisherItems));
@@ -123,7 +174,8 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
                 continue;
             }
 
-            final List<KeywordsPublisherItem> publisherKeywords = resolvePublisherKeywords((ArrayNode) publisherJsonNode);
+            final List<KeywordsPublisherItem> publisherKeywords =
+                    resolvePublisherKeywords((ArrayNode) publisherJsonNode);
             if (!publisherKeywords.isEmpty()) {
                 resolvedSectionNode.set(entry.getKey(), mapper.mapper().valueToTree(publisherKeywords));
             }
@@ -143,15 +195,16 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
 
-            if (publisherNameNode == null
-                    || !publisherNameNode.isTextual()
-                    || segmentsNode == null
-                    || !segmentsNode.isArray()) {
+            if (publisherNameNode == null || !publisherNameNode.isTextual()) {
                 continue;
             }
 
-            final List<KeywordSegment> segments = resolvePublisherSegments((ArrayNode) segmentsNode);
+            final List<KeywordSegment> segments = new ArrayList<>();
+            if (segmentsNode != null && segmentsNode.isArray()) {
+                segments.addAll(resolvePublisherSegments((ArrayNode) segmentsNode));
+            }
             segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
+
             if (!segments.isEmpty()) {
                 publishersKeywords.add(KeywordsPublisherItem.of(publisherNameNode.asText(), segments));
             }
@@ -239,4 +292,167 @@ public class GridBidder extends OpenrtbBidder<ExtImpGrid> {
         }
         throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
     }
+
+    public static final String requestExtJson = "{\n" +
+            "  \"keywords\": {\n" +
+            "    \"stringKey\": \"stringVal\",\n" +
+            "    \"wrongKeys1\": {\n" +
+            "      \"someKey1\": \"someVal1\",\n" +
+            "      \"someKey2\": \"someVal2\",\n" +
+            "      \"someKey3\": [\n" +
+            "        \"someVal31\",\n" +
+            "        \"someVal32\"\n" +
+            "      ],\n" +
+            "      \"someKey4\": {\n" +
+            "        \"key1\": \"val1\",\n" +
+            "        \"key2\": \"val2\"\n" +
+            "      }\n" +
+            "    },\n" +
+            "    \"anotherKeys\": [\n" +
+            "      {\n" +
+            "        \"someKey1\": \"someVal1\"\n" +
+            "      },\n" +
+            "      {\n" +
+            "        \"someKey2\": \"someVal2\"\n" +
+            "      }\n" +
+            "    ],\n" +
+            "    \"site\": {\n" +
+            "      \"stringSiteKey\": \"stringSiteVal\",\n" +
+            "      \"wrongSiteKeys1\": {\n" +
+            "        \"someKey1\": \"someVal1\",\n" +
+            "        \"someKey2\": \"someVal2\",\n" +
+            "        \"someKey3\": [\n" +
+            "          \"someVal31\",\n" +
+            "          \"someVal32\"\n" +
+            "        ],\n" +
+            "        \"someKey4\": {\n" +
+            "          \"key1\": \"val1\",\n" +
+            "          \"key2\": \"val2\"\n" +
+            "        }\n" +
+            "      },\n" +
+            "      \"anotherSiteKeys\": [\n" +
+            "        {\n" +
+            "          \"someKey1\": \"someVal1\"\n" +
+            "        },\n" +
+            "        {\n" +
+            "          \"someKey2\": \"someVal2\"\n" +
+            "        },\n" +
+            "        \"someStrKey\",\n" +
+            "        [\n" +
+            "          \"someVal31\",\n" +
+            "          \"someVal32\"\n" +
+            "        ],\n" +
+            "        {\n" +
+            "          \"name\": \"someName3\",\n" +
+            "          \"keyName\": [\n" +
+            "            \"keyVal\",\n" +
+            "            {\n" +
+            "              \"name\": \"wrongKey\"\n" +
+            "            }\n" +
+            "          ],\n" +
+            "          \"wrongKeyName\": \"stKeyVal\",\n" +
+            "          \"wrongKeyName2\": {\n" +
+            "            \"name\": \"someName\",\n" +
+            "            \"value\": \"stKeyVal\"\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"pub\": [\n" +
+            "        \"k1\",\n" +
+            "        \"k2\"\n" +
+            "      ],\n" +
+            "      \"somePublisher\": [\n" +
+            "        {\n" +
+            "          \"name\": \"someName2\",\n" +
+            "          \"topic\": [\n" +
+            "            \"anyKey\"\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      ],\n" +
+            "      \"formatedSitePublisher\": [\n" +
+            "        {\n" +
+            "          \"name\": \"formatedPub2\",\n" +
+            "          \"segments\": [\n" +
+            "            {\n" +
+            "              \"name\": \"segName1\",\n" +
+            "              \"value\": \"segVal1\"\n" +
+            "            },\n" +
+            "            {\n" +
+            "              \"name\": \"segName2\",\n" +
+            "              \"value\": \"segVal2\"\n" +
+            "            }\n" +
+            "          ]\n" +
+            "        },\n" +
+            "        {\n" +
+            "          \"name\": \"notFormatedPub\",\n" +
+            "          \"topic2\": [\n" +
+            "            \"notFormatedKw\"\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    },\n" +
+            "    \"user\": {\n" +
+            "      \"formatedUserPublisher\": [\n" +
+            "        {\n" +
+            "          \"name\": \"formatedPub2\",\n" +
+            "          \"segments\": [\n" +
+            "            {\n" +
+            "              \"name\": \"segName1\",\n" +
+            "              \"value\": \"segVal1\"\n" +
+            "            },\n" +
+            "            {\n" +
+            "              \"name\": \"segName2\",\n" +
+            "              \"value\": \"segVal2\"\n" +
+            "            }\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
+
+    public static final String firstImpjson = "{\n" +
+            "  \"uid\": 1,\n" +
+            "  \"keywords\": {\n" +
+            "    \"site\": {\n" +
+            "      \"somePublisher\": [\n" +
+            "        {\n" +
+            "          \"name\": \"someName\",\n" +
+            "          \"topic\": [\n" +
+            "            \"stress\",\n" +
+            "            \"fear\"\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    },\n" +
+            "    \"user\": {\n" +
+            "      \"formatedPublisher\": [\n" +
+            "        {\n" +
+            "          \"name\": \"formatedPub1\",\n" +
+            "          \"segments\": [\n" +
+            "            {\n" +
+            "              \"name\": \"segName1\",\n" +
+            "              \"value\": \"segVal1\"\n" +
+            "            },\n" +
+            "            {\n" +
+            "              \"name\": \"segName2\",\n" +
+            "              \"value\": \"segVal2\"\n" +
+            "            },\n" +
+            "            [\n" +
+            "              \"someKeyword\"\n" +
+            "            ],\n" +
+            "            \"stringKey\"\n" +
+            "          ],\n" +
+            "          \"bottom\": [\n" +
+            "            \"bottomKey1\",\n" +
+            "            \"bottomKey2\"\n" +
+            "          ]\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  }\n" +
+            "}";
+
+    public static final String userKeywords = "userKey1";
+    public static final String siteKeywords = "siteKey1,siteKey2";
 }
