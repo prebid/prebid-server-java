@@ -12,6 +12,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
@@ -19,6 +20,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Metric;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Segment;
@@ -67,6 +69,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
+import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
@@ -2467,6 +2471,46 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOnlyLineItemRequestsWithExpectedFieldsWhenImpPmpDealsArePresent()
+            throws IOException {
+        // given
+        final List<Deal> dealsList = asList(
+                Deal.builder().ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, "123",
+                        singletonList(Format.builder().w(120).h(600).build()), null))))
+                        .build(),
+                Deal.builder().ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, "234",
+                        singletonList(Format.builder().w(300).h(250).build()), null))))
+                        .build());
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        // request for banner should be ignored, should make two requests for deals instead
+                        .banner(Banner.builder().format(singletonList(Format.builder().w(468).h(60).build())).build())
+                        .pmp(Pmp.builder().deals(dealsList).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(2)
+                .extracting(Imp::getBanner)
+                .flatExtracting(Banner::getFormat)
+                .containsOnly(Format.builder().w(120).h(600).build(), Format.builder().w(300).h(250).build());
+
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(imp -> mapper.treeToValue(imp.getExt(), RubiconImpExt.class).getRp().getTarget())
+                .containsOnly(
+                        mapper.readTree("{\"line_item\":\"123\"}"),
+                        mapper.readTree("{\"line_item\":\"234\"}"));
     }
 
     @Test

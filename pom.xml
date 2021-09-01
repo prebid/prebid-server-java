@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.71.0-SNAPSHOT</version>
+    <version>1.72.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -55,6 +55,7 @@
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
+        <awaitility.version>4.0.1</awaitility.version>
         <jetty.version>9.4.43.v20210629</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
@@ -87,6 +88,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
             <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
@@ -302,6 +307,12 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
