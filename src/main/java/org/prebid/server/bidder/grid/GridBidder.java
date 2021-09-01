@@ -293,12 +293,19 @@ public class GridBidder implements Bidder<BidRequest> {
         for (Map.Entry<String, JsonNode> entry : jsonNodeToMap(publisherValueNode).entrySet()) {
             final JsonNode entryNode = entry.getValue();
             if (entryNode.isArray()) {
-                for (Iterator<JsonNode> it = entryNode.elements(); it.hasNext(); ) {
-                    final JsonNode currentNode = it.next();
-                    if (currentNode.isTextual()) {
-                        keywordSegments.add(KeywordSegment.of(entry.getKey(), currentNode.asText()));
-                    }
-                }
+                resolveAlternativePublisherSegmentsArray(entry.getKey(), entryNode);
+            }
+        }
+        return keywordSegments;
+    }
+
+    private List<KeywordSegment> resolveAlternativePublisherSegmentsArray(String segmentName,
+                                                                          JsonNode publisherSegmentsNode) {
+        final List<KeywordSegment> keywordSegments = new ArrayList<>();
+        for (Iterator<JsonNode> it = publisherSegmentsNode.elements(); it.hasNext(); ) {
+            final JsonNode currentNode = it.next();
+            if (currentNode.isTextual()) {
+                keywordSegments.add(KeywordSegment.of(segmentName, currentNode.asText()));
             }
         }
         return keywordSegments;
