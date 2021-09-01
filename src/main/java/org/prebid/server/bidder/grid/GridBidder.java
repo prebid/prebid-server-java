@@ -68,16 +68,9 @@ public class GridBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        try {
-            final ExtImpGrid firstImpExtGrid = mapper.mapper().convertValue(imps.get(0).getExt(), ExtImpGrid.class);
-            final ExtImpGridBidder firstImpExtGridBidder = firstImpExtGrid != null ? firstImpExtGrid.getBidder() : null;
-            final ExtGridKeywords firstImpExtGridKeywords = firstImpExtGridBidder != null
-                    ? firstImpExtGridBidder.getKeywords()
-                    : null;
-            return constructHttpRequest(modifyRequest(request, firstImpExtGridKeywords, modifiedImps));
-        } catch (IllegalArgumentException e) {
-            return constructHttpRequest(modifyRequest(request, null, modifiedImps));
-        }
+        final ExtGridKeywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
+        final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
+        return Result.of(Collections.singletonList(constructHttpRequest(modifiedRequest)), errors);
     }
 
     private List<Imp> modifyImps(List<Imp> imps, List<BidderError> errors) {
@@ -116,15 +109,16 @@ public class GridBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    private Result<List<HttpRequest<BidRequest>>> constructHttpRequest(BidRequest bidRequest) {
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .uri(endpointUrl)
-                        .method(HttpMethod.POST)
-                        .headers(HttpUtil.headers())
-                        .payload(bidRequest)
-                        .body(mapper.encode(bidRequest))
-                        .build());
+    private ExtGridKeywords getKeywordsFromImpExt(JsonNode extImp) {
+        try {
+            final ExtImpGrid firstImpExtGrid = mapper.mapper().convertValue(extImp, ExtImpGrid.class);
+            final ExtImpGridBidder firstImpExtGridBidder = firstImpExtGrid != null
+                    ? firstImpExtGrid.getBidder()
+                    : null;
+            return firstImpExtGridBidder != null ? firstImpExtGridBidder.getKeywords() : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     protected BidRequest modifyRequest(BidRequest bidRequest, ExtGridKeywords firstImpExtGridKeywords, List<Imp> imp) {
@@ -364,6 +358,16 @@ public class GridBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException ignored) {
         }
         return Collections.emptyMap();
+    }
+
+    private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .uri(endpointUrl)
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .payload(bidRequest)
+                .body(mapper.encode(bidRequest))
+                .build();
     }
 
     @Override
