@@ -87,7 +87,7 @@ public class GridBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    protected Imp modifyImp(Imp imp, ExtImpGrid extImpGrid) {
+    private Imp modifyImp(Imp imp, ExtImpGrid extImpGrid) {
         final ExtImpGridBidder extImpGridBidder = extImpGrid != null ? extImpGrid.getBidder() : null;
         final Integer uid = extImpGridBidder != null ? extImpGridBidder.getUid() : null;
         if (uid == null || uid == 0) {
@@ -121,7 +121,7 @@ public class GridBidder implements Bidder<BidRequest> {
         }
     }
 
-    protected BidRequest modifyRequest(BidRequest bidRequest, ExtGridKeywords firstImpExtGridKeywords, List<Imp> imp) {
+    private BidRequest modifyRequest(BidRequest bidRequest, ExtGridKeywords firstImpExtGridKeywords, List<Imp> imp) {
         final User user = bidRequest.getUser();
         final String userKeywords = user != null ? user.getKeywords() : null;
         final Site site = bidRequest.getSite();
@@ -141,14 +141,27 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest modifyExtRequest(ExtRequest extRequest, ExtGridKeywords extGridKeywords) {
+        final ObjectNode clearedUserNode = clearObjectNode(extGridKeywords.getUser());
+        final ObjectNode clearedSiteNode = clearObjectNode(extGridKeywords.getSite());
+
+        final ExtGridKeywords clearedKeywords = clearedUserNode != null && clearedSiteNode != null
+                ? ExtGridKeywords.of(clearedUserNode, clearedSiteNode)
+                : null;
+        if (clearedKeywords == null) {
+            return extRequest;
+        }
+
+        final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequest != null ? extRequest.getPrebid() : null);
         final Map<String, JsonNode> extRequestProperties = extRequest != null
                 ? extRequest.getProperties()
                 : Collections.emptyMap();
-
-        final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequest != null ? extRequest.getPrebid() : null);
         modifiedBidRequestExt.addProperties(extRequestProperties);
-        modifiedBidRequestExt.addProperty("keywords", mapper.mapper().valueToTree(extGridKeywords));
+        modifiedBidRequestExt.addProperty("keywords", mapper.mapper().valueToTree(clearedKeywords));
         return modifiedBidRequestExt;
+    }
+
+    private ObjectNode clearObjectNode(ObjectNode objectNode) {
+        return objectNode != null && !objectNode.isEmpty() ? objectNode : null;
     }
 
     private ExtGridKeywords getKeywordsFromRequestExt(ExtRequest extRequest) {
