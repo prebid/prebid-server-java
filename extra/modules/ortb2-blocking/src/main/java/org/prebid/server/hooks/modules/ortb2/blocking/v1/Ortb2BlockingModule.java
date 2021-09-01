@@ -4,9 +4,8 @@ import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
 
+import java.util.Arrays;
 import java.util.Collection;
-
-import static java.util.Arrays.asList;
 
 public class Ortb2BlockingModule implements Module {
 
@@ -19,8 +18,8 @@ public class Ortb2BlockingModule implements Module {
 
     @Override
     public Collection<? extends Hook<?, ? extends InvocationContext>> hooks() {
-        return asList(
-                new Ortb2BlockingBidderRequestHook(),
-                new Ortb2BlockingRawBidderResponseHook());
+        return Arrays.asList(
+            new Ortb2BlockingBidderRequestHook(),
+            new Ortb2BlockingRawBidderResponseHook());
     }
 }

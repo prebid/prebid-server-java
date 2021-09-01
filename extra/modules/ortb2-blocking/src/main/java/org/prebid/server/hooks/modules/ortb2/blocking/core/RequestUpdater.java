@@ -30,11 +30,11 @@ public class RequestUpdater {
         final List<String> blockedApp = blockedAttributes.getBapp();
 
         return bidRequest.toBuilder()
-                .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : bidRequest.getBadv())
-                .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : bidRequest.getBcat())
-                .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : bidRequest.getBapp())
-                .imp(updateImps(bidRequest.getImp()))
-                .build();
+            .badv(CollectionUtils.isNotEmpty(blockedAdomain) ? blockedAdomain : bidRequest.getBadv())
+            .bcat(CollectionUtils.isNotEmpty(blockedAdvCat) ? blockedAdvCat : bidRequest.getBcat())
+            .bapp(CollectionUtils.isNotEmpty(blockedApp) ? blockedApp : bidRequest.getBapp())
+            .imp(updateImps(bidRequest.getImp()))
+            .build();
     }
 
     private List<Imp> updateImps(List<Imp> imps) {
@@ -46,14 +46,14 @@ public class RequestUpdater {
         }
 
         return imps.stream()
-                .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
-                .collect(Collectors.toList());
+            .map(imp -> updateImp(imp, blockedBannerType, blockedBannerAttr))
+            .collect(Collectors.toList());
     }
 
     private Imp updateImp(
-            Imp imp,
-            Map<String, List<Integer>> blockedBannerType,
-            Map<String, List<Integer>> blockedBannerAttr) {
+        Imp imp,
+        Map<String, List<Integer>> blockedBannerType,
+        Map<String, List<Integer>> blockedBannerAttr) {
 
         final String impId = imp.getId();
         final List<Integer> btypeForImp = blockedBannerType != null ? blockedBannerType.get(impId) : null;
@@ -69,10 +69,10 @@ public class RequestUpdater {
         final Banner.BannerBuilder bannerBuilder = banner != null ? banner.toBuilder() : Banner.builder();
 
         return imp.toBuilder()
-                .banner(bannerBuilder
-                        .btype(CollectionUtils.isNotEmpty(btypeForImp) ? btypeForImp : existingBtype)
-                        .battr(CollectionUtils.isNotEmpty(battrForImp) ? battrForImp : existingBattr)
-                        .build())
-                .build();
+            .banner(bannerBuilder
+                .btype(CollectionUtils.isNotEmpty(btypeForImp) ? btypeForImp : existingBtype)
+                .battr(CollectionUtils.isNotEmpty(battrForImp) ? battrForImp : existingBattr)
+                .build())
+            .build();
     }
 }

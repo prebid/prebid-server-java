@@ -22,8 +22,8 @@ public class ResponseUpdater {
 
     public List<BidderBid> update(List<BidderBid> bids) {
         return IntStream.range(0, bids.size())
-                .filter(index -> !blockedBids.getIndexes().contains(index))
-                .mapToObj(bids::get)
-                .collect(Collectors.toList());
+            .filter(index -> !blockedBids.getIndexes().contains(index))
+            .mapToObj(bids::get)
+            .collect(Collectors.toList());
     }
 }
