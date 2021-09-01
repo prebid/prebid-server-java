@@ -6,10 +6,10 @@ import lombok.Value;
 
 @Value
 @AllArgsConstructor(staticName = "of")
-public class ExtGridKeywords {
+public class Keywords {
 
-    public static ExtGridKeywords empty() {
-        return ExtGridKeywords.of(null, null);
+    public static Keywords empty() {
+        return Keywords.of(null, null);
     }
 
     ObjectNode user;

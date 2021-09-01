@@ -9,5 +9,5 @@ public class ExtImpGridBidder {
 
     Integer uid;
 
-    ExtGridKeywords keywords;
+    Keywords keywords;
 }

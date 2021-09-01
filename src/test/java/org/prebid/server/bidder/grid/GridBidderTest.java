@@ -11,11 +11,8 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.ExtGridKeywords;
-import org.prebid.server.bidder.grid.model.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -56,7 +53,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGridBidder.of(10, ExtGridKeywords.empty()))))
+                                ExtPrebid.of(null, ExtImpGridBidder.of(10, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -77,7 +74,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGridBidder.of(null, ExtGridKeywords.empty()))))
+                                ExtPrebid.of(null, ExtImpGridBidder.of(null, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -98,7 +95,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGridBidder.of(0, ExtGridKeywords.empty()))))
+                                ExtPrebid.of(null, ExtImpGridBidder.of(0, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();

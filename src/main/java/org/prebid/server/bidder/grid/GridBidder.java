@@ -16,12 +16,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.grid.model.ExtGridKeywords;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
 import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.KeywordSegment;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -72,7 +72,7 @@ public class GridBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final ExtGridKeywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
+        final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
         final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
         return Result.of(Collections.singletonList(constructHttpRequest(modifiedRequest)), errors);
     }
@@ -113,7 +113,7 @@ public class GridBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    private ExtGridKeywords getKeywordsFromImpExt(JsonNode extImp) {
+    private Keywords getKeywordsFromImpExt(JsonNode extImp) {
         try {
             final ExtImpGrid firstImpExtGrid = mapper.mapper().convertValue(extImp, ExtImpGrid.class);
             final ExtImpGridBidder firstImpExtGridBidder = firstImpExtGrid != null
@@ -125,17 +125,17 @@ public class GridBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BidRequest modifyRequest(BidRequest bidRequest, ExtGridKeywords firstImpExtGridKeywords, List<Imp> imp) {
+    private BidRequest modifyRequest(BidRequest bidRequest, Keywords firstImpKeywords, List<Imp> imp) {
         final User user = bidRequest.getUser();
         final String userKeywords = user != null ? user.getKeywords() : null;
         final Site site = bidRequest.getSite();
         final String siteKeywords = site != null ? site.getKeywords() : null;
 
         final ExtRequest extRequest = bidRequest.getExt();
-        final ExtGridKeywords resolvedKeywords = buildBidRequestExtKeywords(
+        final Keywords resolvedKeywords = buildBidRequestExtKeywords(
                 ObjectUtils.defaultIfNull(userKeywords, ""),
                 ObjectUtils.defaultIfNull(siteKeywords, ""),
-                firstImpExtGridKeywords,
+                firstImpKeywords,
                 getKeywordsFromRequestExt(extRequest));
 
         return bidRequest.toBuilder()
@@ -144,12 +144,12 @@ public class GridBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, ExtGridKeywords extGridKeywords) {
-        final ObjectNode clearedUserNode = clearObjectNode(extGridKeywords.getUser());
-        final ObjectNode clearedSiteNode = clearObjectNode(extGridKeywords.getSite());
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
+        final ObjectNode clearedUserNode = clearObjectNode(keywords.getUser());
+        final ObjectNode clearedSiteNode = clearObjectNode(keywords.getSite());
 
-        final ExtGridKeywords clearedKeywords = clearedUserNode != null && clearedSiteNode != null
-                ? ExtGridKeywords.of(clearedUserNode, clearedSiteNode)
+        final Keywords clearedKeywords = clearedUserNode != null && clearedSiteNode != null
+                ? Keywords.of(clearedUserNode, clearedSiteNode)
                 : null;
         if (clearedKeywords == null) {
             return extRequest;
@@ -168,29 +168,29 @@ public class GridBidder implements Bidder<BidRequest> {
         return objectNode != null && !objectNode.isEmpty() ? objectNode : null;
     }
 
-    private ExtGridKeywords getKeywordsFromRequestExt(ExtRequest extRequest) {
+    private Keywords getKeywordsFromRequestExt(ExtRequest extRequest) {
         try {
             final JsonNode requestKeywordsNode = extRequest != null ? extRequest.getProperty("keywords") : null;
             return requestKeywordsNode != null
-                    ? mapper.mapper().treeToValue(requestKeywordsNode, ExtGridKeywords.class)
+                    ? mapper.mapper().treeToValue(requestKeywordsNode, Keywords.class)
                     : null;
         } catch (JsonProcessingException e) {
             return null;
         }
     }
 
-    private ExtGridKeywords buildBidRequestExtKeywords(String userKeywords,
-                                                       String siteKeywords,
-                                                       ExtGridKeywords firstImpExtKeywords,
-                                                       ExtGridKeywords requestExtKeywords) {
+    private Keywords buildBidRequestExtKeywords(String userKeywords,
+                                                String siteKeywords,
+                                                Keywords firstImpExtKeywords,
+                                                Keywords requestExtKeywords) {
         return merge(
                 resolveKeywordsFromOpenRtb(userKeywords, siteKeywords),
                 resolveKeywordsFromExtGridKeywords(firstImpExtKeywords),
                 resolveKeywordsFromExtGridKeywords(requestExtKeywords));
     }
 
-    private ExtGridKeywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords) {
-        return ExtGridKeywords.of(
+    private Keywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords) {
+        return Keywords.of(
                 resolveKeywordsSectionFromOpenRtb(userKeywords),
                 resolveKeywordsSectionFromOpenRtb(siteKeywords));
     }
@@ -203,27 +203,28 @@ public class GridBidder implements Bidder<BidRequest> {
 
         final ObjectNode publisherNode = mapper.mapper().createObjectNode();
         if (!segments.isEmpty()) {
-            final List<KeywordsPublisherItem> publisherItems = List.of(KeywordsPublisherItem.of("keywords", segments));
+            final List<KeywordsPublisherItem> publisherItems = Collections.singletonList(
+                    KeywordsPublisherItem.of("keywords", segments));
             return publisherNode.set("ortb2", mapper.mapper().valueToTree(publisherItems));
         }
         return publisherNode;
     }
 
-    private ExtGridKeywords resolveKeywordsFromExtGridKeywords(ExtGridKeywords extGridKeywords) {
-        if (extGridKeywords == null) {
-            return ExtGridKeywords.empty();
+    private Keywords resolveKeywordsFromExtGridKeywords(Keywords keywords) {
+        if (keywords == null) {
+            return Keywords.empty();
         }
 
-        final ObjectNode userSection = extGridKeywords.getUser();
+        final ObjectNode userSection = keywords.getUser();
         final ObjectNode resolvedUserSection = userSection != null
                 ? resolveKeywordsSection(userSection)
                 : null;
-        final ObjectNode siteSection = extGridKeywords.getSite();
+        final ObjectNode siteSection = keywords.getSite();
         final ObjectNode resolvedSiteSection = siteSection != null
                 ? resolveKeywordsSection(siteSection)
                 : null;
 
-        return ExtGridKeywords.of(resolvedUserSection, resolvedSiteSection);
+        return Keywords.of(resolvedUserSection, resolvedSiteSection);
     }
 
     private ObjectNode resolveKeywordsSection(ObjectNode sectionNode) {
@@ -232,35 +233,30 @@ public class GridBidder implements Bidder<BidRequest> {
 
         for (Map.Entry<String, JsonNode> entry : sectionMap.entrySet()) {
             JsonNode publisherJsonNode = entry.getValue();
-            if (publisherJsonNode == null || !publisherJsonNode.isArray()) {
-                continue;
-            }
-
-            final List<KeywordsPublisherItem> publisherKeywords =
-                    resolvePublisherKeywords((ArrayNode) publisherJsonNode);
-            if (!publisherKeywords.isEmpty()) {
-                resolvedSectionNode.set(entry.getKey(), mapper.mapper().valueToTree(publisherKeywords));
+            if (publisherJsonNode != null && publisherJsonNode.isArray()) {
+                final List<KeywordsPublisherItem> publisherKeywords = resolvePublisherKeywords(publisherJsonNode);
+                if (!publisherKeywords.isEmpty()) {
+                    resolvedSectionNode.set(entry.getKey(), mapper.mapper().valueToTree(publisherKeywords));
+                }
             }
         }
         return resolvedSectionNode;
     }
 
-    private List<KeywordsPublisherItem> resolvePublisherKeywords(ArrayNode publisherNode) {
+    private List<KeywordsPublisherItem> resolvePublisherKeywords(JsonNode publisherNode) {
         final List<KeywordsPublisherItem> publishersKeywords = new ArrayList<>();
         for (Iterator<JsonNode> it = publisherNode.elements(); it.hasNext(); ) {
             JsonNode publisherValueNode = it.next();
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
 
-            if (publisherNameNode == null || !publisherNameNode.isTextual()) {
-                continue;
-            }
+            if (publisherNameNode != null && publisherNameNode.isTextual()) {
+                final List<KeywordSegment> segments = new ArrayList<>(resolvePublisherSegments(segmentsNode));
+                segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
 
-            final List<KeywordSegment> segments = new ArrayList<>(resolvePublisherSegments(segmentsNode));
-            segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
-
-            if (!segments.isEmpty()) {
-                publishersKeywords.add(KeywordsPublisherItem.of(publisherNameNode.asText(), segments));
+                if (!segments.isEmpty()) {
+                    publishersKeywords.add(KeywordsPublisherItem.of(publisherNameNode.asText(), segments));
+                }
             }
         }
         return publishersKeywords;
@@ -294,44 +290,36 @@ public class GridBidder implements Bidder<BidRequest> {
 
     private List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode) {
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        Map<String, JsonNode> publisherValueNodes = jsonNodeToMap(publisherValueNode);
-
-        for (Map.Entry<String, JsonNode> entry : publisherValueNodes.entrySet()) {
-            final JsonNode jsonNode = entry.getValue();
-            if (!jsonNode.isArray()) {
-                continue;
-            }
-
-            final ArrayNode arrayNode = (ArrayNode) jsonNode;
-            for (Iterator<JsonNode> it = arrayNode.elements(); it.hasNext(); ) {
-                final JsonNode currentNode = it.next();
-                if (!currentNode.isTextual()) {
-                    continue;
+        for (Map.Entry<String, JsonNode> entry : jsonNodeToMap(publisherValueNode).entrySet()) {
+            final JsonNode entryNode = entry.getValue();
+            if (entryNode.isArray()) {
+                for (Iterator<JsonNode> it = entryNode.elements(); it.hasNext(); ) {
+                    final JsonNode currentNode = it.next();
+                    if (currentNode.isTextual()) {
+                        keywordSegments.add(KeywordSegment.of(entry.getKey(), currentNode.asText()));
+                    }
                 }
-
-                keywordSegments.add(KeywordSegment.of(entry.getKey(), currentNode.asText()));
             }
         }
-
         return keywordSegments;
     }
 
-    private ExtGridKeywords merge(ExtGridKeywords... extGridsKeywords) {
-        return ExtGridKeywords.of(
-                mergeSections(extractSections(ExtGridKeywords::getUser, extGridsKeywords)),
-                mergeSections(extractSections(ExtGridKeywords::getSite, extGridsKeywords)));
+    private Keywords merge(Keywords... extGridsKeywords) {
+        return Keywords.of(
+                mergeSections(extractSections(Keywords::getUser, extGridsKeywords)),
+                mergeSections(extractSections(Keywords::getSite, extGridsKeywords)));
     }
 
-    private static Stream<ObjectNode> extractSections(Function<ExtGridKeywords, ObjectNode> sectionExtractor,
-                                                      ExtGridKeywords... extGridsKeywords) {
+    private static Stream<ObjectNode> extractSections(Function<Keywords, ObjectNode> sectionExtractor,
+                                                      Keywords... extGridsKeywords) {
         return Arrays.stream(extGridsKeywords)
                 .map(extGridKeyword -> extractSection(sectionExtractor, extGridKeyword))
                 .filter(Objects::nonNull);
     }
 
-    private static ObjectNode extractSection(Function<ExtGridKeywords, ObjectNode> sectionExtractor,
-                                             ExtGridKeywords extGridKeywords) {
-        final ObjectNode sectionNode = extGridKeywords != null ? sectionExtractor.apply(extGridKeywords) : null;
+    private static ObjectNode extractSection(Function<Keywords, ObjectNode> sectionExtractor,
+                                             Keywords keywords) {
+        final ObjectNode sectionNode = keywords != null ? sectionExtractor.apply(keywords) : null;
         return sectionNode != null && !sectionNode.isEmpty() ? sectionNode : null;
     }
 
