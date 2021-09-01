@@ -70,23 +70,6 @@
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     </properties>
 
-    <repositories>
-
-        <repository>
-            <id>central</id>
-            <name>central</name>
-            <url>https://repo.maven.apache.org/maven2/</url>
-        </repository>
-
-
-        <repository>
-            <id>nexus</id>
-            <name>nexus</name>
-            <url>https://nexus.pentaho.org/content/groups/omni/</url>
-        </repository>
-
-    </repositories>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -217,7 +200,7 @@
             <version>${json.schema.validator.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.fge</groupId>
+            <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
             <version>${jsonpatch.version}</version>
         </dependency>
