@@ -9,8 +9,10 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -27,6 +29,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -34,6 +37,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -244,11 +248,7 @@ public class GridBidder implements Bidder<BidRequest> {
     private List<KeywordsPublisherItem> resolvePublisherKeywords(ArrayNode publisherNode) {
         final List<KeywordsPublisherItem> publishersKeywords = new ArrayList<>();
         for (Iterator<JsonNode> it = publisherNode.elements(); it.hasNext(); ) {
-            JsonNode publisherValueJsonNode = it.next();
-            if (!publisherValueJsonNode.isObject()) {
-                continue;
-            }
-            final ObjectNode publisherValueNode = (ObjectNode) publisherValueJsonNode;
+            JsonNode publisherValueNode = it.next();
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
 
@@ -256,10 +256,7 @@ public class GridBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            final List<KeywordSegment> segments = new ArrayList<>();
-            if (segmentsNode != null && segmentsNode.isArray()) {
-                segments.addAll(resolvePublisherSegments((ArrayNode) segmentsNode));
-            }
+            final List<KeywordSegment> segments = new ArrayList<>(resolvePublisherSegments(segmentsNode));
             segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
 
             if (!segments.isEmpty()) {
@@ -269,15 +266,18 @@ public class GridBidder implements Bidder<BidRequest> {
         return publishersKeywords;
     }
 
-    private List<KeywordSegment> resolvePublisherSegments(ArrayNode segments) {
+    private List<KeywordSegment> resolvePublisherSegments(JsonNode segmentsNode) {
         final List<KeywordSegment> parsedSegments = new ArrayList<>();
-        for (Iterator<JsonNode> it = segments.elements(); it.hasNext(); ) {
+        if (segmentsNode == null || !segmentsNode.isArray()) {
+            return parsedSegments;
+        }
+
+        for (Iterator<JsonNode> it = segmentsNode.elements(); it.hasNext(); ) {
             final KeywordSegment keywordSegment = resolvePublisherSegment(it.next());
             if (keywordSegment != null) {
                 parsedSegments.add(keywordSegment);
             }
         }
-
         return parsedSegments;
     }
 
@@ -305,10 +305,10 @@ public class GridBidder implements Bidder<BidRequest> {
             final ArrayNode arrayNode = (ArrayNode) jsonNode;
             for (Iterator<JsonNode> it = arrayNode.elements(); it.hasNext(); ) {
                 final JsonNode currentNode = it.next();
-
                 if (!currentNode.isTextual()) {
                     continue;
                 }
+
                 keywordSegments.add(KeywordSegment.of(entry.getKey(), currentNode.asText()));
             }
         }
@@ -317,10 +317,9 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private ExtGridKeywords merge(ExtGridKeywords... extGridsKeywords) {
-        final ObjectNode resultUserSection = mergeSections(extractSections(ExtGridKeywords::getUser, extGridsKeywords));
-        final ObjectNode resultSiteSection = mergeSections(extractSections(ExtGridKeywords::getSite, extGridsKeywords));
-
-        return ExtGridKeywords.of(resultUserSection, resultSiteSection);
+        return ExtGridKeywords.of(
+                mergeSections(extractSections(ExtGridKeywords::getUser, extGridsKeywords)),
+                mergeSections(extractSections(ExtGridKeywords::getSite, extGridsKeywords)));
     }
 
     private static Stream<ObjectNode> extractSections(Function<ExtGridKeywords, ObjectNode> sectionExtractor,
@@ -384,12 +383,34 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return null;
+    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
     }
 
-    private BidType getBidType(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+        return bidsFromResponse(bidRequest, bidResponse);
+    }
+
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid,
+                        getBidMediaType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .collect(Collectors.toList());
+    }
+
+    private static BidType getBidMediaType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
