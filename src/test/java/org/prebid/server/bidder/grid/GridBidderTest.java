@@ -11,8 +11,9 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
+import org.prebid.server.bidder.grid.model.ExtGridKeywords;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -54,7 +55,8 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGridBidder.of(10))))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpGridBidder.of(10, ExtGridKeywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -74,7 +76,8 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGridBidder.of(null))))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpGridBidder.of(null, ExtGridKeywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -94,7 +97,8 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGridBidder.of(0))))
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpGridBidder.of(0, ExtGridKeywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -234,30 +238,13 @@ public class GridBidderTest extends VertxTest {
                 .containsOnly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
     }
 
-    @Test
-    public void modifyImpShouldChangeImpExt() {
-        // given
-        final ExtImpGrid extImpGrid = ExtImpGrid.builder()
-                .data(ExtImpGridData.of(null, ExtImpGridDataAdServer.of("name", "adslot")))
-                .build();
-
-        final Imp imp = Imp.builder().ext(mapper.valueToTree(extImpGrid)).build();
-
-        // when
-        final Imp modifiedImp = gridBidder.modifyImp(imp, ExtImpGridBidder.of(1));
-
-        // then
-        assertThat(mapper.convertValue(modifiedImp.getExt(), ExtImpGrid.class).getGpid())
-                .isEqualTo(extImpGrid.getData().getAdServer().getAdSlot());
-    }
-
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
                                                 UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidResponseCustomizer.apply(BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build())))
+                        .cur("USD")
+                        .seatbid(singletonList(SeatBid.builder()
+                                .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                                .build())))
                 .build();
     }
 
