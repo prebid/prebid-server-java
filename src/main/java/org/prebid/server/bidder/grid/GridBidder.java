@@ -299,7 +299,7 @@ public class GridBidder implements Bidder<BidRequest> {
         for (Map.Entry<String, JsonNode> entry : jsonNodeToMap(publisherValueNode).entrySet()) {
             final JsonNode entryNode = entry.getValue();
             if (entryNode.isArray()) {
-                resolveAlternativePublisherSegmentsArray(entry.getKey(), entryNode);
+                keywordSegments.addAll(resolveAlternativePublisherSegmentsArray(entry.getKey(), entryNode));
             }
         }
         return keywordSegments;
