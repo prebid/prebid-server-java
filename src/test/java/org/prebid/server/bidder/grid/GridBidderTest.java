@@ -11,8 +11,8 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -83,9 +83,9 @@ public class GridBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("uid is empty");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors())
+                .extracting(BidderError::getType)
+                .containsExactly(BidderError.Type.bad_input, BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -104,10 +104,11 @@ public class GridBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("uid is empty");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getType)
+                .containsExactly(BidderError.Type.bad_input, BidderError.Type.bad_input);
+        assertThat(result.getErrors()).contains(BidderError.badServerResponse("uid is empty"));
     }
 
     @Test
