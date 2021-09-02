@@ -4,9 +4,17 @@ accounts:
     auction:
       banner-cache-ttl: 100
       video-cache-ttl: 100
+      debug-allow: true
       events:
         enabled: true
   - id: 1001
+    auction:
+      debug-allow: true
+  - id: 2001
+    auction:
+      events:
+        enabled: true
+      debug-allow: true
   - id: 2763
   - id: 5001
     auction:
@@ -70,6 +78,8 @@ accounts:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-raw-auction-request
   - id: 8001
+    auction:
+      debug-allow: true
     hooks:
       execution-plan:
         endpoints:
@@ -82,6 +92,8 @@ accounts:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-processed-auction-request
   - id: 9001
+    auction:
+        debug-allow: true
     hooks:
       execution-plan:
         endpoints:
@@ -94,6 +106,8 @@ accounts:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-bidder-request
   - id: 10001
+    auction:
+        debug-allow: true
     hooks:
       execution-plan:
         endpoints:
@@ -106,6 +120,8 @@ accounts:
                       - module-code: sample-it-module
                         hook-impl-code: rejecting-raw-bidder-response
   - id: 11001
+    auction:
+        debug-allow: true
     hooks:
       execution-plan:
         endpoints:

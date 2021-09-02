@@ -16,6 +16,8 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
+import org.prebid.server.deals.model.DeepDebugLog;
+import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -158,6 +160,8 @@ public class PubstackEventHandlerTest extends VertxTest {
                 .auctionContext(AuctionContext.builder()
                         .uidsCookie(mock(UidsCookie.class))
                         .timeout(mock(Timeout.class))
+                        .txnLog(mock(TxnLog.class))
+                        .deepDebugLog(mock(DeepDebugLog.class))
                         .build())
                 .build();
 

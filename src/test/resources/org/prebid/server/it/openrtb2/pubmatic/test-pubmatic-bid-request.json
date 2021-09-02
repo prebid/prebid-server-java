@@ -3,9 +3,12 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
         "w": 300,
-        "h": 250
+        "h": 600
       },
       "tagid": "slot9",
       "ext": {
