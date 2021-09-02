@@ -32,6 +32,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -145,23 +147,27 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
-        final ObjectNode clearedUserNode = clearObjectNode(keywords.getUser());
-        final ObjectNode clearedSiteNode = clearObjectNode(keywords.getSite());
-
-        final Keywords clearedKeywords = clearedUserNode != null && clearedSiteNode != null
-                ? Keywords.of(clearedUserNode, clearedSiteNode)
-                : null;
-        if (clearedKeywords == null) {
-            return extRequest;
-        }
-
-        final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequest != null ? extRequest.getPrebid() : null);
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final Map<String, JsonNode> extRequestProperties = extRequest != null
                 ? extRequest.getProperties()
                 : Collections.emptyMap();
-        modifiedBidRequestExt.addProperties(extRequestProperties);
-        modifiedBidRequestExt.addProperty("keywords", mapper.mapper().valueToTree(clearedKeywords));
-        return modifiedBidRequestExt;
+        final Map<String, JsonNode> modifiedExtRequestProperties = new HashMap<>(extRequestProperties);
+
+        final ObjectNode clearedUserNode = clearObjectNode(keywords.getUser());
+        final ObjectNode clearedSiteNode = clearObjectNode(keywords.getSite());
+        if (clearedUserNode != null || clearedSiteNode != null) {
+            final Keywords clearedKeywords = Keywords.of(clearedUserNode, clearedSiteNode);
+            modifiedExtRequestProperties.put("keywords", mapper.mapper().valueToTree(clearedKeywords));
+        } else {
+            modifiedExtRequestProperties.remove("keywords");
+        }
+
+        if (!modifiedExtRequestProperties.isEmpty()) {
+            final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequestPrebid);
+            modifiedBidRequestExt.addProperties(modifiedExtRequestProperties);
+            return modifiedBidRequestExt;
+        }
+        return null;
     }
 
     private ObjectNode clearObjectNode(ObjectNode objectNode) {
