@@ -251,7 +251,7 @@ public class GridBidder implements Bidder<BidRequest> {
 
     private List<KeywordsPublisherItem> resolvePublisherKeywords(JsonNode publisherNode) {
         final List<KeywordsPublisherItem> publishersKeywords = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherNode.elements(); it.hasNext(); ) {
+        for (Iterator<JsonNode> it = publisherNode.elements(); it.hasNext();) {
             JsonNode publisherValueNode = it.next();
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
@@ -274,7 +274,7 @@ public class GridBidder implements Bidder<BidRequest> {
             return parsedSegments;
         }
 
-        for (Iterator<JsonNode> it = segmentsNode.elements(); it.hasNext(); ) {
+        for (Iterator<JsonNode> it = segmentsNode.elements(); it.hasNext();) {
             final KeywordSegment keywordSegment = resolvePublisherSegment(it.next());
             if (keywordSegment != null) {
                 parsedSegments.add(keywordSegment);
@@ -308,7 +308,7 @@ public class GridBidder implements Bidder<BidRequest> {
     private List<KeywordSegment> resolveAlternativePublisherSegmentsArray(String segmentName,
                                                                           JsonNode publisherSegmentsNode) {
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherSegmentsNode.elements(); it.hasNext(); ) {
+        for (Iterator<JsonNode> it = publisherSegmentsNode.elements(); it.hasNext();) {
             final JsonNode currentNode = it.next();
             if (currentNode.isTextual()) {
                 keywordSegments.add(KeywordSegment.of(segmentName, currentNode.asText()));
