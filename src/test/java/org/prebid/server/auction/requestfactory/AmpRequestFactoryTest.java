@@ -148,6 +148,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
                 .getArgument(0));
+        given(ortb2RequestFactory.populateDealsInfo(any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),

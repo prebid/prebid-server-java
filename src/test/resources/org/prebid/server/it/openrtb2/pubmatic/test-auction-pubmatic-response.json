@@ -12,8 +12,9 @@
           "w": 300,
           "h": 600,
           "ext": {
+            "bidtype": 1,
             "prebid": {
-              "type": "banner"
+              "type": "video"
             },
             "origbidcpm": 4.75
           }

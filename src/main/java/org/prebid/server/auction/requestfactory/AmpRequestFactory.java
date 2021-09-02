@@ -146,6 +146,8 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
+                .compose(ortb2RequestFactory::populateDealsInfo)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
@@ -186,12 +188,12 @@ public class AmpRequestFactory {
         final String domain = StringUtils.trimToNull(HttpUtil.getHostFromUrl(canonicalUrl));
 
         return !StringUtils.isAllBlank(accountId, canonicalUrl, domain)
-                ? Site.builder()
-                .publisher(Publisher.builder().id(accountId).build())
-                .page(canonicalUrl)
-                .domain(domain)
-                .build()
-                : null;
+               ? Site.builder()
+                       .publisher(Publisher.builder().id(accountId).build())
+                       .page(canonicalUrl)
+                       .domain(domain)
+                       .build()
+               : null;
     }
 
     private static User createUser(ConsentType consentType, String consentString, String attlConsent) {
@@ -477,8 +479,8 @@ public class AmpRequestFactory {
         try {
             final String decodedJsonTargeting = HttpUtil.decodeUrl(jsonTargeting);
             final JsonNode jsonNodeTargeting = decodedJsonTargeting != null
-                    ? mapper.mapper().readTree(decodedJsonTargeting)
-                    : null;
+                                               ? mapper.mapper().readTree(decodedJsonTargeting)
+                                               : null;
             return jsonNodeTargeting != null ? validateAndGetTargeting(jsonNodeTargeting) : null;
         } catch (JsonProcessingException | IllegalArgumentException e) {
             throw new InvalidRequestException(String.format("Error reading targeting json %s", e.getMessage()));
@@ -497,8 +499,8 @@ public class AmpRequestFactory {
     private Targeting parseTargeting(ObjectNode targetingNode) {
         try {
             return targetingNode == null
-                    ? Targeting.empty()
-                    : mapper.mapper().treeToValue(targetingNode, Targeting.class);
+                   ? Targeting.empty()
+                   : mapper.mapper().treeToValue(targetingNode, Targeting.class);
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(String.format("Error decoding targeting from url: %s", e.getMessage()));
         }
@@ -525,8 +527,8 @@ public class AmpRequestFactory {
         final String tagId = httpRequest.getQueryParams().get(SLOT_REQUEST_PARAM);
         final Banner banner = imp.getBanner();
         final List<Format> overwrittenFormats = banner != null
-                ? createOverrideBannerFormats(httpRequest, banner.getFormat())
-                : null;
+                                                ? createOverrideBannerFormats(httpRequest, banner.getFormat())
+                                                : null;
         if (StringUtils.isNotBlank(tagId) || CollectionUtils.isNotEmpty(overwrittenFormats) || targetingNode != null) {
             return imp.toBuilder()
                     .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
@@ -551,8 +553,8 @@ public class AmpRequestFactory {
                 multiSizeParam);
 
         return CollectionUtils.isNotEmpty(paramsFormats)
-                ? paramsFormats
-                : updateFormatsFromParams(formats, width, height);
+               ? paramsFormats
+               : updateFormatsFromParams(formats, width, height);
     }
 
     private static Integer parseIntParamOrZero(HttpRequestContext httpRequest, String name) {
@@ -586,8 +588,8 @@ public class AmpRequestFactory {
 
         // Append formats from multi-size param if exist
         final List<Format> multiSizeFormats = StringUtils.isNotBlank(multiSizeParam)
-                ? parseMultiSizeParam(multiSizeParam)
-                : Collections.emptyList();
+                                              ? parseMultiSizeParam(multiSizeParam)
+                                              : Collections.emptyList();
         if (!multiSizeFormats.isEmpty()) {
             formats.addAll(multiSizeFormats);
         }
@@ -616,8 +618,8 @@ public class AmpRequestFactory {
 
     private static Banner overrideBanner(Banner banner, List<Format> formats) {
         return banner != null && CollectionUtils.isNotEmpty(formats)
-                ? banner.toBuilder().format(formats).build()
-                : banner;
+               ? banner.toBuilder().format(formats).build()
+               : banner;
     }
 
     /**
@@ -664,8 +666,8 @@ public class AmpRequestFactory {
             final ExtRequest requestExt = bidRequest.getExt();
             final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
-                    ? prebid.toBuilder()
-                    : ExtRequestPrebid.builder();
+                                                                           ? prebid.toBuilder()
+                                                                           : ExtRequestPrebid.builder();
 
             if (setDefaultTargeting) {
                 prebidBuilder.targeting(createTargetingWithDefaults(prebid));
@@ -700,12 +702,14 @@ public class AmpRequestFactory {
 
         final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularityNode == null || priceGranularityNode.isNull();
-        final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
-                ? mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
-                : priceGranularityNode;
+        final JsonNode outgoingPriceGranularityNode
+                = isPriceGranularityNull
+                  ? mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
+                  : priceGranularityNode;
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
-                ? null : targeting.getMediatypepricegranularity();
+                                                                       ? null
+                                                                       : targeting.getMediatypepricegranularity();
 
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 || targeting.getIncludewinners();
