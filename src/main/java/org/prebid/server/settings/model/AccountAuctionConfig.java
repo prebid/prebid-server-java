@@ -23,10 +23,11 @@ public class AccountAuctionConfig {
     @JsonProperty("default-integration")
     String defaultIntegration;
 
+    @JsonProperty("debug-allow")
+    Boolean debugAllow;
+
     @JsonProperty("bid-validations")
     AccountBidValidationConfig bidValidations;
 
     AccountEventsConfig events;
-
-    AccountDebugConfig debug;
 }

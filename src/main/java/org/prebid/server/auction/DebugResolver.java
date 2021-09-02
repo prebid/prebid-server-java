@@ -12,7 +12,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
-import org.prebid.server.settings.model.AccountDebugConfig;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -44,8 +43,7 @@ public class DebugResolver {
 
     private boolean isAccountAllowed(AuctionContext auctionContext) {
         final AccountAuctionConfig auctionConfig = getIfNotNull(auctionContext.getAccount(), Account::getAuction);
-        final AccountDebugConfig debugConfig = getIfNotNull(auctionConfig, AccountAuctionConfig::getDebug);
-        return BooleanUtils.toBoolean(getIfNotNull(debugConfig, AccountDebugConfig::getAllowed));
+        return BooleanUtils.toBoolean(getIfNotNull(auctionConfig, AccountAuctionConfig::getDebugAllow));
     }
 
     private boolean isDebugEnabled(BidRequest bidRequest, ExtRequestPrebid extRequestPrebid) {

@@ -16,7 +16,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
-import org.prebid.server.settings.model.AccountDebugConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -161,9 +160,7 @@ public class DebugResolverTest {
 
     private static Account givenAccountWithDebugConfig(boolean debugAllowed) {
         return Account.builder()
-                .auction(AccountAuctionConfig.builder()
-                        .debug(AccountDebugConfig.builder().allowed(debugAllowed).build())
-                        .build())
+                .auction(AccountAuctionConfig.builder().debugAllow(debugAllowed).build())
                 .build();
     }
 }

@@ -10,14 +10,12 @@ accounts:
   - id: 2763
   - id: 5001
     auction:
-      debug:
-        allowed: true
+      debug-allow: true
       events:
         enabled: true
   - id: 6001
     auction:
-      debug:
-        allowed: true
+      debug-allow: true
     hooks:
       execution-plan:
         endpoints:
