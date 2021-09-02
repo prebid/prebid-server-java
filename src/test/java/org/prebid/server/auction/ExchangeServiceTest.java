@@ -3601,21 +3601,23 @@ public class ExchangeServiceTest extends VertxTest {
                 .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId2")), any(), any(), any());
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("someBidder", 1),
-                        builder -> builder
-                                .id("impId")
-                                .pmp(Pmp.builder()
-                                        .deals(asList(
-                                                Deal.builder()
-                                                        .id("dealId1")
-                                                        .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of("lineItemId1", null, null, "someBidder"))))
-                                                        .build(),
-                                                Deal.builder()
-                                                        .id("dealId2")
-                                                        .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of("lineItemId2", null, null, "someBidder"))))
-                                                        .build()))
-                                        .build()))),
+                builder -> builder
+                        .id("impId")
+                        .pmp(Pmp.builder()
+                                .deals(asList(
+                                        Deal.builder()
+                                                .id("dealId1")
+                                                .ext(mapper.valueToTree(ExtDeal.of(
+                                                        ExtDealLine.of("lineItemId1", null,
+                                                                null, "someBidder"))))
+                                                .build(),
+                                        Deal.builder()
+                                                .id("dealId2")
+                                                .ext(mapper.valueToTree(ExtDeal.of(
+                                                        ExtDealLine.of("lineItemId2", null,
+                                                                null, "someBidder"))))
+                                                .build()))
+                                .build()))),
                 identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
@@ -3638,20 +3640,20 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldSendOnlyRelevantDealsToBiddersPresentInImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("someBidder", 1),
-                        builder -> builder
-                                .pmp(Pmp.builder()
-                                        .deals(asList(
-                                                Deal.builder()
-                                                        .id("dealId1")
-                                                        .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of(null, null, null, "someBidder"))))
-                                                        .build(),
-                                                Deal.builder()
-                                                        .id("dealId2")
-                                                        .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of(null, null, null, "otherBidder"))))
-                                                        .build()))
-                                        .build()))),
+                builder -> builder
+                        .pmp(Pmp.builder()
+                                .deals(asList(
+                                        Deal.builder()
+                                                .id("dealId1")
+                                                .ext(mapper.valueToTree(ExtDeal.of(
+                                                        ExtDealLine.of(null, null, null, "someBidder"))))
+                                                .build(),
+                                        Deal.builder()
+                                                .id("dealId2")
+                                                .ext(mapper.valueToTree(ExtDeal.of(
+                                                        ExtDealLine.of(null, null, null, "otherBidder"))))
+                                                .build()))
+                                .build()))),
                 identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .build();
@@ -3699,13 +3701,13 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBidWithTopDeal() {
         // given
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder1", 1),
-                        builder -> builder
-                                .id("impId1")
-                                .pmp(Pmp.builder()
-                                        .deals(asList(
-                                                Deal.builder().id("dealId1").build(), // top deal, but no response bid
-                                                Deal.builder().id("dealId2").build()))
-                                        .build()))),
+                builder -> builder
+                        .id("impId1")
+                        .pmp(Pmp.builder()
+                                .deals(asList(
+                                        Deal.builder().id("dealId1").build(), // top deal, but no response bid
+                                        Deal.builder().id("dealId2").build()))
+                                .build()))),
                 identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
@@ -3733,13 +3735,13 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBids() {
         // given
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder1", 1),
-                        builder -> builder
-                                .id("impId1")
-                                .pmp(Pmp.builder()
-                                        .deals(asList(
-                                                Deal.builder().id("dealId1").build(),
-                                                Deal.builder().id("dealId2").build()))
-                                        .build()))),
+                builder -> builder
+                        .id("impId1")
+                        .pmp(Pmp.builder()
+                                .deals(asList(
+                                        Deal.builder().id("dealId1").build(),
+                                        Deal.builder().id("dealId2").build()))
+                                .build()))),
                 identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
