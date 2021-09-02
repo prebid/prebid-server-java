@@ -108,7 +108,7 @@ public class GridBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .extracting(BidderError::getType)
                 .containsExactly(BidderError.Type.bad_input, BidderError.Type.bad_input);
-        assertThat(result.getErrors()).contains(BidderError.badServerResponse("uid is empty"));
+        assertThat(result.getErrors()).contains(BidderError.badInput("uid is empty"));
     }
 
     @Test
