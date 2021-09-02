@@ -7,6 +7,10 @@ accounts:
       events:
         enabled: true
   - id: 1001
+  - id: 2001
+    auction:
+      events:
+        enabled: true
   - id: 2763
   - id: 5001
     auction:
