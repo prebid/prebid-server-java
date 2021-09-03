@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -43,10 +42,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
-
-    private static final TypeReference<Map<String, JsonNode>> MAP_TYPE_REF =
-            new TypeReference<Map<String, JsonNode>>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
