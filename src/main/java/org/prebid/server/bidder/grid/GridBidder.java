@@ -180,8 +180,8 @@ public class GridBidder implements Bidder<BidRequest> {
         return GridKeywordsUtil.merge(
                 mapper,
                 GridKeywordsUtil.resolveKeywordsFromOpenRtb(userKeywords, siteKeywords, mapper),
-                GridKeywordsUtil.resolveKeywordsFromExtGridKeywords(firstImpExtKeywords, mapper),
-                GridKeywordsUtil.resolveKeywordsFromExtGridKeywords(requestExtKeywords, mapper));
+                GridKeywordsUtil.resolveKeywords(firstImpExtKeywords, mapper),
+                GridKeywordsUtil.resolveKeywords(requestExtKeywords, mapper));
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {

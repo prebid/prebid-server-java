@@ -173,6 +173,139 @@ public class GridKeywordsUtilTest extends VertxTest {
         assertThat(result).isEmpty();
     }
 
+    @Test
+    public void resolvePublisherKeywordsShouldCorrectlyResolveMainAndAlternativeSegments() {
+        // given
+        final JsonNode alternativePublisherSegmentNode = givenAlternativePublisherSegments("foo", "bar");
+        final JsonNode publisherSegmentsNode = givenPublisherSegmentsNode(
+                givenPublisherSegmentNode("segmentName", "segmentValue"));
+
+        final ObjectNode publisherSectionItemNode = givenPublisherSectionItemNode(
+                "sectionName", publisherSegmentsNode);
+        publisherSectionItemNode.set("alternativeSectionName", alternativePublisherSegmentNode);
+
+        final ArrayNode publisherSectionItemsNode = mapper.createArrayNode().add(publisherSectionItemNode);
+
+        // when
+        final List<KeywordsPublisherItem> result = GridKeywordsUtil.resolvePublisherKeywords(
+                publisherSectionItemsNode, jacksonMapper);
+
+        // then
+        assertThat(result)
+                .extracting(KeywordsPublisherItem::getName)
+                .containsExactly("sectionName");
+
+        assertThat(result)
+                .flatExtracting(KeywordsPublisherItem::getSegments)
+                .containsExactlyInAnyOrder(
+                        KeywordSegment.of("segmentName", "segmentValue"),
+                        KeywordSegment.of("alternativeSectionName", "foo"),
+                        KeywordSegment.of("alternativeSectionName", "bar"));
+    }
+
+    @Test
+    public void resolveKeywordsShouldReturnEmptyKeywordsIfKeywordsIsNull() {
+        // given and when
+        final Keywords result = GridKeywordsUtil.resolveKeywords(null, jacksonMapper);
+
+        // then
+        assertThat(result).isEqualTo(Keywords.empty());
+    }
+
+    @Test
+    public void resolveKeywordsShouldCorrectlyResolveUserAndSiteSections() throws JsonProcessingException {
+        // given
+        final JsonNode userPublisherSectionItemNode = givenPublisherSectionItemNode("userSection",
+                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment", "value")));
+        final ArrayNode userPublisherNode = mapper.createArrayNode()
+                .add(userPublisherSectionItemNode);
+        final ObjectNode userSectionNode = mapper.createObjectNode().set("firstPublisher", userPublisherNode);
+
+        final JsonNode sitePublisherSectionItemNode = givenPublisherSectionItemNode("siteSection",
+                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment", "value")));
+        final ArrayNode sitePublisherNode = mapper.createArrayNode()
+                .add(sitePublisherSectionItemNode);
+        final ObjectNode siteSectionNode = mapper.createObjectNode().set("secondPublisher", sitePublisherNode);
+
+        final Keywords keywords = Keywords.of(userSectionNode, siteSectionNode);
+
+        // when
+        final Keywords result = GridKeywordsUtil.resolveKeywords(keywords, jacksonMapper);
+
+        // then
+        final ObjectNode expectedUserSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
+                + "\"userSection\",\"segments\":[{\"name\":\"segment\",\"value\":\"value\"}]}]}");
+        final ObjectNode expectedSiteSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
+                + "\"siteSection\",\"segments\":[{\"name\":\"segment\",\"value\":\"value\"}]}]}");
+        assertThat(result).isEqualTo(Keywords.of(expectedUserSection, expectedSiteSection));
+    }
+
+    @Test
+    public void mergeShouldCorrectlyMergeKeywordsArraysNodes() throws JsonProcessingException {
+        // given
+        final ObjectNode firstKeywordsUserSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
+                + "\"firstKeywordsUserSection\",\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final ObjectNode firstKeywordsSiteSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
+                + "\"firstKeywordsSiteSection\",\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final Keywords firstKeywords = Keywords.of(firstKeywordsUserSection, firstKeywordsSiteSection);
+
+        final ObjectNode secondKeywordsUserSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
+                + "\"secondKeywordsUserSection\",\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final ObjectNode secondKeywordsSiteSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
+                + "\"secondKeywordsSiteSection\",\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final Keywords secondKeywords = Keywords.of(secondKeywordsUserSection, secondKeywordsSiteSection);
+
+        // when
+        final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
+
+        // then
+        final ObjectNode expectedUserSection = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]},"
+                        + "{\"name\":\"secondKeywordsUserSection\",\"segments\""
+                        + ":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final ObjectNode expectedSiteSection = (ObjectNode) mapper.readTree(
+                "{\"secondPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]},"
+                        + "{\"name\":\"secondKeywordsSiteSection\",\"segments\""
+                        + ":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+
+        assertThat(result).isEqualTo(Keywords.of(expectedUserSection, expectedSiteSection));
+    }
+
+    @Test
+    public void mergeShouldCorrectlyMergeSectionsPublishersArraysNodes() throws JsonProcessingException {
+        // given
+        final ObjectNode firstKeywordsUserSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
+                + "\"firstKeywordsUserSection\",\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final ObjectNode firstKeywordsSiteSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
+                + "\"firstKeywordsSiteSection\",\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final Keywords firstKeywords = Keywords.of(firstKeywordsUserSection, firstKeywordsSiteSection);
+
+        final ObjectNode secondKeywordsUserSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
+                + "\"secondKeywordsUserSection\",\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final ObjectNode secondKeywordsSiteSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
+                + "\"secondKeywordsSiteSection\",\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final Keywords secondKeywords = Keywords.of(secondKeywordsUserSection, secondKeywordsSiteSection);
+
+        // when
+        final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
+
+        // then
+        final ObjectNode expectedUserSection = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
+                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final ObjectNode expectedSiteSection = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
+                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+
+        assertThat(result).isEqualTo(Keywords.of(expectedUserSection, expectedSiteSection));
+    }
+
     private static ObjectNode givenKeywordsSectionFromOpenRtb(String... keywords) {
         return mapper.createObjectNode().set("ortb2",
                 mapper.valueToTree(givenKeywordsPublisherItemsFromOpenRtb(keywords)));

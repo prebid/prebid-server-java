@@ -52,7 +52,7 @@ public class GridKeywordsUtil {
         return sectionNode;
     }
 
-    public static Keywords resolveKeywordsFromExtGridKeywords(Keywords keywords, JacksonMapper mapper) {
+    public static Keywords resolveKeywords(Keywords keywords, JacksonMapper mapper) {
         if (keywords == null) {
             return Keywords.empty();
         }
