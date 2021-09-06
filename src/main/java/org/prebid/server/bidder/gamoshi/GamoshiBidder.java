@@ -149,7 +149,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> requestImpIdToBidType = bidRequest.getImp().stream()
+        final Map<String, BidType> impIdToBidType = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, GamoshiBidder::getBidType));
 
         return bidResponse.getSeatbid().stream()
@@ -157,8 +157,8 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner),
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

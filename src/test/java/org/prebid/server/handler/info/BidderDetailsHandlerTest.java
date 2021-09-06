@@ -54,29 +54,26 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         given(httpRequest.getParam(anyString())).willReturn("bidderName1");
 
-        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidderName1", "bidderName2")));
-        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
-        given(bidderCatalog.isActive("bidderName1")).willReturn(true);
-        given(bidderCatalog.isActive("bidderName2")).willReturn(false);
-
-        given(bidderCatalog.aliases()).willReturn(new HashSet<>(asList("bidderAlias1", "bidderAlias2")));
-        given(bidderCatalog.nameByAlias("bidderAlias1")).willReturn("bidderName1");
-        given(bidderCatalog.nameByAlias("bidderAlias2")).willReturn("bidderName2");
+        given(bidderCatalog.names()).willReturn(new HashSet<>(
+                asList("bidderName1", "bidderName2", "bidderAlias1", "bidderAlias2")));
+        given(bidderCatalog.bidderInfoByName("bidderName1")).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName("bidderAlias2")).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(eq("bidderName2")))
+                .willReturn(givenBidderInfo(false, "http://", null));
+        given(bidderCatalog.bidderInfoByName(eq("bidderAlias1")))
+                .willReturn(givenBidderInfo(false, "http://", "bidderName1"));
 
         handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
     }
 
     @Test
-    public void creationShouldFailIfAllAliasIsConfigured() {
-        given(bidderCatalog.aliases()).willReturn(singleton("all"));
+    public void creationShouldFailIfAllNameIsConfigured() {
+        given(bidderCatalog.names()).willReturn(singleton("all"));
         assertThatIllegalArgumentException().isThrownBy(() -> new BidderDetailsHandler(bidderCatalog, jacksonMapper));
     }
 
     @Test
     public void shouldRespondWithExpectedHeaders() {
-        // given
-        handler = new BidderDetailsHandler(bidderCatalog, jacksonMapper);
-
         // when
         handler.handle(routingContext);
 
@@ -98,7 +95,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithHttpStatus404IfBidderIsDisabled() {
+    public void shouldRespondWithExpectedBodyForDisabledBidder() {
         // given
         given(httpRequest.getParam(anyString())).willReturn("bidderName2");
 
@@ -106,11 +103,14 @@ public class BidderDetailsHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(404);
+        verify(httpResponse).end("{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                + "\"site\":{\"mediaTypes\":[\"video\"]}}}");
     }
 
     @Test
-    public void shouldRespondWithHttpStatus404IfBidderAliasIsDisabled() {
+    public void shouldRespondWithExpecteddBodyForDisabledAlias() {
         // given
         given(httpRequest.getParam(anyString())).willReturn("bidderAlias2");
 
@@ -118,7 +118,10 @@ public class BidderDetailsHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(404);
+        verify(httpResponse).end("{\"status\":\"ACTIVE\",\"usesHttps\":true,"
+                + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                + "\"site\":{\"mediaTypes\":[\"video\"]}}}");
     }
 
     @Test
@@ -128,8 +131,9 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}"));
+                eq("{\"status\":\"ACTIVE\",\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}}}"));
     }
 
     @Test
@@ -142,9 +146,9 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":{\"app\":"
-                        + "{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
-                        + "\"aliasOf\":\"bidderName1\"}"));
+                eq("{\"status\":\"DISABLED\",\"usesHttps\":false,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}},\"aliasOf\":\"bidderName1\"}"));
     }
 
     @Test
@@ -157,15 +161,40 @@ public class BidderDetailsHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(
-                eq("{\"bidderAlias1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}},"
-                        + "\"aliasOf\":\"bidderName1\"},"
-                        + "\"bidderName1\":{\"maintainer\":{\"email\":\"test@email.org\"},\"capabilities\":"
-                        + "{\"app\":{\"mediaTypes\":[\"banner\"]},\"site\":{\"mediaTypes\":[\"video\"]}}}}"));
+                eq("{\"bidderAlias1\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}},\"aliasOf\":\"bidderName1\"},"
+                        + "\"bidderAlias2\":{\"status\":\"ACTIVE\",\"usesHttps\":true,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}}},\"bidderName1\":{\"status\":\"ACTIVE\","
+                        + "\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}}},"
+                        + "\"bidderName2\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
+                        + "\"maintainer\":{\"email\":\"test@email.org\"},"
+                        + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
+                        + "\"site\":{\"mediaTypes\":[\"video\"]}}}}"));
+    }
+
+    private static BidderInfo givenBidderInfo(boolean enabled, String endpoint, String aliasOf) {
+        return BidderInfo.create(
+                enabled,
+                endpoint,
+                aliasOf,
+                "test@email.org",
+                null,
+                singletonList("banner"),
+                singletonList("video"),
+                null,
+                0,
+                true,
+                true,
+                false);
     }
 
     private static BidderInfo givenBidderInfo() {
-        return BidderInfo.create(true, "test@email.org", false, singletonList("banner"),
-                singletonList("video"), null, 0, true, true, false);
+        return givenBidderInfo(true, "https://endpoint.com", null);
     }
 }

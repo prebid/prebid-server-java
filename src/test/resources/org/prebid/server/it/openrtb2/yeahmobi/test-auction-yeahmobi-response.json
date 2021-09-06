@@ -1,42 +1,21 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "1",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.01,
           "adm": "<b>hi</b>",
-          "cid": "test_cid",
-          "crid": "test_banner_crid",
+          "cid": "cid",
+          "crid": "crid",
           "ext": {
-            "bidder": {
-              "format": "BANNER"
-            },
+            "format": "BANNER",
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_env": "mobile-app",
-                "hb_env_yeahmobi": "mobile-app",
-                "hb_bidder": "yeahmobi",
-                "hb_bidder_yeahmobi": "yeahmobi",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_yeahmobi": "{{ cache.host }}",
-                "hb_cache_id": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_id_yeahmobi": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_yeahmobi": "{{ cache.path }}",
-                "hb_pb": "0.00",
-                "hb_pb_yeahmobi": "0.00"
-              },
-              "cache": {
-                "bids": {
-                  "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb",
-                  "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb"
-                }
-              }
-            }
+              "type": "banner"
+            },
+            "origbidcpm": 0.01
           }
         }
       ],
@@ -47,12 +26,11 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "cache": "{{ cache.response_time_ms }}",
       "yeahmobi": "{{ yeahmobi.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
-    "tmaxrequest": 3000
+    "tmaxrequest": 5000
   }
 }

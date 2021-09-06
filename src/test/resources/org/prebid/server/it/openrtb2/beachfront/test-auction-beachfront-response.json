@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "impId03Banner",
-          "impid": "impId03",
+          "id": "imp_idBanner",
+          "impid": "imp_id",
           "price": 2.942807912826538,
           "adm": "<div id=\"44861168\"><script>!function(){console.log\"Hello, ad.\";}();</script></div>",
           "crid": "crid_3",
@@ -13,28 +13,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "2.90",
-                "hb_bidder_beachfront": "beachfront",
-                "hb_size_beachfront": "300x250",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_host_beachfront": "{{ cache.host }}",
-                "hb_size": "300x250",
-                "hb_cache_path_beachfront": "{{ cache.path }}",
-                "hb_bidder": "beachfront",
-                "hb_cache_id_beachfront": "9c33f779-d352-4d85-8ad2-8a245dc276ce",
-                "hb_cache_id": "9c33f779-d352-4d85-8ad2-8a245dc276ce",
-                "hb_pb_beachfront": "2.90",
-                "hb_cache_host": "{{ cache.host }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}9c33f779-d352-4d85-8ad2-8a245dc276ce",
-                  "cacheId": "9c33f779-d352-4d85-8ad2-8a245dc276ce"
-                }
-              }
-            }
+              "type": "banner"
+            },
+            "origbidcpm": 2.942807912826538,
+            "origbidcur": "USD"
           }
         }
       ],
@@ -45,11 +27,10 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "beachfront": "{{ beachfront.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "beachfront": "{{ beachfront.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

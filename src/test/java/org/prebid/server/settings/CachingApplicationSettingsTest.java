@@ -14,6 +14,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -69,7 +70,12 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        final Account account = Account.builder().id("accountId").priceGranularity("med").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 
@@ -145,7 +151,12 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldUpdateMetrics() {
         // given
-        final Account account = Account.builder().id("accountId").priceGranularity("med").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 

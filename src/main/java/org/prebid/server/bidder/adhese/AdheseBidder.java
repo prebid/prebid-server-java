@@ -19,6 +19,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adhese.model.AdheseBid;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
+import org.prebid.server.bidder.adhese.model.AdheseRequestBody;
 import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
 import org.prebid.server.bidder.adhese.model.Cpm;
 import org.prebid.server.bidder.adhese.model.CpmValues;
@@ -44,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 /**
  * Adhese {@link Bidder} implementation.
@@ -56,9 +56,9 @@ public class AdheseBidder implements Bidder<Void> {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";
-    private static final String GDPR_QUERY_PARAMETER = "/xt";
-    private static final String REFERER_QUERY_PARAMETER = "/xf";
-    private static final String IFA_QUERY_PARAMETER = "/xz";
+    private static final String GDPR_QUERY_PARAMETER = "xt";
+    private static final String REFERER_QUERY_PARAMETER = "xf";
+    private static final String IFA_QUERY_PARAMETER = "xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -81,12 +81,13 @@ public class AdheseBidder implements Bidder<Void> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = buildUrl(request, extImpAdhese);
+        final String uri = getUrl(extImpAdhese);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
                         .method(HttpMethod.POST)
                         .uri(uri)
+                        .body(mapper.encode(buildBody(request, extImpAdhese)))
                         .headers(replaceHeaders(request.getDevice()))
                         .build()),
                 Collections.emptyList());
@@ -109,14 +110,20 @@ public class AdheseBidder implements Bidder<Void> {
         }
     }
 
-    private String buildUrl(BidRequest request, ExtImpAdhese extImpAdhese) {
-        return String.format("%s%s%s%s%s%s",
-                getUrl(extImpAdhese),
-                getSlotParameter(extImpAdhese),
-                getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()),
-                getRefererParameter(request.getSite()),
-                getIfaParameter(request.getDevice()));
+    private AdheseRequestBody buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
+        final Map<String, List<String>> parameterMap = new TreeMap<>();
+        parameterMap.putAll(getTargetParameters(extImpAdhese));
+        parameterMap.putAll(getGdprParameter(request.getUser()));
+        parameterMap.putAll(getRefererParameter(request.getSite()));
+        parameterMap.putAll(getIfaParameter(request.getDevice()));
+
+        return AdheseRequestBody.builder()
+                .slots(Collections.singletonList(
+                        AdheseRequestBody.Slot.builder()
+                                .slotname(getSlotParameter(extImpAdhese))
+                                .build()))
+                .parameters(parameterMap)
+                .build();
     }
 
     private String getUrl(ExtImpAdhese extImpAdhese) {
@@ -124,21 +131,14 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private static String getSlotParameter(ExtImpAdhese extImpAdhese) {
-        return String.format("/sl%s-%s",
+        return String.format("%s-%s",
                 HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
     }
 
-    private String getTargetParameters(ExtImpAdhese extImpAdhese) {
+    private Map<String, List<String>> getTargetParameters(ExtImpAdhese extImpAdhese) {
         final JsonNode targets = extImpAdhese.getTargets();
-        if (targets == null || targets.isNull()) {
-            return "";
-        }
-
-        final Map<String, List<String>> targetParameters = parseTargetParametersAndSort(targets);
-        return targetParameters.entrySet().stream()
-                .map(entry -> createPartOrUrl(entry.getKey(), entry.getValue()))
-                .collect(Collectors.joining());
+        return targets == null || targets.isEmpty() ? Collections.emptyMap() : parseTargetParametersAndSort(targets);
     }
 
     private Map<String, List<String>> parseTargetParametersAndSort(JsonNode targets) {
@@ -147,31 +147,26 @@ public class AdheseBidder implements Bidder<Void> {
                 }));
     }
 
-    private static String createPartOrUrl(String key, List<String> values) {
-        final String formattedValues = String.join(";", values);
-        return String.format("/%s%s", HttpUtil.encodeUrl(key), formattedValues);
-    }
-
-    private static String getGdprParameter(User user) {
+    private static Map<String, List<String>> getGdprParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
         return StringUtils.isNotBlank(consent)
-                ? String.format("%s%s", GDPR_QUERY_PARAMETER, consent)
-                : "";
+                ? Collections.singletonMap(GDPR_QUERY_PARAMETER, Collections.singletonList(consent))
+                : Collections.emptyMap();
     }
 
-    private static String getRefererParameter(Site site) {
+    private static Map<String, List<String>> getRefererParameter(Site site) {
         final String page = site != null ? site.getPage() : null;
         return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", REFERER_QUERY_PARAMETER, HttpUtil.encodeUrl(page))
-                : "";
+                ? Collections.singletonMap(REFERER_QUERY_PARAMETER, Collections.singletonList(page))
+                : Collections.emptyMap();
     }
 
-    private static String getIfaParameter(Device device) {
+    private static Map<String, List<String>> getIfaParameter(Device device) {
         final String ifa = device != null ? device.getIfa() : null;
         return StringUtils.isNotBlank(ifa)
-                ? String.format("%s%s", IFA_QUERY_PARAMETER, HttpUtil.encodeUrl(ifa))
-                : "";
+                ? Collections.singletonMap(IFA_QUERY_PARAMETER, Collections.singletonList(ifa))
+                : Collections.emptyMap();
     }
 
     @Override

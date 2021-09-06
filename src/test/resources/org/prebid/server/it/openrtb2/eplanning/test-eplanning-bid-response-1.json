@@ -4,11 +4,11 @@
       "k": "testadunitcode",
       "a": [
         {
-          "i": "123456789abcdef",
+          "i": "bid_id",
           "pr": "0.5",
           "adm": "<div>test</div>",
-          "crid": "abcdef123456789",
-          "id": "adid12345",
+          "crid": "crid",
+          "id": "imp_id",
           "w": 600,
           "h": 300
         }

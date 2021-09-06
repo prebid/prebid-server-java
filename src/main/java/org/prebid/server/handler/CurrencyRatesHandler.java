@@ -28,33 +28,53 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(CurrencyRatesHandler.class);
 
     private final CurrencyConversionService currencyConversionService;
+    private final String endpoint;
     private final JacksonMapper mapper;
 
-    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService, JacksonMapper mapper) {
+    public CurrencyRatesHandler(CurrencyConversionService currencyConversionService, String endpoint,
+                                JacksonMapper mapper) {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.endpoint = Objects.requireNonNull(endpoint);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
-    public void handle(RoutingContext context) {
+    public void handle(RoutingContext routingContext) {
         try {
-            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            context.response()
-                    .end(mapper.mapper().writeValueAsString(
-                            Response.of(
-                                    currencyConversionService.isExternalRatesActive(),
-                                    currencyConversionService.getCurrencyServerUrl(),
-                                    toNanos(currencyConversionService.getRefreshPeriod()),
-                                    currencyConversionService.getLastUpdated(),
-                                    currencyConversionService.getExternalCurrencyRates())));
+            final String body = mapper.mapper().writeValueAsString(Response.of(
+                    currencyConversionService.isExternalRatesActive(),
+                    currencyConversionService.getCurrencyServerUrl(),
+                    toNanos(currencyConversionService.getRefreshPeriod()),
+                    currencyConversionService.getLastUpdated(),
+                    currencyConversionService.getExternalCurrencyRates()));
+
+            respondWithOk(routingContext, body);
         } catch (IOException e) {
-            logger.error("Critical error when marshaling latest currency rates update response", e);
-            context.response().setStatusCode(HttpResponseStatus.INTERNAL_SERVER_ERROR.code()).end();
+            respondWithServerError(routingContext, e);
         }
     }
 
     private static Long toNanos(Long refreshPeriod) {
         return refreshPeriod != null ? TimeUnit.MILLISECONDS.toNanos(refreshPeriod) : null;
+    }
+
+    private void respondWithOk(RoutingContext routingContext, String body) {
+        respondWith(routingContext, HttpResponseStatus.OK, body);
+    }
+
+    private void respondWithServerError(RoutingContext routingContext, Throwable exception) {
+        final String message = "Critical error when marshaling latest currency rates update response";
+        logger.error(message, exception);
+
+        respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, message);
+    }
+
+    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
+        HttpUtil.executeSafely(routingContext, endpoint,
+                response -> response
+                        .setStatusCode(status.code())
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                        .end(body));
     }
 
     @AllArgsConstructor(staticName = "of")

@@ -22,7 +22,8 @@
                 "hb_size_rubicon": "120x600",
                 "hb_bidder_rubicon": "rubicon"
               }
-            }
+            },
+            "origbidcpm": 4.26
           }
         },
         {
@@ -31,7 +32,6 @@
           "price": 3,
           "adm": "adm1",
           "crid": "crid1",
-          "dealid": "dealId1",
           "w": 120,
           "h": 600,
           "ext": {
@@ -40,12 +40,10 @@
               "targeting": {
                 "hb_pb": "3.00",
                 "hb_pb_rubicon": "3.00",
-                "hb_deal_rubicon": "dealId1",
                 "hb_size": "120x600",
                 "hb_bidder": "rubicon",
                 "hb_size_rubicon": "120x600",
-                "hb_bidder_rubicon": "rubicon",
-                "hb_deal": "dealId1"
+                "hb_bidder_rubicon": "rubicon"
               },
               "storedrequestattributes": {
                 "maxduration": 60,
@@ -64,7 +62,8 @@
                   1
                 ]
               }
-            }
+            },
+            "origbidcpm": 3
           }
         }
       ],
@@ -78,7 +77,7 @@
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

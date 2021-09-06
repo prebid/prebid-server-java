@@ -19,9 +19,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.settings.bidder.CapabilitiesInfo;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderInfoRequestValidator;
 import org.prebid.server.validation.model.ValueValidationResult;
 import org.prebid.server.vertx.http.HttpClient;
@@ -54,16 +56,19 @@ public class HttpBidderRequester {
     private final BidderInfoRequestValidator bidderInfoRequestValidator;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
+    private final HttpBidderRequestEnricher requestEnricher;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderInfoRequestValidator bidderInfoRequestValidator,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
-                               BidderErrorNotifier bidderErrorNotifier) {
+                               BidderErrorNotifier bidderErrorNotifier,
+                               HttpBidderRequestEnricher requestEnricher) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.bidderInfoRequestValidator = Objects.requireNonNull(bidderInfoRequestValidator);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
+        this.requestEnricher = Objects.requireNonNull(requestEnricher);
     }
 
     /**
@@ -73,6 +78,7 @@ public class HttpBidderRequester {
                                                  BidderInfo bidderInfo,
                                                  BidderRequest bidderRequest,
                                                  Timeout timeout,
+                                                 CaseInsensitiveMultiMap requestHeaders,
                                                  boolean debugEnabled) {
         final BidRequest bidRequest = bidderRequest.getBidRequest();
         final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
@@ -92,7 +98,8 @@ public class HttpBidderRequester {
         final Result<List<HttpRequest<T>>> httpRequestsWithErrors = bidder.makeHttpRequests(validBidRequest);
 
         bidderErrors.addAll(CollectionUtils.emptyIfNull(httpRequestsWithErrors.getErrors()));
-        final List<HttpRequest<T>> httpRequests = httpRequestsWithErrors.getValue();
+        final List<HttpRequest<T>> httpRequests =
+                enrichRequests(httpRequestsWithErrors.getValue(), requestHeaders, bidRequest);
 
         if (CollectionUtils.isEmpty(httpRequests)) {
             return emptyBidderSeatBidWithErrors(bidderErrors);
@@ -129,6 +136,17 @@ public class HttpBidderRequester {
                 .collect(Collectors.toList());
     }
 
+    private <T> List<HttpRequest<T>> enrichRequests(List<HttpRequest<T>> httpRequests,
+                                                    CaseInsensitiveMultiMap requestHeaders,
+                                                    BidRequest bidRequest) {
+
+        return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
+                        .headers(requestEnricher.enrichHeaders(
+                                httpRequest.getHeaders(), requestHeaders, bidRequest))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private <T> boolean isStoredResponse(List<HttpRequest<T>> httpRequests,
                                          String storedResponse,
                                          String bidder) {
@@ -146,10 +164,11 @@ public class HttpBidderRequester {
         return true;
     }
 
-    final <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest,
-                                                     String storedResponse) {
-        return Future.succeededFuture(HttpCall.success(httpRequest, HttpResponse.of(HttpResponseStatus.OK.code(), null,
-                storedResponse), null));
+    private <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest, String storedResponse) {
+        return Future.succeededFuture(
+                HttpCall.success(httpRequest,
+                        HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse),
+                        null));
     }
 
     /**
@@ -232,7 +251,6 @@ public class HttpBidderRequester {
     }
 
     private static <T> Result<List<BidderBid>> makeBids(Bidder<T> bidder, HttpCall<T> httpCall, BidRequest bidRequest) {
-
         return httpCall.getError() != null
                 ? null
                 : makeResult(bidder, httpCall, bidRequest);
@@ -326,7 +344,8 @@ public class HttpBidderRequester {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .requestbody(request.getBody());
+                    .requestbody(request.getBody())
+                    .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
             final HttpResponse response = httpCall.getResponse();
             if (response != null) {

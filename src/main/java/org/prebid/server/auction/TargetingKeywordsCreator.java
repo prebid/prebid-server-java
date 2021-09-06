@@ -76,6 +76,8 @@ public class TargetingKeywordsCreator {
      */
     private static final String HB_FORMAT_KEY = "hb_format";
 
+    private static final String DEFAULT_CPM = "0.0";
+
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
@@ -146,7 +148,6 @@ public class TargetingKeywordsCreator {
                 bidder,
                 winningBid,
                 bid.getPrice(),
-                "0.0",
                 bid.getW(),
                 bid.getH(),
                 cacheId,
@@ -170,7 +171,6 @@ public class TargetingKeywordsCreator {
     private Map<String, String> makeFor(String bidder,
                                         boolean winningBid,
                                         BigDecimal price,
-                                        String defaultCpm,
                                         Integer width,
                                         Integer height,
                                         String cacheId,
@@ -181,7 +181,7 @@ public class TargetingKeywordsCreator {
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
         keywordMap.put(HB_PB_KEY, roundedCpm);
 
         keywordMap.put(HB_BIDDER_KEY, bidder);
@@ -204,6 +204,8 @@ public class TargetingKeywordsCreator {
         if (StringUtils.isNotBlank(format) && includeFormat) {
             keywordMap.put(HB_FORMAT_KEY, format);
         }
+
+        // get Line Item by dealId
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
         }

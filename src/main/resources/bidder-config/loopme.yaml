@@ -1,0 +1,27 @@
+adapters:
+  loopme:
+    enabled: false
+    endpoint: http://prebid-eu.loopmertb.com
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: support@loopme.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 109
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: loopme
+      type: redirect
+      support-cors: false

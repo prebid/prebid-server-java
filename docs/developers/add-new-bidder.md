@@ -23,7 +23,7 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 ## Configuration
 
 Add default configuration properties and metadata(e.g. contact email, platform & media type support) for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
-For more information about application configuration see [here](../config.md)
+For more information about application configuration see [here](../config-app.md)
 
 ## Implementation
 
@@ -100,7 +100,8 @@ It should be public class with Spring `@Configuration` annotation so that framew
 This file consists of three main parts:
 - the constant `BIDDER_NAME` with the name of your Bidder.
 - injected configuration properties (like `endpoint`, `usersyncUrl`, etc) needed for the Bidder's implementation.
-- declaration of `BidderDeps` bean combining _bidder name_, _Usersyncer_ and _BidderRequester_ in one place as a single point-of-truth for using it in application.
+- declaration of `BidderDeps` bean combining _bidder name_, _Usersyncer_, _Adapter_, _Bidder_ and other meta-data 
+for the bidder and its aliases in one place as a single point-of-truth for using it in application.
 
 Also, you can add `@ConditionalOnProperty` annotation on configuration if bidder has no default properties.
 See `src/main/java/org/prebid/server/spring/config/bidder/FacebookConfiguration.java` as an example.
@@ -122,7 +123,7 @@ Commonly you should write tests for covering:
 - specific cases for composing requests to exchange.
 - specific cases for processing responses from exchange.
 
-Do not forget to add your Bidder to `ApplicationTest.java` tests.
+Do not forget to add integration test for your Bidder in `src/test/java/org/prebid/server/it`.
 
 We expect to see at least 90% code coverage on each bidder.
 

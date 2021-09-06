@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -30,6 +31,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -77,6 +79,7 @@ public class DmxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder
                         .app(App.builder().id(null).build())
+                        .device(Device.builder().ifa(null).build())
                         .user(User.builder().id(null).ext(ExtUser.builder().eids(emptyList()).build()).build()),
                 identity());
 
@@ -86,6 +89,23 @@ public class DmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("This request contained no identifier"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotReturnErrorWhenRequestContainsNoAppIdentifierButHaveUser() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .app(App.builder().id(null).build())
+                        .device(Device.builder().ifa(null).build())
+                        .user(User.builder().id("uid").ext(ExtUser.builder().eids(emptyList()).build()).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -135,6 +155,24 @@ public class DmxBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid, Imp::getSecure, Imp::getBidfloor)
                 .containsOnly(tuple("dmxId", 1, BigDecimal.ONE));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldGetSizeForBannerFromFirstFormatIfAnyOfBannerSizesAreMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getH, Banner::getW)
+                .containsOnly(tuple(500, 300));
     }
 
     @Test
@@ -226,6 +264,25 @@ public class DmxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldEnrichVideoWithNeededProtocolsIfProtocolsAreMissed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.video(Video.builder().protocols(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .flatExtracting(Video::getProtocols)
+                .containsAll(Arrays.asList(2, 3, 5, 6, 7, 8));
+    }
+
+    @Test
     public void makeHttpRequestsShouldUpdateAppPublisherWhenAppAndExtImpPublisherIdIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -262,6 +319,27 @@ public class DmxBidderTest extends VertxTest {
                 .extracting(BidRequest::getApp)
                 .flatExtracting(App::getPublisher)
                 .containsExactly(expectedPublisher("memberId", true));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceAppIdWithDeviceIfa() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .app(App.builder().id(null).build())
+                        .device(Device.builder().ifa("ifa").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .flatExtracting(App::getId)
+                .containsExactly("ifa");
     }
 
     @Test

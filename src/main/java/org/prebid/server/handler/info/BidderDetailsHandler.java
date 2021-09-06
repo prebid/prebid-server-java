@@ -2,14 +2,16 @@ package org.prebid.server.handler.info;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.bidder.BidderInfo;
 import org.prebid.server.settings.bidder.CapabilitiesInfo;
 import org.prebid.server.settings.bidder.MaintainerInfo;
@@ -28,6 +30,8 @@ import java.util.stream.Stream;
 
 public class BidderDetailsHandler implements Handler<RoutingContext> {
 
+    private static final Logger logger = LoggerFactory.getLogger(BidderDetailsHandler.class);
+
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";
 
@@ -37,92 +41,81 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     public BidderDetailsHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
         validateAliases(Objects.requireNonNull(bidderCatalog));
         this.mapper = Objects.requireNonNull(mapper);
-        bidderInfos = createBidderInfos(bidderCatalog);
+        this.bidderInfos = createBidderInfos(bidderCatalog);
     }
 
     private static void validateAliases(BidderCatalog bidderCatalog) {
-        if (bidderCatalog.aliases().contains(ALL_PARAM_VALUE)) {
+        if (bidderCatalog.names().contains(ALL_PARAM_VALUE)) {
             throw new IllegalArgumentException(
-                    String.format("The '%s' bidder has '%s' alias configured which is unacceptable.",
-                            bidderCatalog.nameByAlias(ALL_PARAM_VALUE), ALL_PARAM_VALUE));
+                    String.format("There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
         }
     }
 
-    /**
-     * Returns a {@link Map} with bidder name (or alias, or "all" keyword) as a key
-     * and json-encoded string of {@link BidderInfoResponseModel} as a value.
-     */
     private Map<String, String> createBidderInfos(BidderCatalog bidderCatalog) {
         final Map<String, ObjectNode> nameToInfo = bidderCatalog.names().stream()
-                .filter(bidderCatalog::isActive)
                 .collect(Collectors.toMap(Function.identity(), name -> bidderNode(bidderCatalog, name)));
 
-        final Map<String, ObjectNode> aliasToInfo = bidderCatalog.aliases().stream()
-                .filter(alias -> bidderCatalog.isActive(bidderCatalog.nameByAlias(alias)))
-                .collect(Collectors.toMap(Function.identity(), alias -> aliasNode(bidderCatalog, alias)));
+        final Map<String, ObjectNode> allToInfos = Collections.singletonMap(ALL_PARAM_VALUE, allInfos(nameToInfo));
 
-        final Map<String, ObjectNode> allToInfos = Collections.singletonMap(
-                ALL_PARAM_VALUE, allInfos(nameToInfo, aliasToInfo));
-
-        return Stream.of(nameToInfo, aliasToInfo, allToInfos)
+        return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encode(map.getValue())));
     }
 
-    /**
-     * Returns bidder info as {@link ObjectNode}.
-     */
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
         final BidderInfo bidderInfo = bidderCatalog.bidderInfoByName(name);
         return mapper.mapper().valueToTree(BidderInfoResponseModel.from(bidderInfo));
     }
 
-    /**
-     * Returns alias info as {@link ObjectNode}.
-     */
-    private ObjectNode aliasNode(BidderCatalog bidderCatalog, String alias) {
-        final String name = bidderCatalog.nameByAlias(alias);
-
-        final ObjectNode node = bidderNode(bidderCatalog, name);
-        node.set("aliasOf", new TextNode(name));
-        return node;
-    }
-
-    /**
-     * Returns a {@link Map} of all bidder's infos sorted by name (and alias) as {@link ObjectNode}.
-     */
-    private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo, Map<String, ObjectNode> aliasToInfo) {
-        final Map<String, ObjectNode> result = new TreeMap<>();
-        result.putAll(nameToInfo);
-        result.putAll(aliasToInfo);
-        return mapper.mapper().valueToTree(result);
+    private ObjectNode allInfos(Map<String, ObjectNode> nameToInfo) {
+        return mapper.mapper().valueToTree(new TreeMap<>(nameToInfo));
     }
 
     @Override
-    public void handle(RoutingContext context) {
-        final String bidderName = context.request().getParam(BIDDER_NAME_PARAM);
+    public void handle(RoutingContext routingContext) {
+        final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
+        final String endpoint = String.format("%s/%s", Endpoint.info_bidders.value(), bidderName);
 
         if (bidderInfos.containsKey(bidderName)) {
-            context.response()
-                    .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                    .end(bidderInfos.get(bidderName));
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                            .end(bidderInfos.get(bidderName)));
         } else {
-            context.response()
-                    .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
-                    .end();
+            HttpUtil.executeSafely(routingContext, endpoint,
+                    response -> response
+                            .setStatusCode(HttpResponseStatus.NOT_FOUND.code())
+                            .end());
         }
     }
 
-    @Value
+    @Value(staticConstructor = "of")
     private static class BidderInfoResponseModel {
+
+        private static final String STATUS_ACTIVE = "ACTIVE";
+        private static final String STATUS_DISABLED = "DISABLED";
+
+        String status;
+
+        @JsonProperty("usesHttps")
+        boolean usesHttps;
 
         MaintainerInfo maintainer;
 
         Capabilities capabilities;
 
-        static BidderInfoResponseModel from(BidderInfo bidderInfo) {
+        @JsonProperty("aliasOf")
+        String aliasOf;
+
+        private static BidderInfoResponseModel from(BidderInfo bidderInfo) {
             final CapabilitiesInfo capabilities = bidderInfo.getCapabilities();
-            return new BidderInfoResponseModel(bidderInfo.getMaintainer(), Capabilities.from(capabilities));
+
+            return of(
+                    bidderInfo.isEnabled() ? STATUS_ACTIVE : STATUS_DISABLED,
+                    bidderInfo.isUsesHttps(),
+                    bidderInfo.getMaintainer(),
+                    Capabilities.from(capabilities),
+                    bidderInfo.getAliasOf());
         }
     }
 

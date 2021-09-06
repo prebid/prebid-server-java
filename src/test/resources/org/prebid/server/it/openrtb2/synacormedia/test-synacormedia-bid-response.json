@@ -1,29 +1,16 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid001",
-          "impid": "impId001",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 7.77,
-          "adid": "adid001",
-          "crid": "crid001",
-          "cid": "cid001",
+          "adid": "adid",
+          "crid": "crid",
+          "cid": "cid",
           "adm": "adm001",
-          "h": 250,
-          "w": 300
-        },
-        {
-          "id": "bid002",
-          "impid": "impId002",
-          "price": 9.99,
-          "crid": "crid002",
-          "cid": "cid002",
-          "nurl": "https://example.com/nurl",
-          "adomain": [
-            "psacentral.org"
-          ],
           "h": 250,
           "w": 300
         }
