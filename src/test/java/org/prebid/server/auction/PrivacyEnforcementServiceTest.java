@@ -528,7 +528,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final AuctionContext context = AuctionContext.builder()
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of( null, AccountCcpaConfig.builder().enabled(true).build()))
+                        .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(true).build()))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
