@@ -18,5 +18,5 @@ public class ExtImpGumgum {
     @JsonProperty("irisid")
     String irisId;
 
-    BigInteger slot;
+    Long slot;
 }

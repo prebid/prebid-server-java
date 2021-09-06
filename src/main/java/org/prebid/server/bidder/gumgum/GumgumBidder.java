@@ -153,8 +153,8 @@ public class GumgumBidder implements Bidder<BidRequest> {
         if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
             final Format firstFormat = format.get(0);
 
-            final BigInteger slot = extImpGumgum.getSlot();
-            final ObjectNode bannerExt = slot != null && !slot.equals(BigInteger.ZERO)
+            final Long slot = extImpGumgum.getSlot();
+            final ObjectNode bannerExt = slot != null && slot != 0L
                     ? mapper.mapper().valueToTree(resolveBannerExt(format, slot))
                     : banner.getExt();
 
@@ -167,14 +167,14 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private ExtImpGumgumBanner resolveBannerExt(List<Format> formats, BigInteger slot) {
+    private static ExtImpGumgumBanner resolveBannerExt(List<Format> formats, Long slot) {
         return formats.stream()
                 .filter(format -> ObjectUtils.allNotNull(format.getW(), format.getH()))
                 .max(Comparator.comparing((Format format) -> Math.max(format.getW(), format.getH()))
                         .thenComparing(Format::getW)
                         .thenComparing(Format::getH))
                 .map(format -> ExtImpGumgumBanner.of(slot, format.getW(), format.getH()))
-                .orElse(ExtImpGumgumBanner.of(slot, 0, 0));
+                .orElseGet(() -> ExtImpGumgumBanner.of(slot, 0, 0));
     }
 
     private void validateVideoParams(Video video) {
