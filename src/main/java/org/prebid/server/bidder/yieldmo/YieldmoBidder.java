@@ -28,7 +28,7 @@ public class YieldmoBidder extends OpenrtbBidder<ExtImpYieldmo> {
         final Imp.ImpBuilder modifiedImp = imp.toBuilder();
 
         final JsonNode pbadslotNode = imp.getExt().at("/data/pbadslot");
-        final String pbadslot = pbadslotNode != null
+        final String pbadslot = !pbadslotNode.isMissingNode()
                 ? StringUtils.defaultIfEmpty(pbadslotNode.asText(), null)
                 : null;
 
