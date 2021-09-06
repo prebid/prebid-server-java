@@ -1,9 +1,13 @@
 package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -11,7 +15,10 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.grid.model.ExtImpGrid;
 import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
+import org.prebid.server.bidder.grid.model.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -20,6 +27,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -63,13 +71,100 @@ public class GridBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(bidRequest);
+                .containsExactly(bidRequest);
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtImpGridNull() {
+    public void makeHttpRequestsShouldCorrectlyModifyImpExt() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtImpGrid.builder()
+                                .data(ExtImpGridData.of("pbadslot",
+                                        ExtImpGridDataAdServer.of("name", "adslot")))
+                                .bidder(ExtImpGridBidder.of(1, null))
+                                .build()))
+                        .build()))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(
+                        mapper.valueToTree(ExtImpGrid.builder()
+                                .data(ExtImpGridData.of("pbadslot",
+                                        ExtImpGridDataAdServer.of("name", "adslot")))
+                                .bidder(ExtImpGridBidder.of(1, null))
+                                .gpid("adslot")
+                                .build()));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCorrectlyModifyRequestExt() throws JsonProcessingException {
+        // given
+        final ObjectNode impUserKeywordsNode = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final ObjectNode impSiteKeywordsNode = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
+        final ExtImpGrid impExt = ExtImpGrid.builder()
+                .data(ExtImpGridData.of("pbadslot",
+                        ExtImpGridDataAdServer.of("name", "adslot")))
+                .bidder(ExtImpGridBidder.of(1, Keywords.of(impUserKeywordsNode, impSiteKeywordsNode)))
+                .build();
+
+        final ExtRequest extRequest = ExtRequest.of(null);
+        extRequest.addProperty("keywords", mapper.readTree(
+                "{\"user\": {\"secondPublisher\":[{\"name\":\"secondKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}, "
+                        + "\"site\": {\"secondPublisher\":[{\"name\":\"secondKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}}"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().ext(mapper.valueToTree(impExt)).build()))
+                .id("request_id")
+                .ext(extRequest)
+                .site(Site.builder().keywords("siteKeyword1,siteKeyword2").build())
+                .user(User.builder().keywords("userKeyword1,userKeyword2").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String expectedRequestExtJson =
+                "{\"user\":{\"ortb2\":[{\"name\":\"keywords\",\"segments\":[{\"name\":\"keywords\","
+                        + "\"value\":\"userKeyword1\"},{\"name\":\"keywords\",\"value\":\"userKeyword2\"}]}],"
+                        + "\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
+                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]},"
+                        + "\"site\":{\"ortb2\":[{\"name\":\"keywords\",\"segments\":[{\"name\":\"keywords\","
+                        + "\"value\":\"siteKeyword1\"},{\"name\":\"keywords\",\"value\":\"siteKeyword2\"}]}],"
+                        + "\"firstPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
+                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}}";
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(resultExtRequest -> resultExtRequest.getProperty("keywords"))
+                .extracting(JsonNode::toString)
+                .containsExactly(expectedRequestExtJson);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtImpGridUidNull() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -173,7 +268,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -194,7 +289,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -213,7 +308,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Unknown impression type for ID: 123"));
+                .containsExactly(BidderError.badServerResponse("Unknown impression type for ID: 123"));
     }
 
     @Test
@@ -233,7 +328,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
+                .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,

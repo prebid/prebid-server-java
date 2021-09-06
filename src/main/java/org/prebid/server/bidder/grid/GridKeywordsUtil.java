@@ -29,27 +29,23 @@ public class GridKeywordsUtil {
 
     public static Keywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords, JacksonMapper mapper) {
         return Keywords.of(
-                resolveKeywordsSectionFromOpenRtb(userKeywords, "user", mapper),
-                resolveKeywordsSectionFromOpenRtb(siteKeywords, "site", mapper));
+                resolveKeywordsSectionFromOpenRtb(userKeywords, mapper),
+                resolveKeywordsSectionFromOpenRtb(siteKeywords, mapper));
     }
 
-    public static ObjectNode resolveKeywordsSectionFromOpenRtb(String keywords, String section, JacksonMapper mapper) {
+    public static ObjectNode resolveKeywordsSectionFromOpenRtb(String keywords, JacksonMapper mapper) {
         final List<KeywordSegment> segments = Arrays.stream(keywords.split(","))
                 .filter(StringUtils::isNotEmpty)
                 .map(keyword -> KeywordSegment.of("keywords", keyword))
                 .collect(Collectors.toList());
 
-        final ObjectNode sectionNode = mapper.mapper().createObjectNode();
-
+        final ObjectNode publisherNode = mapper.mapper().createObjectNode();
         if (!segments.isEmpty()) {
-            final ObjectNode publisherNode = mapper.mapper().createObjectNode();
             final List<KeywordsPublisherItem> publisherItems = Collections.singletonList(
                     KeywordsPublisherItem.of("keywords", segments));
-            publisherNode.set("ortb2", mapper.mapper().valueToTree(publisherItems));
-            sectionNode.set(section, publisherNode);
+            return publisherNode.set("ortb2", mapper.mapper().valueToTree(publisherItems));
         }
-
-        return sectionNode;
+        return publisherNode;
     }
 
     public static Keywords resolveKeywords(Keywords keywords, JacksonMapper mapper) {

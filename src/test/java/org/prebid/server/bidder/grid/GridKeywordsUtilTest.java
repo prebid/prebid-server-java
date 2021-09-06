@@ -24,18 +24,17 @@ public class GridKeywordsUtilTest extends VertxTest {
     public void resolveKeywordsSectionFromOpenRtbShouldCorrectlyResolveKeywords() {
         // given and when
         final ObjectNode result = GridKeywordsUtil.resolveKeywordsSectionFromOpenRtb(
-                "keyword1,keyword2", "user", jacksonMapper);
+                "keyword1,keyword2", jacksonMapper);
 
         // then
-        assertThat(result).isEqualTo(mapper.createObjectNode()
-                .set("user", givenKeywordsSectionFromOpenRtb("keyword1", "keyword2")));
+        assertThat(result).isEqualTo(givenKeywordsSectionFromOpenRtb("keyword1", "keyword2"));
     }
 
     @Test
     public void resolveKeywordsSectionFromOpenRtbShouldReturnEmptyNodeIfKeywordsAreEmpty() {
         // given and when
         final ObjectNode result = GridKeywordsUtil.resolveKeywordsSectionFromOpenRtb(
-                "", "user", jacksonMapper);
+                "", jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(mapper.createObjectNode());
@@ -50,8 +49,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         // then
         assertThat(result).isEqualTo(
                 Keywords.of(
-                        mapper.createObjectNode().set("user", givenKeywordsSectionFromOpenRtb("userKeyword")),
-                        mapper.createObjectNode().set("site", givenKeywordsSectionFromOpenRtb("siteKeyword"))));
+                        givenKeywordsSectionFromOpenRtb("userKeyword"),
+                        givenKeywordsSectionFromOpenRtb("siteKeyword")));
     }
 
     @Test
