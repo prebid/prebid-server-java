@@ -23,7 +23,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -35,21 +34,6 @@ public class MgidBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com/mgid-exchange/";
 
     private MgidBidder mgidBidder;
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
 
     @Before
     public void setUp() {
@@ -76,8 +60,11 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = mgidBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -126,7 +113,7 @@ public class MgidBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly(impId);
+                .containsExactly(impId);
     }
 
     @Test
@@ -153,7 +140,7 @@ public class MgidBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly(expectedTagId);
+                .containsExactly(expectedTagId);
     }
 
     @Test
@@ -193,7 +180,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsString(expected));
     }
 
     @Test
@@ -232,7 +219,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsString(expected));
     }
 
     @Test
@@ -270,7 +257,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsOnly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsString(expected));
     }
 
     @Test
@@ -282,9 +269,11 @@ public class MgidBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = mgidBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -332,7 +321,7 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -352,7 +341,7 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), xNative, "USD"));
     }
 
     @Test
@@ -372,11 +361,22 @@ public class MgidBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(crtypeNode).build(), banner, "USD"));
     }
 
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(mgidBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return HttpCall.success(
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 }

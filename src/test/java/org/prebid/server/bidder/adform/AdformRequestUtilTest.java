@@ -4,11 +4,8 @@ import com.iab.openrtb.request.Regs;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adform.model.AdformDigitrust;
-import org.prebid.server.bidder.adform.model.AdformDigitrustPrivacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserDigiTrust;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,45 +88,5 @@ public class AdformRequestUtilTest extends VertxTest {
 
         // then
         assertThat(consent).isEqualTo("consent");
-    }
-
-    @Test
-    public void getAdformDigiTrustShouldReturnNullIfUserExtIsNull() {
-        // given and when
-        final AdformDigitrust adformDigitrust = requestUtil.getAdformDigitrust(null);
-
-        // then
-        assertThat(adformDigitrust).isNull();
-    }
-
-    @Test
-    public void getAdformDigiTrustShouldReturnNullIfUserExtDigitrustIsNull() {
-        // given and when
-        final AdformDigitrust adformDigitrust = requestUtil.getAdformDigitrust(ExtUser.builder().build());
-
-        // then
-        assertThat(adformDigitrust).isNull();
-    }
-
-    @Test
-    public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutFalseIfPrefIsZero() {
-        // given and when
-        final AdformDigitrust adformDigitrust = requestUtil.getAdformDigitrust(ExtUser.builder()
-                .digitrust(ExtUserDigiTrust.of("id", 123, 0))
-                .build());
-
-        // then
-        assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(false)));
-    }
-
-    @Test
-    public void getAdformDigiTrustShouldReturnAdformDigitrustWithOptOutTrueIfPrefIsNotZero() {
-        // given and when
-        final AdformDigitrust adformDigitrust = requestUtil.getAdformDigitrust(ExtUser.builder()
-                .digitrust(ExtUserDigiTrust.of("id", 123, 1))
-                .build());
-
-        // then
-        assertThat(adformDigitrust).isEqualTo(AdformDigitrust.of("id", 1, 123, AdformDigitrustPrivacy.of(true)));
     }
 }

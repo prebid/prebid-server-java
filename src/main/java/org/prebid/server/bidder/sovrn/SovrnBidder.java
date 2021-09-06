@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.sovrn;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -29,11 +28,11 @@ import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -59,7 +58,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getImp())) {
-            return Result.of(Collections.emptyList(), Collections.emptyList());
+            return Result.empty();
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -90,15 +89,10 @@ public class SovrnBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 
     private Imp makeImp(Imp imp) {
@@ -110,7 +104,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
-                .bidfloor(sovrnExt.getBidfloor())
+                .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
@@ -127,29 +121,36 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
     }
 
-    private MultiMap headers(BidRequest bidRequest) {
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal extBidFloor) {
+        return !isValidBidFloor(impBidFloor) && isValidBidFloor(extBidFloor) ? extBidFloor : impBidFloor;
+    }
+
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    private static MultiMap headers(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers();
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER.toString(), device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER.toString(),
-                    device.getLanguage());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER.toString(), device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER.toString(),
-                    Objects.toString(device.getDnt(), null));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
         }
 
         final User user = bidRequest.getUser();
         final String buyeruid = user != null ? StringUtils.trimToNull(user.getBuyeruid()) : null;
         if (buyeruid != null) {
-            headers.add(HttpUtil.COOKIE_HEADER.toString(), Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
+            headers.add(HttpUtil.COOKIE_HEADER, Cookie.cookie(LJT_READER_COOKIE_NAME, buyeruid).encode());
         }
+
         return headers;
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
-        return bidResponse == null || bidResponse.getSeatbid() == null
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse);
     }
@@ -165,7 +166,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private static Bid updateBid(Bid bid) {
-        bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
-        return bid;
+        return bid.toBuilder()
+                .adm(HttpUtil.decodeUrl(bid.getAdm()))
+                .build();
     }
 }

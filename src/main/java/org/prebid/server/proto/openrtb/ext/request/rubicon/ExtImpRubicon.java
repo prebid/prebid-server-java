@@ -34,4 +34,6 @@ public class ExtImpRubicon {
     String pchain;
 
     List<String> keywords;
+
+    ExtImpRubiconDebug debug;
 }

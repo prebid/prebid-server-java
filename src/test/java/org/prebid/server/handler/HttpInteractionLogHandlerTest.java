@@ -42,7 +42,7 @@ public class HttpInteractionLogHandlerTest {
         given(routingContext.response()).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
-        handler = new HttpInteractionLogHandler(5, httpInteractionLogger);
+        handler = new HttpInteractionLogHandler(5, httpInteractionLogger, "/endpoint");
     }
 
     @Test

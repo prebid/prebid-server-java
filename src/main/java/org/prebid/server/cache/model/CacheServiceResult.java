@@ -20,7 +20,7 @@ public class CacheServiceResult {
 
     Throwable error;
 
-    Map<Bid, CacheIdInfo> cacheBids;
+    Map<Bid, CacheInfo> cacheBids;
 
     public static CacheServiceResult empty() {
         return EMPTY;

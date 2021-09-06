@@ -2,7 +2,7 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -20,6 +20,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static java.util.Collections.singletonMap;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -40,10 +42,11 @@ public class CurrencyRatesHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, jacksonMapper);
+        currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, "/endpoint", jacksonMapper);
 
         given(routingContext.response()).willReturn(httpResponse);
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(), any(AsciiString.class))).willReturn(httpResponse);
     }
 
     @Test

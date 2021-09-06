@@ -24,4 +24,6 @@ public class AdformBid {
     String dealId;
 
     String winCrid;
+
+    String vastContent;
 }

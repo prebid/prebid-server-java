@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "620160380",
-          "impid": "impId17",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 8.43,
           "adm": "adm17",
           "crid": "crid17",
@@ -13,28 +13,9 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "targeting": {
-                "hb_pb": "8.40",
-                "hb_bidder_brightroll": "brightroll",
-                "hb_size": "300x250",
-                "hb_bidder": "brightroll",
-                "hb_cache_id_brightroll": "3c7dedc8-dd68-4ba3-ba27-9d4e933cd4b3",
-                "hb_cache_id": "3c7dedc8-dd68-4ba3-ba27-9d4e933cd4b3",
-                "hb_pb_brightroll": "8.40",
-                "hb_size_brightroll": "300x250",
-                "hb_cache_host": "{{ cache.host }}",
-                "hb_cache_host_brightroll": "{{ cache.host }}",
-                "hb_cache_path": "{{ cache.path }}",
-                "hb_cache_path_brightroll": "{{ cache.path }}"
-              },
-              "cache": {
-                "bids": {
-                  "url": "{{ cache.resource_url }}3c7dedc8-dd68-4ba3-ba27-9d4e933cd4b3",
-                  "cacheId": "3c7dedc8-dd68-4ba3-ba27-9d4e933cd4b3"
-                }
-              }
-            }
+              "type": "banner"
+            },
+            "origbidcpm": 8.43
           }
         }
       ],
@@ -45,11 +26,10 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "brightroll": "{{ brightroll.response_time_ms }}",
-      "cache": "{{ cache.response_time_ms }}"
+      "brightroll": "{{ brightroll.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 1000
+      "auctiontimestamp": 0
     },
     "tmaxrequest": 5000
   }

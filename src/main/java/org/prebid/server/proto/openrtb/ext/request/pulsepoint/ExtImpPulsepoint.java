@@ -13,7 +13,4 @@ public class ExtImpPulsepoint {
 
     @JsonProperty("ct")
     Integer tagId;
-
-    @JsonProperty("cf")
-    String adSize;
 }

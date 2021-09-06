@@ -1,5 +1,6 @@
 package org.prebid.server.log;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -17,6 +18,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -27,10 +29,11 @@ public class HttpInteractionLogger {
     private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
     private final JacksonMapper mapper;
+
     private final AtomicReference<SpecWithCounter> specWithCounter = new AtomicReference<>();
 
     public HttpInteractionLogger(JacksonMapper mapper) {
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public void setSpec(HttpLogSpec spec) {
@@ -46,11 +49,19 @@ public class HttpInteractionLogger {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
-                    routingContext.getBody().toString(),
+                    toOneLineString(routingContext.getBodyAsString()),
                     statusCode,
                     responseBody);
 
             incLoggedInteractions();
+        }
+    }
+
+    private String toOneLineString(String value) {
+        try {
+            return mapper.encode(mapper.mapper().readTree(value));
+        } catch (JsonProcessingException e) {
+            return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
         }
     }
 

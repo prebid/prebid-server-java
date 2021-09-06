@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor(staticName = "of")
 @Value
@@ -13,5 +14,7 @@ public class StoredResponseResult {
 
     List<Imp> requiredRequestImps;
 
-    List<SeatBid> storedResponse;
+    List<SeatBid> auctionStoredResponse;
+
+    Map<String, Map<String, String>> impBidderToStoredBidResponse;
 }

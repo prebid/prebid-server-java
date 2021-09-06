@@ -12,6 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.GridExtImp;
+import org.prebid.server.bidder.grid.model.GridExtImpData;
+import org.prebid.server.bidder.grid.model.GridExtImpDataAdServer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -23,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -233,74 +235,26 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithCurrencyFromResponse() throws JsonProcessingException {
+    public void modifyImpShouldChangeImpExt() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .cur(singletonList("NZD"))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidResponseBuilder -> bidResponseBuilder.cur("JPY"),
-                        bidBuilder -> bidBuilder.impid("123"))));
+        final GridExtImp gridExtImp = GridExtImp.builder()
+                .data(GridExtImpData.of(null, GridExtImpDataAdServer.of("name", "adslot")))
+                .build();
+
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(gridExtImp)).build();
 
         // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
+        final Imp modifiedImp = gridBidder.modifyImp(imp, ExtImpGrid.of(1));
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("JPY");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidsWithCurrencyFromRequest() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .cur(singletonList("JPY"))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("JPY");
-    }
-
-    @Test
-    public void makeBidsShouldReturnBidsWithDefaultCurrencyIfResponseAndRequestCurrenciesNotDefined()
-            throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("USD");
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(gridBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(emptyMap());
+        assertThat(mapper.convertValue(modifiedImp.getExt(), GridExtImp.class).getGpid())
+                .isEqualTo(gridExtImp.getData().getAdServer().getAdSlot());
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
                                                 UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidResponseCustomizer.apply(BidResponse.builder()
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build())))

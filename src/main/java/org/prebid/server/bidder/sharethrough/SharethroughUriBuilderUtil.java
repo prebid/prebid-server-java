@@ -15,12 +15,19 @@ class SharethroughUriBuilderUtil {
     }
 
     /**
-     * Creates uri with parameters for sharethrough request
+     * Creates uri with parameters for Sharethrough request.
      */
     static String buildSharethroughUrl(String baseUri, String supplyId, String strVersion, String formattedDate,
                                        StrUriParameters params) {
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(baseUri)
+
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(baseUri);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(String.format("Invalid url: %s, error: %s", baseUri, e.getMessage()));
+        }
+
+        uriBuilder
                 .addParameter("placement_key", params.getPkey())
                 .addParameter("bidId", params.getBidID())
                 .addParameter("consent_required", getBooleanStringValue(params.getConsentRequired()))
@@ -42,6 +49,10 @@ class SharethroughUriBuilderUtil {
         if (StringUtils.isNotBlank(stxuid)) {
             uriBuilder.addParameter("stxuid", stxuid);
         }
+        final String gpid = params.getGpid();
+        if (StringUtils.isNotBlank(gpid)) {
+            uriBuilder.addParameter("gpid", gpid);
+        }
 
         return uriBuilder.toString();
     }
@@ -51,7 +62,7 @@ class SharethroughUriBuilderUtil {
     }
 
     /**
-     * Creates uri with parameters for sharethrough request
+     * Creates uri with parameters for Sharethrough request.
      */
     static StrUriParameters buildSharethroughUrlParameters(String uri) {
         try {
@@ -67,7 +78,6 @@ class SharethroughUriBuilderUtil {
                     .bidID(getValueByKey(queryParams, "bidId"))
                     .consentString(getValueByKey(queryParams, "consent_string"))
                     .build();
-
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Cant resolve uri: " + uri, e);
         }
@@ -99,4 +109,3 @@ class SharethroughUriBuilderUtil {
                 .orElse("");
     }
 }
-

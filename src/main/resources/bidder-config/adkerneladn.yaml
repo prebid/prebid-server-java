@@ -1,12 +1,12 @@
 adapters:
   adkerneladn:
     enabled: false
-    endpoint: http://tag.adkernel.com/rtbpub?account=
+    endpoint: http://{{Host}}/rtbpub?account={{PublisherID}}
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:

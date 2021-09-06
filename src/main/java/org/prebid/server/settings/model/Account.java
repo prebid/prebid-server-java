@@ -1,33 +1,27 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Account {
 
     String id;
 
-    String priceGranularity;
+    AccountStatus status;
 
-    Integer bannerCacheTtl;
+    AccountAuctionConfig auction;
 
-    Integer videoCacheTtl;
+    AccountPrivacyConfig privacy;
 
-    Boolean eventsEnabled;
+    AccountAnalyticsConfig analytics;
 
-    Boolean enforceCcpa;
+    @JsonProperty("cookie-sync")
+    AccountCookieSyncConfig cookieSync;
 
-    AccountGdprConfig gdpr;
-
-    Integer analyticsSamplingFactor;
-
-    Integer truncateTargetAttr;
-
-    String defaultIntegration;
-
-    AccountAnalyticsConfig analyticsConfig;
+    AccountHooksConfiguration hooks;
 
     public static Account empty(String id) {
         return Account.builder()

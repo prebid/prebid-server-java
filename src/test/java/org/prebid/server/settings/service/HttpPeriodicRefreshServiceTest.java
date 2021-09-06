@@ -101,7 +101,6 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
         verify(cacheNotificationListener).save(expectedRequests, expectedImps);
         verify(cacheNotificationListener).invalidate(singletonList("id1"), emptyList());
         verify(cacheNotificationListener).save(emptyMap(), expectedImps);
-
     }
 
     @Test

@@ -7,7 +7,6 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.privacy.gdpr.GdprService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeEightStrategy;
@@ -27,7 +26,6 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV1;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
@@ -50,36 +48,6 @@ import java.util.Set;
 public class PrivacyServiceConfiguration {
 
     @Bean
-    VendorListServiceV1 vendorListServiceV1(
-            @Value("${gdpr.vendorlist.v1.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v1.http-endpoint-template}") String endpointTemplate,
-            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.vendorlist.v1.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-            @Value("${gdpr.vendorlist.v1.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
-            BidderCatalog bidderCatalog,
-            Vertx vertx,
-            FileSystem fileSystem,
-            HttpClient httpClient,
-            Metrics metrics,
-            JacksonMapper mapper) {
-
-        return new VendorListServiceV1(
-                cacheDir,
-                endpointTemplate,
-                defaultTimeoutMs,
-                refreshMissingListPeriodMs,
-                hostVendorId,
-                fallbackVendorListPath,
-                bidderCatalog,
-                vertx,
-                fileSystem,
-                httpClient,
-                metrics,
-                mapper);
-    }
-
-    @Bean
     VendorListServiceV2 vendorListServiceV2(
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
@@ -87,6 +55,7 @@ public class PrivacyServiceConfiguration {
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
+            @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
             BidderCatalog bidderCatalog,
             Vertx vertx,
             FileSystem fileSystem,
@@ -99,6 +68,7 @@ public class PrivacyServiceConfiguration {
                 endpointTemplate,
                 defaultTimeoutMs,
                 refreshMissingListPeriodMs,
+                deprecated,
                 hostVendorId,
                 fallbackVendorListPath,
                 bidderCatalog,
@@ -107,11 +77,6 @@ public class PrivacyServiceConfiguration {
                 httpClient,
                 metrics,
                 mapper);
-    }
-
-    @Bean
-    GdprService gdprService(VendorListServiceV1 vendorListServiceV1) {
-        return new GdprService(vendorListServiceV1);
     }
 
     @Bean
@@ -129,7 +94,6 @@ public class PrivacyServiceConfiguration {
     TcfDefinerService tcfDefinerService(
             GdprConfig gdprConfig,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
-            GdprService gdprService,
             Tcf2Service tcf2Service,
             @Autowired(required = false) GeoLocationService geoLocationService,
             BidderCatalog bidderCatalog,
@@ -141,7 +105,6 @@ public class PrivacyServiceConfiguration {
         return new TcfDefinerService(
                 gdprConfig,
                 eeaCountries,
-                gdprService,
                 tcf2Service,
                 geoLocationService,
                 bidderCatalog,

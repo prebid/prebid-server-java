@@ -1,0 +1,25 @@
+adapters:
+  outbrain:
+    enabled: false
+    endpoint: https://prebidtest.zemanta.com/api/bidder/prebidtest/bid/
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: prog-ops-team@outbrain.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 164
+    usersync:
+      url: https://prebidtest.zemanta.com/usersync/prebidtest?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
+      redirect-url: /setuid?bidder=outbrain&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=__ZUID__
+      cookie-family-name: outbrain
+      type: redirect
+      support-cors: false

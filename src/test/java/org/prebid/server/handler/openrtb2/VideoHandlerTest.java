@@ -17,12 +17,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -63,7 +63,7 @@ public class VideoHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -98,8 +98,8 @@ public class VideoHandlerTest extends VertxTest {
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter,
-                metrics, clock, jacksonMapper);
+        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService,
+                analyticsReporterDelegator, metrics, clock, jacksonMapper);
     }
 
     @Test

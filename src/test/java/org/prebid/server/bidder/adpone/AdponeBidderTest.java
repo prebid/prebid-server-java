@@ -147,6 +147,7 @@ public class AdponeBidderTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId").build();
         final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
+                        .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(singletonList(bid))
                                 .build()))
@@ -159,11 +160,6 @@ public class AdponeBidderTest extends VertxTest {
         Assertions.assertThat(result.getErrors()).isEmpty();
         Assertions.assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(bid, BidType.banner, "USD"));
-    }
-
-    @Test
-    public void extractTargetingShouldReturnEmptyMap() {
-        assertThat(adponeBidder.extractTargeting(mapper.createObjectNode())).isEqualTo(Collections.emptyMap());
     }
 
     private static BidRequest givenBidRequest(JsonNode bidderNode) {

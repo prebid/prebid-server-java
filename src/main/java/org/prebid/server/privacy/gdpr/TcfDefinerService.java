@@ -8,13 +8,16 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TCStringEmpty;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
@@ -25,7 +28,7 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -36,6 +39,14 @@ import java.util.stream.Collectors;
 public class TcfDefinerService {
 
     private static final Logger logger = LoggerFactory.getLogger(TcfDefinerService.class);
+    private static final ConditionalLogger AMP_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("amp_corrupt_consent", logger);
+    private static final ConditionalLogger APP_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("app_corrupt_consent", logger);
+    private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("site_corrupt_consent", logger);
+    private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("undefined_corrupt_consent", logger);
 
     private static final String GDPR_ZERO = "0";
     private static final String GDPR_ONE = "1";
@@ -43,7 +54,6 @@ public class TcfDefinerService {
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
     private final boolean consentStringMeansInScope;
-    private final GdprService gdprService;
     private final Tcf2Service tcf2Service;
     private final Set<String> eeaCountries;
     private final GeoLocationService geoLocationService;
@@ -53,7 +63,6 @@ public class TcfDefinerService {
 
     public TcfDefinerService(GdprConfig gdprConfig,
                              Set<String> eeaCountries,
-                             GdprService gdprService,
                              Tcf2Service tcf2Service,
                              GeoLocationService geoLocationService,
                              BidderCatalog bidderCatalog,
@@ -64,7 +73,6 @@ public class TcfDefinerService {
         this.gdprDefaultValue = gdprConfig != null ? gdprConfig.getDefaultValue() : null;
         this.consentStringMeansInScope = gdprConfig != null
                 && BooleanUtils.isTrue(gdprConfig.getConsentStringMeansInScope());
-        this.gdprService = Objects.requireNonNull(gdprService);
         this.tcf2Service = Objects.requireNonNull(tcf2Service);
         this.eeaCountries = Objects.requireNonNull(eeaCountries);
         this.geoLocationService = geoLocationService;
@@ -73,35 +81,45 @@ public class TcfDefinerService {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    public Future<TcfContext> resolveTcfContext(
-            Privacy privacy,
-            String country,
-            String ipAddress,
-            AccountGdprConfig accountGdprConfig,
-            MetricName requestType,
-            Timeout timeout) {
+    /**
+     * Used for auctions.
+     */
+    public Future<TcfContext> resolveTcfContext(Privacy privacy,
+                                                String country,
+                                                String ipAddress,
+                                                AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
+                                                RequestLogInfo requestLogInfo,
+                                                Timeout timeout,
+                                                List<String> debugWarnings) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());
         }
 
-        return toTcfContext(privacy, country, ipAddress, timeout)
+        return toTcfContext(privacy, country, ipAddress, requestLogInfo, timeout, debugWarnings)
                 .map(this::updateTcfGeoMetrics);
     }
 
-    public Future<TcfContext> resolveTcfContext(
-            Privacy privacy, String ipAddress, AccountGdprConfig accountGdprConfig, Timeout timeout) {
+    /**
+     * Used for cookie sync and setuid.
+     */
+    public Future<TcfContext> resolveTcfContext(Privacy privacy,
+                                                String ipAddress,
+                                                AccountGdprConfig accountGdprConfig,
+                                                MetricName requestType,
+                                                RequestLogInfo requestLogInfo,
+                                                Timeout timeout) {
 
-        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig, null, timeout);
+        return resolveTcfContext(privacy, null, ipAddress,
+                accountGdprConfig, requestType, requestLogInfo, timeout, null);
     }
 
     public Future<TcfResponse<Integer>> resultForVendorIds(Set<Integer> vendorIds, TcfContext tcfContext) {
         return resultForInternal(
                 tcfContext,
                 country -> createAllowAllTcfResponse(vendorIds, country),
-                (consentString, country) -> tcf2Service.permissionsFor(vendorIds, consentString)
-                        .map(vendorPermissions -> createVendorIdTcfResponse(vendorPermissions, country)),
-                (consentString, country) -> gdprService.resultFor(vendorIds, consentString)
+                (tcfConsent, country) -> tcf2Service.permissionsFor(vendorIds, tcfConsent)
                         .map(vendorPermissions -> createVendorIdTcfResponse(vendorPermissions, country)));
     }
 
@@ -114,9 +132,7 @@ public class TcfDefinerService {
                 country -> createAllowAllTcfResponse(bidderNames, country),
                 (consentString, country) ->
                         tcf2Service.permissionsFor(bidderNames, vendorIdResolver, consentString, accountGdprConfig)
-                                .map(vendorPermissions -> createBidderNameTcfResponse(vendorPermissions, country)),
-                (consentString, country) ->
-                        bidderNameResultFromGdpr(bidderNames, vendorIdResolver, consentString, country));
+                                .map(vendorPermissions -> createBidderNameTcfResponse(vendorPermissions, country)));
     }
 
     public Future<TcfResponse<String>> resultForBidderNames(
@@ -128,8 +144,7 @@ public class TcfDefinerService {
     private <T> Future<TcfResponse<T>> resultForInternal(
             TcfContext tcfContext,
             Function<String, Future<TcfResponse<T>>> allowAllTcfResponseCreator,
-            BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy,
-            BiFunction<String, String, Future<TcfResponse<T>>> gdprStrategy) {
+            BiFunction<TCString, String, Future<TcfResponse<T>>> tcf2Strategy) {
 
         final GeoInfo geoInfo = tcfContext.getGeoInfo();
         final String country = geoInfo != null ? geoInfo.getCountry() : null;
@@ -138,11 +153,7 @@ public class TcfDefinerService {
             return allowAllTcfResponseCreator.apply(country);
         }
 
-        final TCString consent = tcfContext.getConsent();
-
-        return consent.getVersion() == 2
-                ? tcf2Strategy.apply(consent, country)
-                : gdprStrategy.apply(tcfContext.getConsentString(), country);
+        return tcf2Strategy.apply(tcfContext.getConsent(), country);
     }
 
     private boolean isGdprEnabled(AccountGdprConfig accountGdprConfig, MetricName requestType) {
@@ -161,16 +172,23 @@ public class TcfDefinerService {
         return ObjectUtils.firstNonNull(enabledForType, accountGdprEnabled, gdprEnabled);
     }
 
-    private Future<TcfContext> toTcfContext(Privacy privacy, String country, String ipAddress, Timeout timeout) {
+    private Future<TcfContext> toTcfContext(Privacy privacy,
+                                            String country,
+                                            String ipAddress,
+                                            RequestLogInfo requestLogInfo,
+                                            Timeout timeout,
+                                            List<String> debugWarnings) {
         final String consentString = privacy.getConsentString();
-        final TCString consent = parseConsentString(consentString);
+        final TCString consent = parseConsentString(consentString, requestLogInfo, debugWarnings);
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
+        final boolean consentIsValid = isConsentValid(consent);
 
-        if (consentStringMeansInScope && isConsentValid(consent)) {
+        if (consentStringMeansInScope && consentIsValid) {
             return Future.succeededFuture(TcfContext.builder()
                     .gdpr(GDPR_ONE)
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(true)
                     .ipAddress(effectiveIpAddress)
                     .build());
         }
@@ -181,6 +199,7 @@ public class TcfDefinerService {
                     .gdpr(gdpr)
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(consentIsValid)
                     .ipAddress(effectiveIpAddress)
                     .build());
         }
@@ -193,6 +212,7 @@ public class TcfDefinerService {
                     .gdpr(gdprFromGeo(inEea))
                     .consentString(consentString)
                     .consent(consent)
+                    .isConsentValid(consentIsValid)
                     .inEea(inEea)
                     .ipAddress(effectiveIpAddress)
                     .build());
@@ -212,7 +232,18 @@ public class TcfDefinerService {
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
-        return shouldMaskIp(consent) ? ipAddressHelper.maskIpv4(ipAddress) : ipAddress;
+        if (!shouldMaskIp(consent)) {
+            return ipAddress;
+        }
+
+        final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
+        if (ip == null) {
+            return ipAddress;
+        }
+
+        return ip.getVersion() == IpAddress.IP.v4
+                ? ipAddressHelper.maskIpv4(ipAddress)
+                : ipAddressHelper.anonymizeIpv6(ipAddress);
     }
 
     private static boolean shouldMaskIp(TCString consent) {
@@ -228,6 +259,7 @@ public class TcfDefinerService {
                 .gdpr(gdprFromGeo(inEea))
                 .consentString(consentString)
                 .consent(consent)
+                .isConsentValid(isConsentValid(consent))
                 .geoInfo(geoInfo)
                 .inEea(inEea)
                 .ipAddress(ipAddress)
@@ -261,6 +293,7 @@ public class TcfDefinerService {
                 .gdpr(gdprDefaultValue)
                 .consentString(consentString)
                 .consent(consent)
+                .isConsentValid(isConsentValid(consent))
                 .ipAddress(ipAddress)
                 .build();
     }
@@ -301,56 +334,6 @@ public class TcfDefinerService {
                 country);
     }
 
-    private Future<TcfResponse<String>> bidderNameResultFromGdpr(
-            Set<String> bidderNames, VendorIdResolver vendorIdResolver, String consentString, String country) {
-
-        final Map<String, Integer> bidderToVendorId = resolveBidderToVendorId(bidderNames, vendorIdResolver);
-        final Set<Integer> vendorIds = bidderToVendorId.values().stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        return gdprService.resultFor(vendorIds, consentString)
-                .map(vendorPermissions -> gdprResponseToTcfResponse(vendorPermissions, bidderToVendorId, country));
-    }
-
-    private static Map<String, Integer> resolveBidderToVendorId(
-            Set<String> bidderNames, VendorIdResolver vendorIdResolver) {
-
-        final Map<String, Integer> bidderToVendorId = new HashMap<>();
-        bidderNames.forEach(bidderName -> bidderToVendorId.put(bidderName, vendorIdResolver.resolve(bidderName)));
-        return bidderToVendorId;
-    }
-
-    private static TcfResponse<String> gdprResponseToTcfResponse(Collection<VendorPermission> vendorPermissions,
-                                                                 Map<String, Integer> bidderToVendorId,
-                                                                 String country) {
-
-        final Map<String, PrivacyEnforcementAction> bidderNameToAction = new HashMap<>();
-
-        final Map<Integer, Set<String>> vendorIdToBidders = bidderToVendorId.entrySet().stream()
-                .filter(entry -> entry.getValue() != null)
-                .collect(Collectors.groupingBy(
-                        Map.Entry::getValue,
-                        Collectors.mapping(Map.Entry::getKey, Collectors.toSet())));
-
-        for (final VendorPermission vendorPermission : vendorPermissions) {
-            final Integer vendorId = vendorPermission.getVendorId();
-
-            if (vendorIdToBidders.containsKey(vendorId)) {
-                final PrivacyEnforcementAction action = vendorPermission.getPrivacyEnforcementAction();
-                vendorIdToBidders.get(vendorId).forEach(bidderName -> bidderNameToAction.put(bidderName, action));
-            }
-        }
-
-        // process bidders whose vendorIds weren't resolved
-        bidderToVendorId.entrySet().stream()
-                .filter(entry -> entry.getValue() == null)
-                .map(Map.Entry::getKey)
-                .forEach(bidder -> bidderNameToAction.put(bidder, restrictAllButAnalyticsAndAuction()));
-
-        return TcfResponse.of(true, bidderNameToAction, country);
-    }
-
     private static <T> Map<T, PrivacyEnforcementAction> allowAll(Collection<T> identifiers) {
         return identifiers.stream()
                 .collect(Collectors.toMap(Function.identity(), ignored -> PrivacyEnforcementAction.allowAll()));
@@ -365,31 +348,80 @@ public class TcfDefinerService {
      * <p>
      * Note: parsing TC string should not fail the entire request, but assume the user does not consent.
      */
-    private TCString parseConsentString(String consentString) {
+    private TCString parseConsentString(String consentString,
+                                        RequestLogInfo requestLogInfo,
+                                        List<String> debugWarnings) {
         if (StringUtils.isBlank(consentString)) {
             metrics.updatePrivacyTcfMissingMetric();
             return TCStringEmpty.create();
         }
 
-        final TCString tcString = decodeTcString(consentString);
+        final TCString tcString = decodeTcString(consentString, requestLogInfo);
         if (tcString == null) {
             metrics.updatePrivacyTcfInvalidMetric();
             return TCStringEmpty.create();
         }
 
+        final int version = tcString.getVersion();
+        metrics.updatePrivacyTcfRequestsMetric(version);
+        // disable TCF1 support
+        if (version == 1) {
+            if (debugWarnings != null) {
+                debugWarnings.add(
+                        String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
+                                + "deprecated and treated as corrupted TCF version 2", consentString));
+            }
+            return TCStringEmpty.create();
+        }
         return tcString;
     }
 
-    private TCString decodeTcString(String consentString) {
+    private TCString decodeTcString(String consentString, RequestLogInfo requestLogInfo) {
         try {
             return TCString.decode(consentString);
         } catch (Throwable e) {
-            logger.info("Parsing consent string ''{0}'' failed: {1}", consentString, e.getMessage());
+            logWarn(consentString, e.getMessage(), requestLogInfo);
             return null;
         }
     }
 
-    public static boolean isConsentValid(TCString consent) {
+    private static void logWarn(String consent, String message, RequestLogInfo requestLogInfo) {
+        if (requestLogInfo == null || requestLogInfo.getRequestType() == null) {
+            final String exceptionMessage = String.format("Parsing consent string:\"%s\" failed for undefined type "
+                    + "with exception %s", consent, message);
+            UNDEFINED_CORRUPT_CONSENT_LOGGER.info(exceptionMessage, 100);
+            return;
+        }
+
+        switch (requestLogInfo.getRequestType()) {
+            case amp:
+                AMP_CORRUPT_CONSENT_LOGGER.info(
+                        logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
+                break;
+            case openrtb2app:
+                APP_CORRUPT_CONSENT_LOGGER.info(
+                        logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+                break;
+            case openrtb2web:
+                SITE_CORRUPT_CONSENT_LOGGER.info(
+                        logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
+                break;
+            case video:
+            case cookiesync:
+            case setuid:
+            default:
+                UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
+                        logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);
+        }
+    }
+
+    private static String logMessage(String consent, String type, RequestLogInfo requestLogInfo, String message) {
+        return String.format(
+                "Parsing consent string: \"%s\" failed for: %s type for account id: %s with ref: %s with exception: %s",
+                consent, type, requestLogInfo.getAccountId(), requestLogInfo.getRefUrl(), message);
+    }
+
+    private static boolean isConsentValid(TCString consent) {
         return consent != null && !(consent instanceof TCStringEmpty);
     }
 
@@ -400,17 +432,5 @@ public class TcfDefinerService {
         } catch (RuntimeException e) {
             return false;
         }
-    }
-
-    private static PrivacyEnforcementAction restrictAllButAnalyticsAndAuction() {
-        return PrivacyEnforcementAction.builder()
-                .removeUserIds(true)
-                .maskGeo(true)
-                .maskDeviceIp(true)
-                .maskDeviceInfo(true)
-                .blockAnalyticsReport(false)
-                .blockBidderRequest(false)
-                .blockPixelSync(true)
-                .build();
     }
 }

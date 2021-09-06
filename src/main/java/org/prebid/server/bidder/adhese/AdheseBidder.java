@@ -3,25 +3,32 @@ package org.prebid.server.bidder.adhese;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adhese.model.AdheseBid;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
+import org.prebid.server.bidder.adhese.model.AdheseRequestBody;
 import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
+import org.prebid.server.bidder.adhese.model.Cpm;
+import org.prebid.server.bidder.adhese.model.CpmValues;
+import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -33,24 +40,25 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
+/**
+ * Adhese {@link Bidder} implementation.
+ */
 public class AdheseBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
             };
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final String ORIGIN = "JERLICIA";
-    private static final String QUERY_PARAMETER_GDPR = "/xt";
-    private static final String QUERY_PARAMETER_REFERER = "/xf";
+    private static final String ORIGIN_BID = "JERLICIA";
+    private static final String GDPR_QUERY_PARAMETER = "xt";
+    private static final String REFERER_QUERY_PARAMETER = "xf";
+    private static final String IFA_QUERY_PARAMETER = "xz";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -63,27 +71,35 @@ public class AdheseBidder implements Bidder<Void> {
     @Override
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.emptyWithError(BidderError.badInput("No impression in the bid request"));
+            return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
 
-        ExtImpAdhese extImpAdhese;
+        final ExtImpAdhese extImpAdhese;
         try {
             extImpAdhese = parseImpExt(request.getImp().get(0));
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String uri = buildUrl(request, endpointUrl, extImpAdhese);
+        final String uri = getUrl(extImpAdhese);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
+                        .method(HttpMethod.POST)
                         .uri(uri)
-                        .body(null)
-                        .headers(HttpUtil.headers())
-                        .payload(null)
+                        .body(mapper.encode(buildBody(request, extImpAdhese)))
+                        .headers(replaceHeaders(request.getDevice()))
                         .build()),
                 Collections.emptyList());
+    }
+
+    private MultiMap replaceHeaders(Device device) {
+        MultiMap headers = HttpUtil.headers();
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpHeaders.createOptimized("X-Real-IP"), device.getIp());
+        }
+        return headers;
     }
 
     private ExtImpAdhese parseImpExt(Imp imp) {
@@ -94,83 +110,122 @@ public class AdheseBidder implements Bidder<Void> {
         }
     }
 
-    private String buildUrl(BidRequest request, String endpointUrl, ExtImpAdhese extImpAdhese) {
-        final String uri = endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
-        final String slotParameter = String.format("/sl%s-%s", HttpUtil.encodeUrl(extImpAdhese.getLocation()),
+    private AdheseRequestBody buildBody(BidRequest request, ExtImpAdhese extImpAdhese) {
+        final Map<String, List<String>> parameterMap = new TreeMap<>();
+        parameterMap.putAll(getTargetParameters(extImpAdhese));
+        parameterMap.putAll(getGdprParameter(request.getUser()));
+        parameterMap.putAll(getRefererParameter(request.getSite()));
+        parameterMap.putAll(getIfaParameter(request.getDevice()));
+
+        return AdheseRequestBody.builder()
+                .slots(Collections.singletonList(
+                        AdheseRequestBody.Slot.builder()
+                                .slotname(getSlotParameter(extImpAdhese))
+                                .build()))
+                .parameters(parameterMap)
+                .build();
+    }
+
+    private String getUrl(ExtImpAdhese extImpAdhese) {
+        return endpointUrl.replace("{{AccountId}}", extImpAdhese.getAccount());
+    }
+
+    private static String getSlotParameter(ExtImpAdhese extImpAdhese) {
+        return String.format("%s-%s",
+                HttpUtil.encodeUrl(extImpAdhese.getLocation()),
                 HttpUtil.encodeUrl(extImpAdhese.getFormat()));
-
-        return String.format("%s%s%s%s%s", uri, slotParameter, getTargetParameters(extImpAdhese),
-                getGdprParameter(request.getUser()), getRefererParameter(request.getSite()));
     }
 
-    private String getTargetParameters(ExtImpAdhese extImpAdhese) {
-        final JsonNode keywords = extImpAdhese.getKeywords();
-        if (keywords == null || keywords.isNull()) {
-            return "";
-        }
-
-        final Map<String, List<String>> targetParameters = parseTargetParametersAndSort(extImpAdhese.getKeywords());
-        return targetParameters.entrySet().stream()
-                .map(stringListEntry -> createPartOrUrl(stringListEntry.getKey(), stringListEntry.getValue()))
-                .collect(Collectors.joining());
+    private Map<String, List<String>> getTargetParameters(ExtImpAdhese extImpAdhese) {
+        final JsonNode targets = extImpAdhese.getTargets();
+        return targets == null || targets.isEmpty() ? Collections.emptyMap() : parseTargetParametersAndSort(targets);
     }
 
-    private Map<String, List<String>> parseTargetParametersAndSort(JsonNode keywords) {
-        return keywords != null ? new TreeMap<>(
-                mapper.mapper().convertValue(keywords, new TypeReference<Map<String, List<String>>>() {
-                })) : null;
+    private Map<String, List<String>> parseTargetParametersAndSort(JsonNode targets) {
+        return new TreeMap<>(
+                mapper.mapper().convertValue(targets, new TypeReference<Map<String, List<String>>>() {
+                }));
     }
 
-    private String createPartOrUrl(String key, List<String> values) {
-        final String formattedValues = String.join(";", values);
-        return String.format("/%s%s", HttpUtil.encodeUrl(key), formattedValues);
-    }
-
-    private String getGdprParameter(User user) {
+    private static Map<String, List<String>> getGdprParameter(User user) {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String consent = extUser != null ? extUser.getConsent() : null;
-        return StringUtils.isNotBlank(consent) ? String.format("%s%s", QUERY_PARAMETER_GDPR, consent) : "";
+        return StringUtils.isNotBlank(consent)
+                ? Collections.singletonMap(GDPR_QUERY_PARAMETER, Collections.singletonList(consent))
+                : Collections.emptyMap();
     }
 
-    private String getRefererParameter(Site site) {
+    private static Map<String, List<String>> getRefererParameter(Site site) {
         final String page = site != null ? site.getPage() : null;
         return StringUtils.isNotBlank(page)
-                ? String.format("%s%s", QUERY_PARAMETER_REFERER, HttpUtil.encodeUrl(page))
-                : "";
+                ? Collections.singletonMap(REFERER_QUERY_PARAMETER, Collections.singletonList(page))
+                : Collections.emptyMap();
+    }
+
+    private static Map<String, List<String>> getIfaParameter(Device device) {
+        final String ifa = device != null ? device.getIfa() : null;
+        return StringUtils.isNotBlank(ifa)
+                ? Collections.singletonMap(IFA_QUERY_PARAMETER, Collections.singletonList(ifa))
+                : Collections.emptyMap();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
+        final HttpResponse httpResponse = httpCall.getResponse();
+
+        final JsonNode bodyNode;
+        try {
+            bodyNode = mapper.decodeValue(httpResponse.getBody(), JsonNode.class);
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+        if (!bodyNode.isArray()) {
+            return Result.withError(BidderError.badServerResponse("Unexpected response body"));
+        }
+        if (bodyNode.size() == 0) {
             return Result.empty();
         }
 
-        final List<AdheseBid> adheseBid;
-        final List<AdheseResponseExt> adheseResponseExt;
-        final List<AdheseOriginData> adheseOriginData;
-        final AdheseBid firstAdheseBid;
-        Bid bid;
+        final JsonNode bidNode = bodyNode.get(0);
+        final AdheseBid adheseBid;
         try {
-            adheseBid = decodeBodyToBidList(httpCall, AdheseBid.class);
-            firstAdheseBid = adheseBid.get(0);
-            if (Objects.equals(firstAdheseBid.getOrigin(), ORIGIN)) {
-                adheseResponseExt = decodeBodyToBidList(httpCall, AdheseResponseExt.class);
-                adheseOriginData = decodeBodyToBidList(httpCall, AdheseOriginData.class);
-                bid = convertAdheseBid(firstAdheseBid, adheseResponseExt.get(0), adheseOriginData.get(0));
-            } else {
-                bid = convertAdheseOpenRtbBid(firstAdheseBid);
-            }
+            adheseBid = toObjectOfType(bidNode, AdheseBid.class);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
-        final BigDecimal price = new BigDecimal(firstAdheseBid.getExtension().getPrebid().getCpm().getAmount());
-        final Integer width = Integer.valueOf(firstAdheseBid.getWidth());
-        final Integer height = Integer.valueOf(firstAdheseBid.getHeight());
+        final Bid bid;
+        if (Objects.equals(adheseBid.getOrigin(), ORIGIN_BID)) {
+            final AdheseResponseExt responseExt;
+            final AdheseOriginData originData;
+            try {
+                responseExt = toObjectOfType(bidNode, AdheseResponseExt.class);
+                originData = toObjectOfType(bidNode, AdheseOriginData.class);
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badServerResponse(e.getMessage()));
+            }
+            bid = convertAdheseBid(adheseBid, responseExt, originData);
+        } else {
+            bid = convertAdheseOpenRtbBid(adheseBid);
+        }
+        if (bid == null) {
+            return Result.withError(BidderError.badServerResponse("Response resulted in an empty seatBid array"));
+        }
 
-        final Bid updateBid = bid != null
-                ? Bid.builder()
+        final BigDecimal price;
+        final Integer width;
+        final Integer height;
+        try {
+            price = getPrice(adheseBid);
+            width = Integer.valueOf(adheseBid.getWidth());
+            height = Integer.valueOf(adheseBid.getHeight());
+        } catch (NumberFormatException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+
+        final Bid updatedBid = Bid.builder()
+                .id("1") // hardcoded because it is not provided and should be not empty value
+                .impid(bidRequest.getImp().get(0).getId())
                 .price(price)
                 .w(width)
                 .h(height)
@@ -178,42 +233,27 @@ public class AdheseBidder implements Bidder<Void> {
                 .crid(bid.getCrid())
                 .adm(bid.getAdm())
                 .ext(bid.getExt())
-                .build()
-                : null;
+                .build();
 
-        if (updateBid == null) {
-            return Result.emptyWithError(BidderError
-                    .badServerResponse("Response resulted in an empty seatBid array. %s."));
-        }
-
-        /**
-         * Used ImpId from Imp of bidRequest, because it is not provided and should be not empty value
-         */
-        final List<BidderError> errors = new ArrayList<>();
-        return Result.of(Collections.singletonList(makeBid(updateBid, bidRequest.getImp().get(0).getId(), errors)),
-                errors);
+        final BidderBid bidderBid = BidderBid.of(updatedBid, getBidType(bid.getAdm()), getCurrency(adheseBid));
+        return Result.of(Collections.singletonList(bidderBid), Collections.emptyList());
     }
 
-    private <T> List<T> decodeBodyToBidList(HttpCall<Void> httpCall, Class<T> bidClassName) {
+    private <T> T toObjectOfType(JsonNode jsonNode, Class<T> clazz) {
         try {
-            return mapper.mapper().readValue(
-                    httpCall.getResponse().getBody(),
-                    mapper.mapper().getTypeFactory().constructCollectionType(List.class, bidClassName));
-        } catch (DecodeException | JsonProcessingException e) {
+            return mapper.mapper().treeToValue(jsonNode, clazz);
+        } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
     private Bid convertAdheseBid(AdheseBid adheseBid, AdheseResponseExt adheseResponseExt,
                                  AdheseOriginData adheseOriginData) {
-        final ObjectNode adheseExtJson = mapper.mapper().valueToTree(adheseOriginData);
-
         return Bid.builder()
-                .id("1")
                 .dealid(adheseResponseExt.getOrderId())
                 .crid(adheseResponseExt.getId())
                 .adm(getAdMarkup(adheseBid, adheseResponseExt))
-                .ext(adheseExtJson)
+                .ext(mapper.mapper().valueToTree(adheseOriginData))
                 .build();
     }
 
@@ -235,35 +275,37 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     private Bid convertAdheseOpenRtbBid(AdheseBid adheseBid) {
-        final List<SeatBid> seatbid = adheseBid.getOriginData().getSeatbid();
-        return CollectionUtils.isNotEmpty(seatbid)
-                && CollectionUtils.isNotEmpty(seatbid.get(0).getBid())
-                ? Bid.builder().adm(adheseBid.getBody()).build()
-                : null;
+        final BidResponse originData = adheseBid.getOriginData();
+        final List<SeatBid> seatBids = originData != null ? originData.getSeatbid() : null;
+
+        return CollectionUtils.emptyIfNull(seatBids).stream()
+                .filter(Objects::nonNull)
+                .flatMap(seatBid -> seatBid.getBid().stream())
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(bid -> bid.toBuilder().adm(adheseBid.getBody()).build())
+                .orElse(null);
     }
 
-    private static BidderBid makeBid(Bid bid, String impId, List<BidderError> errors) {
-        /**
-         * Hardcoded bidId =1, because it is not provided and should be not empty value
-         */
-        try {
-            final BidType bidType = getBidType(bid.getAdm());
-            final Bid updateBid = bid.toBuilder().id("1").impid(impId).build();
-            return BidderBid.of(updateBid, bidType, DEFAULT_BID_CURRENCY);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
-        }
+    private static BigDecimal getPrice(AdheseBid adheseBid) {
+        final CpmValues cpmValues = getCpmValues(adheseBid.getExtension());
+        final String amount = cpmValues != null ? cpmValues.getAmount() : null;
+        return new BigDecimal(StringUtils.stripToEmpty(amount));
+    }
+
+    private static String getCurrency(AdheseBid adheseBid) {
+        final CpmValues cpmValues = getCpmValues(adheseBid.getExtension());
+        return cpmValues != null ? StringUtils.stripToNull(cpmValues.getCurrency()) : null;
+    }
+
+    private static CpmValues getCpmValues(Prebid prebid) {
+        final Cpm cpm = prebid != null ? prebid.getPrebid() : null;
+        return cpm != null ? cpm.getCpm() : null;
     }
 
     private static BidType getBidType(String bidAdm) {
-        return (StringUtils.isNotBlank(bidAdm) && StringUtils.containsAny(bidAdm, "<?xml", "<vast"))
+        return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video
                 : BidType.banner;
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }
