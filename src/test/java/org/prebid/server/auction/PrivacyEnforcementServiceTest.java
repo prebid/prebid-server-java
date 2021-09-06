@@ -478,7 +478,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.builder()
                         .privacy(AccountPrivacyConfig.of(
                                 null,
-                                null,
                                 AccountCcpaConfig.builder()
                                         .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
                                         .build()))
@@ -529,7 +528,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final AuctionContext context = AuctionContext.builder()
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(true, null, null))
+                        .privacy(AccountPrivacyConfig.of( null, AccountCcpaConfig.builder().enabled(true).build()))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
@@ -578,7 +577,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext context = AuctionContext.builder()
                 .account(Account.builder()
                         .privacy(AccountPrivacyConfig.of(
-                                null,
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build()))
                         .build())
@@ -1466,7 +1464,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(false, null, null))
+                .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(false).build()))
                 .build();
 
         // when and then
@@ -1497,7 +1495,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(
-                        null,
                         null,
                         AccountCcpaConfig.builder().enabled(true).build()))
                 .build();

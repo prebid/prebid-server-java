@@ -255,30 +255,28 @@ public class PrivacyEnforcementService {
         final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
         final AccountCcpaConfig accountCcpaConfig =
                 accountPrivacyConfig != null ? accountPrivacyConfig.getCcpa() : null;
-        final Boolean accountEnforceCcpa = accountPrivacyConfig != null ? accountPrivacyConfig.getEnforceCcpa() : null;
         final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
 
-        return ObjectUtils.firstNonNull(accountCcpaEnabled, accountEnforceCcpa, ccpaEnforce);
+        return ObjectUtils.firstNonNull(accountCcpaEnabled, ccpaEnforce);
     }
 
     private boolean isCcpaEnabled(Account account, MetricName requestType) {
         final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
         final AccountCcpaConfig accountCcpaConfig =
                 accountPrivacyConfig != null ? accountPrivacyConfig.getCcpa() : null;
-        final Boolean accountEnforceCcpa = accountPrivacyConfig != null ? accountPrivacyConfig.getEnforceCcpa() : null;
         final Boolean accountCcpaEnabled = accountCcpaConfig != null ? accountCcpaConfig.getEnabled() : null;
         if (requestType == null) {
-            return ObjectUtils.firstNonNull(accountCcpaEnabled, accountEnforceCcpa, ccpaEnforce);
+            return ObjectUtils.firstNonNull(accountCcpaEnabled, ccpaEnforce);
         }
 
         final EnabledForRequestType enabledForRequestType = accountCcpaConfig != null
-                ? accountCcpaConfig.getEnabledForRequestType()
-                : null;
+                                                            ? accountCcpaConfig.getEnabledForRequestType()
+                                                            : null;
 
         final Boolean enabledForType = enabledForRequestType != null
-                ? enabledForRequestType.isEnabledFor(requestType)
-                : null;
-        return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, accountEnforceCcpa, ccpaEnforce);
+                                       ? enabledForRequestType.isEnabledFor(requestType)
+                                       : null;
+        return ObjectUtils.firstNonNull(enabledForType, accountCcpaEnabled, ccpaEnforce);
     }
 
     private Map<String, BidderPrivacyResult> maskCcpa(
@@ -307,16 +305,16 @@ public class PrivacyEnforcementService {
 
     private Device maskCcpaDevice(Device device) {
         return device != null
-                ? device.toBuilder()
-                .ip(ipAddressHelper.maskIpv4(device.getIp()))
-                .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
-                .geo(maskGeoDefault(device.getGeo()))
-                .ifa(null)
-                .macsha1(null).macmd5(null)
-                .dpidsha1(null).dpidmd5(null)
-                .didsha1(null).didmd5(null)
-                .build()
-                : null;
+               ? device.toBuilder()
+                       .ip(ipAddressHelper.maskIpv4(device.getIp()))
+                       .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
+                       .geo(maskGeoDefault(device.getGeo()))
+                       .ifa(null)
+                       .macsha1(null).macmd5(null)
+                       .dpidsha1(null).dpidmd5(null)
+                       .didsha1(null).didmd5(null)
+                       .build()
+               : null;
     }
 
     private static boolean isCoppaMaskingRequired(Privacy privacy) {
@@ -351,16 +349,16 @@ public class PrivacyEnforcementService {
 
     private Device maskCoppaDevice(Device device) {
         return device != null
-                ? device.toBuilder()
-                .ip(ipAddressHelper.maskIpv4(device.getIp()))
-                .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
-                .geo(maskGeoForCoppa(device.getGeo()))
-                .ifa(null)
-                .macsha1(null).macmd5(null)
-                .dpidsha1(null).dpidmd5(null)
-                .didsha1(null).didmd5(null)
-                .build()
-                : null;
+               ? device.toBuilder()
+                       .ip(ipAddressHelper.maskIpv4(device.getIp()))
+                       .ipv6(ipAddressHelper.anonymizeIpv6(device.getIpv6()))
+                       .geo(maskGeoForCoppa(device.getGeo()))
+                       .ifa(null)
+                       .macsha1(null).macmd5(null)
+                       .dpidsha1(null).dpidmd5(null)
+                       .didsha1(null).didmd5(null)
+                       .build()
+               : null;
     }
 
     /**
@@ -368,8 +366,8 @@ public class PrivacyEnforcementService {
      */
     private static Geo maskGeoForCoppa(Geo geo) {
         final Geo updatedGeo = geo != null
-                ? geo.toBuilder().lat(null).lon(null).metro(null).city(null).zip(null).build()
-                : null;
+                               ? geo.toBuilder().lat(null).lon(null).metro(null).city(null).zip(null).build()
+                               : null;
         return updatedGeo == null || updatedGeo.equals(Geo.EMPTY) ? null : updatedGeo;
     }
 
@@ -395,8 +393,8 @@ public class PrivacyEnforcementService {
         final ExtRequest extBidRequest = bidRequest.getExt();
         final ExtRequestPrebid extRequestPrebid = extBidRequest != null ? extBidRequest.getPrebid() : null;
         final List<String> nosaleBidders = extRequestPrebid != null
-                ? ListUtils.emptyIfNull(extRequestPrebid.getNosale())
-                : Collections.emptyList();
+                                           ? ListUtils.emptyIfNull(extRequestPrebid.getNosale())
+                                           : Collections.emptyList();
 
         if (nosaleBidders.size() == 1 && nosaleBidders.contains(CATCH_ALL_BIDDERS)) {
             ccpaEnforcedBidders.clear();
@@ -600,11 +598,11 @@ public class PrivacyEnforcementService {
      */
     private static Geo maskGeoDefault(Geo geo) {
         return geo != null
-                ? geo.toBuilder()
-                .lat(maskGeoCoordinate(geo.getLat()))
-                .lon(maskGeoCoordinate(geo.getLon()))
-                .build()
-                : null;
+               ? geo.toBuilder()
+                       .lat(maskGeoCoordinate(geo.getLat()))
+                       .lon(maskGeoCoordinate(geo.getLon()))
+                       .build()
+               : null;
     }
 
     /**
@@ -619,8 +617,8 @@ public class PrivacyEnforcementService {
      */
     private static ExtUser maskUserExt(ExtUser userExt) {
         return userExt != null
-                ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
-                : null;
+               ? nullIfEmpty(userExt.toBuilder().eids(null).digitrust(null).build())
+               : null;
     }
 
     /**
