@@ -106,8 +106,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null,
+                requestHeaders, false);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -137,8 +137,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null,
+                requestHeaders, false);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -167,8 +167,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null,
+                requestHeaders, false);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -214,8 +214,8 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, null, bidderRequest, null,
+                requestHeaders, false);
 
         // then
         assertThat(result.succeeded()).isTrue();
