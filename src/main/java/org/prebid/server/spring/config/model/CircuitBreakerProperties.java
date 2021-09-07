@@ -14,6 +14,10 @@ public class CircuitBreakerProperties {
 
     @NotNull
     @Min(1)
+    private Integer idleExpireHours;
+
+    @NotNull
+    @Min(1)
     private Integer openingThreshold;
 
     @NotNull

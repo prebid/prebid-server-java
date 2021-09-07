@@ -408,9 +408,15 @@ public class ServiceConfiguration {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
-        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
-                circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(), clock);
+        return new CircuitBreakerSecuredHttpClient(
+                vertx,
+                httpClient,
+                metrics,
+                circuitBreakerProperties.getOpeningThreshold(),
+                circuitBreakerProperties.getIdleExpireHours(),
+                circuitBreakerProperties.getOpeningIntervalMs(),
+                circuitBreakerProperties.getClosingIntervalMs(),
+                clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
