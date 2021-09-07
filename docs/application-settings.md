@@ -102,10 +102,10 @@ Here's an example YAML file containing account-specific settings:
         ccpa:
           enabled: true
           integration-enabled:
-              video: true
-              web: true
-              app: true
-              amp: true
+            video: true
+            web: true
+            app: true
+            amp: true
         gdpr:
           enabled: true
           integration-enabled:
