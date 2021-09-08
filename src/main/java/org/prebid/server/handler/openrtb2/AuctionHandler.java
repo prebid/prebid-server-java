@@ -202,7 +202,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                         .end(body));
 
         if (responseSent) {
-            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {
