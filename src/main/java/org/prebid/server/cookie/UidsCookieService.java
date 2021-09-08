@@ -53,7 +53,7 @@ public class UidsCookieService {
 
         if (maxCookieSizeBytes != 0 && maxCookieSizeBytes < MIN_COOKIE_SIZE_BYTES) {
             throw new IllegalArgumentException(String.format(
-                "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
+                    "Configured cookie size is less than allowed minimum size of %d", maxCookieSizeBytes));
         }
 
         this.optOutCookieName = optOutCookieName;
@@ -97,8 +97,8 @@ public class UidsCookieService {
         final Uids parsedUids = parseUids(cookies);
 
         final Uids.UidsBuilder uidsBuilder = Uids.builder()
-            .uidsLegacy(Collections.emptyMap())
-            .bday(parsedUids != null ? parsedUids.getBday() : ZonedDateTime.now(Clock.systemUTC()));
+                .uidsLegacy(Collections.emptyMap())
+                .bday(parsedUids != null ? parsedUids.getBday() : ZonedDateTime.now(Clock.systemUTC()));
 
         final Boolean optout;
         final Map<String, UidWithExpiry> uidsMap;
@@ -139,17 +139,17 @@ public class UidsCookieService {
 
         while (maxCookieSizeBytes > 0 && cookieBytes.length > maxCookieSizeBytes) {
             final String familyName = modifiedUids.getCookieUids().getUids().entrySet().stream()
-                .reduce(UidsCookieService::getClosestExpiration)
-                .map(Map.Entry::getKey)
-                .orElse(null);
+                    .reduce(UidsCookieService::getClosestExpiration)
+                    .map(Map.Entry::getKey)
+                    .orElse(null);
             modifiedUids = modifiedUids.deleteUid(familyName);
             cookieBytes = modifiedUids.toJson().getBytes();
         }
 
         final Cookie cookie = Cookie
-            .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(cookieBytes))
-            .setPath("/")
-            .setMaxAge(ttlSeconds);
+                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(cookieBytes))
+                .setPath("/")
+                .setMaxAge(ttlSeconds);
 
         if (StringUtils.isNotBlank(hostCookieDomain)) {
             cookie.setDomain(hostCookieDomain);
@@ -199,7 +199,7 @@ public class UidsCookieService {
     private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, Map<String, String> cookies) {
         final Map<String, UidWithExpiry> originalUidsMap = uids != null ? uids.getUids() : null;
         final Map<String, UidWithExpiry> workingUidsMap = new HashMap<>(
-            ObjectUtils.defaultIfNull(originalUidsMap, Collections.emptyMap()));
+                ObjectUtils.defaultIfNull(originalUidsMap, Collections.emptyMap()));
 
         final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
         if (workingUidsMap.isEmpty() && legacyUids != null) {
@@ -226,6 +226,6 @@ public class UidsCookieService {
 
     private static boolean facebookSentinelOrEmpty(Map.Entry<String, UidWithExpiry> entry) {
         return UidsCookie.isFacebookSentinel(entry.getKey(), entry.getValue().getUid())
-            || StringUtils.isEmpty(entry.getValue().getUid());
+                || StringUtils.isEmpty(entry.getValue().getUid());
     }
 }

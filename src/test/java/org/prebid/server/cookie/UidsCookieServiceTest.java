@@ -52,7 +52,7 @@ public class UidsCookieServiceTest extends VertxTest {
     @Before
     public void setUp() {
         uidsCookieService = new UidsCookieService(
-            "trp_optout", "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout", "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
     }
 
     @Test
@@ -60,7 +60,7 @@ public class UidsCookieServiceTest extends VertxTest {
         // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         final Map<String, String> cookies = singletonMap("uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==");
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==");
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromCookies(cookies);
@@ -76,8 +76,8 @@ public class UidsCookieServiceTest extends VertxTest {
         // given
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie(
-            "uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")));
+                "uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -137,7 +137,7 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutTrueIfUidsCookieIsMissingAndOptoutCookieHasExpectedValue() {
         // given
         given(routingContext.cookieMap()).willReturn(
-            singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE)));
+                singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE)));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -152,7 +152,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final Map<String, Cookie> cookies = new HashMap<>();
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         cookies.put("uids", Cookie.cookie("uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
         cookies.put(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -172,7 +172,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final Map<String, Cookie> cookies = new HashMap<>();
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         cookies.put("uids", Cookie.cookie("uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
         cookies.put(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, "dummy"));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -190,9 +190,9 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieNameNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService(
-            null, "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                null, "true", null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
-            singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
+                singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -205,9 +205,9 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieValueNotSpecified() {
         // given
         uidsCookieService = new UidsCookieService(
-            "trp_optout", null, null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout", null, null, null, "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
         given(routingContext.cookieMap()).willReturn(
-            singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
+                singletonMap(OPT_OUT_COOKIE_NAME, Cookie.cookie("trp_optout", "true")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -220,7 +220,7 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsAbsent() {
         // given
         uidsCookieService = new UidsCookieService(
-            "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
         given(routingContext.cookieMap()).willReturn(singletonMap("khaos", Cookie.cookie("khaos", "abc123")));
 
         // when
@@ -234,12 +234,12 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnRubiconCookieValueFromHostCookieWhenUidValueIsPresentButDiffers() {
         // given
         uidsCookieService = new UidsCookieService(
-            "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout", "true", "rubicon", "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
 
         final Map<String, Cookie> cookies = new HashMap<>();
         // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
         cookies.put("uids", Cookie.cookie("uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
         cookies.put("khaos", Cookie.cookie("khaos", "abc123"));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -275,18 +275,18 @@ public class UidsCookieServiceTest extends VertxTest {
     public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() throws IOException {
         // given
         final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new LinkedHashMap<>()).build(), jacksonMapper)
-            .updateUid("improvedigital", "improvedigitalUid")
-            .updateUid(RUBICON, "rubiconUid")
-            .updateUid("conversant", "conversantUid")
-            .updateUid(ADNXS, "adnxsUid")
-            .updateUid("sharethrough", "sharethroughUid")
-            .updateUid("somoaudience", "somoaudienceUid")
-            .updateUid("verizonmedia", "verizonmediaUid");
+                .updateUid("improvedigital", "improvedigitalUid")
+                .updateUid(RUBICON, "rubiconUid")
+                .updateUid("conversant", "conversantUid")
+                .updateUid(ADNXS, "adnxsUid")
+                .updateUid("sharethrough", "sharethroughUid")
+                .updateUid("somoaudience", "somoaudienceUid")
+                .updateUid("verizonmedia", "verizonmediaUid");
 
         // the size of uidsCookie above is 530, therefore it is expected to be modified.
         final int maxCookieSizeBytes = 500;
         uidsCookieService = new UidsCookieService(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE, null,
-            null, HOST_COOKIE_DOMAIN, 90, maxCookieSizeBytes, jacksonMapper);
+                null, HOST_COOKIE_DOMAIN, 90, maxCookieSizeBytes, jacksonMapper);
 
         // when
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
@@ -303,9 +303,9 @@ public class UidsCookieServiceTest extends VertxTest {
     public void toCookieShouldReturnCookieWithExpectedValue() throws IOException {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
-            Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
-            .updateUid(RUBICON, "rubiconUid")
-            .updateUid(ADNXS, "adnxsUid");
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
+                .updateUid(RUBICON, "rubiconUid")
+                .updateUid(ADNXS, "adnxsUid");
 
         // when
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
@@ -316,18 +316,18 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uids).hasSize(2);
         assertThat(uids.get(RUBICON).getUid()).isEqualTo("rubiconUid");
         assertThat(uids.get(RUBICON).getExpires().toInstant())
-            .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
         assertThat(uids.get(ADNXS).getUid()).isEqualTo("adnxsUid");
         assertThat(uids.get(ADNXS).getExpires().toInstant())
-            .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
+                .isCloseTo(Instant.now().plus(14, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
     }
 
     @Test
     public void toCookieShouldReturnCookieWithExpectedExpiration() {
         // when
         final UidsCookie uidsCookie = new UidsCookie(
-            Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
@@ -338,7 +338,7 @@ public class UidsCookieServiceTest extends VertxTest {
     public void toCookieShouldReturnCookieWithExpectedDomain() {
         // when
         final UidsCookie uidsCookie = new UidsCookie(
-            Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
+                Uids.builder().uids(new HashMap<>()).build(), jacksonMapper);
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
@@ -351,9 +351,9 @@ public class UidsCookieServiceTest extends VertxTest {
         // this uids cookie value stands for
         // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"},"tempUIDs":{}},"bday":"2017-08-15T19:47:59.523908376Z"}
         given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie(
-            "uids",
-            "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA"
-                + "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
+                "uids",
+                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA"
+                        + "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -367,7 +367,7 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldParseHostCookie() {
         // given
         uidsCookieService = new UidsCookieService(
-            "trp_optout", "true", null, "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
+                "trp_optout", "true", null, "khaos", "cookie-domain", 90, MAX_COOKIE_SIZE_BYTES, jacksonMapper);
 
         // when
         final String hostCookie = uidsCookieService.parseHostCookie(singletonMap("khaos", "userId"));
