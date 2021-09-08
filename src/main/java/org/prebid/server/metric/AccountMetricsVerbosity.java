@@ -1,6 +1,8 @@
 package org.prebid.server.metric;
 
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountMetricsConfig;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,7 +25,13 @@ public class AccountMetricsVerbosity {
                 .forEach(accountId -> accountVerbosityLevels.put(accountId, AccountMetricsVerbosityLevel.detailed));
     }
 
-    public AccountMetricsVerbosityLevel forAccount(String accountId) {
-        return accountVerbosityLevels.getOrDefault(accountId, defaultVerbosity);
+    public AccountMetricsVerbosityLevel forAccount(Account account) {
+        final AccountMetricsConfig metricsConfig = account.getMetrics();
+        final AccountMetricsVerbosityLevel accountVerbosity = metricsConfig != null
+                ? metricsConfig.getVerbosityLevel()
+                : null;
+        return accountVerbosity != null
+                ? accountVerbosity
+                : accountVerbosityLevels.getOrDefault(account.getId(), defaultVerbosity);
     }
 }

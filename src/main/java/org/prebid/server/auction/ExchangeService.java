@@ -233,7 +233,6 @@ public class ExchangeService {
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
-        final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
@@ -242,7 +241,7 @@ public class ExchangeService {
                 .compose(storedResponseResult -> extractBidderRequests(
                         context, storedResponseResult, aliases, bidderToMultiBid))
                 .map(bidderRequests -> updateRequestMetric(
-                        bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
+                        bidderRequests, uidsCookie, aliases, account, context.getRequestTypeMetric()))
                 .compose(bidderRequests -> CompositeFuture.join(
                         bidderRequests.stream()
                                 .map(bidderRequest -> invokeHooksAndRequestBids(
@@ -256,7 +255,7 @@ public class ExchangeService {
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
                         bidderResponses, storedAuctionResponses, bidRequest.getImp()))
                 .map(bidderResponses -> validateAndAdjustBids(bidderResponses, context, aliases))
-                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
+                .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, account, aliases))
                 // produce response from bidder results
                 .compose(bidderResponses -> bidResponseCreator.create(
                         bidderResponses,
@@ -1055,11 +1054,11 @@ public class ExchangeService {
     private List<BidderRequest> updateRequestMetric(List<BidderRequest> bidderRequests,
                                                     UidsCookie uidsCookie,
                                                     BidderAliases aliases,
-                                                    String publisherId,
+                                                    Account account,
                                                     MetricName requestTypeMetric) {
 
         metrics.updateRequestBidderCardinalityMetric(bidderRequests.size());
-        metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
+        metrics.updateAccountRequestMetrics(account, requestTypeMetric);
 
         for (BidderRequest bidderRequest : bidderRequests) {
             final String bidder = aliases.resolveBidder(bidderRequest.getBidder());
@@ -1387,24 +1386,24 @@ public class ExchangeService {
      * {@link Bid#getPrice()} is not empty.
      */
     private List<BidderResponse> updateMetricsFromResponses(
-            List<BidderResponse> bidderResponses, String publisherId, BidderAliases aliases) {
+            List<BidderResponse> bidderResponses, Account account, BidderAliases aliases) {
 
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
-            metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
+            metrics.updateAdapterResponseTime(bidder, account, bidderResponse.getResponseTime());
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
-                metrics.updateAdapterRequestNobidMetrics(bidder, publisherId);
+                metrics.updateAdapterRequestNobidMetrics(bidder, account);
             } else {
-                metrics.updateAdapterRequestGotbidsMetrics(bidder, publisherId);
+                metrics.updateAdapterRequestGotbidsMetrics(bidder, account);
 
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-                    metrics.updateAdapterBidMetrics(bidder, publisherId, cpm, bid.getAdm() != null,
+                    metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null,
                             bidderBid.getType().toString());
                 }
             }
@@ -1649,8 +1648,6 @@ public class ExchangeService {
 
         // account might be null if request is rejected by the entrypoint hook
         if (account != null) {
-            final String accountId = account.getId();
-
             stageOutcomes.values().stream()
                     .flatMap(Collection::stream)
                     .map(StageExecutionOutcome::getGroups)
@@ -1661,7 +1658,7 @@ public class ExchangeService {
                             outcome -> outcome.getHookId().getModuleCode(),
                             Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
                     .forEach((moduleCode, executionTime) ->
-                            metrics.updateAccountModuleDurationMetric(accountId, moduleCode, executionTime));
+                            metrics.updateAccountModuleDurationMetric(account, moduleCode, executionTime));
         }
 
         return result;
@@ -1690,7 +1687,7 @@ public class ExchangeService {
 
         // account might be null if request is rejected by the entrypoint hook
         if (account != null) {
-            metrics.updateAccountHooksMetrics(account.getId(), moduleCode, status, action);
+            metrics.updateAccountHooksMetrics(account, moduleCode, status, action);
         }
     }
 
