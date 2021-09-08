@@ -142,9 +142,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
-    private static final Set<Integer> USER_SEGTAXES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(4)));
-    private static final Set<Integer> SITE_SEGTAXES = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(1, 2, 5, 6)));
+
+    private static final Set<Integer> USER_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Collections.singletonList(4)));
+    private static final Set<Integer> SITE_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(1, 2, 5, 6)));
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
@@ -179,7 +181,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
+        headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
     }
 
     @Override

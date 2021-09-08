@@ -21,14 +21,14 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Objects;
-import java.util.Set;
-import java.util.Collections;
-import java.util.Collection;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
  */
 public class BidscubeBidder implements Bidder<BidRequest> {
 
-    private static final Set<String> POSSIBLE_BID_TYPES = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList("banner", "video", "native")));
+    private static final Set<String> POSSIBLE_BID_TYPES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList("banner", "video", "native")));
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -117,6 +117,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
         final JsonNode extNode = bid.getExt();
         final JsonNode typeNode = isNotEmptyOrMissedNode(extNode) ? extNode.at("/prebid/type") : null;
+
         if (typeNode == null || !typeNode.isTextual()) {
             errors.add(BidderError.badInput("Unable to read bid.ext.prebid.type"));
             return null;
@@ -130,9 +131,8 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     }
 
     private BidType resolveBidType(JsonNode bidType) {
-        if (!POSSIBLE_BID_TYPES.contains(bidType.asText())) {
-            return BidType.banner;
-        }
-        return mapper.mapper().convertValue(bidType, BidType.class);
+        return !POSSIBLE_BID_TYPES.contains(bidType.asText())
+                ? BidType.banner
+                : mapper.mapper().convertValue(bidType, BidType.class);
     }
 }
