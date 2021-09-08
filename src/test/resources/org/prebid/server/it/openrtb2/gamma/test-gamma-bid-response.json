@@ -1,12 +1,12 @@
 {
-  "id": "test-request-id",
+  "id": "request_id",
   "seatbid": [
     {
       "seat": "958",
       "bid": [
         {
-          "id": "7706636740145184841",
-          "impid": "impId1",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 0.500000,
           "adid": "29681110",
           "adm": "some-test-ad",
@@ -21,6 +21,6 @@
       ]
     }
   ],
-  "bidid": "5778926625248726496",
+  "bidid": "bid_id",
   "cur": "USD"
 }

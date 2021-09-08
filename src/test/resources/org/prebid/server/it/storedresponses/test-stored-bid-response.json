@@ -1,14 +1,20 @@
-[
-  {
-    "bid": [
-      {
-        "id": "f227a07f-1579-4465-bc5e-5c5b02a0c181",
-        "impid": "impStoredBidResponse",
-        "crid": "crid1",
-        "price": 0.8
-      }
-    ],
-    "seat": "rubicon",
-    "group": 0
-  }
-]
+{
+  "id": "storedResponseId",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "466223845",
+          "impid": "impStoredBidResponse",
+          "price": 0.8,
+          "adm": "adm1",
+          "crid": "crid1",
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    }
+  ]
+}

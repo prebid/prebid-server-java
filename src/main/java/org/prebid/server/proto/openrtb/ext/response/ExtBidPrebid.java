@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Video;
 import lombok.Builder;
 import lombok.Value;
@@ -10,7 +11,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.seatbid.bid[i].ext.prebid
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtBidPrebid {
 
@@ -20,6 +21,9 @@ public class ExtBidPrebid {
 
     Map<String, String> targeting;
 
+    @JsonProperty("targetbiddercode")
+    String targetBidderCode;
+
     ExtResponseCache cache;
 
     @JsonProperty("storedrequestattributes")
@@ -28,4 +32,6 @@ public class ExtBidPrebid {
     Events events;
 
     ExtBidPrebidVideo video;
+
+    ObjectNode meta;
 }

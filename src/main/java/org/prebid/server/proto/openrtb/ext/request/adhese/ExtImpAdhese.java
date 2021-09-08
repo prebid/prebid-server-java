@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request.adhese;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
@@ -18,6 +17,5 @@ public class ExtImpAdhese {
 
     String format;
 
-    @JsonProperty("targets")
-    JsonNode keywords;
+    JsonNode targets;
 }

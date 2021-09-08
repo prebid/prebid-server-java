@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "tag_id",
+      "ext": {
+        "invibes": {
+          "placementId": "plcId",
+          "domainId": 1001,
+          "debug": {
+            "testBvid": "",
+            "testLog": false
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

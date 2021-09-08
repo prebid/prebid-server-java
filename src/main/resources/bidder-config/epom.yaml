@@ -1,0 +1,27 @@
+adapters:
+  epom:
+    enabled: false
+    endpoint: https://an.epom.com/ortb
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: support@epom.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 849
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: epom
+      type: iframe
+      support-cors: false

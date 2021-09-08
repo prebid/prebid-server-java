@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.http.HttpMethod;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
@@ -26,7 +25,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class AvocetBidder implements Bidder<BidRequest> {
@@ -48,7 +46,7 @@ public class AvocetBidder implements Bidder<BidRequest> {
         try {
             body = mapper.encode(request);
         } catch (EncodeException e) {
-            return Result.emptyWithError(
+            return Result.withError(
                     BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
         }
 
@@ -65,16 +63,11 @@ public class AvocetBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badServerResponse(e.getMessage()));
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
 
         final List<BidderBid> bidderBids = new ArrayList<>();
@@ -127,10 +120,5 @@ public class AvocetBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException("Invalid Avocet bidder bid extension", e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -1,12 +1,12 @@
 adapters:
   mobilefuse:
     enabled: false
-    endpoint: http://mfx-us-east.mobilefuse.com/openrtb?pub_id=
+    endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: prebid@mobilefuse.com
       app-media-types:
@@ -14,7 +14,7 @@ adapters:
         - video
       site-media-types:
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 909
     usersync:
       url:
       redirect-url:

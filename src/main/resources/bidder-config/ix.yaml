@@ -1,21 +1,28 @@
 adapters:
   ix:
     enabled: false
-    endpoint: http://rubicon-us-east.lb.indexww.com/transbidder?p=189517
+    endpoint: https://
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names: indexExchange
-    aliases:
+    aliases: {}
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:
+        - banner
+        - video
+        - native
+        - audio
       site-media-types:
         - banner
+        - video
+        - native
+        - audio
       supported-vendors:
       vendor-id: 10
     usersync:
-      url: https://ssum.casalemedia.com/usermatchredir?s=189517&cb=
+      url: https://ssum.casalemedia.com/usermatchredir?s=189517&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
       redirect-url: /setuid?bidder=ix&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: ix
       type: redirect

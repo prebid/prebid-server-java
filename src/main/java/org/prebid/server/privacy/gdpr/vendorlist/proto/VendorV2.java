@@ -6,8 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.EnumSet;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -17,32 +16,32 @@ public class VendorV2 {
 
     Integer id;
 
-    Set<Integer> purposes;
+    EnumSet<PurposeCode> purposes;
 
     @JsonProperty("legIntPurposes")
-    Set<Integer> legIntPurposes;
+    EnumSet<PurposeCode> legIntPurposes;
 
     @JsonProperty("flexiblePurposes")
-    Set<Integer> flexiblePurposes;
+    EnumSet<PurposeCode> flexiblePurposes;
 
     @JsonProperty("specialPurposes")
-    Set<Integer> specialPurposes;
+    EnumSet<SpecialPurpose> specialPurposes;
 
     @JsonProperty("features")
-    Set<Integer> features;
+    EnumSet<Feature> features;
 
     @JsonProperty("specialFeatures")
-    Set<Integer> specialFeatures;
+    EnumSet<SpecialFeature> specialFeatures;
 
     public static VendorV2 empty(Integer id) {
         return VendorV2.builder()
                 .id(id)
-                .purposes(Collections.emptySet())
-                .legIntPurposes(Collections.emptySet())
-                .flexiblePurposes(Collections.emptySet())
-                .specialPurposes(Collections.emptySet())
-                .features(Collections.emptySet())
-                .specialFeatures(Collections.emptySet())
+                .purposes(EnumSet.noneOf(PurposeCode.class))
+                .legIntPurposes(EnumSet.noneOf(PurposeCode.class))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
+                .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
+                .features(EnumSet.noneOf(Feature.class))
+                .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
                 .build();
     }
 }

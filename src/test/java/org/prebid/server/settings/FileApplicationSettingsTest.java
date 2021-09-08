@@ -8,9 +8,17 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
@@ -36,7 +44,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-public class FileApplicationSettingsTest {
+public class FileApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -57,7 +65,7 @@ public class FileApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnEmptyWhenAccountsAreMissing() {
         // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs:"));
+        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("domains:"));
 
         final FileApplicationSettings applicationSettings =
                 new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
@@ -75,19 +83,30 @@ public class FileApplicationSettingsTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
                 "accounts: ["
                         + "{"
-                        + "id: '123',"
-                        + "priceGranularity: 'low',"
-                        + "bannerCacheTtl: '100',"
-                        + "videoCacheTtl : '100',"
-                        + "eventsEnabled: 'true',"
-                        + "enforceCcpa: 'true',"
+                        + "id: 123,"
+                        + "status: active,"
+                        + "auction: {"
+                        + "price-granularity: low,"
+                        + "banner-cache-ttl: 100,"
+                        + "video-cache-ttl : 100,"
+                        + "truncate-target-attr: 20,"
+                        + "default-integration: web,"
+                        + "bid-validations: {"
+                        + "banner-creative-max-size: enforce"
+                        + "},"
+                        + "events: {"
+                        + "enabled: true"
+                        + "}"
+                        + "},"
+                        + "privacy: {"
+                        + "enforce-ccpa: true,"
                         + "gdpr: {"
-                        + "enabled: 'true',"
+                        + "enabled: true,"
                         + "integration-enabled: {"
-                        + "amp: 'true',"
-                        + "web: 'true',"
-                        + "video: 'true',"
-                        + "app: 'true'"
+                        + "amp: true,"
+                        + "web: true,"
+                        + "video: true,"
+                        + "app: true"
                         + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
@@ -98,13 +117,13 @@ public class FileApplicationSettingsTest {
                         + "sf2: {enforce: false,vendor-exceptions: [openx]}"
                         + "},"
                         + "purpose-one-treatment-interpretation: access-allowed"
-                        + "},"
-                        + "analyticsSamplingFactor : '1',"
-                        + "truncateTargetAttr: '20',"
-                        + "defaultIntegration: 'web',"
-                        + "analyticsConfig: {"
-                        + "auction-events: {amp: 'true'}"
                         + "}"
+                        + "},"
+                        + "analytics: {"
+                        + "auction-events: {amp: true},"
+                        + "modules: {some-analytics: {supported-endpoints: [auction]}}"
+                        + "},"
+                        + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
                         + "]"));
 
@@ -118,28 +137,39 @@ public class FileApplicationSettingsTest {
         assertThat(account.succeeded()).isTrue();
         assertThat(account.result()).isEqualTo(Account.builder()
                 .id("123")
-                .priceGranularity("low")
-                .bannerCacheTtl(100)
-                .videoCacheTtl(100)
-                .eventsEnabled(true)
-                .enforceCcpa(true)
-                .gdpr(AccountGdprConfig.builder()
-                        .enabled(true)
-                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
-                        .purposes(Purposes.builder()
-                                .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
-                                .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
-                                .build())
-                        .specialFeatures(SpecialFeatures.builder()
-                                .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
-                                .sf2(SpecialFeature.of(false, singletonList("openx")))
-                                .build())
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                .status(AccountStatus.active)
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("low")
+                        .bannerCacheTtl(100)
+                        .videoCacheTtl(100)
+                        .truncateTargetAttr(20)
+                        .defaultIntegration("web")
+                        .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                        .events(AccountEventsConfig.of(true))
                         .build())
-                .analyticsSamplingFactor(1)
-                .truncateTargetAttr(20)
-                .defaultIntegration("web")
-                .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
+                .privacy(AccountPrivacyConfig.of(
+                        true,
+                        AccountGdprConfig.builder()
+                                .enabled(true)
+                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                .purposes(Purposes.builder()
+                                        .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
+                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
+                                        .build())
+                                .specialFeatures(SpecialFeatures.builder()
+                                        .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
+                                        .sf2(SpecialFeature.of(false, singletonList("openx")))
+                                        .build())
+                                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                                .build(),
+                        null))
+                .analytics(AccountAnalyticsConfig.of(
+                        singletonMap("amp", true),
+                        singletonMap(
+                                "some-analytics",
+                                mapper.createObjectNode()
+                                        .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
+                .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
 
@@ -160,56 +190,6 @@ public class FileApplicationSettingsTest {
     }
 
     @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyWhenConfigsAreMissing() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("accounts:"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("123", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnPresentConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
-                "configs: [ {id: '123', config: '{\"bidder\": \"rubicon\"}'}, {id: '456'} ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> adUnitConfigById1 = applicationSettings.getAdUnitConfigById("123", null);
-        final Future<String> adUnitConfigById2 = applicationSettings.getAdUnitConfigById("456", null);
-
-        // then
-        assertThat(adUnitConfigById1.succeeded()).isTrue();
-        assertThat(adUnitConfigById1.result()).isEqualTo("{\"bidder\": \"rubicon\"}");
-        assertThat(adUnitConfigById2.succeeded()).isTrue();
-        assertThat(adUnitConfigById2.result()).isEqualTo("");
-    }
-
-    @Test
-    public void getAdUnitConfigByIdShouldReturnEmptyForUnknownConfig() {
-        // given
-        given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer("configs: [ id: '123', id: '456' ]"));
-
-        final FileApplicationSettings applicationSettings =
-                new FileApplicationSettings(fileSystem, "ignore", "ignore", "ignore", "ignore");
-
-        // when
-        final Future<String> config = applicationSettings.getAdUnitConfigById("789", null);
-
-        // then
-        assertThat(config.failed()).isTrue();
-    }
-
-    @Test
     public void getStoredDataShouldReturnResultWithNotFoundErrorForNonExistingRequestId() {
         // given
         given(fileSystem.readDirBlocking(anyString()))
@@ -224,7 +204,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("2"), emptySet(), null);
+                applicationSettings.getStoredData(null, singleton("2"), emptySet(), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -252,7 +232,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/imps/1.json"));
@@ -279,7 +259,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getStoredData(singleton("1"), singleton("2"), null);
+                applicationSettings.getStoredData(null, singleton("1"), singleton("2"), null);
 
         // then
         verify(fileSystem).readFileBlocking(eq("/home/user/requests/1.json"));
@@ -306,7 +286,7 @@ public class FileApplicationSettingsTest {
 
         // when
         final Future<StoredDataResult> storedRequestResult =
-                applicationSettings.getAmpStoredData(emptySet(), singleton("2"), null);
+                applicationSettings.getAmpStoredData(null, emptySet(), singleton("2"), null);
 
         // then
         assertThat(storedRequestResult.result().getErrors()).isNotNull().isEmpty();
@@ -338,7 +318,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().isEmpty();
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().isEmpty();
     }
 
     @Test
@@ -367,7 +347,7 @@ public class FileApplicationSettingsTest {
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().hasSize(1)
                 .isEqualTo(singletonList("No stored seatbid found for id: 2"));
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 
@@ -396,7 +376,7 @@ public class FileApplicationSettingsTest {
         verify(fileSystem).readFileBlocking(eq("/home/user/responses/1.json"));
         assertThat(storedResponsesResult.succeeded()).isTrue();
         assertThat(storedResponsesResult.result().getErrors()).isNotNull().isEmpty();
-        assertThat(storedResponsesResult.result().getStoredSeatBid()).isNotNull().hasSize(1)
+        assertThat(storedResponsesResult.result().getIdToStoredResponses()).isNotNull().hasSize(1)
                 .isEqualTo(singletonMap("1", "value1"));
     }
 

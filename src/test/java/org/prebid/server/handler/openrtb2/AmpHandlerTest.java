@@ -23,13 +23,14 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.HttpContext;
-import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
@@ -43,11 +44,11 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
@@ -93,7 +94,7 @@ public class AmpHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private AnalyticsReporter analyticsReporter;
+    private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
     private Metrics metrics;
     @Mock
@@ -135,7 +136,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler = new AmpHandler(
                 ampRequestFactory,
                 exchangeService,
-                analyticsReporter,
+                analyticsReporterDelegator,
                 metrics,
                 clock,
                 bidderCatalog,
@@ -207,9 +208,6 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
-
-        // TODO adminManager: enable when admin endpoints can be bound on application port
-        //verify(adminManager).accept(eq(AdminManager.COUNTER_KEY), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
@@ -414,43 +412,55 @@ public class AmpHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1").test(1));
+        final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
+                .debugContext(DebugContext.of(true, null))
+                .build();
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 
-        givenHoldAuction(givenBidResponseWithExt(mapper.valueToTree(
-                ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                        null, ExtBidResponsePrebid.of(1000L)))));
+        givenHoldAuction(givenBidResponseWithExt(
+                ExtBidResponse.builder()
+                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                                .build()));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"test\":1,"
-                        + "\"tmax\":5000}}}"));
+                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}"));
     }
 
     @Test
-    public void shouldRespondWithDebugInfoIncludedIfExtPrebidDebugIsOn() {
+    public void shouldRespondWithHooksDebugAndTraceOutput() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(builder -> builder
-                .id("reqId1")
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().debug(1).build())));
+        final AuctionContext auctionContext = givenAuctionContext(identity());
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
 
-        givenHoldAuction(givenBidResponseWithExt(mapper.valueToTree(
-                ExtBidResponse.of(ExtResponseDebug.of(null, auctionContext.getBidRequest()), null, null, null,
-                        null, ExtBidResponsePrebid.of(1000L)))));
+        givenHoldAuction(givenBidResponseWithExt(
+                ExtBidResponse.builder()
+                        .prebid(ExtBidResponsePrebid.of(
+                                        1000L,
+                                        ExtModules.of(
+                                                singletonMap(
+                                                        "module1", singletonMap("hook1", singletonList("error1"))),
+                                                singletonMap(
+                                                        "module1", singletonMap("hook1", singletonList("warning1"))),
+                                                ExtModulesTrace.of(2L, emptyList()))))
+                                .build()));
 
         // when
         ampHandler.handle(routingContext);
 
         // then
-        verify(httpResponse).end(
-                eq("{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000,"
-                        + "\"ext\":{\"prebid\":{\"debug\":1}}}}}"));
+        verify(httpResponse).end(eq(
+                "{\"targeting\":{},"
+                        + "\"ext\":{\"prebid\":{\"modules\":{"
+                        + "\"errors\":{\"module1\":{\"hook1\":[\"error1\"]}},"
+                        + "\"warnings\":{\"module1\":{\"hook1\":[\"warning1\"]}},"
+                        + "\"trace\":{\"executiontimemillis\":2,\"stages\":[]}}}}}"));
     }
 
     @Test
@@ -482,7 +492,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyBoolean(), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(true), anyBoolean(), anyInt());
     }
 
     @Test
@@ -503,7 +513,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), eq(true), anyInt());
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(eq(false), eq(false), anyInt());
     }
 
     @Test
@@ -520,7 +530,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), anyBoolean(), eq(1));
+        verify(metrics).updateAppAndNoCookieAndImpsRequestedMetrics(anyBoolean(), anyBoolean(), eq(1));
     }
 
     @Test
@@ -590,7 +600,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
     }
 
     @Test
@@ -761,6 +771,7 @@ public class AmpHandlerTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.amp)
                 .timeout(timeout)
+                .debugContext(DebugContext.empty())
                 .build();
     }
 
@@ -782,7 +793,7 @@ public class AmpHandlerTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponseWithExt(ObjectNode extBidResponse) {
+    private static BidResponse givenBidResponseWithExt(ExtBidResponse extBidResponse) {
         return BidResponse.builder()
                 .ext(extBidResponse)
                 .build();
@@ -796,7 +807,7 @@ public class AmpHandlerTest extends VertxTest {
 
     private AmpEvent captureAmpEvent() {
         final ArgumentCaptor<AmpEvent> captor = ArgumentCaptor.forClass(AmpEvent.class);
-        verify(analyticsReporter).processEvent(captor.capture());
+        verify(analyticsReporterDelegator).processEvent(captor.capture(), any());
         return captor.getValue();
     }
 

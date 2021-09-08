@@ -17,7 +17,19 @@ public class Result<T> {
 
     List<BidderError> errors;
 
-    public static <R> Result<List<R>> emptyWithError(BidderError error) {
+    public static <R> Result<List<R>> withValues(List<R> values) {
+        return Result.of(values, Collections.emptyList());
+    }
+
+    public static <R> Result<List<R>> withValue(R value) {
+        return Result.of(Collections.singletonList(value), Collections.emptyList());
+    }
+
+    public static <R> Result<List<R>> withErrors(List<BidderError> errors) {
+        return Result.of(Collections.emptyList(), errors);
+    }
+
+    public static <R> Result<List<R>> withError(BidderError error) {
         return Result.of(Collections.emptyList(), Collections.singletonList(error));
     }
 

@@ -2,6 +2,8 @@ package org.prebid.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerRequest;
@@ -23,6 +25,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,6 +44,7 @@ import static java.util.function.Function.identity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -69,6 +75,7 @@ public class VtrackHandlerTest extends VertxTest {
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
+        given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
         given(httpRequest.getParam("a")).willReturn("accountId");
         given(httpRequest.getParam("int")).willReturn("pbjs");
@@ -76,7 +83,7 @@ public class VtrackHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
 
         handler = new VtrackHandler(
-                2000, true, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
+                2000, true, true, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
     }
 
     @Test
@@ -92,6 +99,15 @@ public class VtrackHandlerTest extends VertxTest {
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Account 'a' is required query parameter and can't be empty"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedHeaders() {
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 
     @Test
@@ -157,10 +173,49 @@ public class VtrackHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithBadRequestWhenTypeIsNotXML() throws JsonProcessingException {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder").type("json")));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("vtrack only accepts type xml"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestWhenValueDoesNotContainVast() throws JsonProcessingException {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("invalidValue"))));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verifyZeroInteractions(applicationSettings, cacheService);
+
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("vtrack content must be vast"));
+    }
+
+    @Test
     public void shouldRespondWithInternalServerErrorWhenFetchingAccountFails() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
-                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
+                .willReturn(givenVtrackRequest(builder -> builder
+                        .bidder("bidder")
+                        .bidid("bidId")
+                        .type("xml")
+                        .value(new TextNode("<Vast"))));
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture("error"));
@@ -179,11 +234,19 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldRespondWithInternalServerErrorWhenCacheServiceReturnFailure() throws JsonProcessingException {
         // given
         given(routingContext.getBody())
-                .willReturn(givenVtrackRequest(builder -> builder.bidid("bidId").bidder("bidder")));
+                .willReturn(givenVtrackRequest(builder -> builder
+                        .bidder("bidder")
+                        .bidid("bidId")
+                        .type("xml")
+                        .value(new TextNode("<Vast"))));
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -198,42 +261,51 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldTolerateNotFoundAccount() throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = singletonList(
-                PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
+                PutObject.builder()
+                        .bidid("bidId")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast")).build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("not found")));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(singleton("bidder")), eq("accountId"),
+                eq("pbjs"), any());
     }
 
     @Test
-    public void shouldSendToCacheEmptyUpdatableBiddersIfAccountEventsEnabledIsNull() throws JsonProcessingException {
+    public void shouldSendToCacheNullInAccountEnabledAndValidBiddersWhenAccountEventsEnabledIsNull()
+            throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = singletonList(
-                PutObject.builder().bidid("bidId").bidder("bidder").value(new TextNode("value")).build());
+                PutObject.builder()
+                        .bidid("bidId")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast")).build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(null).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(emptyList())));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(bidderCatalog);
-
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(emptySet()), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), isNull(), eq(singleton("bidder")), eq("accountId"),
+                eq("pbjs"), any());
     }
 
     @Test
@@ -241,11 +313,19 @@ public class VtrackHandlerTest extends VertxTest {
             throws JsonProcessingException {
         // given
         handler = new VtrackHandler(
-                2000, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
+                2000, false, true, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
 
         final List<PutObject> putObjects = asList(
-                PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
-                PutObject.builder().bidid("bidId2").bidder("updatable_bidder").value(new TextNode("value2")).build());
+                PutObject.builder().bidid("bidId1")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast"))
+                        .build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast")).build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
@@ -255,8 +335,12 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed("updatable_bidder")).willReturn(true);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         singletonList(CacheObject.of("uuid1")))));
 
@@ -265,7 +349,7 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         verify(cacheService).cachePutObjects(
-                eq(putObjects), eq(singleton("updatable_bidder")), eq("accountId"), eq("pbjs"), any());
+                eq(putObjects), any(), eq(singleton("updatable_bidder")), eq("accountId"), eq("pbjs"), any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"}]}"));
     }
@@ -274,11 +358,18 @@ public class VtrackHandlerTest extends VertxTest {
     public void shouldSendToCacheExpectedPutsAndUpdatableBiddersWhenBidderVastAllowed() throws JsonProcessingException {
         // given
         handler = new VtrackHandler(
-                2000, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
+                2000, false, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
 
         final List<PutObject> putObjects = asList(
-                PutObject.builder().bidid("bidId1").bidder("bidder").value(new TextNode("value1")).build(),
-                PutObject.builder().bidid("bidId2").bidder("updatable_bidder").value(new TextNode("value2")).build());
+                PutObject.builder().bidid("bidId1")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<Vast")).build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast")).build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
 
@@ -286,8 +377,12 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(true);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -296,25 +391,28 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"),
+                any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
     }
 
     @Test
-    public void shouldSendToCacheExpectedPutsAndUpdatableUnknownBiddersWhenUnknownBidderIsAllowed()
+    public void shouldSendToCacheExpectedPutsWhenModifyVastForUnknownBidderAndAllowUnknownBidderIsTrue()
             throws JsonProcessingException {
         // given
         final List<PutObject> putObjects = asList(
                 PutObject.builder()
                         .bidid("bidId1")
                         .bidder("bidder")
-                        .value(new TextNode("value1"))
+                        .type("xml")
+                        .value(new TextNode("<vast"))
                         .build(),
                 PutObject.builder()
                         .bidid("bidId2")
                         .bidder("updatable_bidder")
-                        .value(new TextNode("value2"))
+                        .type("xml")
+                        .value(new TextNode("<Vast"))
                         .build());
         given(routingContext.getBody())
                 .willReturn(givenVtrackRequest(putObjects));
@@ -322,8 +420,12 @@ public class VtrackHandlerTest extends VertxTest {
         given(bidderCatalog.isValidName(any())).willReturn(false);
 
         given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(Account.builder().eventsEnabled(true).build()));
-        given(cacheService.cachePutObjects(any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder()
+                        .auction(AccountAuctionConfig.builder()
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(BidCacheResponse.of(
                         asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
 
@@ -332,9 +434,88 @@ public class VtrackHandlerTest extends VertxTest {
 
         // then
         final HashSet<String> expectedBidders = new HashSet<>(asList("bidder", "updatable_bidder"));
-        verify(cacheService).cachePutObjects(eq(putObjects), eq(expectedBidders), eq("accountId"), eq("pbjs"), any());
+        verify(cacheService).cachePutObjects(eq(putObjects), any(), eq(expectedBidders), eq("accountId"), eq("pbjs"),
+                any());
 
         verify(httpResponse).end(eq("{\"responses\":[{\"uuid\":\"uuid1\"},{\"uuid\":\"uuid2\"}]}"));
+    }
+
+    @Test
+    public void shouldSendToCacheWithEmptyBiddersAllowingVastUpdatePutsWhenAllowUnknownBidderIsFalse()
+            throws JsonProcessingException {
+        // given
+        handler = new VtrackHandler(
+                2000, false, true, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
+
+        final List<PutObject> putObjects = asList(
+                PutObject.builder()
+                        .bidid("bidId1")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast"))
+                        .build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .type("xml")
+                        .value(new TextNode("<Vast"))
+                        .build());
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(putObjects));
+
+        given(bidderCatalog.isValidName(any())).willReturn(false);
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true)).build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(
+                        asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(cacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any());
+    }
+
+    @Test
+    public void shouldSendToCacheWithEmptyBiddersAllowingVastUpdatePutsWhenModifyVastForUnknownBidderIsFalse()
+            throws JsonProcessingException {
+        // given
+        handler = new VtrackHandler(
+                2000, true, false, applicationSettings, bidderCatalog, cacheService, timeoutFactory, jacksonMapper);
+
+        final List<PutObject> putObjects = asList(
+                PutObject.builder()
+                        .bidid("bidId1")
+                        .bidder("bidder")
+                        .type("xml")
+                        .value(new TextNode("<vast"))
+                        .build(),
+                PutObject.builder()
+                        .bidid("bidId2")
+                        .bidder("updatable_bidder")
+                        .type("xml")
+                        .value(new TextNode("<Vast"))
+                        .build());
+        given(routingContext.getBody())
+                .willReturn(givenVtrackRequest(putObjects));
+
+        given(bidderCatalog.isValidName(any())).willReturn(false);
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true)).build())
+                        .build()));
+        given(cacheService.cachePutObjects(any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(BidCacheResponse.of(
+                        asList(CacheObject.of("uuid1"), CacheObject.of("uuid2")))));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(cacheService).cachePutObjects(any(), any(), eq(emptySet()), any(), any(), any());
     }
 
     @SafeVarargs

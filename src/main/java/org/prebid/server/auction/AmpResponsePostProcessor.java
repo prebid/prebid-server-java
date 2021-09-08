@@ -16,14 +16,16 @@ public interface AmpResponsePostProcessor {
     /**
      * This method is called prior sending the response back to the client.
      *
-     * @param bidRequest  original auction request
-     * @param bidResponse auction result
-     * @param ampResponse AMP RTC response
-     * @param context     request's context
+     * @param bidRequest     original auction request
+     * @param bidResponse    auction result
+     * @param ampResponse    AMP RTC response
+     * @param routingContext request's context
      * @return a {@link Future} with (possibly modified) amp response result
      */
-    Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
-                                    RoutingContext context);
+    Future<AmpResponse> postProcess(BidRequest bidRequest,
+                                    BidResponse bidResponse,
+                                    AmpResponse ampResponse,
+                                    RoutingContext routingContext);
 
     /**
      * Returns {@link NoOpAmpResponsePostProcessor} instance that just does nothing.
@@ -39,7 +41,7 @@ public interface AmpResponsePostProcessor {
 
         @Override
         public Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
-                                               RoutingContext context) {
+                                               RoutingContext routingContext) {
             return Future.succeededFuture(ampResponse);
         }
     }

@@ -8,13 +8,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
-import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoExt;
+import org.prebid.server.bidder.adoppler.model.AdopplerResponseVideoAdsExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -45,8 +45,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
             };
-
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String DEFAULT_CLIENT = "app";
 
     private final String endpointTemplate;
     private final JacksonMapper mapper;
@@ -66,9 +65,9 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                 final ExtImpAdoppler validExtImp = parseAndValidateImpExt(imp);
                 final String updateRequestId = request.getId() + "-" + validExtImp.getAdunit();
                 final BidRequest updateRequest = request.toBuilder().id(updateRequestId).build();
-                final String uri = String.format("%s/processHeaderBid/%s", endpointTemplate,
-                        HttpUtil.encodeUrl(validExtImp.getAdunit()));
-                result.add(createSingleRequest(imp, updateRequest, uri));
+                final String url = resolveUrl(validExtImp);
+
+                result.add(createSingleRequest(imp, updateRequest, url));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -81,18 +80,34 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         try {
             extImpAdoppler = mapper.mapper().convertValue(imp.getExt(), ADOPPLER_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
         if (StringUtils.isBlank(extImpAdoppler.getAdunit())) {
-            throw new PreBidException("$.imp.ext.adoppler.adunit required");
+            throw new PreBidException("adunit parameter is required for adoppler bidder");
         }
         return extImpAdoppler;
+    }
+
+    private String resolveUrl(ExtImpAdoppler extImp) {
+        final String client = extImp.getClient();
+
+        try {
+            final String accountIdMacro = StringUtils.isBlank(client)
+                    ? DEFAULT_CLIENT
+                    : HttpUtil.encodeUrl(client);
+
+            return endpointTemplate
+                    .replace("{{AccountID}}", accountIdMacro)
+                    .replace("{{AdUnit}}", HttpUtil.encodeUrl(extImp.getAdunit()));
+        } catch (Exception e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
         final String body = mapper.encode(outgoingRequest);
-        final MultiMap headers = HttpUtil.headers().add("x-openrtb-version", "2.5");
+        final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
@@ -104,11 +119,6 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final int statusCode = httpCall.getResponse().getStatusCode();
-        if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            return Result.empty();
-        }
-
         try {
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
             final Map<String, BidType> impTypes = getImpTypes(bidRequest);
@@ -117,11 +127,11 @@ public class AdopplerBidder implements Bidder<BidRequest> {
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> createBid(bid, impTypes))
+                    .map(bid -> createBid(bid, impTypes, bidResponse.getCur()))
                     .collect(Collectors.toList());
-            return Result.of(bidderBids, Collections.emptyList());
+            return Result.withValues(bidderBids);
         } catch (PreBidException e) {
-            return Result.emptyWithError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
     }
 
@@ -129,48 +139,48 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("invalid body: %s", e.getMessage()));
         }
     }
 
     private Map<String, BidType> getImpTypes(BidRequest bidRequest) {
         final Map<String, BidType> impTypes = new HashMap<>();
         for (Imp imp : bidRequest.getImp()) {
-            if (impTypes.get(imp.getId()) != null) {
-                throw new PreBidException(String.format("duplicate $.imp.id %s", imp.getId()));
-            }
+            final String impId = imp.getId();
+
             if (imp.getBanner() != null) {
-                impTypes.put(imp.getId(), BidType.banner);
+                impTypes.put(impId, BidType.banner);
             } else if (imp.getVideo() != null) {
-                impTypes.put(imp.getId(), BidType.video);
+                impTypes.put(impId, BidType.video);
             } else if (imp.getAudio() != null) {
-                impTypes.put(imp.getId(), BidType.audio);
+                impTypes.put(impId, BidType.audio);
             } else if (imp.getXNative() != null) {
-                impTypes.put(imp.getId(), BidType.xNative);
-            } else {
-                throw new PreBidException("one of $.imp.banner, $.imp.video, $.imp.audio "
-                        + "and $.imp.native field required");
+                impTypes.put(impId, BidType.xNative);
             }
         }
         return impTypes;
     }
 
-    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes) {
-        if (impTypes.get(bid.getImpid()) == null) {
-            throw new PreBidException(String.format("unknown impid: %s", bid.getImpid()));
+    private BidderBid createBid(Bid bid, Map<String, BidType> impTypes, String currency) {
+        final String bidImpId = bid.getImpid();
+
+        if (impTypes.get(bidImpId) == null) {
+            throw new PreBidException(String.format("unknown impId: %s", bidImpId));
         }
-        validateResponseVideoExt(bid, impTypes);
-        return BidderBid.of(bid, impTypes.get(bid.getImpid()), DEFAULT_BID_CURRENCY);
+        if (impTypes.get(bidImpId) == BidType.video) {
+            validateVideoBidExt(bid);
+        }
+
+        return BidderBid.of(bid, impTypes.get(bidImpId), currency);
     }
 
-    private void validateResponseVideoExt(Bid bid, Map<String, BidType> impTypes) {
-        if (impTypes.get(bid.getImpid()) == BidType.video) {
-            final ObjectNode ext = bid.getExt();
-            final AdopplerResponseExt adopplerResponseExt = parseResponseExt(ext);
-            final AdopplerResponseVideoExt adopplerResponseVideoExt = adopplerResponseExt.getAds();
-            if (adopplerResponseVideoExt == null) {
-                throw new PreBidException("$.seatbid.bid.ext.ads.video required");
-            }
+    private void validateVideoBidExt(Bid bid) {
+        final ObjectNode extNode = bid.getExt();
+        final AdopplerResponseExt ext = extNode != null ? parseResponseExt(extNode) : null;
+        final AdopplerResponseAdsExt adsExt = ext != null ? ext.getAds() : null;
+        final AdopplerResponseVideoAdsExt videoAdsExt = adsExt != null ? adsExt.getVideo() : null;
+        if (videoAdsExt == null) {
+            throw new PreBidException("$.seatbid.bid.ext.ads.video required");
         }
     }
 
@@ -180,10 +190,5 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage(), e);
         }
-    }
-
-    @Override
-    public Map<String, String> extractTargeting(ObjectNode ext) {
-        return Collections.emptyMap();
     }
 }

@@ -2,7 +2,9 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
-import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.hooks.execution.model.ExecutionAction;
+import org.prebid.server.hooks.execution.model.ExecutionStatus;
+import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 
 import java.util.ArrayList;
@@ -12,7 +14,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 /**
@@ -20,62 +24,94 @@ import java.util.stream.Collectors;
  */
 public class Metrics extends UpdatableMetrics {
 
-    private static final String METRICS_UNKNOWN_BIDDER = "UNKNOWN";
+    private static final String ALL_REQUEST_BIDDERS = "all";
 
     private final AccountMetricsVerbosity accountMetricsVerbosity;
-    private final BidderCatalog bidderCatalog;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
-    private final Function<String, AdapterMetrics> adapterMetricsCreator;
-    private final Function<String, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<String, AdapterTypeMetrics> adapterMetricsCreator;
+    private final Function<String, AnalyticsReporterMetrics> analyticMetricsCreator;
+    private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
+    private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
+    private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
     // not thread-safe maps are intentionally used here because it's harmless in this particular case - eventually
     // this all boils down to metrics lookup by underlying metric registry and that operation is guaranteed to be
     // thread-safe
     private final Map<MetricName, RequestStatusMetrics> requestMetrics;
     private final Map<String, AccountMetrics> accountMetrics;
-    private final Map<String, AdapterMetrics> adapterMetrics;
+    private final Map<String, AdapterTypeMetrics> adapterMetrics;
+    private final Map<String, AnalyticsReporterMetrics> analyticMetrics;
+    private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
     private final PrivacyMetrics privacyMetrics;
-    private final Map<String, CircuitBreakerMetrics> circuitBreakerMetrics;
+    private final Map<MetricName, CircuitBreakerMetrics> circuitBreakerMetrics;
     private final CacheMetrics cacheMetrics;
+    private final TimeoutNotificationMetrics timeoutNotificationMetrics;
+    private final CurrencyRatesMetrics currencyRatesMetrics;
+    private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
+    private final HooksMetrics hooksMetrics;
+    private final PgMetrics pgMetrics;
 
-    public Metrics(MetricRegistry metricRegistry, CounterType counterType, AccountMetricsVerbosity
-            accountMetricsVerbosity, BidderCatalog bidderCatalog) {
+    public Metrics(MetricRegistry metricRegistry, CounterType counterType,
+                   AccountMetricsVerbosity accountMetricsVerbosity) {
         super(metricRegistry, counterType, MetricName::toString);
 
         this.accountMetricsVerbosity = Objects.requireNonNull(accountMetricsVerbosity);
-        this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
-        adapterMetricsCreator = adapterType -> new AdapterMetrics(metricRegistry, counterType, adapterType);
-        circuitBreakerMetricsCreator = id -> new CircuitBreakerMetrics(metricRegistry, counterType, id);
+        adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(metricRegistry, counterType, adapterType);
+        bidderCardinalityMetricsCreator = cardinality -> new BidderCardinalityMetrics(
+                metricRegistry, counterType, cardinality);
+        analyticMetricsCreator = analyticCode -> new AnalyticsReporterMetrics(
+                metricRegistry, counterType, analyticCode);
+        circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
+        settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
+        analyticMetrics = new HashMap<>();
+        bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
         privacyMetrics = new PrivacyMetrics(metricRegistry, counterType);
         circuitBreakerMetrics = new HashMap<>();
         cacheMetrics = new CacheMetrics(metricRegistry, counterType);
+        timeoutNotificationMetrics = new TimeoutNotificationMetrics(metricRegistry, counterType);
+        currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
+        settingsCacheMetrics = new HashMap<>();
+        hooksMetrics = new HooksMetrics(metricRegistry, counterType);
+        pgMetrics = new PgMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
         return requestMetrics.computeIfAbsent(requestType, requestMetricsCreator);
     }
 
+    BidderCardinalityMetrics forBidderCardinality(int cardinality) {
+        return bidderCardinailtyMetrics.computeIfAbsent(cardinality, bidderCardinalityMetricsCreator);
+    }
+
     AccountMetrics forAccount(String account) {
         return accountMetrics.computeIfAbsent(account, accountMetricsCreator);
     }
 
-    AdapterMetrics forAdapter(String adapterType) {
+    AdapterTypeMetrics forAdapter(String adapterType) {
         return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+    }
+
+    AnalyticsReporterMetrics forAnalyticReporter(String analyticCode) {
+        return analyticMetrics.computeIfAbsent(analyticCode, analyticMetricsCreator);
     }
 
     UserSyncMetrics userSync() {
         return userSyncMetrics;
+    }
+
+    PgMetrics pgMetrics() {
+        return pgMetrics;
     }
 
     CookieSyncMetrics cookieSync() {
@@ -86,34 +122,46 @@ public class Metrics extends UpdatableMetrics {
         return privacyMetrics;
     }
 
-    CircuitBreakerMetrics forCircuitBreaker(String id) {
-        return circuitBreakerMetrics.computeIfAbsent(id, circuitBreakerMetricsCreator);
+    CircuitBreakerMetrics forCircuitBreakerType(MetricName type) {
+        return circuitBreakerMetrics.computeIfAbsent(type, circuitBreakerMetricsCreator);
     }
 
     CacheMetrics cache() {
         return cacheMetrics;
     }
 
-    public void updateSafariRequestsMetric(boolean isSafari) {
-        if (isSafari) {
-            incCounter(MetricName.safari_requests);
-        }
+    CurrencyRatesMetrics currencyRates() {
+        return currencyRatesMetrics;
     }
 
-    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, boolean isSafari,
-                                                            int numImps) {
+    SettingsCacheMetrics forSettingsCacheType(MetricName type) {
+        return settingsCacheMetrics.computeIfAbsent(type, settingsCacheMetricsCreator);
+    }
+
+    HooksMetrics hooks() {
+        return hooksMetrics;
+    }
+
+    public void updateAppAndNoCookieAndImpsRequestedMetrics(boolean isApp, boolean liveUidsPresent, int numImps) {
         if (isApp) {
             incCounter(MetricName.app_requests);
         } else if (!liveUidsPresent) {
             incCounter(MetricName.no_cookie_requests);
-            if (isSafari) {
-                incCounter(MetricName.safari_no_cookie_requests);
-            }
         }
         incCounter(MetricName.imps_requested, numImps);
     }
 
-    public void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
+    public void updateImpTypesMetrics(List<Imp> imps) {
+
+        final Map<String, Long> mediaTypeToCount = imps.stream()
+                .map(Metrics::getPresentMediaTypes)
+                .flatMap(Collection::stream)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+
+        updateImpTypesMetrics(mediaTypeToCount);
+    }
+
+    void updateImpTypesMetrics(Map<String, Long> countPerMediaType) {
         for (Map.Entry<String, Long> mediaTypeCount : countPerMediaType.entrySet()) {
             switch (mediaTypeCount.getKey()) {
                 case "banner":
@@ -135,16 +183,6 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateImpTypesMetrics(List<Imp> imps) {
-
-        final Map<String, Long> mediaTypeToCount = imps.stream()
-                .map(Metrics::getPresentMediaTypes)
-                .flatMap(Collection::stream)
-                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-
-        updateImpTypesMetrics(mediaTypeToCount);
-    }
-
     private static List<String> getPresentMediaTypes(Imp imp) {
         final List<String> impMediaTypes = new ArrayList<>();
 
@@ -164,12 +202,16 @@ public class Metrics extends UpdatableMetrics {
         return impMediaTypes;
     }
 
-    public void updateRequestTimeMetric(long millis) {
-        updateTimer(MetricName.request_time, millis);
+    public void updateRequestTimeMetric(MetricName requestType, long millis) {
+        updateTimer(requestType, millis);
     }
 
     public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
         forRequestType(requestType).incCounter(requestStatus);
+    }
+
+    public void updateRequestBidderCardinalityMetric(int bidderCardinality) {
+        forBidderCardinality(bidderCardinality).incCounter(MetricName.requests);
     }
 
     public void updateAccountRequestMetrics(String accountId, MetricName requestType) {
@@ -190,59 +232,71 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
-        final AdapterMetrics adapterMetrics = forAdapter(resolveMetricsBidderName(bidder));
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
 
-        adapterMetrics.requestType(requestType).incCounter(MetricName.requests);
+        adapterTypeMetrics.requestType(requestType).incCounter(MetricName.requests);
 
         if (noCookie) {
-            adapterMetrics.incCounter(MetricName.no_cookie_requests);
+            adapterTypeMetrics.incCounter(MetricName.no_cookie_requests);
         }
     }
 
     public void updateAdapterResponseTime(String bidder, String accountId, int responseTime) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
-        adapterMetrics.updateTimer(MetricName.request_time, responseTime);
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
+        adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
+            final AdapterTypeMetrics accountAdapterMetrics =
+                    forAccount(accountId).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
         }
     }
 
     public void updateAdapterRequestNobidMetrics(String bidder, String accountId) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
+        forAdapter(bidder).request().incCounter(MetricName.nobid);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.nobid);
+            forAccount(accountId).adapter().forAdapter(bidder).request().incCounter(MetricName.nobid);
         }
     }
 
     public void updateAdapterRequestGotbidsMetrics(String bidder, String accountId) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
+        forAdapter(bidder).request().incCounter(MetricName.gotbids);
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            forAccount(accountId).forAdapter(metricsBidderName).request().incCounter(MetricName.gotbids);
+            forAccount(accountId).adapter().forAdapter(bidder).request().incCounter(MetricName.gotbids);
         }
     }
 
     public void updateAdapterBidMetrics(String bidder, String accountId, long cpm, boolean isAdm, String bidType) {
-        final String metricsBidderName = resolveMetricsBidderName(bidder);
-        final AdapterMetrics adapterMetrics = forAdapter(metricsBidderName);
-        adapterMetrics.updateHistogram(MetricName.prices, cpm);
-        adapterMetrics.incCounter(MetricName.bids_received);
-        adapterMetrics.forBidType(bidType)
+        final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
+        adapterTypeMetrics.updateHistogram(MetricName.prices, cpm);
+        adapterTypeMetrics.incCounter(MetricName.bids_received);
+        adapterTypeMetrics.forBidType(bidType)
                 .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
 
         if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
-            final AdapterMetrics accountAdapterMetrics = forAccount(accountId).forAdapter(metricsBidderName);
+            final AdapterTypeMetrics accountAdapterMetrics =
+                    forAccount(accountId).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
             accountAdapterMetrics.incCounter(MetricName.bids_received);
         }
     }
 
     public void updateAdapterRequestErrorMetric(String bidder, MetricName errorMetric) {
-        forAdapter(resolveMetricsBidderName(bidder)).request().incCounter(errorMetric);
+        forAdapter(bidder).request().incCounter(errorMetric);
+    }
+
+    public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
+        forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
+    }
+
+    public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(bidder).response().validation().size().incCounter(type);
+        forAccount(accountId).response().validation().size().incCounter(type);
+    }
+
+    public void updateSecureValidationMetrics(String bidder, String accountId, MetricName type) {
+        forAdapter(bidder).response().validation().secure().incCounter(type);
+        forAccount(accountId).response().validation().secure().incCounter(type);
     }
 
     public void updateUserSyncOptoutMetric() {
@@ -261,6 +315,14 @@ public class Metrics extends UpdatableMetrics {
         userSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
+    public void updateUserSyncTcfInvalidMetric(String bidder) {
+        userSync().forBidder(bidder).tcf().incCounter(MetricName.invalid);
+    }
+
+    public void updateUserSyncTcfInvalidMetric() {
+        updateUserSyncTcfInvalidMetric(ALL_REQUEST_BIDDERS);
+    }
+
     public void updateCookieSyncRequestMetric() {
         incCounter(MetricName.cookie_sync_requests);
     }
@@ -274,29 +336,29 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateCookieSyncTcfBlockedMetric(String bidder) {
-        cookieSync().forBidder(resolveMetricsBidderName(bidder)).tcf().incCounter(MetricName.blocked);
+        cookieSync().forBidder(bidder).tcf().incCounter(MetricName.blocked);
     }
 
     public void updateAuctionTcfMetrics(String bidder,
                                         MetricName requestType,
-                                        boolean useridRemoved,
+                                        boolean userIdRemoved,
                                         boolean geoMasked,
-                                        boolean requestBlocked,
-                                        boolean analyticsBlocked) {
+                                        boolean analyticsBlocked,
+                                        boolean requestBlocked) {
 
-        final TcfMetrics tcf = forAdapter(resolveMetricsBidderName(bidder)).requestType(requestType).tcf();
+        final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
 
-        if (useridRemoved) {
+        if (userIdRemoved) {
             tcf.incCounter(MetricName.userid_removed);
         }
         if (geoMasked) {
             tcf.incCounter(MetricName.geo_masked);
         }
-        if (requestBlocked) {
-            tcf.incCounter(MetricName.request_blocked);
-        }
         if (analyticsBlocked) {
             tcf.incCounter(MetricName.analytics_blocked);
+        }
+        if (requestBlocked) {
+            tcf.incCounter(MetricName.request_blocked);
         }
     }
 
@@ -325,8 +387,13 @@ public class Metrics extends UpdatableMetrics {
         privacy().tcf().incCounter(MetricName.invalid);
     }
 
+    public void updatePrivacyTcfRequestsMetric(int version) {
+        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
+        versionMetrics.incCounter(MetricName.requests);
+    }
+
     public void updatePrivacyTcfGeoMetric(int version, Boolean inEea) {
-        final UpdatableMetrics versionMetrics = version == 2 ? privacy().tcf().v2() : privacy().tcf().v1();
+        final UpdatableMetrics versionMetrics = privacy().tcf().fromVersion(version);
 
         final MetricName metricName = inEea == null
                 ? MetricName.unknown_geo
@@ -353,8 +420,7 @@ public class Metrics extends UpdatableMetrics {
 
     private void updatePrivacyTcfVendorListMetric(int version, MetricName metricName) {
         final TcfMetrics tcfMetrics = privacy().tcf();
-        final TcfMetrics.TcfVersionMetrics tcfVersionMetrics = version == 2 ? tcfMetrics.v2() : tcfMetrics.v1();
-        tcfVersionMetrics.vendorList().incCounter(metricName);
+        tcfMetrics.fromVersion(version).vendorList().incCounter(metricName);
     }
 
     public void updateConnectionAcceptErrors() {
@@ -365,20 +431,75 @@ public class Metrics extends UpdatableMetrics {
         updateTimer(MetricName.db_query_time, millis);
     }
 
-    public void updateDatabaseCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.db_circuitbreaker_opened);
+    public void createDatabaseCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.db)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void createHttpClientCircuitBreakerGauge(String name, BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.http)
+                .forName(name)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void removeHttpClientCircuitBreakerGauge(String name) {
+        forCircuitBreakerType(MetricName.http).forName(name).removeMetric(MetricName.opened);
+    }
+
+    public void createHttpClientCircuitBreakerNumberGauge(LongSupplier numberSupplier) {
+        forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
+    }
+
+    public void updatePlannerRequestMetric(boolean successful) {
+        pgMetrics().incCounter(MetricName.planner_requests);
+        if (successful) {
+            pgMetrics().incCounter(MetricName.planner_request_successful);
         } else {
-            incCounter(MetricName.db_circuitbreaker_closed);
+            pgMetrics().incCounter(MetricName.planner_request_failed);
         }
     }
 
-    public void updateHttpClientCircuitBreakerMetric(String id, boolean opened) {
-        if (opened) {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_opened);
+    public void updateDeliveryRequestMetric(boolean successful) {
+        pgMetrics().incCounter(MetricName.delivery_requests);
+        if (successful) {
+            pgMetrics().incCounter(MetricName.delivery_request_successful);
         } else {
-            forCircuitBreaker(id).incCounter(MetricName.httpclient_circuitbreaker_closed);
+            pgMetrics().incCounter(MetricName.delivery_request_failed);
         }
+    }
+
+    public void updateWinEventRequestMetric(boolean successful) {
+        incCounter(MetricName.win_requests);
+        if (successful) {
+            incCounter(MetricName.win_request_successful);
+        } else {
+            incCounter(MetricName.win_request_failed);
+        }
+    }
+
+    public void updateUserDetailsRequestMetric(boolean successful) {
+        incCounter(MetricName.user_details_requests);
+        if (successful) {
+            incCounter(MetricName.user_details_request_successful);
+        } else {
+            incCounter(MetricName.user_details_request_failed);
+        }
+    }
+
+    public void updateWinRequestTime(long millis) {
+        updateTimer(MetricName.win_request_time, millis);
+    }
+
+    public void updateLineItemsNumberMetric(long count) {
+        pgMetrics().incCounter(MetricName.planner_lineitems_received, count);
+    }
+
+    public void updatePlannerRequestTime(long millis) {
+        pgMetrics().updateTimer(MetricName.planner_request_time, millis);
+    }
+
+    public void updateDeliveryRequestTime(long millis) {
+        pgMetrics().updateTimer(MetricName.delivery_request_time, millis);
     }
 
     public void updateGeoLocationMetric(boolean successful) {
@@ -390,12 +511,9 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateGeoLocationCircuitBreakerMetric(boolean opened) {
-        if (opened) {
-            incCounter(MetricName.geolocation_circuitbreaker_opened);
-        } else {
-            incCounter(MetricName.geolocation_circuitbreaker_closed);
-        }
+    public void createGeoLocationCircuitBreakerGauge(BooleanSupplier stateSupplier) {
+        forCircuitBreakerType(MetricName.geo)
+                .createGauge(MetricName.opened, () -> stateSupplier.getAsBoolean() ? 1 : 0);
     }
 
     public void updateStoredRequestMetric(boolean found) {
@@ -429,7 +547,109 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
     }
 
-    private String resolveMetricsBidderName(String bidder) {
-        return bidderCatalog.isValidName(bidder) ? bidder : METRICS_UNKNOWN_BIDDER;
+    public void updateTimeoutNotificationMetric(boolean success) {
+        if (success) {
+            timeoutNotificationMetrics.incCounter(MetricName.ok);
+        } else {
+            timeoutNotificationMetrics.incCounter(MetricName.failed);
+        }
+    }
+
+    public void createCurrencyRatesGauge(BooleanSupplier stateSupplier) {
+        currencyRates().createGauge(MetricName.stale, () -> stateSupplier.getAsBoolean() ? 1 : 0);
+    }
+
+    public void updateSettingsCacheRefreshTime(MetricName cacheType, MetricName refreshType, long timeElapsed) {
+        forSettingsCacheType(cacheType).forRefreshType(refreshType).updateTimer(MetricName.db_query_time, timeElapsed);
+    }
+
+    public void updateSettingsCacheRefreshErrorMetric(MetricName cacheType, MetricName refreshType) {
+        forSettingsCacheType(cacheType).forRefreshType(refreshType).incCounter(MetricName.err);
+    }
+
+    public void updateSettingsCacheEventMetric(MetricName cacheType, MetricName event) {
+        forSettingsCacheType(cacheType).incCounter(event);
+    }
+
+    public void updateHooksMetrics(
+            String moduleCode,
+            Stage stage,
+            String hookImplCode,
+            ExecutionStatus status,
+            Long executionTime,
+            ExecutionAction action) {
+
+        final HookImplMetrics hookImplMetrics = hooks().module(moduleCode).stage(stage).hookImpl(hookImplCode);
+
+        hookImplMetrics.incCounter(MetricName.call);
+        if (status == ExecutionStatus.success) {
+            hookImplMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+        } else {
+            hookImplMetrics.incCounter(HookMetricMapper.fromStatus(status));
+        }
+        hookImplMetrics.updateTimer(MetricName.duration, executionTime);
+    }
+
+    public void updateAccountHooksMetrics(
+            String accountId,
+            String moduleCode,
+            ExecutionStatus status,
+            ExecutionAction action) {
+
+        if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            final ModuleMetrics accountModuleMetrics = forAccount(accountId).hooks().module(moduleCode);
+
+            accountModuleMetrics.incCounter(MetricName.call);
+            if (status == ExecutionStatus.success) {
+                accountModuleMetrics.success().incCounter(HookMetricMapper.fromAction(action));
+            } else {
+                accountModuleMetrics.incCounter(MetricName.failure);
+            }
+        }
+    }
+
+    public void updateAccountModuleDurationMetric(String accountId, String moduleCode, Long executionTime) {
+        if (accountMetricsVerbosity.forAccount(accountId).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+            forAccount(accountId).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
+        }
+    }
+
+    private static class HookMetricMapper {
+
+        private static final EnumMap<ExecutionStatus, MetricName> STATUS_TO_METRIC =
+                new EnumMap<>(ExecutionStatus.class);
+        private static final EnumMap<ExecutionAction, MetricName> ACTION_TO_METRIC =
+                new EnumMap<>(ExecutionAction.class);
+
+        static {
+            STATUS_TO_METRIC.put(ExecutionStatus.failure, MetricName.failure);
+            STATUS_TO_METRIC.put(ExecutionStatus.timeout, MetricName.timeout);
+            STATUS_TO_METRIC.put(ExecutionStatus.invocation_failure, MetricName.execution_error);
+            STATUS_TO_METRIC.put(ExecutionStatus.execution_failure, MetricName.execution_error);
+
+            ACTION_TO_METRIC.put(ExecutionAction.no_action, MetricName.noop);
+            ACTION_TO_METRIC.put(ExecutionAction.update, MetricName.update);
+            ACTION_TO_METRIC.put(ExecutionAction.reject, MetricName.reject);
+        }
+
+        static MetricName fromStatus(ExecutionStatus status) {
+            return STATUS_TO_METRIC.getOrDefault(status, MetricName.unknown);
+        }
+
+        static MetricName fromAction(ExecutionAction action) {
+            return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
+        }
+    }
+
+    public void updateWinNotificationMetric() {
+        incCounter(MetricName.win_notifications);
+    }
+
+    public void updateWinRequestPreparationFailed() {
+        incCounter(MetricName.win_request_preparation_failed);
+    }
+
+    public void updateUserDetailsRequestPreparationFailed() {
+        incCounter(MetricName.user_details_request_preparation_failed);
     }
 }
