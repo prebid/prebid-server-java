@@ -38,13 +38,22 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encode(request))
-                .build());
+
+        try {
+            String partnerId = request.getImp().get(0).getExt().get("bidder").get("partnerId") + "";
+            if (partnerId.length() > 2) {
+                partnerId = partnerId.substring(1, partnerId.length() - 1);
+            }
+            return Result.withValue(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .uri(endpointUrl.replace("{{PartnerId}}", partnerId))
+                    .headers(HttpUtil.headers())
+                    .payload(request)
+                    .body(mapper.encode(request))
+                    .build());
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
     }
 
     @Override

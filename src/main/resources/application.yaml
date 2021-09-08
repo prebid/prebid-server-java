@@ -102,7 +102,8 @@ setuid:
   default-timeout-ms: 2000
 vtrack:
   default-timeout-ms: 2000
-  allow-unkonwn-bidder: true
+  allow-unknown-bidder: true
+  modify-vast-for-unknown-bidder: true
 cookie-sync:
   coop-sync:
     default: true
@@ -145,7 +146,6 @@ host-cookie:
   max-cookie-size-bytes: 0
 gdpr:
   enabled: true
-  default-value: 1
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     default-timeout-ms: 2000

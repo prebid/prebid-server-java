@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
@@ -33,6 +34,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
@@ -61,6 +63,8 @@ public class CacheService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheService.class);
 
+    private static final MultiMap CACHE_HEADERS = HttpUtil.headers();
+    private static final Map<String, List<String>> DEBUG_HEADERS = HttpUtil.toDebugHeaders(CACHE_HEADERS);
     private static final String BID_WURL_ATTRIBUTE = "wurl";
 
     private final CacheTtl mediaTypeCacheTtl;
@@ -124,7 +128,7 @@ public class CacheService {
         }
 
         final long startTime = clock.millis();
-        return httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
+        return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encode(bidCacheRequest),
                 remainingTimeout)
                 .map(response -> toBidCacheResponse(
                         response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
@@ -219,11 +223,15 @@ public class CacheService {
      * Fetches {@link CacheTtl} from {@link Account}.
      * <p>
      * Returns empty {@link CacheTtl} when there are no impressions without expiration or
-     * if{@link Account} has neither of banner or video cache ttl.
+     * if {@link Account} has neither of banner or video cache ttl.
      */
     private CacheTtl accountCacheTtl(boolean impWithNoExpExists, Account account) {
-        return impWithNoExpExists && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null)
-                ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final Integer bannerCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getBannerCacheTtl() : null;
+        final Integer videoCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getVideoCacheTtl() : null;
+
+        return impWithNoExpExists && (bannerCacheTtl != null || videoCacheTtl != null)
+                ? CacheTtl.of(bannerCacheTtl, videoCacheTtl)
                 : CacheTtl.empty();
     }
 
@@ -307,7 +315,7 @@ public class CacheService {
         final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
 
         final long startTime = clock.millis();
-        return httpClient.post(url, HttpUtil.headers(), body, remainingTimeout)
+        return httpClient.post(url, CACHE_HEADERS, body, remainingTimeout)
                 .map(response -> processResponseOpenrtb(
                         response, httpRequest, cachedCreatives.size(), bids, videoBids, accountId, startTime))
                 .otherwise(exception -> failResponseOpenrtb(exception, accountId, httpRequest, startTime));
@@ -368,6 +376,7 @@ public class CacheService {
                 .responseStatus(httpResponse != null ? httpResponse.getStatusCode() : null)
                 .responseBody(httpResponse != null ? httpResponse.getBody() : null)
                 .responseTimeMillis(responseTime(startTime))
+                .requestHeaders(DEBUG_HEADERS)
                 .build();
     }
 

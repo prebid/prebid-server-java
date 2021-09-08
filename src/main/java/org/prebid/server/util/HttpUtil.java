@@ -20,8 +20,12 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -60,6 +64,7 @@ public final class HttpUtil {
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
+    private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));
 
     private HttpUtil() {
     }
@@ -177,5 +182,26 @@ public final class HttpUtil {
             logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
             return false;
         }
+    }
+
+    /**
+     * Converts {@link MultiMap} headers format to Map, where keys are headers names and values are lists
+     * of header's values
+     */
+    public static Map<String, List<String>> toDebugHeaders(MultiMap headers) {
+        return headers != null
+                ? headers.entries().stream()
+                .filter(entry -> !isSensitiveHeader(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        entry -> StringUtils.isNotBlank(entry.getValue())
+                                ? Arrays.stream(entry.getValue().split(","))
+                                .map(String::trim)
+                                .collect(Collectors.toList())
+                                : Collections.singletonList(entry.getValue())))
+                : null;
+    }
+
+    private static boolean isSensitiveHeader(String header) {
+        return SENSITIVE_HEADERS.stream().anyMatch(header::equalsIgnoreCase);
     }
 }

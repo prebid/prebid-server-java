@@ -74,6 +74,8 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.vast.VastModifier;
 
@@ -724,6 +726,7 @@ public class BidResponseCreator {
                 .requestbody(debugHttpCall.getRequestBody())
                 .status(debugHttpCall.getResponseStatus())
                 .responsebody(debugHttpCall.getResponseBody())
+                .requestheaders(debugHttpCall.getRequestHeaders())
                 .build();
     }
 
@@ -1174,7 +1177,12 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForAccount(AuctionContext auctionContext) {
-        return BooleanUtils.isTrue(auctionContext.getAccount().getEventsEnabled());
+        final AccountAuctionConfig accountAuctionConfig = auctionContext.getAccount().getAuction();
+        final AccountEventsConfig accountEventsConfig =
+                accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
+        final Boolean accountEventsEnabled = accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
+
+        return BooleanUtils.isTrue(accountEventsEnabled);
     }
 
     private static boolean eventsEnabledForRequest(AuctionContext auctionContext) {
@@ -1182,9 +1190,10 @@ public class BidResponseCreator {
     }
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
-        final AccountAnalyticsConfig analyticsConfig = ObjectUtils.defaultIfNull(
-                auctionContext.getAccount().getAnalyticsConfig(), AccountAnalyticsConfig.fallback());
-        final Map<String, Boolean> channelConfig = analyticsConfig.getAuctionEvents();
+        final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalytics();
+        final Map<String, Boolean> channelConfig = ObjectUtils.defaultIfNull(
+                analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null,
+                AccountAnalyticsConfig.fallbackAuctionEvents());
 
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
@@ -1322,9 +1331,13 @@ public class BidResponseCreator {
      * Returns max targeting keyword length.
      */
     private int resolveTruncateAttrChars(ExtRequestTargeting targeting, Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final Integer accountTruncateTargetAttr =
+                accountAuctionConfig != null ? accountAuctionConfig.getTruncateTargetAttr() : null;
+
         return ObjectUtils.firstNonNull(
                 truncateAttrCharsOrNull(targeting.getTruncateattrchars()),
-                truncateAttrCharsOrNull(account.getTruncateTargetAttr()),
+                truncateAttrCharsOrNull(accountTruncateTargetAttr),
                 truncateAttrChars);
     }
 

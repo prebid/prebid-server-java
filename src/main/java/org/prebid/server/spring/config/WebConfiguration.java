@@ -331,7 +331,8 @@ public class WebConfiguration {
     @Bean
     VtrackHandler vtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${vtrack.allow-unkonwn-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.allow-unknown-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.modify-vast-for-unknown-bidder}") boolean modifyVastForUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
@@ -341,6 +342,7 @@ public class WebConfiguration {
         return new VtrackHandler(
                 defaultTimeoutMs,
                 allowUnknownBidder,
+                modifyVastForUnknownBidder,
                 applicationSettings,
                 bidderCatalog,
                 cacheService,

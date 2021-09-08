@@ -6,9 +6,11 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ImpWithMemberId {
+public class ImpWithExtProperties {
 
     Imp imp;
 
     String memberId;
+
+    Boolean generateAdPodId;
 }

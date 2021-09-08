@@ -9,7 +9,7 @@
       },
       "ext": {
         "interactiveoffers": {
-          "pubid": 35
+          "partnerId": "abc123"
         }
       }
     }
