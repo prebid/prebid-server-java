@@ -102,6 +102,8 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
+                .compose(ortb2RequestFactory::populateDealsInfo)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 

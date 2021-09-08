@@ -130,8 +130,8 @@ public class TcfDefinerService {
         return resultForInternal(
                 tcfContext,
                 country -> createAllowAllTcfResponse(bidderNames, country),
-                (tcfConsent, country) ->
-                        tcf2Service.permissionsFor(bidderNames, vendorIdResolver, tcfConsent, accountGdprConfig)
+                (consentString, country) ->
+                        tcf2Service.permissionsFor(bidderNames, vendorIdResolver, consentString, accountGdprConfig)
                                 .map(vendorPermissions -> createBidderNameTcfResponse(vendorPermissions, country)));
     }
 
