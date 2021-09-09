@@ -43,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -362,7 +363,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final BigDecimal reserve = appnexusExt.getReserve();
-        if (!bidFloorIsValid(imp.getBidfloor()) && bidFloorIsValid(reserve)) {
+        if (!BidderUtil.isValidPrice(imp.getBidfloor()) && BidderUtil.isValidPrice(reserve)) {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
@@ -373,10 +374,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(),
                 appnexusExt.getGenerateAdPodId());
-    }
-
-    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
