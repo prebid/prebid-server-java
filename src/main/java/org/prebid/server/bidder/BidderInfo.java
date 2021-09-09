@@ -1,4 +1,4 @@
-package org.prebid.server.proto.response;
+package org.prebid.server.bidder;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;

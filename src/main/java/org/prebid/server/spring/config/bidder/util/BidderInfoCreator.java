@@ -1,6 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 

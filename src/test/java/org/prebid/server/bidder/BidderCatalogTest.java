@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;

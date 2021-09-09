@@ -47,7 +47,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
