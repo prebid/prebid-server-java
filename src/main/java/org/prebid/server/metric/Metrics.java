@@ -27,7 +27,7 @@ public class Metrics extends UpdatableMetrics {
 
     private static final String ALL_REQUEST_BIDDERS = "all";
 
-    private final AccountMetricsVerbosity accountMetricsVerbosity;
+    private final AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
 
     private final Function<MetricName, RequestStatusMetrics> requestMetricsCreator;
     private final Function<String, AccountMetrics> accountMetricsCreator;
@@ -56,10 +56,10 @@ public class Metrics extends UpdatableMetrics {
     private final PgMetrics pgMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType,
-                   AccountMetricsVerbosity accountMetricsVerbosity) {
+                   AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
         super(metricRegistry, counterType, MetricName::toString);
 
-        this.accountMetricsVerbosity = Objects.requireNonNull(accountMetricsVerbosity);
+        this.accountMetricsVerbosityResolver = Objects.requireNonNull(accountMetricsVerbosityResolver);
 
         requestMetricsCreator = requestType -> new RequestStatusMetrics(metricRegistry, counterType, requestType);
         accountMetricsCreator = account -> new AccountMetrics(metricRegistry, counterType, account);
@@ -216,7 +216,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAccountRequestMetrics(Account account, MetricName requestType) {
-        final AccountMetricsVerbosityLevel verbosityLevel = accountMetricsVerbosity.forAccount(account);
+        final AccountMetricsVerbosityLevel verbosityLevel = accountMetricsVerbosityResolver.forAccount(account);
         if (verbosityLevel.isAtLeast(AccountMetricsVerbosityLevel.basic)) {
             final AccountMetrics accountMetrics = forAccount(account.getId());
 
@@ -246,7 +246,7 @@ public class Metrics extends UpdatableMetrics {
         final AdapterTypeMetrics adapterTypeMetrics = forAdapter(bidder);
         adapterTypeMetrics.updateTimer(MetricName.request_time, responseTime);
 
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final AdapterTypeMetrics accountAdapterMetrics =
                     forAccount(account.getId()).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateTimer(MetricName.request_time, responseTime);
@@ -255,14 +255,14 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAdapterRequestNobidMetrics(String bidder, Account account) {
         forAdapter(bidder).request().incCounter(MetricName.nobid);
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.nobid);
         }
     }
 
     public void updateAdapterRequestGotbidsMetrics(String bidder, Account account) {
         forAdapter(bidder).request().incCounter(MetricName.gotbids);
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).adapter().forAdapter(bidder).request().incCounter(MetricName.gotbids);
         }
     }
@@ -274,7 +274,7 @@ public class Metrics extends UpdatableMetrics {
         adapterTypeMetrics.forBidType(bidType)
                 .incCounter(isAdm ? MetricName.adm_bids_received : MetricName.nurl_bids_received);
 
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final AdapterTypeMetrics accountAdapterMetrics =
                     forAccount(account.getId()).adapter().forAdapter(bidder);
             accountAdapterMetrics.updateHistogram(MetricName.prices, cpm);
@@ -597,7 +597,7 @@ public class Metrics extends UpdatableMetrics {
             ExecutionStatus status,
             ExecutionAction action) {
 
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             final ModuleMetrics accountModuleMetrics = forAccount(account.getId()).hooks().module(moduleCode);
 
             accountModuleMetrics.incCounter(MetricName.call);
@@ -610,7 +610,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     public void updateAccountModuleDurationMetric(Account account, String moduleCode, Long executionTime) {
-        if (accountMetricsVerbosity.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
+        if (accountMetricsVerbosityResolver.forAccount(account).isAtLeast(AccountMetricsVerbosityLevel.detailed)) {
             forAccount(account.getId()).hooks().module(moduleCode).updateTimer(MetricName.duration, executionTime);
         }
     }

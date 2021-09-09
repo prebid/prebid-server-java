@@ -49,16 +49,16 @@ public class MetricsTest {
 
     private MetricRegistry metricRegistry;
     @Mock
-    private AccountMetricsVerbosity accountMetricsVerbosity;
+    private AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
 
     private Metrics metrics;
 
     @Before
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
-        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosity);
+        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosityResolver);
     }
 
     @Test
@@ -945,7 +945,7 @@ public class MetricsTest {
     @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.none);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.none);
 
         // when
         metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
@@ -967,7 +967,7 @@ public class MetricsTest {
     @Test
     public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsBasic() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
         metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
@@ -1263,7 +1263,7 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         // when
         metrics.updateAccountHooksMetrics(
@@ -1293,7 +1293,7 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
         metrics.updateAccountHooksMetrics(
@@ -1309,7 +1309,7 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         // when
         metrics.updateAccountModuleDurationMetric(
@@ -1327,7 +1327,7 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
         metrics.updateAccountModuleDurationMetric(
@@ -1361,7 +1361,7 @@ public class MetricsTest {
 
             // when
             metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name()),
-                    accountMetricsVerbosity));
+                    accountMetricsVerbosityResolver));
 
             // then
             softly.assertThat(metricRegistry.getMetrics()).hasValueSatisfying(new Condition<>(

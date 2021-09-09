@@ -9,13 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class AccountMetricsVerbosity {
+public class AccountMetricsVerbosityResolver {
 
     private final AccountMetricsVerbosityLevel defaultVerbosity;
     private final Map<String, AccountMetricsVerbosityLevel> accountVerbosityLevels;
 
-    public AccountMetricsVerbosity(AccountMetricsVerbosityLevel defaultVerbosity, List<String> basicVerbosity,
-                                   List<String> detailedVerbosity) {
+    public AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel defaultVerbosity, List<String> basicVerbosity,
+                                           List<String> detailedVerbosity) {
         this.defaultVerbosity = Objects.requireNonNull(defaultVerbosity);
 
         this.accountVerbosityLevels = new HashMap<>();

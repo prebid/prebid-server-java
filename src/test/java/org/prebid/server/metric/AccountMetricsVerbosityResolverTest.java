@@ -9,13 +9,13 @@ import org.prebid.server.settings.model.AccountMetricsConfig;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class AccountMetricsVerbosityTest {
+public class AccountMetricsVerbosityResolverTest {
 
-    private AccountMetricsVerbosity verbosity;
+    private AccountMetricsVerbosityResolver verbosity;
 
     @Before
     public void setUp() {
-        verbosity = new AccountMetricsVerbosity(AccountMetricsVerbosityLevel.none, singletonList("1"),
+        verbosity = new AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel.none, singletonList("1"),
                 singletonList("2"));
     }
 
