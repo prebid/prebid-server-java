@@ -151,7 +151,7 @@ public class AccountConfigReader {
         final Result<JsonNode> override =
             overrideFor(attributeConfig, actualMediaTypes, fieldName);
 
-        final List<T> result = mergeTypedArrays(attributeConfig, override.getValue(), attributeType, fieldName);
+        final List<T> result = overrideArrayAttribute(attributeConfig, override.getValue(), attributeType, fieldName);
 
         return Result.of(result, override.getMessages());
     }
@@ -371,10 +371,10 @@ public class AccountConfigReader {
         return results;
     }
 
-    private static <T> List<T> mergeTypedArrays(JsonNode parent, JsonNode override, Class<T> type, String field) {
-        return MergeUtils.merge(
-            typedArrayFrom(parent, type, field),
-            override != null ? asTypedArray(override, type, OVERRIDE_FIELD) : null);
+    private static <T> List<T> overrideArrayAttribute(JsonNode parent, JsonNode override, Class<T> type, String field) {
+        return override != null
+                ? asTypedArray(override, type, OVERRIDE_FIELD)
+                : typedArrayFrom(parent, type, field);
     }
 
     private static boolean mergeBoolean(JsonNode parent, JsonNode override, String field) {
