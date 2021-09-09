@@ -52,15 +52,13 @@ public class HttpInteractionLogHandlerTest {
                 .add("endpoint", "auction")
                 .add("statusCode", "400")
                 .add("account", "123")
-                .add("limit", "2")
-                .add("bidder", "bidder"));
+                .add("limit", "2"));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpInteractionLogger).setSpec(
-                HttpLogSpec.of(HttpLogSpec.Endpoint.auction, 400, "123", "bidder", 2));
+        verify(httpInteractionLogger).setSpec(HttpLogSpec.of(HttpLogSpec.Endpoint.auction, 400, "123", 2));
     }
 
     @Test
@@ -73,8 +71,7 @@ public class HttpInteractionLogHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpInteractionLogger).setSpec(
-                eq(HttpLogSpec.of(null, null, null, null, 2)));
+        verify(httpInteractionLogger).setSpec(eq(HttpLogSpec.of(null, null, null, 2)));
     }
 
     @Test
