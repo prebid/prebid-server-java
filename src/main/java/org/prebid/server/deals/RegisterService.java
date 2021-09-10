@@ -108,6 +108,10 @@ public class RegisterService implements Initializable, Suspendable {
     @Override
     public void initialize() {
         registerTimerId = vertx.setPeriodic(registerPeriod, ignored -> register(headers()));
+        performRegistration();
+    }
+
+    public void performRegistration() {
         register(headers());
     }
 

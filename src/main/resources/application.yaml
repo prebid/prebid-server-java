@@ -66,6 +66,11 @@ admin-endpoints:
     path: /pbs-admin/lineitem-status
     on-application-port: false
     protected: true
+  force-deals-update:
+    enabled: false
+    path: /pbs-admin/force-deals-update
+    on-application-port: false
+    protected: true
   e2eadmin:
     enabled: false
     path: /pbs-admin/e2eAdmin/*
