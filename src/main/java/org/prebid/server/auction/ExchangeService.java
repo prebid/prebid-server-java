@@ -1155,7 +1155,7 @@ public class ExchangeService {
             if (price == null
                     || price.compareTo(BigDecimal.ZERO) < 0
                     || (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid()))) {
-                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.zero_non_deal_bid);
+                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
                 debugWarnings.add(String.format(
                         "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
                                 bid.getId()));

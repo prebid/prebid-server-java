@@ -2443,6 +2443,7 @@ public class ExchangeServiceTest extends VertxTest {
                         "Dropped bid 'invalid_bid_2'. Does not contain a positive (or zero if there is a deal) 'price'",
                         "Dropped bid 'invalid_bid_3'. Does not contain a positive (or zero if there is a deal) 'price'"
                 );
+        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
     @SuppressWarnings("unchecked")

@@ -558,13 +558,11 @@ public class MetricsTest {
         // when
         metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.badinput);
         metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
-        metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.zero_non_deal_bid);
         metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.badinput").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.requests.badinput").getCount()).isEqualTo(2);
-        assertThat(metricRegistry.counter("adapter.conversant.requests.zero_non_deal_bid").getCount()).isOne();
     }
 
     @Test

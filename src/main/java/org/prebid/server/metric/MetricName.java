@@ -70,7 +70,6 @@ public enum MetricName {
 
     // bids validation
     warn,
-    zero_non_deal_bid,
 
     // cookie sync
     cookie_sync_requests,
