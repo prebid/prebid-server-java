@@ -204,6 +204,8 @@ public class TargetingKeywordsCreator {
         if (StringUtils.isNotBlank(format) && includeFormat) {
             keywordMap.put(HB_FORMAT_KEY, format);
         }
+
+        // get Line Item by dealId
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
         }
