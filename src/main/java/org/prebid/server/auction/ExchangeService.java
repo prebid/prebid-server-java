@@ -1140,11 +1140,11 @@ public class ExchangeService {
     private List<BidderResponse> dropZeroNonDealBids(List<BidderResponse> bidderResponses, List<String> debugWarnings) {
 
         return bidderResponses.stream()
-                .map(bidderResponse -> removeZeroNonDealBids(bidderResponse, debugWarnings))
+                .map(bidderResponse -> removeBidsWithInvalidBids(bidderResponse, debugWarnings))
                 .collect(Collectors.toList());
     }
 
-    private BidderResponse removeZeroNonDealBids(BidderResponse bidderResponse, List<String> debugWarnings) {
+    private BidderResponse removeBidsWithInvalidBids(BidderResponse bidderResponse, List<String> debugWarnings) {
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderBid> bidderBids = seatBid.getBids();
         final List<BidderBid> validBids = new ArrayList<>();
