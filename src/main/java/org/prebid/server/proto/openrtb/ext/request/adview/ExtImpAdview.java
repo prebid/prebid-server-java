@@ -11,5 +11,6 @@ public class ExtImpAdview {
     @JsonProperty("placementId")
     String masterTagId;
 
+    @JsonProperty("accountId")
     String accountId;
 }
