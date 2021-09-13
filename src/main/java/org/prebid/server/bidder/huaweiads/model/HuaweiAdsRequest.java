@@ -16,7 +16,7 @@ public class HuaweiAdsRequest {
     private List<Adslot> multislot;
     private App app;
     private HuaweiAdsDevice device;
-    private HuaweiAdsNetwork network;
+    private Network network;
     private Regs regs;
     private Geo geo;
 }

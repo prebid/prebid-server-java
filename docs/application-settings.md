@@ -8,7 +8,7 @@ There are two ways to configure application settings: database and file. This do
 - `status` - allows to mark account as `active` or `inactive`.
 - `auction.price-granularity` - defines price granularity types: 'low','med','high','auto','dense','unknown'.
 - `auction.banner-cache-ttl` - how long (in seconds) banner will be available via the external Cache Service.
-- `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
+- `auction.xnativeVideo-cache-ttl`- how long (in seconds) xnativeVideo creative will be available via the external Cache Service.
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
@@ -25,7 +25,7 @@ There are two ways to configure application settings: database and file. This do
 - `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.integration-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
 - `privacy.gdpr.integration-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
-- `privacy.gdpr.integration-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
+- `privacy.gdpr.integration-enabled.xnativeVideo` - overrides `privacy.gdpr.enabled` property behaviour for xnativeVideo requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
   Default `full`
@@ -91,7 +91,7 @@ Here's an example YAML file containing account-specific settings:
       auction:
         price-granularity: low
         banner-cache-ttl: 100
-        video-cache-ttl: 100
+        xnativeVideo-cache-ttl: 100
         truncate-target-attr: 40
         default-integration: web
         bid-validations:
@@ -103,7 +103,7 @@ Here's an example YAML file containing account-specific settings:
         gdpr:
           enabled: true
           integration-enabled:
-            video: true
+            xnativeVideo: true
             web: true
             app: true
             amp: true
@@ -241,7 +241,7 @@ example:
   "auction": {
     "price-granularity": "low",
     "banner-cache-ttl": 100,
-    "video-cache-ttl": 100,
+    "xnativeVideo-cache-ttl": 100,
     "truncate-target-attr": 40,
     "default-integration": "web",
     "bid-validations": {
@@ -256,7 +256,7 @@ example:
     "gdpr": {
       "enabled": true,
       "integration-enabled": {
-        "video": true,
+        "xnativeVideo": true,
         "web": true,
         "app": true,
         "amp": true
@@ -427,7 +427,7 @@ SELECT
         'auction', JSON_OBJECT(
             'price-granularity', price_granularity,
             'banner-cache-ttl', banner_cache_ttl,
-            'video-cache-ttl', video_cache_ttl,
+            'xnativeVideo-cache-ttl', video_cache_ttl,
             'truncate-target-attr', truncate_target_attr,
             'default-integration', default_integration,
             'bid-validations', bid_validations,

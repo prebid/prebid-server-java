@@ -1,9 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 
@@ -11,6 +8,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Setter
 @Getter
+@AllArgsConstructor(staticName = "of")
 public class HuaweiAdsDevice {
     private Integer type;
     private String useragent;

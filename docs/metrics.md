@@ -41,7 +41,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `request_time` - timer tracking how long did it take for Prebid Server to serve a request
 - `imps_requested` - number if impressions requested
 - `imps_banner` - number of banner impressions
-- `imps_video` - number of video impressions
+- `imps_video` - number of xnativeVideo impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
 - `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
@@ -71,7 +71,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>`
 - `adapter.<bidder-name>.prices` - histogram of bid prices received from `<bidder-name>`
 - `adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>`
-- `adapter.<bidder-name>.(banner|video|audio|native).(adm_bids_received|nurl_bids_received)` - number of bids received from `<bidder-name>` broken down by bid type and whether they had `adm` or `nurl` specified
+- `adapter.<bidder-name>.(banner|xnativeVideo|audio|native).(adm_bids_received|nurl_bids_received)` - number of bids received from `<bidder-name>` broken down by bid type and whether they had `adm` or `nurl` specified
 - `adapter.<bidder-name>.requests.type.(openrtb2-web|openrtb-app|amp|legacy)` - number of requests made to `<bidder-name>` broken down by type of incoming request
 - `adapter.<bidder-name>.requests.(gotbids|nobid|badinput|badserverresponse|timeout|unknown_error)` - number of requests made to `<bidder-name>` broken down by result status
 - `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.userid_removed` - number of requests made to `<bidder-name>` that required userid removed as a result of TCF enforcement for that bidder
@@ -131,7 +131,7 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules
 
 ## Analytics metrics
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
-- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+- `analytics.<reporter-name>.(auction|amp|xnativeVideo|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
+- `analytics.<reporter-name>.(auction|amp|xnativeVideo|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
+- `analytics.<reporter-name>.(auction|amp|xnativeVideo|cookie_sync|event|setuid).err` - number of event requests, failed with errors
+- `analytics.<reporter-name>.(auction|amp|xnativeVideo|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause

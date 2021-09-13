@@ -96,10 +96,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
-- `auction.video.stored-required` - flag forces to merge with stored request
+- `auction.xnativeVideo.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `xnativeVideo.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for xnativeVideo auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -236,11 +236,11 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.path` - set the external Cache Service path, for example `/cache`.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
-- `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
+- `cache.xnativeVideo-ttl-seconds` - how long (in seconds) xnativeVideo creative will be available via the external Cache Service.
 - `cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
 for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
-- `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
-for particular publisher account. Overrides `cache.video-ttl-seconds` property.
+- `cache.account.<ACCOUNT>.xnativeVideo-ttl-seconds` - how long (in seconds) xnativeVideo creative will be available in Cache Service 
+for particular publisher account. Overrides `cache.xnativeVideo-ttl-seconds` property.
 
 ## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
@@ -275,7 +275,7 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
-- `settings.http.video-endpoint` - the url to fetch video stored requests.
+- `settings.http.xnativeVideo-endpoint` - the url to fetch xnativeVideo stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

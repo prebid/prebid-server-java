@@ -183,7 +183,7 @@ For backwards compatibility the following strings will also be allowed as price 
 
 One of "includewinners" or "includebidderkeys" must be true (both default to true if unset). If both were false, then no targeting keys would be set, which is better configured by omitting targeting altogether.
 
-The parameter "includeformat" indicates the type of the bid (banner, video, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
+The parameter "includeformat" indicates the type of the bid (banner, xnativeVideo, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
 
 MediaType PriceGranularity - when a single OpenRTB request contains multiple impressions with different mediatypes, or a single impression supports multiple formats, the different mediatypes may need different price granularities. If `mediatypepricegranularity` is present, `pricegranularity` would only be used for any mediatypes not specified. 
 
@@ -205,7 +205,7 @@ MediaType PriceGranularity - when a single OpenRTB request contains multiple imp
                             "banner": { "ranges": [
                                 {"max": 20, "increment": 0.5}
                             ]},
-                            "video": { "ranges": [
+                            "xnativeVideo": { "ranges": [
                                 {"max": 10, "increment": 1},
                                 {"max": 20, "increment": 2},
                                 {"max": 50, "increment": 5}
@@ -289,8 +289,8 @@ This can be used to request bids from the same Bidder with different params. For
   "imp": [
     {
       "id": "some-impression-id",
-      "video": {
-        "mimes": ["video/mp4"]
+      "xnativeVideo": {
+        "mimes": ["xnativeVideo/mp4"]
       },
       "ext": {
         "prebid": {
@@ -343,10 +343,10 @@ These can help quantify the performance impact of "the slowest bidder."
 #### Bidder Errors
 
 `response.ext.errors.{bidderName}` contains messages which describe why a request may be "suboptimal".
-For example, suppose a `banner` and a `video` impression are offered to a bidder
+For example, suppose a `banner` and a `xnativeVideo` impression are offered to a bidder
 which only supports `banner`.
 
-In cases like these, the bidder can ignore the `video` impression and bid on the `banner` one.
+In cases like these, the bidder can ignore the `xnativeVideo` impression and bid on the `banner` one.
 However, the publisher can improve performance by only offering impressions which the bidder supports.
 
 For example, a request may return this in `response.ext`
@@ -528,7 +528,7 @@ If a currency rate doesn't exist in the request, the external file will be used.
 
 #### Rewarded Video (PBS-Java only)
 
-Rewarded video is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
+Rewarded xnativeVideo is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
 client can declare a given adunit as eligible for rewards by declaring `imp.ext.prebid.is_rewarded_inventory:1`.
 
 #### Supply Chain Support
@@ -549,7 +549,7 @@ If there's already an source.ext.schain and a bidder is named in ext.prebid.scha
 
 #### Stored Responses
 
-While testing SDK and video integrations, it's important, but often difficult, to get consistent responses back from bidders that cover a range of scenarios like different CPM values, deals, etc. Prebid Server supports a debugging workflow in two ways:
+While testing SDK and xnativeVideo integrations, it's important, but often difficult, to get consistent responses back from bidders that cover a range of scenarios like different CPM values, deals, etc. Prebid Server supports a debugging workflow in two ways:
 
 - a stored-auction-response that covers multiple bidder responses
 - multiple stored-bid-reponses at the bidder adapter level
