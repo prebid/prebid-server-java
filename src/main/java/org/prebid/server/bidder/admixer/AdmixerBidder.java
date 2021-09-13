@@ -86,7 +86,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
         }
-        String zoneId = extImpAdmixer.getZone();
+        final String zoneId = extImpAdmixer.getZone();
 
         if (StringUtils.length(zoneId) < 32 || StringUtils.length(zoneId) > 36) {
             throw new PreBidException("ZoneId must be UUID/GUID");
@@ -103,7 +103,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private BigDecimal resolveBidFloor(BigDecimal customBidFloor, BigDecimal bidFloor) {
+    private static BigDecimal resolveBidFloor(BigDecimal customBidFloor, BigDecimal bidFloor) {
         final BigDecimal resolvedCustomBidFloor = isValidBidFloor(customBidFloor) ? customBidFloor : null;
         final BigDecimal resolvedBidFloor = isValidBidFloor(bidFloor) ? bidFloor : null;
 
