@@ -18,19 +18,20 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.EMPTY_LIST;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
@@ -86,8 +87,9 @@ public class SmarthubBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("http://localhost/prebid_server?host=somePartnerName&AccountID=someSeat&SourceId=someToken");
-
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("http://localhost/prebid_server?host=somePartnerName&AccountID=someSeat&SourceId=someToken");
     }
 
     @Test
@@ -116,7 +118,11 @@ public class SmarthubBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -130,7 +136,11 @@ public class SmarthubBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -157,9 +167,25 @@ public class SmarthubBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBidDoesNotContainExt() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(
-                        builder -> builder
-                                .ext(null))));
+                mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(null))));
+
+        // when
+        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("missing bid ext");
+                });
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfExtIncorrect() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
@@ -177,7 +203,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(EMPTY_LIST)
+                        .seatbid(Collections.emptyList())
                         .build()));
 
         // when

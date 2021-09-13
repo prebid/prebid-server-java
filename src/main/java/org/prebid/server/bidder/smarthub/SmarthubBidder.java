@@ -72,16 +72,6 @@ public class SmarthubBidder implements Bidder<BidRequest> {
                 .replace("{{SourceId}}", extImpSmarthub.getToken());
     }
 
-    private ExtImpSmarthub parseAndValidateImpExt(Imp imp) {
-        final ExtImpSmarthub extImpSmarthub;
-        try {
-            extImpSmarthub = mapper.mapper().convertValue(imp.getExt(), SMARTHUB_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new PreBidException(e.getMessage());
-        }
-        return extImpSmarthub;
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
