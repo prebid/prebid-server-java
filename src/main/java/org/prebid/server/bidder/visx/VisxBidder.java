@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.visx;
 
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -10,6 +11,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.visx.model.VisxBid;
 import org.prebid.server.bidder.visx.model.VisxResponse;
 import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.exception.PreBidException;
@@ -39,37 +41,27 @@ public class VisxBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
-        final List<BidderError> errors = new ArrayList<>();
-
-        return Result.of(createHttpRequests(request), errors);
-    }
-
-    private List<HttpRequest<BidRequest>> createHttpRequests(BidRequest bidRequest) {
-        return Collections.singletonList(makeRequest(bidRequest));
+        return Result.withValue(makeRequest(request));
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
-
-        modifyRequest(bidRequest, requestBuilder);
-
-        final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = mapper.encode(outgoingRequest);
-
+        final BidRequest outgoingRequest = modifyRequest(bidRequest);;
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encode(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build();
     }
 
-    private void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder) {
+    private BidRequest modifyRequest(BidRequest bidRequest) {
         if (CollectionUtils.isEmpty(bidRequest.getCur())) {
-            requestBuilder.cur(Collections.singletonList(DEFAULT_REQUEST_CURRENCY));
+            return bidRequest.toBuilder()
+                    .cur(Collections.singletonList(DEFAULT_REQUEST_CURRENCY))
+                    .build();
         }
+        return bidRequest;
     }
 
     @Override
@@ -95,17 +87,37 @@ public class VisxBidder implements Bidder<BidRequest> {
                 .map(VisxSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(Bid.builder()
-                        .id(bidRequest.getId())
-                        .impid(bid.getImpid())
-                        .price(bid.getPrice())
-                        .adm(bid.getAdm())
-                        .crid(bid.getCrid())
-                        .dealid(bid.getDealid())
-                        .h(bid.getH())
-                        .w(bid.getW())
-                        .adomain(bid.getAdomain())
-                        .build(), BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(makeBid(bid, bidRequest.getId()),
+                        getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    private Bid makeBid(VisxBid bid, String id) {
+        return Bid.builder()
+                .id(id)
+                .impid(bid.getImpid())
+                .price(bid.getPrice())
+                .adm(bid.getAdm())
+                .crid(bid.getCrid())
+                .dealid(bid.getDealid())
+                .h(bid.getH())
+                .w(bid.getW())
+                .adomain(bid.getAdomain())
+                .build();
+    }
+
+    private BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+            }
+        }
+
+        throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
     }
 }
