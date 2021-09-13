@@ -255,6 +255,7 @@ public class ExchangeService {
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
                         bidderResponses, storedAuctionResponses, bidRequest.getImp()))
+                .map(bidderResponses -> dropZeroNonDealBids(bidderResponses, context.getDebugWarnings()))
                 .map(bidderResponses -> validateAndAdjustBids(bidderResponses, context, aliases))
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 // produce response from bidder results
@@ -1134,6 +1135,39 @@ public class ExchangeService {
 
         return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabled)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
+    }
+
+    private List<BidderResponse> dropZeroNonDealBids(List<BidderResponse> bidderResponses, List<String> debugWarnings) {
+
+        return bidderResponses.stream()
+                .map(bidderResponse -> removeZeroNonDealBids(bidderResponse, debugWarnings))
+                .collect(Collectors.toList());
+    }
+
+    private BidderResponse removeZeroNonDealBids(BidderResponse bidderResponse, List<String> debugWarnings) {
+        final BidderSeatBid seatBid = bidderResponse.getSeatBid();
+        final List<BidderBid> bidderBids = seatBid.getBids();
+        final List<BidderBid> validBids = new ArrayList<>();
+
+        for (BidderBid bidderBid : bidderBids) {
+            final Bid bid = bidderBid.getBid();
+            final BigDecimal price = bid.getPrice();
+            if (price == null
+                    || price.compareTo(BigDecimal.ZERO) < 0
+                    || (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid()))) {
+                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.zero_non_deal_bid);
+                debugWarnings.add(String.format(
+                        "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
+                                bid.getId()));
+            } else {
+                validBids.add(bidderBid);
+            }
+        }
+
+        return validBids.size() != bidderBids.size()
+                ? bidderResponse.with(seatBid.with(validBids))
+                : bidderResponse;
+
     }
 
     private List<BidderResponse> validateAndAdjustBids(

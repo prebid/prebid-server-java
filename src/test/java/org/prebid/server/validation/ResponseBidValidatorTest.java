@@ -111,42 +111,6 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldFailIfBidHasNoPrice() {
-        // when
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" does not contain a 'price'");
-    }
-
-    @Test
-    public void validateShouldFailIfBidHasNegativePrice() {
-        // when
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(BigDecimal.valueOf(-1))),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("Bid \"bidId1\" `price `has negative value");
-    }
-
-    @Test
-    public void validateShouldFailedIfNonDealBidHasZeroPrice() {
-        // when
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(builder -> builder.price(BigDecimal.valueOf(0))),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1).containsOnly("Non deal bid \"bidId1\" has 0 price");
-    }
-
-    @Test
     public void validateShouldSuccessForDealZeroPriceBid() {
         // when
         final ValidationResult result = responseBidValidator.validate(
