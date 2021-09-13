@@ -21,7 +21,6 @@ import org.prebid.server.bidder.visx.model.VisxResponse;
 import org.prebid.server.bidder.visx.model.VisxSeatBid;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.visx.ExtImpVisx;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
