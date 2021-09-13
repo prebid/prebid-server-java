@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "YSSP Adapter Params",
-  "description": "A schema which validates params accepted by the YSSP adapter",
+  "title": "YahooSSP Adapter Params",
+  "description": "A schema which validates params accepted by the YahooSSP adapter",
   "type": "object",
   "properties": {
     "dcn": {

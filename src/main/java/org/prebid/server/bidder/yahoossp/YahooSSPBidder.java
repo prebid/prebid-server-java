@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.yssp;
+package org.prebid.server.bidder.yahoossp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,7 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.yssp.ExtImpYssp;
+import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -36,16 +36,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class YsspBidder implements Bidder<BidRequest> {
+public class YahooSSPBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpYssp>> YSSP_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpYssp>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpYahooSSP>> YAHOOSSP_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpYahooSSP>>() {
             };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public YsspBidder(String endpointUrl, JacksonMapper mapper) {
+    public YahooSSPBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -59,8 +59,8 @@ public class YsspBidder implements Bidder<BidRequest> {
         for (int i = 0; i < impList.size(); i++) {
             try {
                 final Imp imp = impList.get(i);
-                final ExtImpYssp extImpYssp = parseAndValidateImpExt(imp.getExt(), i);
-                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYssp);
+                final ExtImpYahooSSP extImpYahooSSP = parseAndValidateImpExt(imp.getExt(), i);
+                final BidRequest modifiedRequest = modifyRequest(bidRequest, imp, extImpYahooSSP);
                 bidRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -70,28 +70,28 @@ public class YsspBidder implements Bidder<BidRequest> {
         return Result.of(bidRequests, errors);
     }
 
-    private ExtImpYssp parseAndValidateImpExt(ObjectNode impExtNode, int index) {
-        final ExtImpYssp extImpYssp;
+    private ExtImpYahooSSP parseAndValidateImpExt(ObjectNode impExtNode, int index) {
+        final ExtImpYahooSSP extImpYahooSSP;
         try {
-            extImpYssp = mapper.mapper().convertValue(impExtNode, YSSP_EXT_TYPE_REFERENCE).getBidder();
+            extImpYahooSSP = mapper.mapper().convertValue(impExtNode, YAHOOSSP_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("imp #%s: %s", index, e.getMessage()));
         }
 
-        final String dcn = extImpYssp.getDcn();
+        final String dcn = extImpYahooSSP.getDcn();
         if (StringUtils.isBlank(dcn)) {
             throw new PreBidException(String.format("imp #%s: missing param dcn", index));
         }
 
-        final String pos = extImpYssp.getPos();
+        final String pos = extImpYahooSSP.getPos();
         if (StringUtils.isBlank(pos)) {
             throw new PreBidException(String.format("imp #%s: missing param pos", index));
         }
 
-        return extImpYssp;
+        return extImpYahooSSP;
     }
 
-    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYssp extImpYssp) {
+    private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooSSP extImpYahooSSP) {
         final Banner banner = imp.getBanner();
         final boolean hasBanner = banner != null;
 
@@ -105,7 +105,7 @@ public class YsspBidder implements Bidder<BidRequest> {
         }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(extImpYssp.getPos());
+                .tagid(extImpYahooSSP.getPos());
 
         if (hasBanner && !hasBannerWidthAndHeight) {
             impBuilder.banner(modifyBanner(banner));
@@ -116,9 +116,9 @@ public class YsspBidder implements Bidder<BidRequest> {
         final Site site = request.getSite();
         final App app = request.getApp();
         if (site != null) {
-            requestBuilder.site(site.toBuilder().id(extImpYssp.getDcn()).build());
+            requestBuilder.site(site.toBuilder().id(extImpYahooSSP.getDcn()).build());
         } else if (app != null) {
-            requestBuilder.app(app.toBuilder().id(extImpYssp.getDcn()).build());
+            requestBuilder.app(app.toBuilder().id(extImpYahooSSP.getDcn()).build());
         }
 
         return requestBuilder
