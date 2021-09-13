@@ -13,11 +13,29 @@ For example, in `IntelliJ IDEA` hit `Code -> Reformat Code` to organize your cod
 ## Code conventions
 
 ### Max line length
-Line length is limited to 120 columns.
+Line length is limited to 120 columns for `*.java` files. Other file types are unrestricted.
 
 ### Transitive dependencies
 Don't use transitive dependencies in project code.
 If it needed, recommended adding a library as a dependency of Maven in `pom.xml` directly.
+
+### Add library as maven dependency
+It is recommended to define version of library to separate property in `pom.xml`:
+```
+<project>
+    <properties>
+        <caffeine.version>2.6.2</caffeine.version>
+    </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
+        </dependency>
+    </dependencies>
+</project>
+```
 
 ### Avoid wildcards in imports
 Do not use wildcard in imports because they hide what exactly is required by the class.
@@ -32,7 +50,7 @@ import java.util.Map;
 ```
 
 ### Variable and method naming
-Preferred to use `camel-case` naming convention for variables and methods.
+Preferred to use `camelCase` naming convention for variables and methods.
 
 Name of variable should be self-explanatory:
 ```
@@ -63,7 +81,7 @@ String value = "value";
 final String value = "value";
 ```
 
-### Ternary operators
+### Ternary expressions
 Results of long ternary operators should be on separate lines:
 ```
 // bad
@@ -125,6 +143,18 @@ The idea is to keep this open-source project safe as far as possible.
 
 ### Tests
 The code should be covered over 90%.
+
+The common way for writing tests is to comply with `given-when-then` style.
+```
+// given
+final BidRequest bidRequest = BidRequest.builder().id("").build();
+
+// when
+final ValidationResult result = requestValidator.validate(bidRequest);
+
+// then
+assertThat(result.getErrors()).containsOnly("request missing required field: \"id\"");
+```
 
 Don't use real data in tests, like endpoint URLs, account IDs, etc.
 ```
