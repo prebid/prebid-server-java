@@ -44,7 +44,7 @@ public class VisxBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        final BidRequest outgoingRequest = modifyRequest(bidRequest);;
+        final BidRequest outgoingRequest = modifyRequest(bidRequest);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
