@@ -3,8 +3,8 @@ The intent here is to maintain a common style across the project
 and rely on the process to enforce it instead of individuals.
 
 ## Automated code style check 
-The [pom.xml](pom.xml) is configured to enforce a coding style 
-defined in [checkstyle.xml](checkstyle.xml) when maven `validate` phase executed.
+The [pom.xml](../pom.xml) is configured to enforce a coding style 
+defined in [checkstyle.xml](../checkstyle.xml) when maven `validate` phase executed.
 
 ## Formatting
 The project uses formatting rules described in `.editorconfig` file. Most of the popular IDEs have support of it.
