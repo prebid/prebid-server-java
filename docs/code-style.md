@@ -62,6 +62,14 @@ import java.util.Map;
 
 Preferred to use `camelCase` naming convention for variables and methods.
 
+```
+// bad
+String account_id = "id";
+
+// good
+String accountId = "id";
+```
+
 Name of variable should be self-explanatory:
 
 ```
@@ -135,6 +143,25 @@ int resolvedValue = resolveValue(fetchExternalJson(url, httpClient), populateAdd
 String externalJson = fetchExternalJson(url, httpClient);
 List<Key> additionalKeys = fetchAdditionalKeys(mainKeys, keyResolver);
 int resolvedValue = resolveValue(externalJson, additionalKeys);
+```
+
+### Data retrieval calls of same result
+
+Try not to retrieve same data more than once:
+
+```
+// bad
+if (getData() != null) {
+    final Data resolvedData = resolveData(getData());
+    ...
+}
+
+// good
+final Data data = getData();
+if (data != null) {
+    final Data resolvedData = resolveData(data);
+    ...
+}
 ```
 
 ### Check for NULL
