@@ -52,7 +52,6 @@ Do not use wildcard in imports because they hide what exactly is required by the
 // bad
 import java.util.*;
 
-
 // good
 import java.util.HashMap;
 import java.util.Map;
@@ -182,17 +181,19 @@ For convenience, the `org.prebid.server.util.ObjectUtils` helper can be used for
 
 ### Garbage code
 
-Don't leave commented code (don't think about the future). You can always add it later when it will be really desired.
+Don't leave commented code (don't think about the future).
 
 ```
 // bad
 // String iWillUseThisLater = "never";
 ```
 
+You can always add it later when it will be really desired.
+
 ### Privacy
 
-It is strictly prohibited to log any of private data about publisher, exchanges or similar sensitive information. The
-idea is to keep this open-source project safe as far as possible.
+It is strictly prohibited to log any kind of private data about publisher, exchanges or similar sensitive information.
+The idea is to keep this open-source project safe as far as possible.
 
 ### Tests
 
@@ -200,7 +201,7 @@ The code should be covered over 90%.
 
 #### Given-When-Then approach
 
-The common way for writing tests is to comply with `given-when-then` style.
+The common way for writing tests has to comply with `given-when-then` style.
 
 ```
 // given
@@ -238,8 +239,8 @@ Those tests are located at `src/test/java/org/prebid/server/it` folder.
 
 The idea behind the smoke bidder test is to verify PBS can start up with supplied bidder configuration and to check the
 simplest basic happy-path scenario which bidder code should do. Thus, the OpenRTB `JSON` request file (see the examples
-in `src/test/resources/org/prebid/server/it/openrtb2` folder)
-might contain exactly single bidder under testing and one impression with single media type.
+in `src/test/resources/org/prebid/server/it/openrtb2` folder)might contain exactly single bidder under testing and one
+impression with single media type.
 
 ```json
 {
