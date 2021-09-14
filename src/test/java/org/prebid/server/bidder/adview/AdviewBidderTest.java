@@ -187,7 +187,8 @@ public class AdviewBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfBannerIsAbsentAndVideoIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfBannerIsAbsentAndVideoIsPresentInRequestImp()
+            throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(impBuilder -> impBuilder.banner(null).video(Video.builder().build())),
