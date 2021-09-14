@@ -10,6 +10,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -104,11 +105,11 @@ public class AceexBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid array");
         }
 
-        final Collection<Bid> bids = CollectionUtils.emptyIfNull(firstSeatBid.getBid());
+        final List<Bid> bids = ListUtils.emptyIfNull(firstSeatBid.getBid());
         return bidsFromSeatBid(bids, bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromSeatBid(Collection<Bid> bids,
+    private static List<BidderBid> bidsFromSeatBid(List<Bid> bids,
                                                    BidRequest bidRequest,
                                                    BidResponse bidResponse) {
         return bids.stream()
