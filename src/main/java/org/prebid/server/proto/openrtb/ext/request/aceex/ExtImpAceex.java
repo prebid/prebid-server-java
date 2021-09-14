@@ -8,6 +8,6 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 public class ExtImpAceex {
 
-    @JsonProperty("accountId")
+    @JsonProperty("accountid")
     String accountId;
 }
