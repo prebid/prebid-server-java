@@ -89,5 +89,4 @@ public class IqZoneBidder implements Bidder<BidRequest> {
         }
         return mapper.mapper().convertValue(typeNode.asText(), BidType.class);
     }
-
 }
