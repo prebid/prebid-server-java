@@ -60,7 +60,7 @@ import java.util.Map;
 
 ### Variable and method naming
 
-Preferred to use `camelCase` naming convention for variables and methods.
+Prefer to use `camelCase` naming convention for variables and methods.
 
 ```
 // bad
@@ -80,7 +80,7 @@ String s = resolveParamA();
 String resolvedParamA = resolveParamA();
 ```
 
-This helps to other developers flesh your code out better without additional questions.
+This helps other developers flesh your code out better without additional questions.
 
 For `Map`s it is recommended to use `To` between key and value designation:
 
@@ -119,7 +119,7 @@ boolean result = someVeryVeryLongConditionThatForcesLineWrap
     : secondResult;
 ```
 
-No so strict, but short ternary operations should be in one line:
+Not so strict, but short ternary operations should be on one line:
 
 ```
 // bad
@@ -166,7 +166,7 @@ if (data != null) {
 
 ### Check for NULL
 
-If you're dealing with incoming data, please ensure to check if nested object is not null before chaining.
+If you're dealing with incoming data, please be sure to check if the nested object is not null before chaining.
 
 ```
 // bad
@@ -213,6 +213,12 @@ final ValidationResult result = requestValidator.validate(bidRequest);
 assertThat(result.getErrors()).containsOnly("request missing required field: \"id\"");
 ```
 
+where:
+
+- `given` - initial state, data or conditions.
+- `when` - stimulus: some action against the system under test.
+- `then` - expectations/assertions.
+
 #### Real data in tests
 
 Don't use real information in tests, like existing endpoint URLs, account IDs, etc.
@@ -225,14 +231,14 @@ String ENDPOINT_URL = "https://prebid.org";
 String ENDPOINT_URL = "https://test-endpoint.url";
 ```
 
-#### Bidder functional tests
+#### Bidder smoke tests
 
-Along with regular unit-tests bidder's writer should provide functional (historically we call them `integration`) tests.
+Along with regular unit-tests bidder's writer should provide smoke (historically we call them `integration`) tests.
 Those tests are located at `src/test/java/org/prebid/server/it` folder.
 
-The idea behind the functional bidder test is to verify PBS can start up with supplied bidder configuration and to check
-the simplest basic happy-path scenario which bidder code should do. Thus, the OpenRTB `JSON` request file (see the
-examples in `src/test/resources/org/prebid/server/it/openrtb2` folder)
+The idea behind the smoke bidder test is to verify PBS can start up with supplied bidder configuration and to check the
+simplest basic happy-path scenario which bidder code should do. Thus, the OpenRTB `JSON` request file (see the examples
+in `src/test/resources/org/prebid/server/it/openrtb2` folder)
 might contain exactly single bidder under testing and one impression with single media type.
 
 ```json
