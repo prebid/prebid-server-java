@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.marsmedia;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -11,6 +11,6 @@ import lombok.Value;
 @Value
 public class ExtImpMarsmedia {
 
-    @JsonProperty("zoneId")
+    @JsonAlias("zoneId")
     String zone;
 }
