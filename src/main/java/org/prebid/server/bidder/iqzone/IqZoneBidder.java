@@ -1,8 +1,7 @@
 package org.prebid.server.bidder.iqzone;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -43,6 +42,7 @@ public class IqZoneBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .payload(request)
                 .body(mapper.encode(request))
+                .headers(HttpUtil.headers())
                 .build());
     }
 
@@ -69,24 +69,35 @@ public class IqZoneBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> constructBidderBid(bid, bidResponse))
+                .map(bid -> constructBidderBid(bid, bidResponse, bidRequest))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse) {
+    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, BidRequest bidRequest) {
         try {
-            return BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur());
+            return BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur());
         } catch (IllegalArgumentException | PreBidException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private BidType getBidType(ObjectNode bidExt) {
-        final JsonNode typeNode = bidExt != null && !bidExt.isEmpty() ? bidExt.at("/prebid/type") : null;
-        if (typeNode == null || !typeNode.isTextual()) {
-            throw new PreBidException("Missing bid ext");
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+            }
         }
-        return mapper.mapper().convertValue(typeNode.asText(), BidType.class);
+        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
     }
 }
+

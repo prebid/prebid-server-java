@@ -1,7 +1,10 @@
 package org.prebid.server.bidder.iqzone;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -9,7 +12,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.between.BetweenBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -19,7 +21,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.iqzone.ExtImpIqzone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.util.Arrays;
@@ -46,7 +47,7 @@ public class IqzoneBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new BetweenBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new IqZoneBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -102,43 +103,73 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldCorrectlyProceedWithValues() throws JsonProcessingException {
+    public void makeBidsShouldCorrectlyProceedWithVideo() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(
-                        firstBuilder -> firstBuilder
-                                .ext(mapper
-                                        .createObjectNode()
-                                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                                .type(BidType.video)
-                                                .build()))),
-
-                        secondBuilder -> secondBuilder
-                                .ext(mapper
-                                        .createObjectNode()
-                                        .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                                .type(BidType.video)
-                                                .build()))))));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+                        .id("someId")
+                        .video(Video
+                                .builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when
         final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(value -> {
                     assertThat(value.getType()).isEqualTo(BidType.video);
                 });
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenMissingBidExt() throws JsonProcessingException {
+    public void makeBidsShouldCorrectlyProceedWithNative() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(
-                        firstBuilder -> firstBuilder
-                                .ext(mapper
-                                        .createObjectNode()
-                                        .set("prebid", null)))));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+                        .id("someId")
+                        .xNative(Native
+                                .builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+
+        // when
+        final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .allSatisfy(value -> {
+                    assertThat(value.getType()).isEqualTo(BidType.xNative);
+                });
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldCorrectlyProceedWithBanner() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+                        .id("someId")
+                        .banner(Banner
+                                .builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+
+        // when
+        final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .allSatisfy(value -> {
+                    assertThat(value.getType()).isEqualTo(BidType.banner);
+                });
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfImpIdDoesNotMatchImpIdInBid() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+                        .id("someIdThatIsDifferentFromIDInBid")
+                        .xNative(Native
+                                .builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when
         final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
@@ -147,7 +178,25 @@ public class IqzoneBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Missing bid ext");
+                    assertThat(error.getMessage()).startsWith("Failed to find impression for ID:");
+                });
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMissingType() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.id("someId")),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+
+        // when
+        final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Unknown impression type for ID");
                 });
     }
 
