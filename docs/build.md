@@ -27,7 +27,16 @@ Move to project directory:
 cd prebid-server-java
 ```
 
-Run below command to create JAR file:
+And from this step there are two common use cases, which can be chosen depending on your goals
+
+1. Create prebid-server JAR only
+- Run below command to build project:
 ```bash
 mvn clean package
+```
+
+2. Create prebid-server JAR with modules
+- Run below command to build project:
+```bash
+mvn clean package --file extra/pom.xml
 ```
