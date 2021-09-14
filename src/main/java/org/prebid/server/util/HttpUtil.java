@@ -129,7 +129,7 @@ public final class HttpUtil {
      */
     public static void addHeaderIfValueIsNotEmpty(MultiMap headers, CharSequence headerName, CharSequence headerValue) {
         if (StringUtils.isNotEmpty(headerValue)) {
-            headers.add(headerName, headerValue);
+            headers.set(headerName, headerValue);
         }
     }
 

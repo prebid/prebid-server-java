@@ -92,8 +92,10 @@ public class AceexBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse("Bad Server Response"));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
