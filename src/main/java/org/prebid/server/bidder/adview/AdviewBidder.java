@@ -15,7 +15,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -52,12 +51,19 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
         try {
             extImpAdview = mapper.mapper().convertValue(firstImp.getExt(), ADVIEW_EXT_TYPE_REFERENCE).getBidder();
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return Result.withError(BidderError.badInput("invalid imp.ext"));
         }
 
         final BidRequest modifiedRequest = modifyRequest(request, extImpAdview.getMasterTagId());
-        return Result.withValue(makeHttpRequest(modifiedRequest, extImpAdview.getAccountId()));
+        return Result.withValue(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(resolveEndpoint(extImpAdview.getAccountId()))
+                        .headers(HttpUtil.headers())
+                        .body(mapper.encode(modifiedRequest))
+                        .payload(modifiedRequest)
+                        .build());
     }
 
     private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId) {
@@ -90,16 +96,6 @@ public class AdviewBidder implements Bidder<BidRequest> {
         return banner;
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String accountId) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint(accountId))
-                .headers(HttpUtil.headers())
-                .body(mapper.encode(request))
-                .payload(request)
-                .build();
-    }
-
     private String resolveEndpoint(String accountId) {
         return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
     }
@@ -109,7 +105,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -129,17 +125,16 @@ public class AdviewBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getImpid(), bidRequest.getImp()),
                         bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidMediaType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
+                if (imp.getVideo() != null) {
                     return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
                 }
             }
         }

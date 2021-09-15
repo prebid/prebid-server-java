@@ -9,6 +9,7 @@ adapters:
     aliases: {}
     meta-info:
       maintainer-email: partner@adview.com
+      site-media-types:
       app-media-types:
         - banner
         - video
