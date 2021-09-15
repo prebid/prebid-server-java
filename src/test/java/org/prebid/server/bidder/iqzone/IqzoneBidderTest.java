@@ -106,9 +106,7 @@ public class IqzoneBidderTest extends VertxTest {
     public void makeBidsShouldCorrectlyProceedWithVideo() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId")
-                        .video(Video
-                                .builder().build())),
+                        .id("someId").video(Video.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when
@@ -126,9 +124,7 @@ public class IqzoneBidderTest extends VertxTest {
     public void makeBidsShouldCorrectlyProceedWithNative() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId")
-                        .xNative(Native
-                                .builder().build())),
+                        .id("someId").xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when
@@ -146,9 +142,7 @@ public class IqzoneBidderTest extends VertxTest {
     public void makeBidsShouldCorrectlyProceedWithBanner() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId")
-                        .banner(Banner
-                                .builder().build())),
+                        .id("someId").banner(Banner.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when
@@ -166,9 +160,7 @@ public class IqzoneBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfImpIdDoesNotMatchImpIdInBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someIdThatIsDifferentFromIDInBid")
-                        .xNative(Native
-                                .builder().build())),
+                        .id("someIdThatIsDifferentFromIDInBid").xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
 
         // when

@@ -77,7 +77,7 @@ public class IqzoneBidder implements Bidder<BidRequest> {
     private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, BidRequest bidRequest) {
         try {
             return BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur());
-        } catch (IllegalArgumentException | PreBidException e) {
+        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
