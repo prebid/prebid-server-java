@@ -25,6 +25,10 @@ public class BidInfo {
 
     CacheInfo cacheInfo;
 
+    String lineItemId;
+
+    String lineItemSource;
+
     TargetingInfo targetingInfo;
 
     public String getBidId() {

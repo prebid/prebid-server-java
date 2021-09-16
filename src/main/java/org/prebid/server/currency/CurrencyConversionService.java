@@ -179,7 +179,7 @@ public class CurrencyConversionService implements Initializable {
      * is true.
      * Throws {@link PreBidException} in case conversion is not possible.
      */
-    private BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+    public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
                                       String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.

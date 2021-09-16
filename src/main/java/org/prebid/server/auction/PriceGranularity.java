@@ -1,5 +1,6 @@
 package org.prebid.server.auction;
 
+import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.EnumUtils;
 import org.prebid.server.exception.PreBidException;
@@ -15,6 +16,7 @@ import java.util.Objects;
 /**
  * Describes the behavior for price granularity feature.
  */
+@NoArgsConstructor
 public class PriceGranularity {
 
     enum PriceGranularityType {

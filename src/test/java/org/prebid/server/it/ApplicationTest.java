@@ -131,7 +131,8 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/rubicon_appnexus/test-auction-rubicon-appnexus-response.json",
-                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS), openrtbCacheDebugCustomization());
+                response, asList(RUBICON, APPNEXUS, APPNEXUS_ALIAS),
+                openrtbCacheDebugCustomization(), headersDebugCustomization());
     }
 
     @Test
@@ -509,6 +510,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(SPEC)
                 .when()
+                .queryParam("enabledonly", "false")
                 .get("/info/bidders");
 
         // then
@@ -659,6 +661,21 @@ public class ApplicationTest extends IntegrationTest {
                 .then()
                 .assertThat()
                 .body(Matchers.equalTo(""))
+                .statusCode(200);
+    }
+
+    @Test
+    public void traceHandlerShouldReturn200Ok() {
+        given(ADMIN_SPEC)
+                .when()
+                .param("level", "error")
+                .param("duration", "1000")
+                .param("account", "1001")
+                .param("bidderCode", "rubicon")
+                .param("lineitemId", "1001")
+                .post("/pbs-admin/tracelog")
+                .then()
+                .assertThat()
                 .statusCode(200);
     }
 

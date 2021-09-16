@@ -38,6 +38,17 @@ public class ExtUser extends FlexibleExtension {
     List<ExtUserEid> eids;
 
     /**
+     * List of frequency capped for user.
+     */
+    @JsonProperty("fcapids")
+    List<String> fcapIds;
+
+    /**
+     * User date and time.
+     */
+    ExtUserTime time;
+
+    /**
      * Defines the contract for bidrequest.user.ext.data.
      */
     ObjectNode data;

@@ -1,35 +1,53 @@
 # Application Settings
+
 There are two ways to configure application settings: database and file. This document will describe both approaches.
 
 ## Account properties
+
 - `id` - identifies publisher account.
-- `price-granularity` - defines price granularity types: 'low','med','high','auto','dense','unknown'.
-- `banner-cache-ttl` - how long (in seconds) banner will be available via the external Cache Service.
-- `video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
-- `events-enabled` - enables events for account if true
-- `enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
-- `gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
-- `gdpr.integration-enabled.web` - overrides `gdpr.enabled` property behaviour for web requests type.
-- `gdpr.integration-enabled.amp` - overrides `gdpr.enabled` property behaviour for amp requests type.
-- `gdpr.integration-enabled.app` - overrides `gdpr.enabled` property behaviour for app requests type.
-- `gdpr.integration-enabled.video` - overrides `gdpr.enabled` property behaviour for video requests type.
-- `gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`. Default `full`
-- `gdpr.purposes.[p1-p10].enforce-vendors` - if equals to `true`, user must give consent to use vendors. Purposes will be omitted. Default `true`
-- `gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite to `pN.enforce-vendors` value.
-- `gdpr.special-features.[f1-f2].enforce`- if equals to `true`, special feature will be enforced for purpose. Default `true`
-- `gdpr.special-features.[f1-f2].vendor-exceptions` - bidder names that will be treated opposite to `sfN.enforce` value.
-- `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow. Values: ignore, no-access-allowed, access-allowed.
-- `analytics-sampling-factor` - Analytics sampling factor value. 
-- `truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
-- `default-integration` - Default integration to assume.
-- `analytics-config.auction-events.<channel>` - defines which channels are supported by analytics for this account
-- `bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners.
 - `status` - allows to mark account as `active` or `inactive`.
+- `auction.price-granularity` - defines price granularity types: 'low','med','high','auto','dense','unknown'.
+- `auction.banner-cache-ttl` - how long (in seconds) banner will be available via the external Cache Service.
+- `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
+- `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
+- `auction.default-integration` - Default integration to assume.
+- `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
+  are:
+    - "skip": don't do anything about creative max size for this publisher
+    - "warn": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, log an
+      operational warning.
+    - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
+      the bid and log an operational warning.
+- `auction.events.enabled` - enables events for account if true
+- `privacy.enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
+- `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
+  application.yaml.
+- `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
+- `privacy.gdpr.integration-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
+- `privacy.gdpr.integration-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
+- `privacy.gdpr.integration-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
+  type.
+- `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
+  Default `full`
+- `privacy.gdpr.purposes.[p1-p10].enforce-vendors` - if equals to `true`, user must give consent to use vendors.
+  Purposes will be omitted. Default `true`
+- `privacy.gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite
+  to `pN.enforce-vendors` value.
+- `privacy.gdpr.special-features.[f1-f2].enforce`- if equals to `true`, special feature will be enforced for purpose.
+  Default `true`
+- `privacy.gdpr.special-features.[f1-f2].vendor-exceptions` - bidder names that will be treated opposite
+  to `sfN.enforce` value.
+- `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
+  Values: ignore, no-access-allowed, access-allowed.
+- `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
+- `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
-- `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this value
+- `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
+  value
 - `cookie-sync.default-coop-sync` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
+
 ```
 Purpose   | Purpose goal                    | Purpose meaning for PBS (n\a - not affected)  
 ----------|---------------------------------|---------------------------------------------
@@ -61,116 +79,121 @@ settings:
   filesystem:
     settings-filename: <directory to yaml file with settings>
 ```
+
 ### File format
 
 Here's an example YAML file containing account-specific settings:
 
 ```yaml
-accounts:
-  - id: 1111
-    bannerCacheTtl: 100
-    videoCacheTtl: 100
-    eventsEnabled: true
-    priceGranularity: low
-    enforceCcpa: true
-    analyticsSamplingFactor: 1
-    truncateTargetAttr: 40
-    defaultIntegration: web
-    analytics-config:
-      auction-events:
-        amp: true
-    status: active
-    cookie-sync:
-      default-limit: 5
-      max-limit: 8
-      default-coop-sync: true
-    gdpr:
-      enabled: true
-      integration-enabled:
-        video: true
-        web: true
-        app: true
-        amp: true
-      purposes:
-        p1:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p2:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p3:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p4:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p5:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p6:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p7:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p8:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p9:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        p10:
-          enforce-purpose: full
-          enforce-vendors: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-      special-features:
-        sf1:
-          enforce: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-        sf2:
-          enforce: true
-          vendor-exceptions:
-            - bidder1
-            - bidder2
-      purpose-one-treatment-interpretation: ignore
+  accounts:
+    - id: 1111
+      status: active
+      auction:
+        price-granularity: low
+        banner-cache-ttl: 100
+        video-cache-ttl: 100
+        truncate-target-attr: 40
+        default-integration: web
+        bid-validations:
+          banner-creative-max-size: enforce
+        events:
+          enabled: true
+      privacy:
+        enforce-ccpa: true
+        gdpr:
+          enabled: true
+          integration-enabled:
+            video: true
+            web: true
+            app: true
+            amp: true
+          purposes:
+            p1:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p2:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p3:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p4:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p5:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p6:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p7:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p8:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p9:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            p10:
+              enforce-purpose: full
+              enforce-vendors: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+          special-features:
+            sf1:
+              enforce: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+            sf2:
+              enforce: true
+              vendor-exceptions:
+                - bidder1
+                - bidder2
+          purpose-one-treatment-interpretation: ignore
+      analytics:
+        auction-events:
+          amp: true
+      cookie-sync:
+        default-limit: 5
+        max-limit: 8
+        default-coop-sync: true
 ```
 
 ## Setting Account Configuration in the Database
 
-In database approach account properties are stored in database table.
+In database approach account properties are stored in database table(s).
 
-SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md). 
+SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md).
 Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
@@ -187,198 +210,168 @@ settings:
 
 ### Configurable SQL query for account requirements
 
-The general approach is that each host company can set up their database however they wish, so long as the configurable query run by
-Prebid Server returns expected data in the expected order. Here's an example configuration:
+The general approach is that each host company can set up their database however they wish, so long as the configurable
+query run by Prebid Server returns expected data in the expected order. Here's an example configuration:
 
 ```yaml
 settings:
   database:
     type: mysql
-    account-query: SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, bid_validations, status, config FROM accounts_account where uuid = ? LIMIT 1
+    account-query: SELECT config FROM accounts_account where uuid = ? LIMIT 1
 ```
 
 The SQL query for account must:
+
 * return following columns, with specified type, in this order:
-    * account ID, string
-    * price granularity, string
-    * banner cache TTL, integer
-    * video cache TTL, integer
-    * events enabled flag, boolean
-    * enforce CCPA flag, boolean
-    * TCF configuration, JSON string, see below
-    * analytics sampling factor, integer
-    * maximum targeting attribute size, integer
-    * default integration value, string
-    * analytics configuration, JSON string, see below
-    * bid validations configuration, JSON string, see below
-    * status, string. Expected values: "active", "inactive", NULL. Only "inactive" has any effect and only when settings.enforce-valid-account is on.
-    * consolidated configuration, JSON string, see below   
-* specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in 
-runtime
+    * configuration document, JSON string, see below
+* specify a special single `%ACCOUNT_ID%` placeholder in the `WHERE` clause that will be replaced with account ID in
+  runtime
 
 It is recommended to include `LIMIT 1` clause in the query because only the very first result returned will be taken.
 
-If a host company doesn't support a given field, or they have a different table name, they can just update the query with whatever values are needed. e.g.
+### Configuration document JSON
 
-```yaml
-settings:
-  database:
-    type: mysql
-    account-query: SELECT uuid, 'med', banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, tcf_config, 0, null, default_integration, '{}', '{}', status, '{}' FROM myaccountstable where uuid = ? LIMIT 1
-```
-### Configuration Details
-
-#### TCF configuration JSON
-
-Here's an example of the value that the `tcf_config` column can take:
+The configuration document JSON returned by the SQL query must conform to the format illustrated with the following
+example:
 
 ```json
 {
-  "enabled": true,
-   "integration-enabled": {
-      "video": true,
-      "web": true,
-      "app": true,
-      "amp": true
-   },
-  "purpose-one-treatment-interpretation": "ignore",
-  "purposes": {
-    "p1": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
+  "id": "1111",
+  "status": "active",
+  "auction": {
+    "price-granularity": "low",
+    "banner-cache-ttl": 100,
+    "video-cache-ttl": 100,
+    "truncate-target-attr": 40,
+    "default-integration": "web",
+    "bid-validations": {
+      "banner-creative-max-size": "enforce"
     },
-    "p2": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p3": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p4": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p5": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p6": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p7": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p8": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p9": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "p10": {
-      "enforce-purpose": "full",
-      "enforce-vendors": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
+    "events": {
+      "enabled": true
     }
   },
-  "special-features": {
-    "sf1": {
-      "enforce": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
-    },
-    "sf2": {
-      "enforce": true,
-      "vendor-exceptions": [
-        "bidder1",
-        "bidder2"
-      ]
+  "privacy": {
+    "enforce-ccpa": true,
+    "gdpr": {
+      "enabled": true,
+      "integration-enabled": {
+        "video": true,
+        "web": true,
+        "app": true,
+        "amp": true
+      },
+      "purpose-one-treatment-interpretation": "ignore",
+      "purposes": {
+        "p1": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p2": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p3": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p4": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p5": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p6": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p7": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p8": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p9": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "p10": {
+          "enforce-purpose": "full",
+          "enforce-vendors": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        }
+      },
+      "special-features": {
+        "sf1": {
+          "enforce": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        },
+        "sf2": {
+          "enforce": true,
+          "vendor-exceptions": [
+            "bidder1",
+            "bidder2"
+          ]
+        }
+      }
     }
-  }
-}
-```
-
-#### Bid Validations configuration JSON
-
-The `bid_validations` column is json with this format:
-
-```json
-{
-  "banner-creative-max-size": "enforce"
-}
-```
-
-Valid values are:
-- "skip": don't do anything about creative max size for this publisher
-- "warn": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, log an operational warning.
-- "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject the bid and log an operational warning.
-
-#### Analytics Validations configuration JSON
-
-The `analytics_config` configuration column format:
-
-```json
-{
-  "auction-events": {
-    "web": true,   // the analytics adapter should log auction events when the channel is web
-    "amp": true,   // the analytics adapter should log auction events when the channel is AMP
-    "app": false   // the analytics adapter should not log auction events when the channel is app
-  }
-}
-```
-
-#### Consolidated configuration JSON
-
-The `config` column is envisioned as a new home for all configuration values. All new configuration values are added here. 
-The schema of this JSON document has following format so far:
-
-```json
-{
+  },
+  "analytics": {
+    "auction-events": {
+      // the analytics adapter should log auction events when the channel is web
+      "web": true,
+      // the analytics adapter should log auction events when the channel is AMP
+      "amp": true,
+      // the analytics adapter should not log auction events when the channel is app
+      "app": false
+    }
+  },
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
@@ -387,34 +380,68 @@ The schema of this JSON document has following format so far:
 }
 ```
 
-#### Creating the accounts table
+At some point this format might be formalized into an
+exhaustive [JSON Schema](https://json-schema.org/specification.html).
 
-Traditionally the table name used by Prebid Server is `accounts_account`. No one remembers why. But here's SQL 
-you could use to create your table:
+#### SQL Query example
 
+Prebid Server does not impose any rules for the table(s) schema but requires SQL query specified in 
+configuration to return a single column of JSON type containing the document adhering to the format shown above.
+
+It might be the case that the host companies store account configuration in a table of arbitrary structure or even in
+several tables. MySQL and Postgres provides necessary functions allowing to project practically any table structure to 
+expected JSON format.
+
+Let's assume following table schema for example:
 ```sql
 'CREATE TABLE `accounts_account` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) NOT NULL,
     `price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
-    `granularityMultiplier` decimal(9,3) DEFAULT NULL,
     `banner_cache_ttl` int(11) DEFAULT NULL,
     `video_cache_ttl` int(11) DEFAULT NULL,
     `events_enabled` bit(1) DEFAULT NULL,
     `enforce_ccpa` bit(1) DEFAULT NULL,
-    `enforce_gdpr` bit(1) DEFAULT NULL,
     `tcf_config` json DEFAULT NULL,
-    `analytics_sampling_factor` tinyint(4) DEFAULT NULL,
     `truncate_target_attr` tinyint(3) unsigned DEFAULT NULL,
     `default_integration` varchar(64) DEFAULT NULL,
-    `analytics_config` varchar(512) DEFAULT NULL,
+    `analytics_config` json DEFAULT NULL,
     `bid_validations` json DEFAULT NULL,
-    `status` enum('active','inactive') DEFAULT 'active',
     `config` json DEFAULT NULL,
+    `status` enum('active','inactive') DEFAULT 'active',
     `updated_by` int(11) DEFAULT NULL,
     `updated_by_user` varchar(64) DEFAULT NULL,
     `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
 ENGINE=InnoDB DEFAULT CHARSET=utf8'
+```
+
+The following Mysql SQL query could be used to construct a JSON document of required shape on the fly:
+
+```sql
+SELECT 
+    JSON_MERGE_PATCH(config, JSON_OBJECT(
+        'id', uuid,
+        'status', status,
+        'auction', JSON_OBJECT(
+            'price-granularity', price_granularity,
+            'banner-cache-ttl', banner_cache_ttl,
+            'video-cache-ttl', video_cache_ttl,
+            'truncate-target-attr', truncate_target_attr,
+            'default-integration', default_integration,
+            'bid-validations', bid_validations,
+            'events', JSON_OBJECT(
+                'enabled', NOT NOT(events_enabled)
+            )
+        ), 
+        'privacy', JSON_OBJECT(
+            'enforce-ccpa', NOT NOT(enforce_ccpa),
+            'gdpr', tcf_config
+        ), 
+        'analytics', analytics_config
+    )) as consolidated_config 
+FROM accounts_account 
+WHERE uuid = %ACCOUNT_ID% 
+LIMIT 1;
 ```

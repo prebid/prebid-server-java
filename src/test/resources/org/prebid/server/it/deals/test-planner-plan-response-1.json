@@ -1,0 +1,347 @@
+[
+  {
+    "lineItemId": "lineItem1",
+    "extLineItemId": "extLineItem1",
+    "dealId": "dealId1",
+    "status": "active",
+    "sizes": [
+      {
+        "w": 300,
+        "h": 250
+      }
+    ],
+    "accountId": "2001",
+    "source": "rubicon",
+    "price": {
+      "cpm": 5.60,
+      "currency": "USD"
+    },
+    "relativePriority": 3,
+    "startTimeStamp": "{{ lineItem.startTime }}",
+    "endTimeStamp": "{{ lineItem.endTime }}",
+    "updatedTimeStamp": "{{ now }}",
+    "targeting": {
+      "$and": [
+        {
+          "adunit.size": {
+            "$intersects": [
+              {
+                "w": 300,
+                "h": 250
+              }
+            ]
+          }
+        },
+        {
+          "adunit.mediatype": {
+            "$intersects": [
+              "banner"
+            ]
+          }
+        }
+      ]
+    },
+    "frequencyCaps": [
+      {
+        "fcapId": "fcapId1",
+        "count": 3,
+        "periods": 7,
+        "periodType": "day"
+      }
+    ],
+    "deliverySchedules": [
+      {
+        "planId": "1",
+        "updatedTimeStamp": "{{ now }}",
+        "startTimeStamp": "{{ plan.startTime }}",
+        "endTimeStamp": "{{ plan.endTime }}",
+        "tokens": [
+          {
+            "class": 1,
+            "total": 5000
+          },
+          {
+            "class": 2,
+            "total": 125
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "lineItemId": "lineItem2",
+    "dealId": "dealId2",
+    "extLineItemId": "extLineItem2",
+    "status": "active",
+    "sizes": [
+      {
+        "w": 320,
+        "h": 320
+      }
+    ],
+    "accountId": "2001",
+    "source": "rubicon",
+    "price": {
+      "cpm": 5.60,
+      "currency": "USD"
+    },
+    "relativePriority": 3,
+    "startTimeStamp": "{{ lineItem.startTime }}",
+    "endTimeStamp": "{{ lineItem.endTime }}",
+    "updatedTimeStamp": "{{ now }}",
+    "targeting": {
+      "$and": [
+        {
+          "adunit.size": {
+            "$intersects": [
+              {
+                "w": 320,
+                "h": 320
+              }
+            ]
+          }
+        },
+        {
+          "adunit.mediatype": {
+            "$intersects": [
+              "banner"
+            ]
+          }
+        }
+      ]
+    },
+    "frequencyCaps": [
+      {
+        "fcapId": "fcapId2",
+        "count": 3,
+        "periods": 7,
+        "periodType": "day"
+      }
+    ],
+    "deliverySchedules": [
+      {
+        "planId": "1",
+        "updatedTimeStamp": "{{ now }}",
+        "startTimeStamp": "{{ plan.startTime }}",
+        "endTimeStamp": "{{ plan.endTime }}",
+        "tokens": [
+          {
+            "class": 1,
+            "total": 5000
+          },
+          {
+            "class": 2,
+            "total": 125
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "lineItemId": "lineItem3",
+    "extLineItemId": "extLineItem3",
+    "dealId": "dealId3",
+    "status": "active",
+    "sizes": [
+      {
+        "w": 300,
+        "h": 250
+      }
+    ],
+    "accountId": "2001",
+    "source": "rubicon",
+    "price": {
+      "cpm": 4.60,
+      "currency": "USD"
+    },
+    "relativePriority": 3,
+    "startTimeStamp": "{{ lineItem.startTime }}",
+    "endTimeStamp": "{{ lineItem.endTime }}",
+    "updatedTimeStamp": "{{ now }}",
+    "targeting": {
+      "$and": [
+        {
+          "adunit.size": {
+            "$intersects": [
+              {
+                "w": 300,
+                "h": 250
+              }
+            ]
+          }
+        },
+        {
+          "adunit.mediatype": {
+            "$intersects": [
+              "banner"
+            ]
+          }
+        }
+      ]
+    },
+    "frequencyCaps": [
+      {
+        "fcapId": "fcapId1",
+        "count": 3,
+        "periods": 7,
+        "periodType": "day"
+      }
+    ],
+    "deliverySchedules": [
+      {
+        "planId": "1",
+        "updatedTimeStamp": "{{ now }}",
+        "startTimeStamp": "{{ plan.startTime }}",
+        "endTimeStamp": "{{ plan.endTime }}",
+        "tokens": [
+          {
+            "class": 1,
+            "total": 5000
+          },
+          {
+            "class": 2,
+            "total": 125
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "lineItemId": "lineItem4",
+    "extLineItemId": "extLineItem4",
+    "dealId": "dealId4",
+    "status": "active",
+    "sizes": [
+      {
+        "w": 300,
+        "h": 600
+      }
+    ],
+    "accountId": "2001",
+    "source": "rubicon",
+    "price": {
+      "cpm": 5.60,
+      "currency": "USD"
+    },
+    "relativePriority": 3,
+    "startTimeStamp": "{{ lineItem.startTime }}",
+    "endTimeStamp": "{{ lineItem.endTime }}",
+    "updatedTimeStamp": "{{ now }}",
+    "targeting": {
+      "$and": [
+        {
+          "adunit.size": {
+            "$intersects": [
+              {
+                "w": 300,
+                "h": 600
+              }
+            ]
+          }
+        },
+        {
+          "adunit.mediatype": {
+            "$intersects": [
+              "banner"
+            ]
+          }
+        }
+      ]
+    },
+    "frequencyCaps": [
+      {
+        "fcapId": "fcapId3",
+        "count": 10,
+        "periods": 7,
+        "periodType": "day"
+      }
+    ],
+    "deliverySchedules": [
+      {
+        "planId": "1",
+        "updatedTimeStamp": "{{ now }}",
+        "startTimeStamp": "{{ plan.startTime }}",
+        "endTimeStamp": "{{ plan.endTime }}",
+        "tokens": [
+          {
+            "class": 1,
+            "total": 5000
+          },
+          {
+            "class": 2,
+            "total": 125
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "lineItemId": "lineItem5",
+    "extLineItemId": "extLineItem5",
+    "dealId": "dealId5",
+    "status": "active",
+    "sizes": [
+      {
+        "w": 300,
+        "h": 600
+      }
+    ],
+    "accountId": "2002",
+    "source": "rubicon",
+    "price": {
+      "cpm": 5.60,
+      "currency": "USD"
+    },
+    "relativePriority": 3,
+    "startTimeStamp": "{{ lineItem.startTime }}",
+    "endTimeStamp": "{{ lineItem.endTime }}",
+    "updatedTimeStamp": "{{ now }}",
+    "targeting": {
+      "$and": [
+        {
+          "adunit.size": {
+            "$intersects": [
+              {
+                "w": 300,
+                "h": 600
+              }
+            ]
+          }
+        },
+        {
+          "adunit.mediatype": {
+            "$intersects": [
+              "banner"
+            ]
+          }
+        }
+      ]
+    },
+    "frequencyCaps": [
+      {
+        "fcapId": "fcapId5",
+        "count": 10,
+        "periods": 7,
+        "periodType": "day"
+      }
+    ],
+    "deliverySchedules": [
+      {
+        "planId": "1",
+        "updatedTimeStamp": "{{ now }}",
+        "startTimeStamp": "{{ plan.startTime }}",
+        "endTimeStamp": "{{ plan.endTime }}",
+        "tokens": [
+          {
+            "class": 1,
+            "total": 5000
+          },
+          {
+            "class": 2,
+            "total": 125
+          }
+        ]
+      }
+    ]
+  }
+]

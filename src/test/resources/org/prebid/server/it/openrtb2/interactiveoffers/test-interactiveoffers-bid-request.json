@@ -9,7 +9,7 @@
       },
       "ext": {
         "bidder": {
-          "pubid": 35
+          "partnerId": "abc123"
         }
       }
     }
