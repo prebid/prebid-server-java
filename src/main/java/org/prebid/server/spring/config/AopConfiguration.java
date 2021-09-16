@@ -34,7 +34,7 @@ public class AopConfiguration {
                         .map(this::handleSucceedRequest)
                         .recover(this::handleFailRequest);
             } catch (Throwable throwable) {
-                throw new IllegalStateException("Error while processing health monitoring", throwable);
+                return handleFailRequest(throwable);
             }
         }
 
