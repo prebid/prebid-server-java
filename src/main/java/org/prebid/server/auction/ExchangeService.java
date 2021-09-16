@@ -1012,13 +1012,14 @@ public class ExchangeService {
         final boolean suppressSchains = extPrebidSchains != null;
         final boolean suppressBidderConfig = extPrebidBidderconfig != null;
         final boolean suppressPrebidData = extPrebidData != null;
+        final boolean suppressBidderParameters = extPrebid != null && extPrebid.getBidderparams() != null;
 
         if (bidderToPrebidBidders.isEmpty()
                 && bidderToMultiBid.isEmpty()
                 && !suppressSchains
                 && !suppressBidderConfig
-                && !suppressPrebidData) {
-
+                && !suppressPrebidData
+                && !suppressBidderParameters) {
             return requestExt;
         }
 
@@ -1035,6 +1036,7 @@ public class ExchangeService {
                 extPrebidBuilder
                         .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
+                        .bidderparams(prepareBidderParameters(extPrebid, bidder))
                         .schains(null)
                         .data(null)
                         .bidderconfig(null)
@@ -1047,6 +1049,16 @@ public class ExchangeService {
                 ? Collections.singletonList(ExtRequestPrebidMultiBid.of(
                 bidder, null, multiBidConfig.getMaxBids(), multiBidConfig.getTargetBidderCodePrefix()))
                 : null;
+    }
+
+    /**
+     * Prepares parameters for specified bidder removing parameters for all other bidders.
+     * Returns null if there are no parameters for specified bidder.
+     */
+    private ObjectNode prepareBidderParameters(ExtRequestPrebid prebid, String bidder) {
+        final ObjectNode bidderParams = prebid != null ? prebid.getBidderparams() : null;
+        final JsonNode params = bidderParams != null ? bidderParams.get(bidder) : null;
+        return params != null ? mapper.mapper().createObjectNode().set(bidder, params) : null;
     }
 
     /**
