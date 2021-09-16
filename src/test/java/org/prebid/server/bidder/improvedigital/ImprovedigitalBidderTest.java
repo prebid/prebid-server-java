@@ -18,13 +18,13 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -48,23 +48,22 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+    public void makeHttpRequestsShouldSplitMultipleImpRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
-                        .build()))
-                .id("request_id")
-                .build();
+        final List<Imp> imps = asList(
+                givenImp(impBuilder -> impBuilder.id("123")),
+                givenImp(impBuilder -> impBuilder.id("456")));
+
+        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(imps.size())
                 .extracting(HttpRequest::getPayload)
-                .containsExactly(bidRequest);
+                .allSatisfy(request -> assertThat(request.getImp()).hasSize(1));
     }
 
     @Test
@@ -76,10 +75,10 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -126,39 +125,33 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badServerResponse("Unexpected SeatBid! Must be only one but have: 2"));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unexpected SeatBid! Must be only one but have: 2"));
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBannerOrVideoNotPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBannerAndVideoAndNativeAreAbsent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Unknown impression type for ID: \"123\""));
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
@@ -173,11 +166,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
@@ -192,11 +182,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
@@ -211,19 +198,31 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfImpNotFoundForId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
+                givenBidRequest(impBuilder -> impBuilder.id("123").xNative(Native.builder().build())),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
 
         // when
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: \"456\""));
-        assertThat(result.getValue()).isEmpty();
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+        return requestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(impCustomizer, identity());
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder().id("123")).build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

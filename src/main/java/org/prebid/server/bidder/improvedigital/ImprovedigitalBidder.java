@@ -17,6 +17,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,15 +40,25 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        List<HttpRequest<BidRequest>> httpRequests = request.getImp().stream()
+                .map(imp -> makeHttpRequest(request, imp))
+                .collect(Collectors.toList());
 
-        return Result.withValues(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .body(mapper.encode(request))
-                        .build()));
+        return Result.withValues(httpRequests);
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp) {
+        final BidRequest modifiedRequest = bidRequest.toBuilder()
+                .imp(Collections.singletonList(imp))
+                .build();
+
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(modifiedRequest)
+                .body(mapper.encode(modifiedRequest))
+                .build();
     }
 
     @Override
@@ -61,12 +72,14 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+        final List<SeatBid> seatBid = ObjectUtils.getIfNotNull(bidResponse, BidResponse::getSeatbid);
+        if (CollectionUtils.isEmpty(seatBid)) {
             return Collections.emptyList();
         }
-        if (bidResponse.getSeatbid().size() > 1) {
-            throw new PreBidException(String.format("Unexpected SeatBid! Must be only one but have: %d",
-                    bidResponse.getSeatbid().size()));
+
+        final int seatBidSize = seatBid.size();
+        if (seatBidSize > 1) {
+            throw new PreBidException(String.format("Unexpected SeatBid! Must be only one but have: %d", seatBidSize));
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
