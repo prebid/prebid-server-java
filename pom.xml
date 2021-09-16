@@ -34,7 +34,7 @@
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
-        <jsonpatch.version>1.9</jsonpatch.version>
+        <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
@@ -201,7 +201,7 @@
             <version>${json.schema.validator.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.fge</groupId>
+            <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
             <version>${jsonpatch.version}</version>
         </dependency>
