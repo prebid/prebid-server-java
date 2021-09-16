@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.verizonmedia;
+package org.prebid.server.bidder.yahoossp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.verizonmedia.ExtImpVerizonmedia;
+import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 
 import java.util.List;
 import java.util.Map;
@@ -36,20 +36,20 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
-public class VerizonmediaBidderTest extends VertxTest {
+public class YahooSSPBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private VerizonmediaBidder verizonmediaBidder;
+    private YahooSSPBidder yahooSSPBidder;
 
     @Before
     public void setUp() {
-        verizonmediaBidder = new VerizonmediaBidder(ENDPOINT_URL, jacksonMapper);
+        yahooSSPBidder = new YahooSSPBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new VerizonmediaBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YahooSSPBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -61,7 +61,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -74,11 +74,11 @@ public class VerizonmediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("", null)))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("", null)))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -91,11 +91,11 @@ public class VerizonmediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "")))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "")))),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -110,12 +110,12 @@ public class VerizonmediaBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", ""))))),
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", ""))))),
                         givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -133,7 +133,7 @@ public class VerizonmediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -150,7 +150,7 @@ public class VerizonmediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -168,7 +168,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -187,7 +187,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -203,7 +203,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -219,7 +219,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -235,7 +235,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -254,7 +254,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.site(null).device(Device.builder().ua("UA").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = verizonmediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = yahooSSPBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -272,7 +272,7 @@ public class VerizonmediaBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -288,7 +288,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -302,7 +302,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -316,7 +316,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -337,7 +337,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -362,7 +362,7 @@ public class VerizonmediaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = verizonmediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = yahooSSPBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -383,7 +383,7 @@ public class VerizonmediaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .tagid("tagId")
                 .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVerizonmedia.of("dcn", "pos")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
                 .build();
     }
 

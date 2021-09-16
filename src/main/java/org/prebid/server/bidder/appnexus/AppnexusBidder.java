@@ -3,7 +3,6 @@ package org.prebid.server.bidder.appnexus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -12,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -317,7 +317,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                             ExtRequest requestExt,
                                                             List<Imp> imps,
                                                             String url) {
-        final List<HttpRequest<BidRequest>> result = Lists.partition(imps, MAX_IMP_PER_REQUEST)
+        final List<HttpRequest<BidRequest>> result = ListUtils.partition(imps, MAX_IMP_PER_REQUEST)
                 .stream()
                 .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
                 .collect(Collectors.toList());

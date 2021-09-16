@@ -1,12 +1,16 @@
 adapters:
-  verizonmedia:
+  yahoossp:
     enabled: false
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/MAG
     pbs-enforces-gdpr: true
     pbs-enforces-ccpa: true
     modifying-vast-xml-allowed: true
     deprecated-names:
-    aliases: {}
+    aliases:
+      verizonmedia:
+        enabled: false
+      yssp:
+        enabled: false
     meta-info:
       maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
@@ -18,6 +22,6 @@ adapters:
     usersync:
       url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
       redirect-url:
-      cookie-family-name: verizonmedia
+      cookie-family-name: yahoossp
       type: redirect
       support-cors: false
