@@ -27,6 +27,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -135,7 +136,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = resolveBidFloorCurrency(bidRequest, imp.getBidfloorcur());
-        if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0
+        if (!BidderUtil.isValidPrice(bidFloor)
                 || StringUtils.equals(bidFloorCur, PUBNATIVE_CURRENCY)
                 || StringUtils.isEmpty(bidFloorCur)) {
             return null;

@@ -90,6 +90,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -462,7 +463,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : null;
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
     }
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
