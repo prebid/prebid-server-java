@@ -32,7 +32,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -244,7 +243,7 @@ public class AdminEndpointsConfiguration {
     @Bean
     @ConditionalOnExpression("${admin-endpoints.collected-metrics.enabled} == true")
     CustomizedAdminEndpoint collectedMetricsAdminEndpoint(
-            @Lazy MetricRegistry metricRegistry,
+            MetricRegistry metricRegistry,
             JacksonMapper mapper,
             @Value("${admin-endpoints.collected-metrics.path}") String path,
             @Value("${admin-endpoints.collected-metrics.on-application-port}") boolean isOnApplicationPort,

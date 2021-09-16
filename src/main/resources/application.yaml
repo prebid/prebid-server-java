@@ -72,7 +72,7 @@ admin-endpoints:
     on-application-port: false
     protected: true
   collected-metrics:
-    enabled: false
+    enabled: true
     path: /collected-metrics
     on-application-port: false
     protected: true
