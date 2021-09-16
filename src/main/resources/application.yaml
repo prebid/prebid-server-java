@@ -71,6 +71,11 @@ admin-endpoints:
     path: /pbs-admin/e2eAdmin/*
     on-application-port: false
     protected: true
+  collected-metrics:
+    enabled: false
+    path: /collected-metrics
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
   idle-timeout-ms: 0
