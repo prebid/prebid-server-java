@@ -264,7 +264,7 @@ public class StoredResponseProcessor {
                     : makeBidderSeatBid(bidderSeatBid, storedSeatBid, impIdToBidType);
             final BidderResponse updatedBidderResponse = BidderResponse.of(bidderResponse.getBidder(),
                     updatedSeatBid, bidderResponse.getResponseTime());
-            return auctionParticipation.insertBidderResponse(updatedBidderResponse);
+            return auctionParticipation.with(updatedBidderResponse);
         } else {
             final String bidder = storedSeatBid != null ? storedSeatBid.getSeat() : null;
             final BidderSeatBid updatedSeatBid = makeBidderSeatBid(null, storedSeatBid, impIdToBidType);

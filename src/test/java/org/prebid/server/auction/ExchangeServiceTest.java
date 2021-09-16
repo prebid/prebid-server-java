@@ -1007,7 +1007,29 @@ public class ExchangeServiceTest extends VertxTest {
         expectedMultiBidMap.put(expectedFirstMultiBid4.getBidder(), expectedFirstMultiBid4);
         expectedMultiBidMap.put(expectedSecondMultiBid4.getBidder(), expectedSecondMultiBid4);
 
+        final ArgumentCaptor<List<AuctionParticipation>> participationArgumentCaptor =
+                ArgumentCaptor.forClass(List.class);
+        final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
+        verify(bidResponseCreator).create(participationArgumentCaptor.capture(), contextArgumentCaptor.capture(),
+                eq(expectedCacheInfo), eq(expectedMultiBidMap));
+
+        final ObjectNode expectedBidExt = mapper.createObjectNode().put("origbidcpm", new BigDecimal("7.89"));
+        final Bid expectedThirdBid = Bid.builder()
+                .id("bidId3")
+                .impid("impId3")
+                .price(BigDecimal.valueOf(7.89))
+                .ext(expectedBidExt)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = participationArgumentCaptor.getValue();
+        assertThat(auctionParticipations)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .containsOnly(
+                        BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
+                                BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
+                        BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
+
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
+                .auctionParticipations(auctionParticipations)
                 .debugWarnings(asList(
                         "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
                                 + " Only bidder bidder2 will be used.",
@@ -1020,25 +1042,7 @@ public class ExchangeServiceTest extends VertxTest {
                         "Invalid MultiBid: CodePrefix ignored that was specified for bidders [bidder4, bidder5]"
                                 + " will be skipped."))
                 .build();
-
-        final ArgumentCaptor<List<AuctionParticipation>> participationArgumentCaptor =
-                ArgumentCaptor.forClass(List.class);
-        verify(bidResponseCreator).create(participationArgumentCaptor.capture(), eq(expectedAuctionContext),
-                eq(expectedCacheInfo), eq(expectedMultiBidMap));
-
-        final ObjectNode expectedBidExt = mapper.createObjectNode().put("origbidcpm", new BigDecimal("7.89"));
-        final Bid expectedThirdBid = Bid.builder()
-                .id("bidId3")
-                .impid("impId3")
-                .price(BigDecimal.valueOf(7.89))
-                .ext(expectedBidExt)
-                .build();
-        assertThat(participationArgumentCaptor.getValue())
-                .extracting(AuctionParticipation::getBidderResponse)
-                .containsOnly(
-                        BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                                BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
-                        BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
+        assertThat(contextArgumentCaptor.getValue()).isEqualTo(expectedAuctionContext);
     }
 
     @Test

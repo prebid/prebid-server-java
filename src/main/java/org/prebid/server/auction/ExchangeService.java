@@ -123,7 +123,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -232,6 +231,7 @@ public class ExchangeService {
         final Timeout timeout = receivedContext.getTimeout();
         final Account account = receivedContext.getAccount();
         final List<String> debugWarnings = receivedContext.getDebugWarnings();
+        final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
@@ -239,14 +239,13 @@ public class ExchangeService {
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
-        final AuctionContext.AuctionContextBuilder auctionContextBuilder = receivedContext.toBuilder();
-
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult -> extractAuctionParticipation(
                         receivedContext, storedResponseResult, aliases, bidderToMultiBid))
+
                 .map(auctionParticipation -> updateRequestMetric(
-                        auctionParticipation, uidsCookie, aliases, publisherId, receivedContext.getRequestTypeMetric()))
+                        auctionParticipation, uidsCookie, aliases, publisherId, requestTypeMetric))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
@@ -254,7 +253,7 @@ public class ExchangeService {
                                         auctionParticipation.getBidderRequest(),
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         aliases)
-                                        .map(auctionParticipation::insertBidderResponse))
+                                        .map(auctionParticipation::with))
                                 .collect(Collectors.toList())))
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
@@ -264,23 +263,21 @@ public class ExchangeService {
                 .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, receivedContext, aliases))
                 .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId, aliases))
 
-                .map(auctionParticipations ->
-                        addTo(auctionParticipations, auctionContextBuilder::auctionParticipations))
+                .map(receivedContext::with)
 
                 // produce response from bidder results
-                .compose(auctionParticipations -> bidResponseCreator.create(
-                        auctionParticipations,
-                        receivedContext,
-                        cacheInfo,
-                        bidderToMultiBid))
-                .map(bidResponse -> publishAuctionEvent(bidResponse, receivedContext))
-                .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse,
-                        receivedContext.getBidRequest(), receivedContext.getDebugContext().isDebugEnabled()))
-                .compose(bidResponse -> bidResponsePostProcessor.postProcess(
-                        receivedContext.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
+                .compose(context -> bidResponseCreator.create(
+                                context.getAuctionParticipations(),
+                                context,
+                                cacheInfo,
+                                bidderToMultiBid)
+                        .map(bidResponse -> publishAuctionEvent(bidResponse, receivedContext))
+                        .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse,
+                                receivedContext.getBidRequest(), receivedContext.getDebugContext().isDebugEnabled()))
+                        .compose(bidResponse -> bidResponsePostProcessor.postProcess(
+                                receivedContext.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
 
-                .map(bidResponse -> addTo(bidResponse, auctionContextBuilder::bidResponse))
-                .map(ignored -> auctionContextBuilder.build())
+                        .map(context::with))
 
                 .compose(this::invokeResponseHooks);
     }
@@ -1242,7 +1239,7 @@ public class ExchangeService {
         final BidderResponse resultBidderResponse = errors.isEmpty()
                 ? bidderResponse
                 : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors));
-        return auctionParticipation.insertBidderResponse(resultBidderResponse);
+        return auctionParticipation.with(resultBidderResponse);
     }
 
     private void addAsBidderErrors(List<String> messages, List<BidderError> errors) {
@@ -1300,7 +1297,7 @@ public class ExchangeService {
 
         final BidderResponse resultBidderResponse =
                 bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
-        return auctionParticipation.insertBidderResponse(resultBidderResponse);
+        return auctionParticipation.with(resultBidderResponse);
     }
 
     private BidderBid updateBidderBidWithBidPriceChanges(BidderBid bidderBid,
@@ -1481,11 +1478,6 @@ public class ExchangeService {
         }
 
         return auctionParticipations;
-    }
-
-    private static <T> T addTo(T field, Consumer<T> consumer) {
-        consumer.accept(field);
-        return field;
     }
 
     private Future<AuctionContext> invokeResponseHooks(AuctionContext auctionContext) {

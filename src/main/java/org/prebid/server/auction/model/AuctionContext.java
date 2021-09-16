@@ -82,6 +82,10 @@ public class AuctionContext {
         return this.toBuilder().bidRequest(bidRequest).prebidErrors(errors).build();
     }
 
+    public AuctionContext with(List<AuctionParticipation> auctionParticipations) {
+        return this.toBuilder().auctionParticipations(auctionParticipations).build();
+    }
+
     public AuctionContext with(PrivacyContext privacyContext) {
         return this.toBuilder()
                 .privacyContext(privacyContext)

@@ -1,13 +1,13 @@
 package org.prebid.server.auction.model;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Value;
 
 /**
  * Representation of a single auction interaction
  */
-@Builder
-@Data
+@Builder(toBuilder = true)
+@Value
 public class AuctionParticipation {
 
     String bidder;
@@ -22,8 +22,7 @@ public class AuctionParticipation {
 
     boolean analyticsBlocked;
 
-    public AuctionParticipation insertBidderResponse(BidderResponse bidderResponse) {
-        this.bidderResponse = bidderResponse;
-        return this;
+    public AuctionParticipation with(BidderResponse bidderResponse) {
+        return this.toBuilder().bidderResponse(bidderResponse).build();
     }
 }
