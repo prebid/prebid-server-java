@@ -226,12 +226,12 @@ public class ExchangeService {
                 .build();
     }
 
-    private Future<AuctionContext> runAuction(AuctionContext context) {
-        final UidsCookie uidsCookie = context.getUidsCookie();
-        final BidRequest bidRequest = context.getBidRequest();
-        final Timeout timeout = context.getTimeout();
-        final Account account = context.getAccount();
-        final List<String> debugWarnings = context.getDebugWarnings();
+    private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
+        final UidsCookie uidsCookie = receivedContext.getUidsCookie();
+        final BidRequest bidRequest = receivedContext.getBidRequest();
+        final Timeout timeout = receivedContext.getTimeout();
+        final Account account = receivedContext.getAccount();
+        final List<String> debugWarnings = receivedContext.getDebugWarnings();
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
@@ -239,20 +239,18 @@ public class ExchangeService {
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
-        final AuctionContext.AuctionContextBuilder auctionContextBuilder = context.toBuilder();
+        final AuctionContext.AuctionContextBuilder auctionContextBuilder = receivedContext.toBuilder();
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult -> extractAuctionParticipation(
-                        context, storedResponseResult, aliases, bidderToMultiBid))
+                        receivedContext, storedResponseResult, aliases, bidderToMultiBid))
                 .map(auctionParticipation -> updateRequestMetric(
-                        auctionParticipation, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
+                        auctionParticipation, uidsCookie, aliases, publisherId, receivedContext.getRequestTypeMetric()))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
-                                // TODO to preserve old logic and not trigger anything like it always been
-                                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                                 .map(auctionParticipation -> invokeHooksAndRequestBids(
-                                        context,
+                                        receivedContext,
                                         auctionParticipation.getBidderRequest(),
                                         auctionTimeout(timeout, cacheInfo.isDoCaching()),
                                         aliases)
@@ -261,12 +259,9 @@ public class ExchangeService {
                 // send all the requests to the bidders and gathers results
                 .map(CompositeFuture::<AuctionParticipation>list)
 
-                .map(auctionParticipations ->
-                        addTo(auctionParticipations, auctionContextBuilder::auctionParticipations))
-
                 .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
-                .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
+                .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, receivedContext, aliases))
                 .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId, aliases))
 
                 .map(auctionParticipations ->
@@ -275,14 +270,14 @@ public class ExchangeService {
                 // produce response from bidder results
                 .compose(auctionParticipations -> bidResponseCreator.create(
                         auctionParticipations,
-                        context,
+                        receivedContext,
                         cacheInfo,
                         bidderToMultiBid))
-                .map(bidResponse -> publishAuctionEvent(bidResponse, context))
-                .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse, context.getBidRequest(),
-                        context.getDebugContext().isDebugEnabled()))
+                .map(bidResponse -> publishAuctionEvent(bidResponse, receivedContext))
+                .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse,
+                        receivedContext.getBidRequest(), receivedContext.getDebugContext().isDebugEnabled()))
                 .compose(bidResponse -> bidResponsePostProcessor.postProcess(
-                        context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
+                        receivedContext.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
 
                 .map(bidResponse -> addTo(bidResponse, auctionContextBuilder::bidResponse))
                 .map(ignored -> auctionContextBuilder.build())
@@ -755,6 +750,8 @@ public class ExchangeService {
                         biddersToConfigs,
                         bidderToPrebidBidders,
                         aliases))
+                // Can't be removed after we prepare workflow to filter blocked
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
 
         Collections.shuffle(bidderRequests);
@@ -1095,8 +1092,10 @@ public class ExchangeService {
                                                            BidderAliases aliases,
                                                            String publisherId,
                                                            MetricName requestTypeMetric) {
+        auctionParticipations = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .collect(Collectors.toList());
 
-        // TODO check if it is ok to show blocked too in metrics
         metrics.updateRequestBidderCardinalityMetric(auctionParticipations.size());
         metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
 
