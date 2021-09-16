@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
@@ -60,7 +61,12 @@ public class CompositeApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnAccountFromFirstDelegateIfPresent() {
         // given
-        final Account account = Account.builder().id("accountId").priceGranularity("low").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("low")
+                        .build())
+                .build();
         given(delegate1.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -78,7 +84,12 @@ public class CompositeApplicationSettingsTest {
         given(delegate1.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error1")));
 
-        final Account account = Account.builder().id("accountId").priceGranularity("low").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("low")
+                        .build())
+                .build();
         given(delegate2.getAccountById(anyString(), any()))
                 .willReturn(Future.succeededFuture(account));
 

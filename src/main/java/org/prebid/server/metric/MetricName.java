@@ -17,6 +17,7 @@ public enum MetricName {
 
     // geo location
     geolocation_requests,
+    geolocation_request_time,
     geolocation_successful,
     geolocation_fail,
 
@@ -131,7 +132,34 @@ public enum MetricName {
     unknown,
     failure,
     execution_error("execution-error"),
-    duration;
+    duration,
+
+    // win notifications
+    win_notifications,
+    win_requests,
+    win_request_preparation_failed,
+    win_request_time,
+    win_request_failed,
+    win_request_successful,
+
+    // user details
+    user_details_requests,
+    user_details_request_preparation_failed,
+    user_details_request_time,
+    user_details_request_failed,
+    user_details_request_successful,
+
+    // pg
+    planner_lineitems_received,
+    planner_requests,
+    planner_request_failed,
+    planner_request_successful,
+    planner_request_time,
+    delivery_requests,
+    delivery_request_failed,
+    delivery_request_successful,
+    delivery_request_time;
+
 
     private final String name;
 

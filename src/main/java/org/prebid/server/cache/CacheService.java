@@ -11,6 +11,7 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.cache.model.CacheBid;
@@ -34,6 +35,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
@@ -222,11 +224,15 @@ public class CacheService {
      * Fetches {@link CacheTtl} from {@link Account}.
      * <p>
      * Returns empty {@link CacheTtl} when there are no impressions without expiration or
-     * if{@link Account} has neither of banner or video cache ttl.
+     * if {@link Account} has neither of banner or video cache ttl.
      */
     private CacheTtl accountCacheTtl(boolean impWithNoExpExists, Account account) {
-        return impWithNoExpExists && (account.getBannerCacheTtl() != null || account.getVideoCacheTtl() != null)
-                ? CacheTtl.of(account.getBannerCacheTtl(), account.getVideoCacheTtl())
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final Integer bannerCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getBannerCacheTtl() : null;
+        final Integer videoCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getVideoCacheTtl() : null;
+
+        return impWithNoExpExists && (bannerCacheTtl != null || videoCacheTtl != null)
+                ? CacheTtl.of(bannerCacheTtl, videoCacheTtl)
                 : CacheTtl.empty();
     }
 
@@ -397,7 +403,8 @@ public class CacheService {
                 generateWinUrl(bidInfo.getBidId(),
                         bidInfo.getBidder(),
                         accountId,
-                        eventsContext);
+                        eventsContext,
+                bidInfo.getLineItemId());
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
@@ -433,23 +440,23 @@ public class CacheService {
     private String generateWinUrl(String bidId,
                                   String bidder,
                                   String accountId,
-                                  EventsContext eventsContext) {
+                                  EventsContext eventsContext,
+                                  String lineItemId) {
+        if (!eventsContext.isEnabledForAccount()) {
+            return null;
+        }
 
-        if (eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()) {
-            return eventsService.winUrl(bidId, bidder, accountId, eventsContext);
+        if (eventsContext.isEnabledForRequest() || StringUtils.isNotBlank(lineItemId)) {
+            return eventsService.winUrl(
+                    bidId,
+                    bidder,
+                    accountId,
+                    lineItemId,
+                    eventsContext.isEnabledForRequest(),
+                    eventsContext);
         }
 
         return null;
-    }
-
-    private static <T> List<CachedCreative> bidsToCachedCreatives(
-            List<T> bids, Function<T, CachedCreative> requestItemCreator) {
-
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(requestItemCreator)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
     }
 
     /**
