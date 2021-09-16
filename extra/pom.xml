@@ -13,10 +13,28 @@
         <tag>HEAD</tag>
     </scm>
 
+    <properties>
+        <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+    </properties>
+
     <modules>
         <module>..</module>
         <module>modules</module>
         <module>bundle</module>
     </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>${maven-release-plugin.version}</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
+                    <scmCommentPrefix xml:space="preserve">Prebid Server </scmCommentPrefix>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
