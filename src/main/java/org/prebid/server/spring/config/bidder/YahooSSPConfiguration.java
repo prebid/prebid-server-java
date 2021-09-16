@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.verizonmedia.VerizonmediaBidder;
+import org.prebid.server.bidder.yahoossp.YahooSSPBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -18,10 +18,10 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/verizonmedia.yaml", factory = YamlPropertySourceFactory.class)
-public class VerizonmediaConfiguration {
+@PropertySource(value = "classpath:/bidder-config/yahoossp.yaml", factory = YamlPropertySourceFactory.class)
+public class YahooSSPConfiguration {
 
-    private static final String BIDDER_NAME = "verizonmedia";
+    private static final String BIDDER_NAME = "yahoossp";
 
     @Value("${external-url}")
     @NotBlank
@@ -31,21 +31,21 @@ public class VerizonmediaConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    @Qualifier("verizonmediaConfigurationProperties")
+    @Qualifier("yahooSSPConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
-    @Bean("verizonmediaConfigurationProperties")
-    @ConfigurationProperties("adapters.verizonmedia")
+    @Bean("yahooSSPConfigurationProperties")
+    @ConfigurationProperties("adapters.yahoossp")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps verizonmediaBidderDeps() {
+    BidderDeps yahooSSPBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new VerizonmediaBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new YahooSSPBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

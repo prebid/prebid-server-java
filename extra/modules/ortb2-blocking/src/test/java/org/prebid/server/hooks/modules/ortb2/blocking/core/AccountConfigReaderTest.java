@@ -456,7 +456,7 @@ class AccountConfigReaderTest {
     }
 
     @Test
-    public void blockedAttributesForShouldReturnResultWithBadvFromDefaultAndOverridesWhenOverridesMatchRequest() {
+    public void blockedAttributesForShouldReturnResultWithOverridedBadvWhenOverridesMatchRequest() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
             .badv(Attribute.badvBuilder()
@@ -472,7 +472,7 @@ class AccountConfigReaderTest {
 
         // when and then
         assertThat(reader.blockedAttributesFor(emptyRequest())).isEqualTo(
-            Result.withValue(attributesWithBadv(asList("domain1.com", "domain2.com", "domain3.com"))));
+            Result.withValue(attributesWithBadv(singletonList("domain3.com"))));
     }
 
     @Test
@@ -774,11 +774,11 @@ class AccountConfigReaderTest {
         // when and then
         assertThat(reader.blockedAttributesFor(request(imp -> imp.id("impId1")))).isEqualTo(
             Result.withValue(BlockedAttributes.builder()
-                .badv(asList("domain1.com", "domain2.com", "domain3.com"))
-                .bcat(asList("cat1", "cat2", "cat3"))
-                .bapp(asList("app1", "app2", "app3"))
-                .btype(singletonMap("impId1", asList(1, 2, 3)))
-                .battr(singletonMap("impId1", asList(1, 2, 3)))
+                .badv(singletonList("domain3.com"))
+                .bcat(singletonList("cat3"))
+                .bapp(singletonList("app3"))
+                .btype(singletonMap("impId1", singletonList(3)))
+                .battr(singletonMap("impId1", singletonList(3)))
                 .build()));
     }
 
