@@ -51,6 +51,26 @@ admin-endpoints:
     path: /logging/changelevel
     on-application-port: false
     protected: true
+  tracelog:
+    enabled: false
+    path: /pbs-admin/tracelog
+    on-application-port: false
+    protected: true
+  deals-status:
+    enabled: false
+    path: /pbs-admin/deals-status
+    on-application-port: false
+    protected: true
+  lineitem-status:
+    enabled: false
+    path: /pbs-admin/lineitem-status
+    on-application-port: false
+    protected: true
+  e2eadmin:
+    enabled: false
+    path: /pbs-admin/e2eAdmin/*
+    on-application-port: false
+    protected: true
 http-client:
   max-pool-size: 4000
   idle-timeout-ms: 0
@@ -68,6 +88,11 @@ vendor: local
 default-timeout-ms: 900
 max-timeout-ms: 5000
 timeout-adjustment-ms: 30
+system: system
+sub-system: subSystem
+infra: infra
+data-center: dataCenter
+profile: profile
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
@@ -233,3 +258,40 @@ analytics:
       size-bytes: 2097152
       count: 100
       report-ttl-ms: 900000
+
+device-info:
+  enabled: false
+deals:
+  enabled: false
+  simulation:
+    enabled: false
+    ready-at-adjustment-ms: 0
+  planner:
+    plan-advance-period: "0 */1 * * * *"
+    update-period: "0 */1 * * * *"
+    timeout-ms: 4000
+    register-period-sec: 60
+  delivery-stats:
+    delivery-period: "0 */1 * * * *"
+    cached-reports-number: 20
+    line-item-status-ttl-sec: 3600
+    line-items-per-report: 25
+    reports-interval-ms: 0
+    batches-interval-ms: 1000
+    request-compression-enabled: true
+  delivery-progress:
+    line-item-status-ttl-sec: 3600
+    cached-plans-number: 20
+    report-reset-period: "0 */1 * * * *"
+  delivery-progress-report:
+    competitors-number: 10
+  max-deals-per-bidder: 3
+  alert-proxy:
+    enabled: false
+    url: http://localhost
+    timeout-sec: 5
+    alert-types:
+      pbs-planner-client-error: 15
+      pbs-planner-empty-response-error: 15
+      pbs-register-client-error: 15
+      pbs-delivery-stats-client-error: 15

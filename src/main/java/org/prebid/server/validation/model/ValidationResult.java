@@ -35,4 +35,8 @@ public class ValidationResult {
     public static ValidationResult success(List<String> warnings) {
         return new ValidationResult(warnings, Collections.emptyList());
     }
+
+    public static ValidationResult warning(List<String> warnings) {
+        return new ValidationResult(warnings, Collections.emptyList());
+    }
 }
