@@ -163,10 +163,15 @@ public class OpenwebBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(String bidId, String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (impId.equals(imp.getId()) && imp.getVideo() != null) {
-                return BidType.video;
+            if (impId.equals(imp.getId())) {
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
             }
         }
+
         throw new PreBidException(
                 String.format(
                         "ignoring bid id=%s, request doesn't contain any impression with id=%s",
