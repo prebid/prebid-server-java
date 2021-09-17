@@ -64,6 +64,7 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -157,6 +158,7 @@ public class ExchangeService {
     private final ApplicationEventService applicationEventService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final HookStageExecutor hookStageExecutor;
+    private final HttpInteractionLogger httpInteractionLogger;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -175,6 +177,7 @@ public class ExchangeService {
                            BidResponsePostProcessor bidResponsePostProcessor,
                            HookStageExecutor hookStageExecutor,
                            ApplicationEventService applicationEventService,
+                           HttpInteractionLogger httpInteractionLogger,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -196,6 +199,7 @@ public class ExchangeService {
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.applicationEventService = applicationEventService;
+        this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -243,6 +247,7 @@ public class ExchangeService {
                         context, storedResponseResult, aliases, bidderToMultiBid))
                 .map(bidderRequests -> updateRequestMetric(
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
+                .map(bidderRequests -> maybeLogBidderInteraction(context, bidderRequests))
                 .compose(bidderRequests -> CompositeFuture.join(
                         bidderRequests.stream()
                                 .map(bidderRequest -> invokeHooksAndRequestBids(
@@ -1389,6 +1394,11 @@ public class ExchangeService {
         // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
         // dynamically.
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
+    }
+
+    private List<BidderRequest> maybeLogBidderInteraction(AuctionContext context, List<BidderRequest> bidderRequests) {
+        bidderRequests.forEach(bidderRequest -> httpInteractionLogger.maybeLogBidderRequest(context, bidderRequest));
+        return bidderRequests;
     }
 
     /**

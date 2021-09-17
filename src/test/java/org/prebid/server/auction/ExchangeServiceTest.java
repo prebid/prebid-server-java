@@ -78,6 +78,7 @@ import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -214,6 +215,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private ApplicationEventService applicationEventService;
     @Mock
+    private HttpInteractionLogger httpInteractionLogger;
+    @Mock
     private Metrics metrics;
     @Mock
     private UidsCookie uidsCookie;
@@ -300,6 +303,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -323,6 +327,7 @@ public class ExchangeServiceTest extends VertxTest {
                         bidResponsePostProcessor,
                         hookStageExecutor,
                         applicationEventService,
+                        httpInteractionLogger,
                         metrics,
                         clock,
                         jacksonMapper,
@@ -589,6 +594,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -2368,6 +2374,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
