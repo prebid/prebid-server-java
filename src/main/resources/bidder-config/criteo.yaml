@@ -1,7 +1,6 @@
 adapters:
   criteo:
     endpoint: https://bidder.criteo.com/cdb?profileId=230
-    generate-slot-id: true
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:
@@ -16,3 +15,4 @@ adapters:
       cookie-family-name: criteo
       type: redirect
       support-cors: false
+    generate-slot-id: true

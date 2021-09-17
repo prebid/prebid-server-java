@@ -1,10 +1,6 @@
 adapters:
   yahoossp:
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/MAG
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
     aliases:
       verizonmedia:
         enabled: false
