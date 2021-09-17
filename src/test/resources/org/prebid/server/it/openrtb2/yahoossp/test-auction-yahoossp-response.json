@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "verizonmedia",
+      "seat": "yahoossp",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "verizonmedia": "{{ verizonmedia.response_time_ms }}"
+      "yahoossp": "{{ yahoossp.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
