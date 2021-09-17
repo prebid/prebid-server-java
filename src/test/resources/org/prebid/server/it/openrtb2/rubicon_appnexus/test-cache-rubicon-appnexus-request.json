@@ -222,7 +222,7 @@
     {
       "type": "xml",
       "value": "<InLine><Impression><![CDATA[]]></Impression><Impression><![CDATA[http://localhost:8080/event?t=imp&b=880290288&a=5001&aid=tid&ts=1000&bidder=rubicon&f=b&int=dmbjs]]></Impression></InLine>",
-      "expiry": 120,
+      "ttlseconds": 120,
       "aid": "tid"
     }
   ]

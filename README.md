@@ -52,11 +52,19 @@ git clone https://github.com/prebid/prebid-server-java.git
 cd prebid-server-java
 ```
 
+And from this step there are two common use cases, which can be chosen depending on your goals 
+
+1. Create prebid-server JAR only
 - Run below command to build project:
 ```bash
 mvn clean package
 ```
 
+2. Create prebid-server JAR with modules
+- Run below command to build project:
+```bash
+mvn clean package --file extra/pom.xml
+```
 For more information how to configure the server follow [documentation](docs/build.md).
 
 ## Configuration

@@ -23,4 +23,14 @@ public class ExtResponseDebug {
      * Request after resolution of stored requests and debug overrides
      */
     BidRequest resolvedrequest;
+
+    /**
+     * Defines the contract for bidresponse.ext.debug.pgmetrics
+     */
+    ExtDebugPgmetrics pgmetrics;
+
+    /**
+     * Defines the contract for bidresponse.ext.debug.trace
+     */
+    ExtDebugTrace trace;
 }

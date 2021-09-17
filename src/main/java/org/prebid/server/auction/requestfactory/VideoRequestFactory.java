@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 
 public class VideoRequestFactory {
 
+    private static final String ENDPOINT = Endpoint.openrtb2_video.value();
+
     private final int maxRequestSize;
     private final boolean enforceStoredRequest;
 
@@ -101,6 +103,8 @@ public class VideoRequestFactory {
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
+
+                .compose(ortb2RequestFactory::populateDealsInfo)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 
@@ -228,7 +232,7 @@ public class VideoRequestFactory {
     private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestContext httpRequest,
                                                                         WithPodErrors<BidRequest> bidRequestToErrors) {
         final BidRequest bidRequest = bidRequestToErrors.getData();
-        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver);
+        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
         final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
         return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
     }

@@ -25,6 +25,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -153,13 +154,9 @@ public class ConversantBidder implements Bidder<BidRequest> {
 
     private static BigDecimal getBidFloor(BigDecimal impBidFloor, BigDecimal impExtBidFloor) {
 
-        return isValidBidFloor(impExtBidFloor) && !isValidBidFloor(impBidFloor)
+        return BidderUtil.isValidPrice(impExtBidFloor) && !BidderUtil.isValidPrice(impBidFloor)
                 ? impExtBidFloor
                 : impBidFloor;
-    }
-
-    private static boolean isValidBidFloor(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static Integer getSecure(Imp imp, ExtImpConversant impExt) {

@@ -311,7 +311,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .ext(ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, resolvedRequest))
+                                .debug(ExtResponseDebug.of(null, resolvedRequest, null, null))
                                 .build())
                         .build()));
 
@@ -479,7 +479,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
     }
 
     @Test
