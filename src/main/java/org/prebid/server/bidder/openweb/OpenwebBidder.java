@@ -62,7 +62,7 @@ public class OpenwebBidder implements Bidder<BidRequest> {
                 if (sourceIdToModifiedImp.containsKey(sourceId)) {
                     sourceIdToModifiedImp.get(sourceId).add(modifiedImp);
                 } else {
-                    sourceIdToModifiedImp.put(sourceId, new ArrayList<>());
+                    sourceIdToModifiedImp.put(sourceId, new ArrayList<>(Collections.singletonList(imp)));
                 }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
