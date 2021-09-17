@@ -1,5 +1,8 @@
 package org.prebid.server;
 
+import com.iab.openrtb.request.BidRequest;
+import io.protostuff.Schema;
+import io.protostuff.runtime.RuntimeSchema;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
@@ -8,6 +11,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class Application {
 
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+//        SpringApplication.run(Application.class, args);
+        Schema<BidRequest> schema = RuntimeSchema.getSchema(BidRequest.class);
+        System.out.println(content);
     }
 }
