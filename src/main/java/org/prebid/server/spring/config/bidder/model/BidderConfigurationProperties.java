@@ -12,7 +12,6 @@ import org.springframework.validation.annotation.Validated;
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +34,9 @@ public class BidderConfigurationProperties {
 
     private List<String> deprecatedNames;
 
-    private Map<String, Object> aliases = Collections.emptyMap();
+    private Map<String, Object> aliases;
+
+    private Map<String, String> extraInfo;
 
     @NotBlank
     private String endpoint;
@@ -45,8 +46,6 @@ public class BidderConfigurationProperties {
 
     @NotNull
     private UsersyncConfigurationProperties usersync;
-
-    private Map<String, String> extraInfo;
 
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
@@ -63,5 +62,6 @@ public class BidderConfigurationProperties {
                 defaultProperties.getModifyingVastXmlAllowed());
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
         aliases = MapUtils.isNotEmpty(aliases) ? aliases : defaultProperties.getAliases();
+        extraInfo = MapUtils.isNotEmpty(extraInfo) ? extraInfo : defaultProperties.getExtraInfo();
     }
 }

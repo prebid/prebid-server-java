@@ -29,4 +29,7 @@ public class DefaultBidderConfigurationProperties {
 
     @NotNull
     private Map<String, Object> aliases = Collections.emptyMap();
+
+    @NotNull
+    private Map<String, String> extraInfo = Collections.emptyMap();
 }

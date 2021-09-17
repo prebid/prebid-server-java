@@ -105,6 +105,7 @@ adapter-defaults:
   modifying-vast-xml-allowed: true
   deprecated-names:
   aliases: {}
+  extra-info: {}
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
