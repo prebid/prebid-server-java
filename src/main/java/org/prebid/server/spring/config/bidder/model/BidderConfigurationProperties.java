@@ -39,13 +39,13 @@ public class BidderConfigurationProperties {
 
     private Map<String, Object> aliases = Collections.emptyMap();
 
-    private Map<String, String> extraInfo = Collections.emptyMap();
-
     @NotNull
     private MetaInfo metaInfo;
 
     @NotNull
     private UsersyncConfigurationProperties usersync;
+
+    private Map<String, String> extraInfo = Collections.emptyMap();
 
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
