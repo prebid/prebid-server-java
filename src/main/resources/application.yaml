@@ -102,9 +102,9 @@ adapter-defaults:
   enabled: false
   pbs-enforces-gdpr: true
   pbs-enforces-ccpa: true
-  deprecated-names:
-  aliases: { }
   modifying-vast-xml-allowed: true
+  deprecated-names:
+  aliases: {}
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
