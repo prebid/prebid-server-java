@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.marsmedia;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -29,6 +31,8 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -81,6 +85,30 @@ public class MarsmediaBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Zone is empty"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldResolveZoneFromJsonZoneIdField() {
+        // given
+        final ExtPrebid<?, ObjectNode> impExt = ExtPrebid.of(
+                null,
+                mapper.createObjectNode().set("zoneId", TextNode.valueOf("zoneId")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(impExt)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .allSatisfy(uri -> {
+                    final String regex = "[a-zA-Z0-9\\:\\/\\._\\-\\?&\\=]+zone=(?<zone>[a-zA-Z0-9]+)";
+                    final Matcher matcher = Pattern.compile(regex).matcher(uri);
+                    assertThat(matcher.find()).isTrue();
+                    assertThat(matcher.group("zone")).isEqualTo("zoneId");
+                });
     }
 
     @Test
@@ -360,7 +388,7 @@ public class MarsmediaBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestModifier) {
 
         return requestModifier.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impModifier))))
+                        .imp(singletonList(givenImp(impModifier))))
                 .build();
     }
 
@@ -370,8 +398,8 @@ public class MarsmediaBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
-                .banner(Banner.builder().h(150).w(300).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of("zoneId")))))
+                        .banner(Banner.builder().h(150).w(300).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of("zoneId")))))
                 .build();
     }
 

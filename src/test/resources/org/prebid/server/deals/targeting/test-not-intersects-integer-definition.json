@@ -1,0 +1,10 @@
+{
+  "$not": {
+    "ufpd.data.someId": {
+      "$intersects": [
+        123,
+        321
+      ]
+    }
+  }
+}

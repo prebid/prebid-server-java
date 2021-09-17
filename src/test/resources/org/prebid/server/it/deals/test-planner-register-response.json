@@ -1,0 +1,12 @@
+{
+  "tracer": {
+    "cmd": "start",
+    "raw": "true",
+    "durationInSeconds": "300",
+    "filters": {
+      "accountId": "1001",
+      "bidderCode": "pgRubicon",
+      "lineItemId": "642534"
+    }
+  }
+}

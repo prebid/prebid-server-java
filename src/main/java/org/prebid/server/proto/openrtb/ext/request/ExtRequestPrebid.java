@@ -127,4 +127,14 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.analytics
      */
     JsonNode analytics;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.pbs
+     */
+    ExtRequestPrebidPbs pbs;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.bidderparams
+     */
+    ObjectNode bidderparams;
 }

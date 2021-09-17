@@ -46,7 +46,10 @@
       "aliases": {
         "conversantAlias": "conversant"
       },
-      "auctiontimestamp": 0
+      "auctiontimestamp": 0,
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      }
     }
   }
 }

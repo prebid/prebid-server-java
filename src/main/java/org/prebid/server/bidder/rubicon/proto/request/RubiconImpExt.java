@@ -14,4 +14,6 @@ public class RubiconImpExt {
     List<String> viewabilityvendors;
 
     Integer maxbids;
+
+    String gpid;
 }

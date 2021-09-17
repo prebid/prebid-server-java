@@ -2,7 +2,7 @@ adapters:
   yeahmobi:
     endpoint: https://{{Host}}/prebid/bid
     meta-info:
-      maintainer-email: junping.zhao@yeahmobi.com
+      maintainer-email: prebid@yeahmobi.com
       app-media-types:
         - banner
         - video
