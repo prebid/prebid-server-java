@@ -98,6 +98,11 @@ sub-system: subSystem
 infra: infra
 data-center: dataCenter
 profile: profile
+adapter-defaults:
+  enabled: false
+  pbs-enforces-gdpr: true
+  pbs-enforces-ccpa: true
+  modifying-vast-xml-allowed: true
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
