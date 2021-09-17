@@ -1,0 +1,5 @@
+{
+  "geo.distance": {
+    "$within": []
+  }
+}
