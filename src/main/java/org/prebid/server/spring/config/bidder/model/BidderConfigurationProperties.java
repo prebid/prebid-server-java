@@ -4,7 +4,6 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
@@ -12,6 +11,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -26,20 +26,20 @@ public class BidderConfigurationProperties {
 
     private Boolean enabled;
 
+    @NotBlank
+    private String endpoint;
+
     private Boolean pbsEnforcesGdpr;
 
     private Boolean pbsEnforcesCcpa;
 
     private Boolean modifyingVastXmlAllowed;
 
-    private List<String> deprecatedNames;
+    private List<String> deprecatedNames = Collections.emptyList();
 
-    private Map<String, Object> aliases;
+    private Map<String, Object> aliases = Collections.emptyMap();
 
-    private Map<String, String> extraInfo;
-
-    @NotBlank
-    private String endpoint;
+    private Map<String, String> extraInfo = Collections.emptyMap();
 
     @NotNull
     private MetaInfo metaInfo;
@@ -60,8 +60,5 @@ public class BidderConfigurationProperties {
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
                 defaultProperties.getModifyingVastXmlAllowed());
-        deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
-        aliases = MapUtils.isNotEmpty(aliases) ? aliases : defaultProperties.getAliases();
-        extraInfo = MapUtils.isNotEmpty(extraInfo) ? extraInfo : defaultProperties.getExtraInfo();
     }
 }
