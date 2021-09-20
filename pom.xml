@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.72.0-SNAPSHOT</version>
+    <version>1.74.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -12,11 +13,6 @@
         <name>Prebid.org</name>
         <url>http://prebid.org/</url>
     </organization>
-
-    <scm>
-        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
-        <tag>HEAD</tag>
-    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -38,7 +34,7 @@
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
-        <jsonpatch.version>1.9</jsonpatch.version>
+        <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
@@ -68,7 +64,6 @@
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
-        <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -92,6 +87,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
@@ -205,7 +201,7 @@
             <version>${json.schema.validator.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.fge</groupId>
+            <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
             <version>${jsonpatch.version}</version>
         </dependency>
@@ -579,15 +575,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>${maven-release-plugin.version}</version>
-                <configuration>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <scmCommentPrefix xml:space="preserve">Prebid Server </scmCommentPrefix>
-                </configuration>
             </plugin>
         </plugins>
     </build>

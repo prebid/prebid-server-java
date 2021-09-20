@@ -1,12 +1,6 @@
 adapters:
   algorix:
-    enabled: false
     endpoint: https://xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: xunyunbo@algorix.co
       app-media-types:
