@@ -26,6 +26,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -122,11 +123,9 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal extBidFloor) {
-        return !isValidBidFloor(impBidFloor) && isValidBidFloor(extBidFloor) ? extBidFloor : impBidFloor;
-    }
-
-    private static boolean isValidBidFloor(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
+        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(extBidFloor)
+                ? extBidFloor
+                : impBidFloor;
     }
 
     private static MultiMap headers(BidRequest bidRequest) {

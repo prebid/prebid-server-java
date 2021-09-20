@@ -1,12 +1,6 @@
 adapters:
   nanointeractive:
-    enabled: false
     endpoint: https://ad.audiencemanager.de/hbs
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: development@nanointeractive.com
       app-media-types:

@@ -1,12 +1,6 @@
 adapters:
   yieldmo:
-    enabled: false
     endpoint: https://ads.yieldmo.com/exchange/prebid-server
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@yieldmo.com
       app-media-types:

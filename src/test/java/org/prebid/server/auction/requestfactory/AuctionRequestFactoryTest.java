@@ -127,7 +127,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
 
-        given(paramsResolver.resolve(any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
         given(ortb2RequestFactory.validateRequest(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -142,6 +142,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+        given(ortb2RequestFactory.populateDealsInfo(any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
@@ -560,7 +562,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(paramsResolver.resolve(any(), any(), any())).willReturn(updatedBidRequest);
+        given(paramsResolver.resolve(any(), any(), any(), any())).willReturn(updatedBidRequest);
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();

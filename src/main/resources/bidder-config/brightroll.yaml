@@ -1,12 +1,6 @@
 adapters:
   brightroll:
-    enabled: false
     endpoint: http://east-bid.ybp.yahoo.com/bid/rubiconpbs
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
@@ -18,6 +12,12 @@ adapters:
       supported-vendors:
         - businessinsider
       vendor-id: 25
+    usersync:
+      url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      cookie-family-name: brightroll
+      type: redirect
+      support-cors: false
     accounts:
       - id: businessinsider
         badv:
@@ -362,9 +362,3 @@ adapters:
           - IAB26-3
           - IAB26-4
         imp_battr: [1, 2, 3, 6, 8, 9, 10]
-    usersync:
-      url: https://pr-bh.ybp.yahoo.com/sync/rubiconprebidserver?gdpr={{gdpr}}&euconsent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
-      redirect-url: /setuid?bidder=brightroll&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
-      cookie-family-name: brightroll
-      type: redirect
-      support-cors: false

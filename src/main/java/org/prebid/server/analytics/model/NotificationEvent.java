@@ -17,6 +17,8 @@ public class NotificationEvent {
 
     Account account;
 
+    String lineItemId;
+
     String bidder;
 
     Long timestamp;
