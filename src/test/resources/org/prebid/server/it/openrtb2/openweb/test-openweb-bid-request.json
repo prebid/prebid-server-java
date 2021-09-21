@@ -8,7 +8,7 @@
         "h": 250
       },
       "ext": {
-        "bidder": {
+        "openweb": {
           "aid": 1
         }
       }

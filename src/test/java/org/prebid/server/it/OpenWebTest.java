@@ -19,7 +19,7 @@ import static java.util.Collections.singletonList;
 public class OpenWebTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromOpenx() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromOpenWeb() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/openweb-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/openweb/test-openweb-bid-request.json")))
