@@ -62,7 +62,7 @@ public class OpenwebBidder implements Bidder<BidRequest> {
                 if (sourceIdToModifiedImp.containsKey(sourceId)) {
                     sourceIdToModifiedImp.get(sourceId).add(modifiedImp);
                 } else {
-                    sourceIdToModifiedImp.put(sourceId, new ArrayList<>(Collections.singletonList(imp)));
+                    sourceIdToModifiedImp.put(sourceId, new ArrayList<>(Collections.singletonList(modifiedImp)));
                 }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -156,7 +156,7 @@ public class OpenwebBidder implements Bidder<BidRequest> {
         try {
             return BidderBid.of(bid, getBidType(bid.getId(), bid.getImpid(), imps), bidResponse.getCur());
         } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+            errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
