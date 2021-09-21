@@ -56,6 +56,21 @@ public class AceexBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = aceexBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Ext.bidder not provided"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -89,27 +104,8 @@ public class AceexBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldOverrideForwardedForHeaderWithIpIfIpAndIpv6ArePresentInRequestDevice() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.device(Device.builder().ip("ip").ipv6("ipv6").build()),
-                singletonList(identity()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = aceexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getHeaders)
-                .flatExtracting(MultiMap::entries)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .filteredOn(tuple -> tuple.toList().get(0).equals(HttpUtil.X_FORWARDED_FOR_HEADER.toString()))
-                .containsExactly(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"));
     }
 
     @Test

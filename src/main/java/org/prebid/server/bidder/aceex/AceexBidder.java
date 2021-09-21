@@ -4,13 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -49,23 +47,25 @@ public class AceexBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Imp firstImp = request.getImp().get(0);
+        final ExtImpAceex extImpAceex;
+
         try {
-            final ExtImpAceex extImpAceex = mapper.mapper().convertValue(
-                    firstImp.getExt(), ACEEX_EXT_TYPE_REFERENCE).getBidder();
-            return Result.withValue(makeHttpRequest(request, extImpAceex.getAccountId()));
-        } catch (DecodeException e) {
+            extImpAceex = mapper.mapper().convertValue(firstImp.getExt(), ACEEX_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput("Ext.bidder not provided"));
         }
-    }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String accountId) {
-        return HttpRequest.<BidRequest>builder()
+        return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolveEndpoint(accountId))
+                .uri(resolveEndpoint(extImpAceex.getAccountId()))
                 .headers(constructHeaders(request))
                 .body(mapper.encode(request))
                 .payload(request)
-                .build();
+                .build());
+    }
+
+    private String resolveEndpoint(String accountId) {
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
@@ -81,10 +81,6 @@ public class AceexBidder implements Bidder<BidRequest> {
                 ObjectUtils.getIfNotNull(device, Device::getIp));
 
         return headers;
-    }
-
-    private String resolveEndpoint(String accountId) {
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(accountId));
     }
 
     @Override
@@ -106,14 +102,7 @@ public class AceexBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid array");
         }
 
-        final List<Bid> bids = ListUtils.emptyIfNull(firstSeatBid.getBid());
-        return bidsFromSeatBid(bids, bidRequest, bidResponse);
-    }
-
-    private static List<BidderBid> bidsFromSeatBid(List<Bid> bids,
-                                                   BidRequest bidRequest,
-                                                   BidResponse bidResponse) {
-        return bids.stream()
+        return CollectionUtils.emptyIfNull(firstSeatBid.getBid()).stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getImpid(), bidRequest.getImp()),
                         bidResponse.getCur()))
