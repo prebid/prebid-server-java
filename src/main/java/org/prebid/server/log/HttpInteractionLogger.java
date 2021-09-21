@@ -16,6 +16,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.model.HttpLogSpec;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -122,8 +123,9 @@ public class HttpInteractionLogger {
             return false;
         }
 
-        final HttpLogSpec.Endpoint requestEndpoint = parseHttpLogEndpoint(auctionContext.getRequestTypeMetric());
-        final Account requestAccount = auctionContext != null ? auctionContext.getAccount() : null;
+        final HttpLogSpec.Endpoint requestEndpoint =
+                parseHttpLogEndpoint(ObjectUtil.getIfNotNull(auctionContext, AuctionContext::getRequestTypeMetric));
+        final Account requestAccount = ObjectUtil.getIfNotNull(auctionContext, AuctionContext::getAccount);
         final String requestAccountId = requestAccount != null ? requestAccount.getId() : null;
 
         final HttpLogSpec spec = specWithCounter.getSpec();
@@ -132,8 +134,8 @@ public class HttpInteractionLogger {
         final String bidder = spec.getBidder();
 
         return (endpoint == null || endpoint == requestEndpoint)
-                && (account == null || account.equals(requestAccountId)
-                && (bidder != null && bidder.equals(requestBidder)));
+                && (account == null || account.equals(requestAccountId))
+                && (bidder != null && bidder.equals(requestBidder));
     }
 
     private HttpLogSpec.Endpoint parseHttpLogEndpoint(MetricName requestTypeMetric) {
