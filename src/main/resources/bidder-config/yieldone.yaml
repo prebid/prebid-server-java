@@ -1,12 +1,6 @@
 adapters:
   yieldone:
-    enabled: false
     endpoint: https://y.one.impact-ad.jp/hbs_imp
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: y1dev@platform-one.co.jp
       app-media-types:

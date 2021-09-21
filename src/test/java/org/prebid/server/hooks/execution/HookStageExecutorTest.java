@@ -295,7 +295,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
@@ -303,7 +303,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(80L, 90L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(80L, 100L);
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -314,7 +314,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
@@ -322,7 +322,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-alpha", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(40L, 50L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(40L, 60L);
                                         });
                                     }));
 
@@ -467,7 +467,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus())
                                                     .isEqualTo(ExecutionStatus.invocation_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Action returned null");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
@@ -477,7 +477,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(ExecutionStatus.invocation_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo(
                                                     "java.lang.RuntimeException: I'm not allowed to throw exceptions");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -488,7 +488,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
@@ -497,7 +497,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus())
                                                     .isEqualTo(ExecutionStatus.invocation_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Action returned null");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
                                     }));
 
@@ -582,7 +582,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus())
                                                     .isEqualTo(ExecutionStatus.execution_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo("Failed after a while");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 60L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(50L, 70L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
@@ -591,7 +591,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
                                             assertThat(hookOutcome.getMessage()).isEqualTo(
                                                     "Timed out while executing action");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 220L);
                                         });
 
                                         final List<HookExecutionOutcome> group1Hooks = groups.get(1).getHooks();
@@ -602,7 +602,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-beta", "hook-b"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group1Hooks.get(1)).satisfies(hookOutcome -> {
@@ -611,7 +611,7 @@ public class HookStageExecutorTest extends VertxTest {
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.timeout);
                                             assertThat(hookOutcome.getMessage()).isEqualTo(
                                                     "Timed out while executing action");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 210L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(200L, 220L);
                                         });
                                     }));
 
@@ -1301,7 +1301,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(ExecutionStatus.invocation_failure);
                                             assertThat(hookOutcome.getMessage()).isEqualTo(
                                                     "Hook implementation does not exist or disabled");
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
 
                                         assertThat(group0Hooks.get(1)).satisfies(hookOutcome -> {
@@ -1309,7 +1309,7 @@ public class HookStageExecutorTest extends VertxTest {
                                                     .isEqualTo(HookId.of("module-beta", "hook-a"));
                                             assertThat(hookOutcome.getStatus()).isEqualTo(ExecutionStatus.success);
                                             assertThat(hookOutcome.getAction()).isEqualTo(ExecutionAction.update);
-                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 10L);
+                                            assertThat(hookOutcome.getExecutionTime()).isBetween(0L, 20L);
                                         });
                                     }));
 

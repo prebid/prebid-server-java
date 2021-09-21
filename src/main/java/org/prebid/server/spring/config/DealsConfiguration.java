@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -45,7 +46,6 @@ import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
-import org.prebid.server.util.ObjectUtils;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.BeansException;
@@ -839,7 +839,7 @@ public class DealsConfiguration {
         public org.prebid.server.deals.model.AlertProxyProperties toComponentProperties() {
             return org.prebid.server.deals.model.AlertProxyProperties.builder()
                     .enabled(isEnabled()).url(getUrl()).timeoutSec(getTimeoutSec())
-                    .alertTypes(ObjectUtils.firstNonNull(this::getAlertTypes, HashMap::new))
+                    .alertTypes(ObjectUtils.defaultIfNull(getAlertTypes(), new HashMap<>()))
                     .username(getUsername())
                     .password(getPassword()).build();
         }

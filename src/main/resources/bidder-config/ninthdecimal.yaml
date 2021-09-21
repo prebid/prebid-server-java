@@ -1,12 +1,6 @@
 adapters:
   ninthdecimal:
-    enabled: false
     endpoint: http://rtb.ninthdecimal.com/xp/get?pubid=
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: abudig@ninthdecimal.com
       app-media-types:

@@ -15,8 +15,10 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -37,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -71,13 +74,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encode(outgoingRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encode(outgoingRequest))
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 
@@ -124,8 +127,9 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        if (imp.getBanner() != null) {
-            final Banner resolvedBanner = resolveBanner(imp.getBanner());
+        final Banner banner = imp.getBanner();
+        if (banner != null) {
+            final Banner resolvedBanner = resolveBanner(banner, extImp);
             if (resolvedBanner != null) {
                 impBuilder.banner(resolvedBanner);
             }
@@ -144,13 +148,33 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return impBuilder.build();
     }
 
-    private static Banner resolveBanner(Banner banner) {
+    private Banner resolveBanner(Banner banner, ExtImpGumgum extImpGumgum) {
         final List<Format> format = banner.getFormat();
         if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
             final Format firstFormat = format.get(0);
-            return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+
+            final Long slot = extImpGumgum.getSlot();
+            final ObjectNode bannerExt = slot != null && slot != 0L
+                    ? mapper.mapper().valueToTree(resolveBannerExt(format, slot))
+                    : banner.getExt();
+
+            return banner.toBuilder()
+                    .w(firstFormat.getW())
+                    .h(firstFormat.getH())
+                    .ext(bannerExt)
+                    .build();
         }
         return null;
+    }
+
+    private static ExtImpGumgumBanner resolveBannerExt(List<Format> formats, Long slot) {
+        return formats.stream()
+                .filter(format -> ObjectUtils.allNotNull(format.getW(), format.getH()))
+                .max(Comparator.comparing((Format format) -> Math.max(format.getW(), format.getH()))
+                        .thenComparing(Format::getW)
+                        .thenComparing(Format::getH))
+                .map(format -> ExtImpGumgumBanner.of(slot, format.getW(), format.getH()))
+                .orElseGet(() -> ExtImpGumgumBanner.of(slot, 0, 0));
     }
 
     private void validateVideoParams(Video video) {
