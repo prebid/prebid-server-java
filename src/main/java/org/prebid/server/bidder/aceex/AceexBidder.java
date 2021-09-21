@@ -22,7 +22,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.aceex.ExtImpAceex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
@@ -74,11 +74,11 @@ public class AceexBidder implements Bidder<BidRequest> {
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER,
-                ObjectUtils.getIfNotNull(device, Device::getUa));
+                ObjectUtil.getIfNotNull(device, Device::getUa));
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtils.getIfNotNull(device, Device::getIpv6));
+                ObjectUtil.getIfNotNull(device, Device::getIpv6));
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtils.getIfNotNull(device, Device::getIp));
+                ObjectUtil.getIfNotNull(device, Device::getIp));
 
         return headers;
     }
@@ -96,7 +96,7 @@ public class AceexBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        final List<SeatBid> seatBids = ObjectUtils.getIfNotNull(bidResponse, BidResponse::getSeatbid);
+        final List<SeatBid> seatBids = ObjectUtil.getIfNotNull(bidResponse, BidResponse::getSeatbid);
         final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBids) ? seatBids.get(0) : null;
         if (firstSeatBid == null) {
             throw new PreBidException("Empty SeatBid array");
