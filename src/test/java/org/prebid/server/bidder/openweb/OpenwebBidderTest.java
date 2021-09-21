@@ -325,11 +325,12 @@ public class OpenwebBidderTest extends VertxTest {
     }
 
     private static ExtPrebid<?, ExtImpOpenweb> givenOpenwebImpExt(Integer sourceId,
-                                                                       Integer placementId,
-                                                                       Integer siteId,
-                                                                       BigDecimal bidFloor) {
+                                                                  Integer placementId,
+                                                                  Integer siteId,
+                                                                  BigDecimal bidFloor) {
         return ExtPrebid.of(null, ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
     }
+
     private static ObjectNode givenOpenwebImpExtObjectNode(Integer sourceId,
                                                            Integer placementId,
                                                            Integer siteId,
