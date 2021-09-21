@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class OpenwebBidder implements Bidder<BidRequest> {
+public class OpenWebBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOpenweb>> OPENWEB_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpOpenweb>>() {
@@ -43,7 +43,7 @@ public class OpenwebBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
     private final String endpointUrl;
 
-    public OpenwebBidder(String endpointUrl, JacksonMapper mapper) {
+    public OpenWebBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = Objects.requireNonNull(HttpUtil.validateUrl(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }

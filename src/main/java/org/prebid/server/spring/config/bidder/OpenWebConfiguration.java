@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.openweb.OpenwebBidder;
-import org.prebid.server.bidder.openx.OpenxBidder;
+import org.prebid.server.bidder.openweb.OpenWebBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -20,7 +19,7 @@ import javax.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/openweb.yaml", factory = YamlPropertySourceFactory.class)
-public class OpenwebConfiguration {
+public class OpenWebConfiguration {
 
     private static final String BIDDER_NAME = "openweb";
 
@@ -32,21 +31,21 @@ public class OpenwebConfiguration {
     private JacksonMapper mapper;
 
     @Autowired
-    @Qualifier("openwebConfigurationProperties")
+    @Qualifier("openWebConfigurationProperties")
     private BidderConfigurationProperties configProperties;
 
-    @Bean("openwebConfigurationProperties")
+    @Bean("openWebConfigurationProperties")
     @ConfigurationProperties("adapters.openweb")
-    BidderConfigurationProperties openwebProperties() {
+    BidderConfigurationProperties openWebProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps openwebBidderDeps() {
+    BidderDeps openWebBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new OpenwebBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new OpenWebBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

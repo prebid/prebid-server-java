@@ -41,20 +41,20 @@ import static org.codehaus.groovy.runtime.InvokerHelper.asList;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class OpenwebBidderTest extends VertxTest {
+public class OpenWebBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/";
 
-    private OpenwebBidder openwebBidder;
+    private OpenWebBidder openWebBidder;
 
     @Before
     public void setUp() {
-        openwebBidder = new OpenwebBidder(ENDPOINT_URL, jacksonMapper);
+        openWebBidder = new OpenWebBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new OpenwebBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new OpenWebBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -63,7 +63,7 @@ public class OpenwebBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -75,11 +75,11 @@ public class OpenwebBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImpExt() {
         // given
-        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenwebImpExt(1, 1, 1, BigDecimal.ONE);
+        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(openwebImpExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -96,12 +96,12 @@ public class OpenwebBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImpBidFloorWhenImpExtBidFloorIsValid() {
         // given
-        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenwebImpExt(1, 1, 1, BigDecimal.ONE);
+        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(3L)).ext(mapper.valueToTree(openwebImpExt)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -115,12 +115,12 @@ public class OpenwebBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyImpBidFloorWhenImpExtBidFloorIsInvalid() {
         // given
-        final ObjectNode openwebImpExtNode = givenOpenwebImpExtObjectNode(1, 1, 1, BigDecimal.ZERO);
+        final ObjectNode openwebImpExtNode = givenOpenWebImpExtObjectNode(1, 1, 1, BigDecimal.ZERO);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).ext(openwebImpExtNode));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -136,14 +136,14 @@ public class OpenwebBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("123")
-                        .ext(givenOpenwebImpExtObjectNode(1, 1, 1, BigDecimal.ONE)),
+                        .ext(givenOpenWebImpExtObjectNode(1, 1, 1, BigDecimal.ONE)),
                 impBuilder -> impBuilder.id("234")
-                        .ext(givenOpenwebImpExtObjectNode(1, 1, 1, BigDecimal.ONE)),
+                        .ext(givenOpenWebImpExtObjectNode(1, 1, 1, BigDecimal.ONE)),
                 impBuilder -> impBuilder.id("345")
-                        .ext(givenOpenwebImpExtObjectNode(2, 1, 1, BigDecimal.ONE)));
+                        .ext(givenOpenWebImpExtObjectNode(2, 1, 1, BigDecimal.ONE)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -165,7 +165,7 @@ public class OpenwebBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -183,7 +183,7 @@ public class OpenwebBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openwebBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -202,7 +202,7 @@ public class OpenwebBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -220,7 +220,7 @@ public class OpenwebBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -235,7 +235,7 @@ public class OpenwebBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -252,7 +252,7 @@ public class OpenwebBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -269,7 +269,7 @@ public class OpenwebBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("345"))));
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -289,7 +289,7 @@ public class OpenwebBidderTest extends VertxTest {
                                 bidBuilder -> bidBuilder.id("2").impid("345"))));
 
         // when
-        final Result<List<BidderBid>> result = openwebBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = openWebBidder.makeBids(httpCall, null);
 
         // then
         final String expectedErrorMessage = "ignoring bid id=2, request doesn't contain any impression with id=345";
@@ -307,7 +307,7 @@ public class OpenwebBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .device(Device.builder().ua("ua").ip("ip").ipv6("ipv6").build())
                         .imp(impCustomizers.stream()
-                                .map(OpenwebBidderTest::givenImp)
+                                .map(OpenWebBidderTest::givenImp)
                                 .collect(Collectors.toList())))
                 .build();
     }
@@ -320,22 +320,22 @@ public class OpenwebBidderTest extends VertxTest {
         return impCustomizer.apply(
                         Imp.builder()
                                 .id("123")
-                                .ext(givenOpenwebImpExtObjectNode(4, 5, 6, BigDecimal.ONE)))
+                                .ext(givenOpenWebImpExtObjectNode(4, 5, 6, BigDecimal.ONE)))
                 .build();
     }
 
-    private static ExtPrebid<?, ExtImpOpenweb> givenOpenwebImpExt(Integer sourceId,
+    private static ExtPrebid<?, ExtImpOpenweb> givenOpenWebImpExt(Integer sourceId,
                                                                   Integer placementId,
                                                                   Integer siteId,
                                                                   BigDecimal bidFloor) {
         return ExtPrebid.of(null, ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
     }
 
-    private static ObjectNode givenOpenwebImpExtObjectNode(Integer sourceId,
+    private static ObjectNode givenOpenWebImpExtObjectNode(Integer sourceId,
                                                            Integer placementId,
                                                            Integer siteId,
                                                            BigDecimal bidFloor) {
-        return mapper.valueToTree(givenOpenwebImpExt(sourceId, placementId, siteId, bidFloor));
+        return mapper.valueToTree(givenOpenWebImpExt(sourceId, placementId, siteId, bidFloor));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder>... bidCustomizers) {
