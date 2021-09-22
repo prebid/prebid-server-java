@@ -25,6 +25,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -171,7 +172,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(extImpAdtelligent);
         final BigDecimal bidFloor = extImpAdtelligent.getBidFloor();
         return imp.toBuilder()
-                .bidfloor(bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : imp.getBidfloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtelligentImpExt))
                 .build();
     }

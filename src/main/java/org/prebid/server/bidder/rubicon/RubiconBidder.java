@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -91,6 +90,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -145,8 +145,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
-    private static final Set<Integer> USER_SEGTAXES = ImmutableSet.of(4);
-    private static final Set<Integer> SITE_SEGTAXES = ImmutableSet.of(1, 2, 5, 6);
+
+    private static final Set<Integer> USER_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Collections.singletonList(4)));
+    private static final Set<Integer> SITE_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(1, 2, 5, 6)));
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
@@ -181,7 +184,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
+        headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
     }
 
     @Override
@@ -460,7 +463,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : null;
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
     }
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {

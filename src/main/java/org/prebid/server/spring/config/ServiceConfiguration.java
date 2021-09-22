@@ -200,6 +200,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
+            JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
@@ -211,6 +212,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
+                jsonMerger,
                 mapper);
     }
 
@@ -566,6 +568,7 @@ public class ServiceConfiguration {
             BidResponsePostProcessor bidResponsePostProcessor,
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) ApplicationEventService applicationEventService,
+            HttpInteractionLogger httpInteractionLogger,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -586,6 +589,7 @@ public class ServiceConfiguration {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 mapper,
