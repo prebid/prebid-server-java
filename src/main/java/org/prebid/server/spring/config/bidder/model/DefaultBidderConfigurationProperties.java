@@ -16,9 +16,6 @@ public class DefaultBidderConfigurationProperties {
     private Boolean enabled;
 
     @NotNull
-    private Boolean pbsEnforcesGdpr;
-
-    @NotNull
     private Boolean pbsEnforcesCcpa;
 
     @NotNull
