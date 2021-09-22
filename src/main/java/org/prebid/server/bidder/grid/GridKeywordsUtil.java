@@ -158,26 +158,29 @@ public class GridKeywordsUtil {
 
     public static List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode,
                                                                            JacksonMapper mapper) {
-        final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        for (Map.Entry<String, JsonNode> entry : jsonNodeToMap(publisherValueNode, mapper).entrySet()) {
-            final JsonNode entryNode = entry.getValue();
-            if (entryNode.isArray()) {
-                keywordSegments.addAll(resolveAlternativePublisherSegmentsArray(entry.getKey(), entryNode));
-            }
-        }
-        return keywordSegments;
+        return jsonNodeToMap(publisherValueNode, mapper).entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .filter(GridKeywordsUtil::isValidPublisherEntry)
+                .flatMap(GridKeywordsUtil::mapPublisherEntryToKeywordsStream)
+                .collect(Collectors.toList());
     }
 
-    public static List<KeywordSegment> resolveAlternativePublisherSegmentsArray(String segmentName,
-                                                                                JsonNode publisherSegmentsNode) {
+    private static boolean isValidPublisherEntry(Map.Entry<String, JsonNode> publisherEntry) {
+        final JsonNode publisherEntryValue = publisherEntry.getValue();
+        return publisherEntryValue != null && publisherEntryValue.isArray();
+    }
+
+    private static Stream<KeywordSegment> mapPublisherEntryToKeywordsStream(
+            Map.Entry<String, JsonNode> publisherEntry) {
+
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherSegmentsNode.elements(); it.hasNext();) {
+        for (Iterator<JsonNode> it = publisherEntry.getValue().elements(); it.hasNext(); ) {
             final JsonNode currentNode = it.next();
             if (currentNode.isTextual()) {
-                keywordSegments.add(KeywordSegment.of(segmentName, currentNode.asText()));
+                keywordSegments.add(KeywordSegment.of(publisherEntry.getKey(), currentNode.asText()));
             }
         }
-        return keywordSegments;
+        return keywordSegments.stream();
     }
 
     public static Keywords merge(JacksonMapper mapper, Keywords... keywords) {

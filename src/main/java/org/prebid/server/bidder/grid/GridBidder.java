@@ -3,7 +3,6 @@ package org.prebid.server.bidder.grid;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -31,14 +30,12 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,7 +68,16 @@ public class GridBidder implements Bidder<BidRequest> {
 
         final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
         final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
-        return Result.of(Collections.singletonList(constructHttpRequest(modifiedRequest)), errors);
+        final HttpRequest<BidRequest> httpRequest =
+                HttpRequest.<BidRequest>builder()
+                        .uri(endpointUrl)
+                        .method(HttpMethod.POST)
+                        .headers(HttpUtil.headers())
+                        .payload(modifiedRequest)
+                        .body(mapper.encode(modifiedRequest))
+                        .build();
+
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private List<Imp> modifyImps(List<Imp> imps, List<BidderError> errors) {
@@ -175,16 +181,6 @@ public class GridBidder implements Bidder<BidRequest> {
         final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequestPrebid);
         modifiedBidRequestExt.addProperties(modifiedExtRequestProperties);
         return modifiedBidRequestExt;
-    }
-
-    private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .uri(endpointUrl)
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .payload(bidRequest)
-                .body(mapper.encode(bidRequest))
-                .build();
     }
 
     @Override
