@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -27,8 +28,10 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -42,6 +45,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpGridBidder>> GRID_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpGridBidder>>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -105,11 +112,7 @@ public class GridBidder implements Bidder<BidRequest> {
 
     private Keywords getKeywordsFromImpExt(JsonNode extImp) {
         try {
-            final ExtImpGrid firstImpExtGrid = mapper.mapper().convertValue(extImp, ExtImpGrid.class);
-            final ExtImpGridBidder firstImpExtGridBidder = firstImpExtGrid != null
-                    ? firstImpExtGrid.getBidder()
-                    : null;
-            return firstImpExtGridBidder != null ? firstImpExtGridBidder.getKeywords() : null;
+            return mapper.mapper().convertValue(extImp, GRID_EXT_TYPE_REFERENCE).getBidder().getKeywords();
         } catch (IllegalArgumentException e) {
             return null;
         }
