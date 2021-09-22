@@ -107,8 +107,8 @@ public class GridBidder implements Bidder<BidRequest> {
         try {
             final ExtImpGrid firstImpExtGrid = mapper.mapper().convertValue(extImp, ExtImpGrid.class);
             final ExtImpGridBidder firstImpExtGridBidder = firstImpExtGrid != null
-                                                           ? firstImpExtGrid.getBidder()
-                                                           : null;
+                    ? firstImpExtGrid.getBidder()
+                    : null;
             return firstImpExtGridBidder != null ? firstImpExtGridBidder.getKeywords() : null;
         } catch (IllegalArgumentException e) {
             return null;
@@ -134,40 +134,12 @@ public class GridBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final Map<String, JsonNode> extRequestProperties = extRequest != null
-                                                           ? extRequest.getProperties()
-                                                           : Collections.emptyMap();
-        final Map<String, JsonNode> modifiedExtRequestProperties = new HashMap<>(extRequestProperties);
-
-        final ObjectNode clearedUserNode = clearObjectNode(keywords.getUser());
-        final ObjectNode clearedSiteNode = clearObjectNode(keywords.getSite());
-        if (clearedUserNode != null || clearedSiteNode != null) {
-            final Keywords clearedKeywords = Keywords.of(clearedUserNode, clearedSiteNode);
-            modifiedExtRequestProperties.put("keywords", mapper.mapper().valueToTree(clearedKeywords));
-        } else {
-            modifiedExtRequestProperties.remove("keywords");
-        }
-
-        if (!modifiedExtRequestProperties.isEmpty()) {
-            final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequestPrebid);
-            modifiedBidRequestExt.addProperties(modifiedExtRequestProperties);
-            return modifiedBidRequestExt;
-        }
-        return null;
-    }
-
-    private ObjectNode clearObjectNode(ObjectNode objectNode) {
-        return objectNode != null && !objectNode.isEmpty() ? objectNode : null;
-    }
-
     private Keywords getKeywordsFromRequestExt(ExtRequest extRequest) {
         try {
             final JsonNode requestKeywordsNode = extRequest != null ? extRequest.getProperty("keywords") : null;
             return requestKeywordsNode != null
-                   ? mapper.mapper().treeToValue(requestKeywordsNode, Keywords.class)
-                   : null;
+                    ? mapper.mapper().treeToValue(requestKeywordsNode, Keywords.class)
+                    : null;
         } catch (JsonProcessingException e) {
             return null;
         }
@@ -182,6 +154,24 @@ public class GridBidder implements Bidder<BidRequest> {
                 GridKeywordsUtil.resolveKeywordsFromOpenRtb(userKeywords, siteKeywords, mapper),
                 GridKeywordsUtil.resolveKeywords(firstImpExtKeywords, mapper),
                 GridKeywordsUtil.resolveKeywords(requestExtKeywords, mapper));
+    }
+
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
+        final boolean extRequestPresent = extRequest != null;
+        final ExtRequestPrebid extRequestPrebid = extRequestPresent ? extRequest.getPrebid() : null;
+        final Map<String, JsonNode> extRequestProperties = extRequestPresent
+                ? extRequest.getProperties()
+                : Collections.emptyMap();
+
+        final Map<String, JsonNode> modifiedExtRequestProperties =
+                GridKeywordsUtil.modifyWithKeywords(extRequestProperties, keywords, mapper);
+        if (modifiedExtRequestProperties.isEmpty()) {
+            return null;
+        }
+
+        final ExtRequest modifiedBidRequestExt = ExtRequest.of(extRequestPrebid);
+        modifiedBidRequestExt.addProperties(modifiedExtRequestProperties);
+        return modifiedBidRequestExt;
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {

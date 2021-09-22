@@ -9,10 +9,12 @@ import org.prebid.server.bidder.grid.model.KeywordSegment;
 import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,35 @@ public class GridKeywordsUtil {
             };
 
     private GridKeywordsUtil() {
+    }
+
+    public static Map<String, JsonNode> modifyWithKeywords(Map<String, JsonNode> extRequestProperties,
+                                                           Keywords keywords,
+                                                           JacksonMapper mapper) {
+
+        final JsonNode keywordsJsonNode = extRequestProperties.get("keywords");
+        final ObjectNode keywordsNode = keywordsJsonNode != null && keywordsJsonNode.isObject()
+                ? (ObjectNode) keywordsJsonNode
+                : mapper.mapper().createObjectNode();
+
+        setIfValueNotNullOrRemove(keywordsNode, "user", clearObjectNode(keywords.getUser()));
+        setIfValueNotNullOrRemove(keywordsNode, "site", clearObjectNode(keywords.getSite()));
+
+        final Map<String, JsonNode> modifiedExtRequestProperties = new HashMap<>(extRequestProperties);
+        if (!keywordsNode.isEmpty()) {
+            modifiedExtRequestProperties.put("keywords", keywordsNode);
+        } else {
+            modifiedExtRequestProperties.remove("keywords");
+        }
+        return modifiedExtRequestProperties;
+    }
+
+    private static void setIfValueNotNullOrRemove(ObjectNode node, String key, JsonNode value) {
+        if (value != null) {
+            node.set(key, value);
+        } else {
+            node.remove(key);
+        }
     }
 
     public static Keywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords, JacksonMapper mapper) {
@@ -52,23 +83,18 @@ public class GridKeywordsUtil {
     }
 
     public static Keywords resolveKeywords(Keywords keywords, JacksonMapper mapper) {
-        if (keywords == null) {
-            return Keywords.empty();
-        }
-
-        final ObjectNode userSection = keywords.getUser();
-        final ObjectNode resolvedUserSection = userSection != null
-                                               ? resolveKeywordsSection(userSection, mapper)
-                                               : null;
-        final ObjectNode siteSection = keywords.getSite();
-        final ObjectNode resolvedSiteSection = siteSection != null
-                                               ? resolveKeywordsSection(siteSection, mapper)
-                                               : null;
-
-        return Keywords.of(resolvedUserSection, resolvedSiteSection);
+        return keywords == null
+                ? Keywords.empty()
+                : Keywords.of(
+                resolveKeywordsSection(keywords.getUser(), mapper),
+                resolveKeywordsSection(keywords.getSite(), mapper));
     }
 
     public static ObjectNode resolveKeywordsSection(ObjectNode sectionNode, JacksonMapper mapper) {
+        if (sectionNode == null) {
+            return null;
+        }
+
         final ObjectNode resolvedSectionNode = mapper.mapper().createObjectNode();
         final Map<String, JsonNode> sectionMap = jsonNodeToMap(sectionNode, mapper);
 
@@ -126,8 +152,8 @@ public class GridKeywordsUtil {
         final String value = valueNode != null && valueNode.isTextual() ? valueNode.asText() : null;
 
         return StringUtils.isNotEmpty(name) && StringUtils.isNotEmpty(value)
-               ? KeywordSegment.of(name, value)
-               : null;
+                ? KeywordSegment.of(name, value)
+                : null;
     }
 
     public static List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode,
@@ -162,14 +188,8 @@ public class GridKeywordsUtil {
 
     public static Stream<ObjectNode> extractSections(Function<Keywords, ObjectNode> extractor, Keywords... keywords) {
         return Arrays.stream(keywords)
-                .map(extGridKeyword -> extractSection(extractor, extGridKeyword))
+                .map(keyword -> clearObjectNode(ObjectUtil.getIfNotNull(keyword, extractor)))
                 .filter(Objects::nonNull);
-    }
-
-    private static ObjectNode extractSection(Function<Keywords, ObjectNode> sectionExtractor,
-                                             Keywords keywords) {
-        final ObjectNode sectionNode = keywords != null ? sectionExtractor.apply(keywords) : null;
-        return sectionNode != null && !sectionNode.isEmpty() ? sectionNode : null;
     }
 
     private static ObjectNode mergeSections(Stream<ObjectNode> sections, JacksonMapper mapper) {
@@ -179,11 +199,11 @@ public class GridKeywordsUtil {
     }
 
     public static JsonNode mergeSections(JsonNode mainNode, JsonNode updateNode) {
-        Iterator<String> updateFieldNames = updateNode.fieldNames();
+        final Iterator<String> updateFieldNames = updateNode.fieldNames();
         while (updateFieldNames.hasNext()) {
-            String updateFieldName = updateFieldNames.next();
-            JsonNode valueToBeUpdated = mainNode.get(updateFieldName);
-            JsonNode updateValue = updateNode.get(updateFieldName);
+            final String updateFieldName = updateFieldNames.next();
+            final JsonNode valueToBeUpdated = mainNode.get(updateFieldName);
+            final JsonNode updateValue = updateNode.get(updateFieldName);
 
             if (valueToBeUpdated != null && valueToBeUpdated.isArray() && updateValue.isArray()) {
                 final ArrayNode arrayToBeUpdated = (ArrayNode) valueToBeUpdated;
@@ -202,11 +222,14 @@ public class GridKeywordsUtil {
     private static Map<String, JsonNode> jsonNodeToMap(JsonNode jsonNode, JacksonMapper mapper) {
         try {
             return jsonNode != null && jsonNode.isObject()
-                   ? mapper.mapper().convertValue(jsonNode, MAP_TYPE_REF)
-                   : Collections.emptyMap();
+                    ? mapper.mapper().convertValue(jsonNode, MAP_TYPE_REF)
+                    : Collections.emptyMap();
         } catch (IllegalArgumentException ignored) {
+            return Collections.emptyMap();
         }
-        return Collections.emptyMap();
     }
 
+    private static ObjectNode clearObjectNode(ObjectNode objectNode) {
+        return objectNode != null && !objectNode.isEmpty() ? objectNode : null;
+    }
 }
