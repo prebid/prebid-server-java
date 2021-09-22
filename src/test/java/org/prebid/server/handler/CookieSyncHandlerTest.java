@@ -664,7 +664,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null, null, null, null, null, 2, true, true, false));
+                .willReturn(BidderInfo.create(true, null, null, null, null, null, null, 2, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -730,7 +730,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
                 .willReturn(BidderInfo.create(true, null, null, null,
-                        null, null, null, 2, true, true, false));
+                        null, null, null, 2, true, false));
 
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
 
@@ -760,7 +760,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(APPNEXUS))
-                .willReturn(BidderInfo.create(true, null, null, null, null, null, null, 2, true, true, false));
+                .willReturn(BidderInfo.create(true, null, null, null, null, null, null, 2, true, false));
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
         givenTcfServiceReturningBidderNamesResult(singleton(RUBICON));
@@ -1332,9 +1332,9 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(APPNEXUS)).willReturn(true);
 
         given(bidderCatalog.bidderInfoByName(RUBICON)).willReturn(
-                BidderInfo.create(true, null, null, null, null, null, null, 2, true, true, false));
+                BidderInfo.create(true, null, null, null, null, null, null, 2, true, false));
         given(bidderCatalog.bidderInfoByName(APPNEXUS)).willReturn(
-                BidderInfo.create(true, null, null, null, null, null, null, 2, true, false, false));
+                BidderInfo.create(true, null, null, null, null, null, null, 2, true, false));
 
         given(privacyEnforcementService.isCcpaEnforced(any(), any())).willReturn(true);
 
