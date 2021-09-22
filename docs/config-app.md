@@ -124,7 +124,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
 - `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
-- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.huaweiAdsApp-media-types` - specifies media types supported for huaweiAdsApp requests that will be shown in bidder info endpoint response.
 - `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
 - `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
 - `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
@@ -279,7 +279,7 @@ For HTTP data source available next options:
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
-- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or huaweiAdsApp stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:

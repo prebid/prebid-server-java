@@ -12,7 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.huaweiads.model.*;
-import org.prebid.server.bidder.huaweiads.model.App;
+import org.prebid.server.bidder.huaweiads.model.HuaweiAdsApp;
 import org.prebid.server.bidder.huaweiads.model.Content;
 import org.prebid.server.bidder.huaweiads.model.Format;
 import org.prebid.server.bidder.huaweiads.model.xnative.*;
@@ -33,8 +33,6 @@ import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -92,12 +90,13 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             try {
                 extImpHuaweiAds = parseImpExt(imp);
                 multislot.add(getHuaweiAdsReqAdslot(extImpHuaweiAds, request, imp));
+                huaweiAdsRequest.setMultislot(multislot);
+                getHuaweiAdsReqJson(huaweiAdsRequest, request, extImpHuaweiAds);
             } catch (PreBidException e) {
                 return Result.withErrors(Collections.singletonList(BidderError.badInput(e.getMessage())));
             }
         }
-        huaweiAdsRequest.setMultislot(multislot);
-        getHuaweiAdsReqJson(huaweiAdsRequest, request, extImpHuaweiAds);
+
         String reqJson;
         try {
             reqJson = mapper.mapper().writeValueAsString(huaweiAdsRequest);
@@ -118,8 +117,6 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
     private MultiMap resolveHeaders(ExtImpHuaweiAds extImpHuaweiAds, BidRequest request, boolean isTestAuthorization) {
         MultiMap headers = HttpUtil.headers();
-        headers.add("Content-Type", "application/json;charset=utf-8");
-        headers.add("Accept", "application/json");
         if(extImpHuaweiAds == null) {
             return headers;
         }
@@ -134,13 +131,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         HuaweiAdsResponse huaweiAdsResponse;
+        List<BidderBid> bidderResponse;
         try {
             huaweiAdsResponse = mapper.decodeValue(httpCall.getResponse().getBody(), HuaweiAdsResponse.class);
+            checkHuaweiAdsResponseRetcode(huaweiAdsResponse);
+            bidderResponse = convertHuaweiAdsResp2BidderResp(huaweiAdsResponse, httpCall.getRequest().getPayload()).getSeatBid().getBids();
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-        checkHuaweiAdsResponseRetcode(huaweiAdsResponse);
-        return Result.of(convertHuaweiAdsResp2BidderResp(huaweiAdsResponse, bidRequest).getSeatBid().getBids(), Collections.emptyList());
+        return Result.of(bidderResponse, Collections.emptyList());
     }
 
     private ExtImpHuaweiAds parseImpExt(Imp imp) {
@@ -167,6 +166,9 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         if (extImpHuaweiAds.getSignKey() == null) {
             throw new PreBidException("ExtImpHuaweiAds: signKey is empty");
         }
+        if (extImpHuaweiAds.getIsTestAuthorization() == null) {
+            throw new PreBidException("ExtImpHuaweiAds: IsTestAuthorization is empty");
+        }
         return extImpHuaweiAds;
     }
 
@@ -178,7 +180,6 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 .adType(convertAdtypeString2Integer(lowerAdType))
                 .test(request.getTest())
                 .build();
-
         Banner banner = imp.getBanner();
         if (banner != null) {
             if (banner.getW() != null && banner.getH() != null) {
@@ -198,22 +199,23 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         }
         if (lowerAdType.equals("roll")) {
             Video video = imp.getVideo();
-            if (video != null && video.getMaxduration() >= 0) {
+            if (video != null && video.getMaxduration()!= null && video.getMaxduration() >= 0) {
                 adslot.setTotalDuration(video.getMaxduration());
             } else {
-                throw new PreBidException("GetHuaweiAdsReqAdslot: MaxDuration is empty when adtype is roll");
+                throw new PreBidException("GetHuaweiAdsReqAdslot: Video maxDuration is empty when adtype is roll");
             }
         }
         return adslot;
     }
 
     private void getNativeFormat(Adslot adslot, Imp imp) {
-        if (StringUtils.isBlank(imp.getXNative().getRequest())) {
-            throw new PreBidException("extractAdmNative: imp.xNative.request is empty");
+        String request = imp.getXNative().getRequest();
+        if (StringUtils.isBlank(request)) {
+            throw new PreBidException("getNativeFormat: imp.xNative.request is empty");
         }
         NativeRequest nativePayload = null;
         try {
-            nativePayload = mapper.mapper().readValue(imp.getXNative().getRequest(), NativeRequest.class);
+            nativePayload = mapper.mapper().readValue(request, NativeRequest.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
@@ -292,11 +294,11 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private void getHuaweiAdsReqAppInfo(HuaweiAdsRequest huaweiAdsRequest, BidRequest bidRequest) {
-        App app;
+        HuaweiAdsApp huaweiAdsApp;
         com.iab.openrtb.request.App appFromBidReq = bidRequest.getApp();
 
         if (appFromBidReq != null) {
-            app = App.builder()
+            huaweiAdsApp = HuaweiAdsApp.builder()
                     .version(StringUtils.isBlank(appFromBidReq.getVer()) ? null : appFromBidReq.getVer())
                     .name(StringUtils.isBlank(appFromBidReq.getName()) ? null : appFromBidReq.getName())
                     .pkgname(resolvePkgName(appFromBidReq))
@@ -345,10 +347,13 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             throw new PreBidException("getDeviceID: BidRequest.user.ext is null");
         }
         try {
-             extUserDataHuaweiAds = mapper.mapper().readValue(request.getUser().getExt().toString(), ExtUserDataHuaweiAds.class);
+             extUserDataHuaweiAds = mapper.mapper().readValue(request.getUser().getExt().getData().toString(), ExtUserDataHuaweiAds.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Unmarshal: BidRequest.user.ext -> extUserDataHuaweiAds failed");
         }
+        if (extUserDataHuaweiAds.getData() == null) {
+            throw new PreBidException("Unmarshal: BidRequest.user.ext -> extUserDataHuaweiAds failed");
+        } // wtf it converts ????
         ExtUserDataDeviceIdHuaweiAds deviceId = extUserDataHuaweiAds.getData();
         String[] imei = deviceId.getImei(), oaid = deviceId.getOaid(), gaid = deviceId.getGaid(), clientTime = deviceId.getClientTime();
 
@@ -381,8 +386,10 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private String resolveClientTime(String clientTime) {
+        return clientTime;
+        /*
     String zone = DEFAULT_TIME_ZONE;
-    String format = "02 Jan 06 15:04 -0700";
+    String format = "yyyy-MM-dd'T'HH:mm:ssXXX";
     String t  = LocalDateTime.now().format(DateTimeFormatter.ofPattern(format));
     int index = t.contains("+") ? t.indexOf("+") : t.indexOf("-");
     if(index > 0 && t.length()-index == 5) {
@@ -398,6 +405,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         return clientTime + zone;
     }
     return LocalDateTime.now().format(DateTimeFormatter.ofPattern(format))+zone; //??
+    */
     }
 
     private String resolveCountry(BidRequest bidRequest) {
@@ -434,15 +442,15 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         return DEFAULT_COUNTRY_NAME;
     }
 
-    private String resolvePkgName(com.iab.openrtb.request.App appFromBidReq) {
+    private String resolvePkgName(App appFromBidReq) {
         String bundle = appFromBidReq.getBundle();
         if (StringUtils.isBlank(bundle)) {
-            throw new PreBidException("HuaweiAdsReqApp: Pkgname is empty.");
+            throw new PreBidException("resolvePkgName: app.bundle is empty");
         }
         return bundle;
     }
 
-    private String resolveLang(com.iab.openrtb.request.App appFromBidReq) {
+    private String resolveLang(App appFromBidReq) {
         String lang = appFromBidReq.getContent() != null ? appFromBidReq.getContent().getLanguage() : null;
         if (StringUtils.isBlank(lang)) {
             return "en";
@@ -502,7 +510,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     private void checkHuaweiAdsResponseRetcode(HuaweiAdsResponse response)  {
         Integer retcode = response.getRetcode();
         if ((retcode < 600 && retcode >= 400) || (retcode < 300 && retcode > 200)) {
-            throw new PreBidException("HuaweiAdsResponse retcode:" + retcode);
+            throw new PreBidException("HuaweiAdsResponse retcode: " + retcode);
             }
     }
 
@@ -512,10 +520,14 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         if(multiAdLength == 0) {
             throw new PreBidException("convertHuaweiAdsResp2BidderResp: multiad length is 0, get no ads from huawei side");
         }
+        List<Imp> imps = bidRequest.getImp();
+        if (imps == null) {
+            throw new PreBidException("convertHuaweiAdsResp2BidderResp: BidRequest.imp is null");
+        }
         HashMap<String, Imp> mapSlotid2Imp = new HashMap<String, Imp> ();
         HashMap<String, BidType> mapSlotid2MediaType = new HashMap<String, BidType> ();
 
-        for(Imp imp : bidRequest.getImp()) {
+        for(Imp imp : imps) {
             ExtImpHuaweiAds extImpHuaweiAds = parseImpExt(imp);
             mapSlotid2Imp.put(extImpHuaweiAds.getSlotId(), imp);
             BidType mediaType = BidType.banner;
@@ -532,7 +544,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
         if (mapSlotid2Imp.size() < 1) {
             throw new PreBidException("convertHuaweiAdsResp2BidderResp: BidRequest.imp is null");
-        }
+        } //? do i have to use it
 
         for(Ad ad : huaweiAdsResponse.getMultiad()) {
            if( StringUtils.isBlank( mapSlotid2Imp.get( ad.getSlotId() ).getId() ) ) {
@@ -543,7 +555,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
            }
 
            for(Content content : ad.getContent()) {
-               String adm = "";
+               StringBuffer adm = new StringBuffer();
                Integer width = 0, height = 0;
                String slotId = ad.getSlotId();
                handleHuaweiAdsContent(ad.getAdType(), content, mapSlotid2MediaType.get(slotId), mapSlotid2Imp.get(slotId),
@@ -553,7 +565,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                        .impid(mapSlotid2Imp.get(ad.getSlotId()).getId())
                        .price(content.getPrice())
                        .crid(content.getContentid())
-                       .adm(adm)
+                       .adm(adm.toString())
                        .w(width)
                        .h(height)
                        .adomain(List.of("huaweiads"))
@@ -579,15 +591,18 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         return "";
     }
 
-    private void extractAdmBanner(Integer adType, Content content, BidType bidType, Imp imp, String adm, Integer adWidth, Integer adHeight) {
+    private void extractAdmBanner(Integer adType, Content content, BidType bidType, Imp imp, StringBuffer adm, Integer adWidth, Integer adHeight) {
         if (adType != BANNER_CODE) {
             throw new PreBidException("extractAdmBanner: huaweiads response is not a banner ad");
         }
+        if (content == null) {
+            throw new PreBidException("extractAdmPicture: content is empty");
+        } // it must be higher in methods tree
+
         Integer creativeType = content.getCreativetype();
         if (creativeType > 100) {
             creativeType = creativeType - 100;
         }
-
         if (creativeType == text || creativeType == bigPicture || creativeType == bigPicture2 ||
                 creativeType == smallPicture || creativeType == threeSmallPicturesText ||
                 creativeType == iconText || creativeType == gif) {
@@ -600,7 +615,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private void handleHuaweiAdsContent(Integer adType, Content content, BidType bidType, Imp imp,
-                                        String adm,  Integer admWidth, Integer admHeight) {
+                                        StringBuffer adm,  Integer admWidth, Integer admHeight) {
         switch (bidType) {
             case banner:
                extractAdmBanner(adType, content, bidType, imp,  adm, admWidth, admHeight);
@@ -612,18 +627,18 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 extractAdmVideo(adType, content, bidType, imp, adm, admWidth, admHeight);
                 break;
             default:
-                throw new PreBidException("no support bidtype: audio");
+                throw new PreBidException("no support bidtype: audio"); //code never reaches this statement
         }
     }
 
     private void extractAdmNative(Integer adType, Content content, BidType bidType, Imp imp,
-                                  String adm, Integer admWidth, Integer admHeight) {
+                                  StringBuffer adm, Integer admWidth, Integer admHeight) {
         if(adType != NATIVE_CODE) {
             throw new PreBidException("extractAdmNative: response is not a native ad");
         }
         Native xnative = imp.getXNative();
         if(xnative == null) {
-            throw new PreBidException("extractAdmNative: imp.Native is null");
+            throw new PreBidException("extractAdmNative: imp.Native is null"); //seems code cant reach this statement
         }
         String request = xnative.getRequest();
         if(StringUtils.isBlank(request)) {
@@ -671,11 +686,11 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                         .build();
                 responseAsset.setTitle(newTitle);
             } else if(asset.getVideo() != null) {
-                String videoObjectVASTTag = "";
+                StringBuffer videoObjectVASTTag = new StringBuffer();
                 Integer adWidth = 0;
                 Integer adHeight = 0;
                 extractAdmVideo(adType, content, bidType, imp, videoObjectVASTTag, adWidth, adHeight);
-                XnativeVideo xnativeVideo = XnativeVideo.builder().VASTTag(videoObjectVASTTag).build();
+                XnativeVideo xnativeVideo = XnativeVideo.builder().VASTTag(videoObjectVASTTag.toString()).build();
                 responseAsset.setVideo(xnativeVideo);
             } else if (imageFromAsset != null) {
                 XnativeImage xnativeImage = new XnativeImage();
@@ -741,7 +756,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         if (!StringUtils.isBlank(version)) {
             nativeResult.setVer(version);
         }
-        adm = jsonEncode(nativeResult);
+        adm.append(jsonEncode(nativeResult));
     }
 
     private String jsonEncode(NativeResponse response) {
@@ -754,11 +769,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         return json;
     }
 
-    private void extractAdmPicture(Content content, String adm, Integer adWidth, Integer adHeight) {
-        if (content == null) {
-            throw new PreBidException("extractAdmPicture: content is empty");
-        }
-
+    private void extractAdmPicture(Content content, StringBuffer adm, Integer adWidth, Integer adHeight) {
         String clickUrl = "";
         String clickUrlFromContent = content.getMetaData().getClickUrl();
         String clickUrlFromContentIntent = content.getMetaData().getIntent();
@@ -772,11 +783,11 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
         List<ImageInfo> imageInfoList = content.getMetaData().getImageInfo();
         if (imageInfoList != null) {
             imageInfoUrl = imageInfoList.get(0).getUrl();
-            adHeight = imageInfoList.get(0).getHeight();
-            adWidth = imageInfoList.get(0).getWidth();
+            adHeight += imageInfoList.get(0).getHeight();
+            adWidth += imageInfoList.get(0).getWidth();
         }
         else {
-            throw new PreBidException("content.MetaData.ImageInfo is empty");
+            throw new PreBidException("content.MetaData.ImageInfo is null");
         }
 
         String imageTitle = getDecodedValue(content.getMetaData().getTitle());
@@ -790,7 +801,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             dspImpTrackings2StrImg.append("' >  ");
         }
 
-         adm = "<style> html, body  " +
+         adm.append("<style> html, body  " +
                 "{ margin: 0; padding: 0; width: 100%; height: 100%; vertical-align: middle; }  " +
                 "html  " +
                 "{ display: table; }  " +
@@ -817,7 +828,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 "sendOneGetReq(urls[i]);" +
                 "}" +
                 "}" +
-                "</script>";
+                "</script>");
     }
 
     private void getDspImpClickTrackings(Content content, List<String> dspImpTrackings, String dspClickTrackings) {
@@ -856,8 +867,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
     }
 
     private void extractAdmVideo(Integer adType, Content content, BidType bidType, Imp imp,
-                                 String adm, Integer adWidth, Integer adHeight) {
-
+                                 StringBuffer adm, Integer adWidth, Integer adHeight) {
         if (content == null) {
            throw new PreBidException("extractAdmVideo: content is empty");
         }
@@ -901,8 +911,8 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             else {
                 throw new PreBidException("extractAdmVideo: content.MetaData.VideoInfo.VideoDownloadUrl is empty");
             }
-            Integer widthFromVideoInfo = videoInfo.getWidth();
-            Integer heightFromVideoInfo = videoInfo.getHeight();
+            Integer widthFromVideoInfo = videoInfo.getWidth(); // do we need to check on null ?
+            Integer heightFromVideoInfo = videoInfo.getHeight(); // do we need to check on null ?
             if(widthFromVideoInfo != 0 && heightFromVideoInfo != 0) {
                 adWidth = widthFromVideoInfo;
                 adHeight = heightFromVideoInfo;
@@ -973,7 +983,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
             }
         }
 
-        adm = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+        adm.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
 		"<VAST version=\"3.0\">" +
 		"<Ad id=\"" + adId + "\"><InLine>" +
                 "<AdSystem>HuaweiAds</AdSystem>" +
@@ -999,7 +1009,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                 "</Creatives>" +
                 "</InLine>" +
                 "</Ad>" +
-                "</VAST>";
+                "</VAST>");
     }
 
     private String getDecodedValue(String encodedString) {

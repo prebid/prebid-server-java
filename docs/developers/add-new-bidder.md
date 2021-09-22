@@ -23,7 +23,7 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 ## Configuration
 
 Add default configuration properties and metadata(e.g. contact email, platform & media type support) for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
-For more information about application configuration see [here](../config-app.md)
+For more information about application configuration see [here](../config-huaweiAdsApp.md)
 
 ## Implementation
 

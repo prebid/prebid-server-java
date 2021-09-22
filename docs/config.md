@@ -58,7 +58,7 @@ To use external logging configuration just add the following as start up argumen
 -Dlogging.config=/path/to/prebid-logging.xml
 ```
 
-For more details see [Full list of configuration options](config-app.md) and  [Application settings](application-settings.md).
+For more details see [Full list of configuration options](config-huaweiAdsApp.md) and  [Application settings](application-settings.md).
 
 ### See also
 

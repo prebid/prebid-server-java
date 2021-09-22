@@ -24,7 +24,7 @@ There are two ways to configure application settings: database and file. This do
   application.yaml.
 - `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.integration-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
-- `privacy.gdpr.integration-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
+- `privacy.gdpr.integration-enabled.huaweiAdsApp` - overrides `privacy.gdpr.enabled` property behaviour for huaweiAdsApp requests type.
 - `privacy.gdpr.integration-enabled.xnativeVideo` - overrides `privacy.gdpr.enabled` property behaviour for xnativeVideo requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
@@ -105,7 +105,7 @@ Here's an example YAML file containing account-specific settings:
           integration-enabled:
             xnativeVideo: true
             web: true
-            app: true
+            huaweiAdsApp: true
             amp: true
           purposes:
             p1:
@@ -193,7 +193,7 @@ Here's an example YAML file containing account-specific settings:
 
 In database approach account properties are stored in database table(s).
 
-SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md).
+SQL query for retrieving account is configurable and can be specified in [application configuration](config-huaweiAdsApp.md).
 Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
@@ -258,7 +258,7 @@ example:
       "integration-enabled": {
         "xnativeVideo": true,
         "web": true,
-        "app": true,
+        "huaweiAdsApp": true,
         "amp": true
       },
       "purpose-one-treatment-interpretation": "ignore",
@@ -368,8 +368,8 @@ example:
       "web": true,
       // the analytics adapter should log auction events when the channel is AMP
       "amp": true,
-      // the analytics adapter should not log auction events when the channel is app
-      "app": false
+      // the analytics adapter should not log auction events when the channel is huaweiAdsApp
+      "huaweiAdsApp": false
     }
   },
   "cookie-sync": {

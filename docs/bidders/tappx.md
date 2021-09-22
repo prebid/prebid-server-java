@@ -6,7 +6,7 @@ Please contact tappx@tappx.com to get set up. Our operations team will provide t
 - Tappx Publisher Endpoint
 - Tappx Host URL
 
-**Note:** The Tappx prebid bidder only supports in app traffic at the moment
+**Note:** The Tappx prebid bidder only supports in huaweiAdsApp traffic at the moment
 
 As for test parameters, use the official test parameter specified in the oRTB standard (https://github.com/InteractiveAdvertisingBureau/openrtb/blob/master/OpenRTB%20v3.0%20FINAL.md#object_request)
 

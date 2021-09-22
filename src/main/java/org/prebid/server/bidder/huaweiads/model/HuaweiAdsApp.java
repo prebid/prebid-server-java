@@ -3,7 +3,7 @@ package org.prebid.server.bidder.huaweiads.model;
 import lombok.Builder;
 
 @Builder
-public class App {
+public class HuaweiAdsApp {
     private String version;
     private String name;
     private String pkgname;

@@ -6,18 +6,18 @@ import lombok.Builder;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
-@Value
 @Builder
+@Value
 public class ExtImpHuaweiAds {
-    @JsonProperty("slotid")
+    @JsonProperty("slotId")
     String slotId;
-    @JsonProperty("adtype")
+    @JsonProperty("adType")
     String adtype;
-    @JsonProperty("publisherid")
+    @JsonProperty("publisherId")
     String publisherId;
-    @JsonProperty("signkey")
+    @JsonProperty("signKey")
     String signKey;
-    @JsonProperty("keyid")
+    @JsonProperty("keyId")
     String keyId;
     @JsonProperty("isTestAuthorization")
     String isTestAuthorization;

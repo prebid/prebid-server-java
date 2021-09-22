@@ -11,7 +11,7 @@ public class VideoInfo {
     private Integer videoFileSize;
     private String sha256;
     private Float videoRatio;
-    private Integer Width;
-    private Integer Height;
+    private Integer width;
+    private Integer height;
 }
 

@@ -44,7 +44,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `imps_video` - number of xnativeVideo impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
-- `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query
@@ -72,12 +72,12 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `adapter.<bidder-name>.prices` - histogram of bid prices received from `<bidder-name>`
 - `adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>`
 - `adapter.<bidder-name>.(banner|xnativeVideo|audio|native).(adm_bids_received|nurl_bids_received)` - number of bids received from `<bidder-name>` broken down by bid type and whether they had `adm` or `nurl` specified
-- `adapter.<bidder-name>.requests.type.(openrtb2-web|openrtb-app|amp|legacy)` - number of requests made to `<bidder-name>` broken down by type of incoming request
+- `adapter.<bidder-name>.requests.type.(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy)` - number of requests made to `<bidder-name>` broken down by type of incoming request
 - `adapter.<bidder-name>.requests.(gotbids|nobid|badinput|badserverresponse|timeout|unknown_error)` - number of requests made to `<bidder-name>` broken down by result status
-- `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.userid_removed` - number of requests made to `<bidder-name>` that required userid removed as a result of TCF enforcement for that bidder
-- `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.geo_masked` - number of requests made to `<bidder-name>` that required geo information removed as a result of TCF enforcement for that bidder
-- `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.request_blocked` - number of requests made to `<bidder-name>` that were blocked as a result of TCF enforcement for that bidder
-- `adapter.<bidder-name>.(openrtb2-web|openrtb-app|amp|legacy).tcf.analytics_blocked` - number of requests made to `<bidder-name>` that required analytics blocked as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy).tcf.userid_removed` - number of requests made to `<bidder-name>` that required userid removed as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy).tcf.geo_masked` - number of requests made to `<bidder-name>` that required geo information removed as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy).tcf.request_blocked` - number of requests made to `<bidder-name>` that were blocked as a result of TCF enforcement for that bidder
+- `adapter.<bidder-name>.(openrtb2-web|openrtb-huaweiAdsApp|amp|legacy).tcf.analytics_blocked` - number of requests made to `<bidder-name>` that required analytics blocked as a result of TCF enforcement for that bidder
 - `adapter.<bidder-name>.response.validation.size.(warn|err)` - number of banner bids received from the `<bidder-name>` that had invalid size
 - `adapter.<bidder-name>.response.validation.secure.(warn|err)` - number of bids received from the `<bidder-name>` that had insecure creative while in secure context
 
@@ -88,7 +88,7 @@ Following metrics are collected and submitted if account is configured with `bas
 - `account.<account-id>.response.validation.secure.(warn|err)` - number of bids received from account with `<account-id>` that had insecure creative while in secure context
 
 Following metrics are collected and submitted if account is configured with `detailed` verbosity:
-- `account.<account-id>.requests.type.(openrtb2-web,openrtb-app,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
+- `account.<account-id>.requests.type.(openrtb2-web,openrtb-huaweiAdsApp,amp,legacy)` - number of requests received from account with `<account-id>` broken down by type of incoming request
 - `account.<account-id>.requests.rejected` - number of rejected requests caused by incorrect `accountId`
 - `account.<account-id>.adapter.<bidder-name>.request_time` - timer tracking how long did it take to make a request to `<bidder-name>` when incoming request was from `<account-id>` 
 - `account.<account-id>.adapter.<bidder-name>.bids_received` - number of bids received from `<bidder-name>` when incoming request was from `<account-id>`

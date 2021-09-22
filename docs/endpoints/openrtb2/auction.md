@@ -59,7 +59,7 @@ This endpoint will respond with either:
 
 - An OpenRTB 2.5 BidResponse, or
 - HTTP 400 status code if the request is malformed
-- HTTP 403 status code if request contains blacklisted account or app
+- HTTP 403 status code if request contains blacklisted account or huaweiAdsApp
 - HTTP 401 status code if account is not present in request and `settings.enforce-valid-account` configuration is `true`
 - HTTP 500 status code in case of any other error
 
@@ -122,7 +122,7 @@ Exceptions are made for extensions with "standard" recommendations:
 
 - `request.regs.ext.gdpr` and `request.user.ext.consent` -- To support GDPR
 - `request.site.ext.amp` -- To identify AMP as the request source
-- `request.app.ext.source` and `request.app.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
+- `request.huaweiAdsApp.ext.source` and `request.huaweiAdsApp.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
 
 #### Bid Adjustments
  
@@ -567,7 +567,7 @@ This request:
 {
   "tmax":500,
   "id": "test-auction-id",
-  "app": { ... },
+  "huaweiAdsApp": { ... },
   "ext": {
       "prebid": {
              "debug": 1  
@@ -613,7 +613,7 @@ In contrast to what's outlined above, this approach lets some real auctions take
 {
   "tmax":500,
   "id": "test-auction-id",
-  "app": { ... },
+  "huaweiAdsApp": { ... },
   "ext": {
       "prebid": {
              "debug": 1
@@ -701,7 +701,7 @@ Prebid Server adapters can support the [Prebid.js User ID modules](http://prebid
 
 #### First Party Data Support
 
-This is the Prebid Server version of the Prebid.js First Party Data feature. It's a standard way for the page (or app) to supply first party data and control which bidders have access to it.
+This is the Prebid Server version of the Prebid.js First Party Data feature. It's a standard way for the page (or huaweiAdsApp) to supply first party data and control which bidders have access to it.
 
 It specifies where in the OpenRTB request non-standard attributes should be passed. For example:
 
@@ -746,7 +746,7 @@ So before passing the values to the bidder adapters, core will:
 1. check for ext.prebid.data.bidders
 1. if it exists, store it locally, but remove it from the OpenRTB before being sent to the adapters
 1. As the OpenRTB request is being sent to each adapter:
-    1. if ext.prebid.data.bidders exists in the original request, and this bidder is on the list then copy site.ext.data, app.ext.data, and user.ext.data to their bidder request -- otherwise don't copy those blocks
+    1. if ext.prebid.data.bidders exists in the original request, and this bidder is on the list then copy site.ext.data, huaweiAdsApp.ext.data, and user.ext.data to their bidder request -- otherwise don't copy those blocks
     1. copy other objects as normal
 
 Each adapter must be coded to read the values from these locations and pass it to their endpoints appropriately.

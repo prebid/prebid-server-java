@@ -11,7 +11,7 @@ Configure your server to read stored requests from the filesystem:
 ```yaml
 settings:
   filesystem:
-    settings-filename: sample-app-settings.yaml
+    settings-filename: sample-huaweiAdsApp-settings.yaml
     stored-requests-dir: stored_requests
     stored-imps-dir: stored_imps
 ```
@@ -227,7 +227,7 @@ settings:
 Note: HTTP backend implementation always gives an empty result (with "Not supported" error inside)
 for obtaining the `Account` or `AdUnitConfig` by ID for the legacy [auction](../endpoints/auction.md) endpoint.
 
-Full list of application configuration options can be found [here](../config-app.md).
+Full list of application configuration options can be found [here](../config-huaweiAdsApp.md).
 
 If you need support for a backend that you don't see, please [contribute it](../contributing.md).
 
@@ -241,7 +241,7 @@ Conceptually, Stored Request data is managed by the following components in the 
 **CacheNotificationListener**: Provides interface apply changes to Stored Request data.
 
 ApplicationSettings and methods of updating Stored Request data at runtime can also be chosen 
-in the the app config.
+in the the huaweiAdsApp config.
 At least one ApplicationSettings is _required_ to make use of Stored Requests.
 
 If more than one ApplicationSettings is defined, they will be ordered and used as fallback data sources.

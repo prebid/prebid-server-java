@@ -12,7 +12,7 @@ Please see [documentation](https://developers.pubnative.net/docs/prebid-adding-p
 
 - bidder should be always set to "pubnative" (`imp.ext.prebid.bidder.pubnative`)
 - zone_id (int) should be always set to 1, unless special use case agreed with our account manager. (`imp.ext.prebid.bidder.pubnative.zone_id`)
-- app_auth_token (string) is unique per publisher app. Please contact our account manager to obtain yours. (`imp.ext.prebid.bidder.pubnative.app_auth_token`)
+- app_auth_token (string) is unique per publisher huaweiAdsApp. Please contact our account manager to obtain yours. (`imp.ext.prebid.bidder.pubnative.app_auth_token`)
 
 An example is illustrated in a section below.
 
