@@ -100,7 +100,7 @@ public class GridBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private void validateImpExt(ExtImpGrid extImpGrid, String impId) {
+    private static void validateImpExt(ExtImpGrid extImpGrid, String impId) {
         final ExtImpGridBidder extImpGridBidder = extImpGrid != null ? extImpGrid.getBidder() : null;
         final Integer uid = extImpGridBidder != null ? extImpGridBidder.getUid() : null;
         if (uid == null || uid == 0) {
