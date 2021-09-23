@@ -3,10 +3,14 @@ package org.prebid.server.bidder.grid;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -31,6 +35,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -193,22 +198,40 @@ public class GridBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        getBidMediaType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> constructBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
                 .collect(Collectors.toList());
+    }
+
+    private BidderBid constructBidderBid(Bid bid, List<Imp> imps, String cur) {
+        final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bid)).build();
+        return BidderBid.of(modifiedBid, getBidMediaType(bid.getImpid(), imps), cur);
+    }
+
+    private ObjectNode modifyBidExt(Bid bid) {
+        final String demandSource = ObjectUtils.defaultIfNull(bid.getExt(), MissingNode.getInstance())
+                .at("/bidder/grid/demandSource").textValue();
+
+        if (StringUtils.isEmpty(demandSource)) {
+            return null;
+        }
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .meta(mapper.mapper().createObjectNode().set("networkName", TextNode.valueOf(demandSource)))
+                .build();
+        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 
     private static BidType getBidMediaType(String impId, List<Imp> imps) {
