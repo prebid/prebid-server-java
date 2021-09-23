@@ -174,7 +174,7 @@ public class GridKeywordsUtil {
             Map.Entry<String, JsonNode> publisherEntry) {
 
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherEntry.getValue().elements(); it.hasNext(); ) {
+        for (Iterator<JsonNode> it = publisherEntry.getValue().elements(); it.hasNext();) {
             final JsonNode currentNode = it.next();
             if (currentNode.isTextual()) {
                 keywordSegments.add(KeywordSegment.of(publisherEntry.getKey(), currentNode.asText()));
