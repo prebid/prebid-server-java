@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.grid.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class Keywords {
 
     public static Keywords empty() {

@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;

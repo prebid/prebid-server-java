@@ -3,9 +3,10 @@ package org.prebid.server.bidder.grid.model;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 
-@Builder(toBuilder = true)
 @Value
+@Builder(toBuilder = true)
 public class ExtImpGrid {
 
     ExtImpPrebid prebid;
@@ -16,3 +17,4 @@ public class ExtImpGrid {
 
     String gpid;
 }
+

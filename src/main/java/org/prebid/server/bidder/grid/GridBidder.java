@@ -19,7 +19,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridBidder;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
@@ -90,6 +90,7 @@ public class GridBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             try {
                 final ExtImpGrid extImpGrid = mapper.mapper().convertValue(imp.getExt(), ExtImpGrid.class);
+                validateImpExt(extImpGrid, imp.getId());
                 modifiedImps.add(modifyImp(imp, extImpGrid));
             } catch (IllegalArgumentException | PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -99,13 +100,15 @@ public class GridBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGrid extImpGrid) {
+    private void validateImpExt(ExtImpGrid extImpGrid, String impId) {
         final ExtImpGridBidder extImpGridBidder = extImpGrid != null ? extImpGrid.getBidder() : null;
         final Integer uid = extImpGridBidder != null ? extImpGridBidder.getUid() : null;
         if (uid == null || uid == 0) {
-            throw new PreBidException("uid is empty");
+            throw new PreBidException(String.format("Empty uid in imp with id: %s", impId));
         }
+    }
 
+    private Imp modifyImp(Imp imp, ExtImpGrid extImpGrid) {
         final ExtImpGridData extImpData = extImpGrid.getData();
         final ExtImpGridDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
         final String adSlot = adServer != null ? adServer.getAdSlot() : null;

@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.grid.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class KeywordSegment {
 
     String name;
