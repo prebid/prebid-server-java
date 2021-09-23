@@ -1,6 +1,9 @@
 package org.prebid.server.bidder.huaweiads.model.xnative.request;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 
 /**
@@ -8,6 +11,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
  */
 
 @AllArgsConstructor
+@Builder
+@Getter
+@Setter
 public class EventTracker {
     private int eventType;
     private int eventTrackingMethods;

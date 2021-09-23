@@ -1,8 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model;
 
 import lombok.Builder;
+import lombok.Getter;
 
 @Builder
+@Getter
 public class HuaweiAdsApp {
     private String version;
     private String name;

@@ -16,6 +16,6 @@ public class Metadata {
     private String intent;
     private VideoInfo videoInfo;
     private ApkInfo apkInfo;
-    private Integer Duration;
+    private Integer duration;
     private MediaFile mediaFile;
 }

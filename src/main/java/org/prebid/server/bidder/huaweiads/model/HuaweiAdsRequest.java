@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Regs;
 import lombok.*;
@@ -14,7 +13,7 @@ import java.util.List;
 public class HuaweiAdsRequest {
     private String version;
     private List<Adslot> multislot;
-    private App app;
+    private HuaweiAdsApp app;
     private HuaweiAdsDevice device;
     private Network network;
     private Regs regs;

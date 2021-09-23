@@ -305,6 +305,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
                     .lang(resolveLang(appFromBidReq))
                     .country(resolveCountry(bidRequest))
                     .build();
+            huaweiAdsRequest.setApp(huaweiAdsApp);
         }
     }
 
@@ -556,7 +557,7 @@ public class HuaweiAdsBidder implements Bidder<BidRequest> {
 
            for(Content content : ad.getContent()) {
                StringBuffer adm = new StringBuffer();
-               Integer width = 0, height = 0;
+               Integer width = 0, height = 0; //width height - sb ?
                String slotId = ad.getSlotId();
                handleHuaweiAdsContent(ad.getAdType(), content, mapSlotid2MediaType.get(slotId), mapSlotid2Imp.get(slotId),
                        adm, width, height);
