@@ -14,6 +14,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
@@ -100,8 +102,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         final Account account = Account.builder()
                 .id("someId")
-                .enforceCcpa(true)
-                .priceGranularity("testPriceGranularity")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("testPriceGranularity")
+                        .build())
+                .privacy(AccountPrivacyConfig.of(true, null, null))
                 .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
@@ -112,8 +116,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getId()).isEqualTo("someId");
-        assertThat(future.result().getEnforceCcpa()).isEqualTo(true);
-        assertThat(future.result().getPriceGranularity()).isEqualTo("testPriceGranularity");
+        assertThat(future.result().getPrivacy().getEnforceCcpa()).isEqualTo(true);
+        assertThat(future.result().getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
 
         verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
                 anyLong());

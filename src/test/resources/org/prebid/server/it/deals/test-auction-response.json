@@ -1,0 +1,727 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bidId1",
+          "impid": "impId1",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid1",
+          "dealid": "dealId1",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_deal_rubicon": "dealId1",
+                "hb_cache_id": "3f37ff80-b395-449f-a80e-c21a38bb6eec",
+                "hb_cache_path_rubicon": "/cache",
+                "hb_cache_host_rubicon": "{{ cache.host }}",
+                "hb_pb": "8.40",
+                "hb_pb_rubicon": "8.40",
+                "hb_cache_id_rubicon": "3f37ff80-b395-449f-a80e-c21a38bb6eec",
+                "hb_cache_path": "/cache",
+                "hb_size": "300x250",
+                "hb_bidder": "rubicon",
+                "hb_size_rubicon": "300x250",
+                "hb_bidder_rubicon": "rubicon",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId1"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}3f37ff80-b395-449f-a80e-c21a38bb6eec",
+                  "cacheId": "3f37ff80-b395-449f-a80e-c21a38bb6eec"
+                }
+              },
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=bidId1&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem1",
+                "imp": "http://localhost:8080/event?t=imp&b=bidId1&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem1"
+              }
+            },
+            "origbidcpm": 8.43
+          }
+        },
+        {
+          "id": "bidId2",
+          "impid": "impId2",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid2",
+          "dealid": "dealId2",
+          "w": 320,
+          "h": 320,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_deal_rubicon": "dealId2",
+                "hb_size_rubicon": "320x320",
+                "hb_cache_id": "13e78248-7339-4e35-b297-874d0031bc1a",
+                "hb_cache_path_rubicon": "/cache",
+                "hb_cache_host_rubicon": "{{ cache.host }}",
+                "hb_pb": "8.40",
+                "hb_pb_rubicon": "8.40",
+                "hb_cache_id_rubicon": "13e78248-7339-4e35-b297-874d0031bc1a",
+                "hb_cache_path": "/cache",
+                "hb_size": "320x320",
+                "hb_bidder": "rubicon",
+                "hb_bidder_rubicon": "rubicon",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId2"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}13e78248-7339-4e35-b297-874d0031bc1a",
+                  "cacheId": "13e78248-7339-4e35-b297-874d0031bc1a"
+                }
+              },
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=bidId2&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem2",
+                "imp": "http://localhost:8080/event?t=imp&b=bidId2&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem2"
+              }
+            },
+            "origbidcpm": 8.43
+          }
+        },
+        {
+          "id": "bidId4",
+          "impid": "impId4",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid1",
+          "dealid": "dealId3",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner",
+              "targeting": {
+                "hb_deal_rubicon": "dealId3",
+                "hb_size_rubicon": "300x250",
+                "hb_cache_id": "1cdcf339-e59b-4e2c-8382-1fb845d4961c",
+                "hb_cache_path_rubicon": "/cache",
+                "hb_cache_host_rubicon": "{{ cache.host }}",
+                "hb_pb": "8.40",
+                "hb_pb_rubicon": "8.40",
+                "hb_cache_id_rubicon": "1cdcf339-e59b-4e2c-8382-1fb845d4961c",
+                "hb_cache_path": "/cache",
+                "hb_size": "300x250",
+                "hb_bidder": "rubicon",
+                "hb_bidder_rubicon": "rubicon",
+                "hb_cache_host": "{{ cache.host }}",
+                "hb_deal": "dealId3"
+              },
+              "cache": {
+                "bids": {
+                  "url": "{{ cache.resource_url }}1cdcf339-e59b-4e2c-8382-1fb845d4961c",
+                  "cacheId": "1cdcf339-e59b-4e2c-8382-1fb845d4961c"
+                }
+              },
+              "events": {
+                "win": "http://localhost:8080/event?t=win&b=bidId4&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem3",
+                "imp": "http://localhost:8080/event?t=imp&b=bidId4&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem3"
+              }
+            },
+            "origbidcpm": 8.43
+          }
+        }
+      ],
+      "seat": "rubicon",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "debug": {
+      "httpcalls": {
+        "cache": [
+          {
+            "uri": "{{ cache.endpoint }}",
+            "requestheaders": {
+              "Accept": [
+                "application/json"
+              ],
+              "Content-Type": [
+                "application/json;charset=utf-8"
+              ]
+            },
+            "requestbody": "{\"puts\":[{\"type\":\"json\",\"value\":{\"id\":\"bidId1\",\"impid\":\"impId1\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"dealid\":\"dealId1\",\"w\":300,\"h\":250,\"ext\":{\"origbidcpm\":8.43,\"prebid\":{\"type\":\"banner\",\"events\":{\"win\":\"http://localhost:8080/event?t=win&b=bidId1&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem1\",\"imp\":\"http://localhost:8080/event?t=imp&b=bidId1&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem1\"}}},\"wurl\":\"http://localhost:8080/event?t=win&b=bidId1&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem1\"},\"aid\":\"tid\"},{\"type\":\"json\",\"value\":{\"id\":\"bidId4\",\"impid\":\"impId4\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"dealid\":\"dealId3\",\"w\":300,\"h\":250,\"ext\":{\"origbidcpm\":8.43,\"prebid\":{\"type\":\"banner\",\"events\":{\"win\":\"http://localhost:8080/event?t=win&b=bidId4&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem3\",\"imp\":\"http://localhost:8080/event?t=imp&b=bidId4&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem3\"}}},\"wurl\":\"http://localhost:8080/event?t=win&b=bidId4&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem3\"},\"aid\":\"tid\"},{\"type\":\"json\",\"value\":{\"id\":\"bidId2\",\"impid\":\"impId2\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid2\",\"dealid\":\"dealId2\",\"w\":320,\"h\":320,\"ext\":{\"origbidcpm\":8.43,\"prebid\":{\"type\":\"banner\",\"events\":{\"win\":\"http://localhost:8080/event?t=win&b=bidId2&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem2\",\"imp\":\"http://localhost:8080/event?t=imp&b=bidId2&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem2\"}}},\"wurl\":\"http://localhost:8080/event?t=win&b=bidId2&a=2001&aid=tid&ts=1000&bidder=rubicon&f=i&int=&x=0&l=lineItem2\"},\"aid\":\"tid\"}]}",
+            "responsebody": "{\"responses\":[{\"uuid\":\"13e78248-7339-4e35-b297-874d0031bc1a\"},{\"uuid\":\"3f37ff80-b395-449f-a80e-c21a38bb6eec\"},{\"uuid\":\"1cdcf339-e59b-4e2c-8382-1fb845d4961c\"}]}",
+            "status": 200
+          }
+        ],
+        "rubicon": [
+          {
+            "uri": "{{ rubicon.exchange_uri }}?tk_xint=rp-pbs",
+            "requestheaders": {
+              "Accept": [
+                "application/json"
+              ],
+              "x-prebid": [
+                "pbs-java/1.70.0"
+              ],
+              "User-Agent": [
+                "prebid-server/1.0"
+              ],
+              "Content-Type": [
+                "application/json;charset=utf-8"
+              ]
+            },
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId4\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem3\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}",
+            "responsebody": "{\"id\":\"bidResponseId4\",\"seatbid\":[{\"seat\":\"seatId4\",\"bid\":[{\"id\":\"bidId4\",\"impid\":\"impId4\",\"dealid\":\"dealId3\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250}]}]}",
+            "status": 200
+          },
+          {
+            "uri": "{{ rubicon.exchange_uri }}?tk_xint=rp-pbs",
+            "requestheaders": {
+              "Accept": [
+                "application/json"
+              ],
+              "x-prebid": [
+                "pbs-java/1.70.0"
+              ],
+              "User-Agent": [
+                "prebid-server/1.0"
+              ],
+              "Content-Type": [
+                "application/json;charset=utf-8"
+              ]
+            },
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId1\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem1\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}",
+            "responsebody": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"seat\":\"seatId1\",\"bid\":[{\"id\":\"bidId1\",\"impid\":\"impId1\",\"dealid\":\"dealId1\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250}]}]}",
+            "status": 200
+          },
+          {
+            "uri": "{{ rubicon.exchange_uri }}?tk_xint=rp-pbs",
+            "requestheaders": {
+              "Accept": [
+                "application/json"
+              ],
+              "x-prebid": [
+                "pbs-java/1.70.0"
+              ],
+              "User-Agent": [
+                "prebid-server/1.0"
+              ],
+              "Content-Type": [
+                "application/json;charset=utf-8"
+              ]
+            },
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId2\",\"banner\":{\"format\":[{\"w\":320,\"h\":320}],\"ext\":{\"rp\":{\"size_id\":72,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId2\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":320,\"h\":320}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem2\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}",
+            "responsebody": "{\"id\":\"bidResponseId2\",\"seatbid\":[{\"seat\":\"seatId2\",\"bid\":[{\"id\":\"bidId2\",\"impid\":\"impId2\",\"dealid\":\"dealId2\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid2\",\"w\":320,\"h\":320}]}]}",
+            "status": 200
+          },
+          {
+            "uri": "{{ rubicon.exchange_uri }}?tk_xint=rp-pbs",
+            "requestheaders": {
+              "Accept": [
+                "application/json"
+              ],
+              "x-prebid": [
+                "pbs-java/1.70.0"
+              ],
+              "User-Agent": [
+                "prebid-server/1.0"
+              ],
+              "Content-Type": [
+                "application/json;charset=utf-8"
+              ]
+            },
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId1\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem3\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}",
+            "responsebody": "{\"id\":\"bidResponseId3\",\"seatbid\":[{\"seat\":\"seatId3\",\"bid\":[{\"id\":\"bidId3\",\"impid\":\"impId1\",\"dealid\":\"dealId3\",\"price\":8.43,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid3\",\"w\":300,\"h\":250}]}]}",
+            "status": 200
+          }
+        ],
+        "userservice": [
+          {
+            "uri": "{{ userservice_uri }}",
+            "requestbody": "{\"time\":\"{{ userservice_time }}\",\"ids\":[{\"type\":\"khaos\",\"id\":\"J5VLCWQP-26-CWFT\"}]}",
+            "responsebody": "{\"user\":{\"data\":[{\"id\":\"1111\",\"name\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"4444\",\"name\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"fcapIds\":[\"fcapId3\"]}}}",
+            "status": 200
+          }
+        ]
+      },
+      "resolvedrequest": {
+        "id": "tid",
+        "imp": [
+          {
+            "id": "impId1",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "pmp": {
+              "private_auction": 0,
+              "deals": [
+                {
+                  "id": "dealId1",
+                  "bidfloor": 0.0,
+                  "ext": {
+                    "line": {
+                      "lineitemid": "lineItem1",
+                      "extlineitemid": "extLineItem1",
+                      "sizes": [
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
+                      "bidder": "rubicon"
+                    }
+                  }
+                },
+                {
+                  "id": "dealId3",
+                  "bidfloor": 0.0,
+                  "ext": {
+                    "line": {
+                      "lineitemid": "lineItem3",
+                      "extlineitemid": "extLineItem3",
+                      "sizes": [
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
+                      "bidder": "rubicon"
+                    }
+                  }
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "impId2",
+            "banner": {
+              "format": [
+                {
+                  "w": 320,
+                  "h": 320
+                }
+              ]
+            },
+            "pmp": {
+              "private_auction": 0,
+              "deals": [
+                {
+                  "id": "dealId2",
+                  "bidfloor": 0.0,
+                  "ext": {
+                    "line": {
+                      "lineitemid": "lineItem2",
+                      "extlineitemid": "extLineItem2",
+                      "sizes": [
+                        {
+                          "w": 320,
+                          "h": 320
+                        }
+                      ],
+                      "bidder": "rubicon"
+                    }
+                  }
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "impId3",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 600
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001,
+                    "dealsonly": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "id": "impId4",
+            "banner": {
+              "format": [
+                {
+                  "w": 300,
+                  "h": 250
+                }
+              ]
+            },
+            "pmp": {
+              "private_auction": 0,
+              "deals": [
+                {
+                  "id": "dealId3",
+                  "bidfloor": 0.0,
+                  "ext": {
+                    "line": {
+                      "lineitemid": "lineItem3",
+                      "extlineitemid": "extLineItem3",
+                      "sizes": [
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
+                      "bidder": "rubicon"
+                    }
+                  }
+                }
+              ]
+            },
+            "ext": {
+              "prebid": {
+                "bidder": {
+                  "rubicon": {
+                    "accountId": 2001,
+                    "siteId": 3001,
+                    "zoneId": 4001
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "site": {
+          "domain": "www.example.com",
+          "page": "http://www.example.com",
+          "publisher": {
+            "id": "2001",
+            "domain": "example.com"
+          },
+          "ext": {
+            "amp": 0
+          }
+        },
+        "device": {
+          "ua": "userAgent",
+          "ip": "185.199.110.0"
+        },
+        "user": {
+          "data": [
+            {
+              "id": "rubicon",
+              "segment": [
+                {
+                  "id": "2222"
+                },
+                {
+                  "id": "3333"
+                }
+              ]
+            },
+            {
+              "id": "bluekai",
+              "segment": [
+                {
+                  "id": "5555"
+                },
+                {
+                  "id": "6666"
+                }
+              ]
+            }
+          ],
+          "ext": {
+            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+            "fcapids": [
+              "fcapId3"
+            ],
+            "time": {
+              "userdow": "{{ userdow }}",
+              "userhour": "{{ userhour }}"
+            }
+          }
+        },
+        "at": 1,
+        "tmax": 2000,
+        "cur": [
+          "USD"
+        ],
+        "ext": {
+          "prebid": {
+            "debug": 1,
+            "trace": "verbose",
+            "targeting": {
+              "pricegranularity": {
+                "precision": 2,
+                "ranges": [
+                  {
+                    "max": 20,
+                    "increment": 0.1
+                  }
+                ]
+              },
+              "includewinners": true,
+              "includebidderkeys": true
+            },
+            "cache": {
+              "bids": {},
+              "vastxml": {
+                "ttlseconds": 120
+              }
+            },
+            "auctiontimestamp": 1000,
+            "channel": {
+              "name": "web"
+            },
+            "pbs": {
+              "endpoint": "/openrtb2/auction"
+            }
+          }
+        }
+      },
+      "pgmetrics": {
+        "sent_to_client": [
+          "lineItem3",
+          "lineItem1",
+          "lineItem2"
+        ],
+        "sent_to_client_as_top_match": [
+          "lineItem3",
+          "lineItem1",
+          "lineItem2"
+        ],
+        "matched_whole_targeting": [
+          "lineItem3",
+          "lineItem4",
+          "lineItem1",
+          "lineItem2"
+        ],
+        "matched_targeting_fcapped": [
+          "lineItem4"
+        ],
+        "ready_to_serve": [
+          "lineItem3",
+          "lineItem1",
+          "lineItem2"
+        ],
+        "sent_to_bidder": {
+          "rubicon": [
+            "lineItem3",
+            "lineItem1",
+            "lineItem2"
+          ]
+        },
+        "sent_to_bidder_as_top_match": {
+          "rubicon": [
+            "lineItem3",
+            "lineItem1",
+            "lineItem2"
+          ]
+        },
+        "received_from_bidder": {
+          "rubicon": [
+            "lineItem3",
+            "lineItem1",
+            "lineItem2"
+          ]
+        }
+      },
+      "trace": {
+        "deals": [
+          {
+            "time": "2020-04-27T13:08:04.049Z",
+            "category": "cleanup",
+            "message": "No Line Items from bidders rubicon matching imp with id impId3 and ready to serve. Removing imp from requests to all bidders because dealsonly flag is on for these bidders and no other valid bidders in imp."
+          }
+        ],
+        "lineitems": {
+          "lineItem3": [
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:03.963Z",
+              "category": "targeting",
+              "message": "Line Item lineItem3 targeting matched imp with id impId1"
+            },
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:03.981Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem3 for bidder rubicon ready to serve. relPriority 3"
+            },
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:03.992Z",
+              "category": "targeting",
+              "message": "Line Item lineItem3 targeting did not match imp with id impId2"
+            },
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:04.009Z",
+              "category": "targeting",
+              "message": "Line Item lineItem3 targeting did not match imp with id impId3"
+            },
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:04.029Z",
+              "category": "targeting",
+              "message": "Line Item lineItem3 targeting matched imp with id impId4"
+            },
+            {
+              "lineitemid": "lineItem3",
+              "time": "2020-04-27T13:08:04.043Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem3 for bidder rubicon ready to serve. relPriority 3"
+            }
+          ],
+          "lineItem4": [
+            {
+              "lineitemid": "lineItem4",
+              "time": "2020-04-27T13:08:03.967Z",
+              "category": "targeting",
+              "message": "Line Item lineItem4 targeting did not match imp with id impId1"
+            },
+            {
+              "lineitemid": "lineItem4",
+              "time": "2020-04-27T13:08:03.995Z",
+              "category": "targeting",
+              "message": "Line Item lineItem4 targeting did not match imp with id impId2"
+            },
+            {
+              "lineitemid": "lineItem4",
+              "time": "2020-04-27T13:08:04.014Z",
+              "category": "targeting",
+              "message": "Line Item lineItem4 targeting matched imp with id impId3"
+            },
+            {
+              "lineitemid": "lineItem4",
+              "time": "2020-04-27T13:08:04.024Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem4 for bidder rubicon is frequency capped by fcap id fcapId3."
+            },
+            {
+              "lineitemid": "lineItem4",
+              "time": "2020-04-27T13:08:04.033Z",
+              "category": "targeting",
+              "message": "Line Item lineItem4 targeting did not match imp with id impId4"
+            }
+          ],
+          "lineItem1": [
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:03.971Z",
+              "category": "targeting",
+              "message": "Line Item lineItem1 targeting matched imp with id impId1"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:03.981Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem1 for bidder rubicon ready to serve. relPriority 3"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:03.999Z",
+              "category": "targeting",
+              "message": "Line Item lineItem1 targeting did not match imp with id impId2"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:04.019Z",
+              "category": "targeting",
+              "message": "Line Item lineItem1 targeting did not match imp with id impId3"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:04.038Z",
+              "category": "targeting",
+              "message": "Line Item lineItem1 targeting matched imp with id impId4"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:04.043Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem1 for bidder rubicon ready to serve. relPriority 3"
+            },
+            {
+              "lineitemid": "lineItem1",
+              "time": "2020-04-27T13:08:04.044Z",
+              "category": "cleanup",
+              "message": "LineItem lineItem1 was dropped from imp with id impId4 because it was top match in another imp"
+            }
+          ],
+          "lineItem2": [
+            {
+              "lineitemid": "lineItem2",
+              "time": "2020-04-27T13:08:03.975Z",
+              "category": "targeting",
+              "message": "Line Item lineItem2 targeting did not match imp with id impId1"
+            },
+            {
+              "lineitemid": "lineItem2",
+              "time": "2020-04-27T13:08:04.004Z",
+              "category": "targeting",
+              "message": "Line Item lineItem2 targeting matched imp with id impId2"
+            },
+            {
+              "lineitemid": "lineItem2",
+              "time": "2020-04-27T13:08:04.004Z",
+              "category": "pacing",
+              "message": "Matched Line Item lineItem2 for bidder rubicon ready to serve. relPriority 3"
+            },
+            {
+              "lineitemid": "lineItem2",
+              "time": "2020-04-27T13:08:04.024Z",
+              "category": "targeting",
+              "message": "Line Item lineItem2 targeting did not match imp with id impId3"
+            },
+            {
+              "lineitemid": "lineItem2",
+              "time": "2020-04-27T13:08:04.043Z",
+              "category": "targeting",
+              "message": "Line Item lineItem2 targeting did not match imp with id impId4"
+            }
+          ]
+        }
+      }
+    },
+    "responsetimemillis": {
+      "rubicon": "{{ rubicon.response_time_ms }}",
+      "cache": "{{ cache.response_time_ms }}"
+    },
+    "tmaxrequest": 2000,
+    "prebid": {
+      "auctiontimestamp": 1000
+    }
+  }
+}

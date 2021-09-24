@@ -510,6 +510,7 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(SPEC)
                 .when()
+                .queryParam("enabledonly", "false")
                 .get("/info/bidders");
 
         // then
@@ -663,6 +664,21 @@ public class ApplicationTest extends IntegrationTest {
                 .statusCode(200);
     }
 
+    @Test
+    public void traceHandlerShouldReturn200Ok() {
+        given(ADMIN_SPEC)
+                .when()
+                .param("level", "error")
+                .param("duration", "1000")
+                .param("account", "1001")
+                .param("bidderCode", "rubicon")
+                .param("lineitemId", "1001")
+                .post("/pbs-admin/tracelog")
+                .then()
+                .assertThat()
+                .statusCode(200);
+    }
+
     private Uids decodeUids(String value) throws IOException {
         return mapper.readValue(Base64.getUrlDecoder().decode(value), Uids.class);
     }
@@ -692,7 +708,7 @@ public class ApplicationTest extends IntegrationTest {
                 final String bidderName = bidderEntry.getKey();
                 final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
-                if (aliasesNode.isObject()) {
+                if (aliasesNode != null && aliasesNode.isObject()) {
                     Iterator<String> iterator = aliasesNode.fieldNames();
                     while (iterator.hasNext()) {
                         aliases.put(iterator.next().trim(), bidderName);

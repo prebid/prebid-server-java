@@ -24,6 +24,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.connectad.ExtImpConnectAd;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -106,7 +107,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
     private Imp updateImp(Imp imp, Integer secure, Integer siteId, BigDecimal bidFloor) {
         final Imp.ImpBuilder updatedImp = imp.toBuilder().tagid(siteId.toString()).secure(secure);
 
-        if (bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) != 0) {
+        if (BidderUtil.isValidPrice(bidFloor)) {
             updatedImp.bidfloor(bidFloor).bidfloorcur("USD");
         }
 

@@ -22,7 +22,9 @@ public final class ObjectMapperProvider {
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
                 .registerModule(new AfterburnerModule())
                 .registerModule(new ZonedDateTimeModule())
-                .registerModule(new MissingJsonNodeModule());
+                .registerModule(new MissingJsonNodeModule())
+                .registerModule(new ZonedDateTimeModule())
+                .registerModule(new LongAdderModule());
     }
 
     private ObjectMapperProvider() {

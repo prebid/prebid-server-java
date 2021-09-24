@@ -1,0 +1,27 @@
+adapters:
+  operaads:
+    enabled: false
+    endpoint: https://s.adx.opera.com/ortb/v2/{{PublisherID}}?ep={{AccountID}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: adtech-prebid-group@opera.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url: https://t.adx.opera.com/pbs/sync?gdpr={{gdpr}}&us_privacy={{us_privacy}}&gdpr_consent={{gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=operaads&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
+      cookie-family-name: operaads
+      type: redirect
+      support-cors: false

@@ -23,9 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * SmileWanted {@link Bidder} implementation
- */
 public class SmileWantedBidder implements Bidder<BidRequest> {
 
     private static final String SW_INTEGRATION_TYPE = "prebid_server";

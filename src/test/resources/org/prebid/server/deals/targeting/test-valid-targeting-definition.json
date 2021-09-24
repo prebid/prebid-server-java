@@ -1,0 +1,354 @@
+{
+  "$and": [
+    {
+      "adunit.size": {
+        "$intersects": [
+          {
+            "w": 300,
+            "h": 250
+          },
+          {
+            "w": 400,
+            "h": 200
+          }
+        ]
+      }
+    },
+    {
+      "adunit.mediatype": {
+        "$intersects": [
+          "banner",
+          "video"
+        ]
+      }
+    },
+    {
+      "$or": [
+        {
+          "site.domain": {
+            "$matches": "*nba.com*"
+          }
+        },
+        {
+          "site.domain": {
+            "$matches": "nba.com*"
+          }
+        },
+        {
+          "site.domain": {
+            "$in": [
+              "nba.com",
+              "cnn.com"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "site.referrer": {
+            "$matches": "*sports*"
+          }
+        },
+        {
+          "site.referrer": {
+            "$matches": "http://nba.com/lalakers*"
+          }
+        },
+        {
+          "site.referrer": {
+            "$in": [
+              "http://cnn.com/culture",
+              "http://cnn.com/weather"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "app.bundle": {
+            "$matches": "*com.google.calendar*"
+          }
+        },
+        {
+          "app.bundle": {
+            "$matches": "com.google.calendar*"
+          }
+        },
+        {
+          "app.bundle": {
+            "$in": [
+              "com.google.calendar",
+              "com.tmz"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "adunit.adslot": {
+            "$matches": "*/home/top*"
+          }
+        },
+        {
+          "adunit.adslot": {
+            "$matches": "/home/top*"
+          }
+        },
+        {
+          "adunit.adslot": {
+            "$in": [
+              "/home/top",
+              "/home/bottom"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "device.geo.ext.vendor.attribute": {
+        "$in": [
+          "device_geo_ext_value1",
+          "device_geo_ext_value2"
+        ]
+      }
+    },
+    {
+      "device.geo.ext.vendor.nested.attribute": {
+        "$in": [
+          "device_geo_ext_nested_value1",
+          "device_geo_ext_nested_value2"
+        ]
+      }
+    },
+    {
+      "device.ext.vendor.attribute": {
+        "$in": [
+          "device_ext_value1",
+          "device_ext_value2"
+        ]
+      }
+    },
+    {
+      "device.ext.vendor.nested.attribute": {
+        "$in": [
+          "device_ext_nested_value1",
+          "device_ext_nested_value2"
+        ]
+      }
+    },
+    {
+      "pos": {
+        "$in": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "geo.distance": {
+        "$within": {
+          "lat": 123.456,
+          "lon": 789.123,
+          "radiusMiles": 10
+        }
+      }
+    },
+    {
+      "$or": [
+        {
+          "bidp.rubicon.siteId": {
+            "$in": [
+              123,
+              321
+            ]
+          }
+        },
+        {
+          "bidp.rubicon.siteId": {
+            "$intersects": [
+              123,
+              321
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "bidp.appnexus.placementName": {
+            "$matches": "*somePlacement*"
+          }
+        },
+        {
+          "bidp.appnexus.placementName": {
+            "$matches": "somePlacement*"
+          }
+        },
+        {
+          "bidp.appnexus.placementName": {
+            "$in": [
+              "somePlacement1",
+              "somePlacement2"
+            ]
+          }
+        },
+        {
+          "bidp.appnexus.placementName": {
+            "$intersects": [
+              "somePlacement1",
+              "somePlacement2"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "segment.rubicon": {
+            "$intersects": [
+              "123",
+              "234",
+              "345"
+            ]
+          }
+        },
+        {
+          "segment.bluekai": {
+            "$intersects": [
+              "123",
+              "234",
+              "345"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "ufpd.someId": {
+            "$in": [
+              123,
+              321
+            ]
+          }
+        },
+        {
+          "ufpd.someId": {
+            "$intersects": [
+              123,
+              321
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "ufpd.sport": {
+            "$matches": "*hockey*"
+          }
+        },
+        {
+          "ufpd.sport": {
+            "$matches": "hockey*"
+          }
+        },
+        {
+          "ufpd.sport": {
+            "$in": [
+              "hockey",
+              "soccer"
+            ]
+          }
+        },
+        {
+          "ufpd.sport": {
+            "$intersects": [
+              "hockey",
+              "soccer"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "sfpd.someId": {
+            "$in": [
+              123,
+              321
+            ]
+          }
+        },
+        {
+          "sfpd.someId": {
+            "$intersects": [
+              123,
+              321
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "$or": [
+        {
+          "sfpd.sport": {
+            "$matches": "*hockey*"
+          }
+        },
+        {
+          "sfpd.sport": {
+            "$matches": "hockey*"
+          }
+        },
+        {
+          "sfpd.sport": {
+            "$in": [
+              "hockey",
+              "soccer"
+            ]
+          }
+        },
+        {
+          "sfpd.sport": {
+            "$intersects": [
+              "hockey",
+              "soccer"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "user.ext.time.userdow": {
+        "$in": [
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "user.ext.time.userhour": {
+        "$in": [
+          10,
+          11,
+          12,
+          13,
+          14
+        ]
+      }
+    }
+  ]
+}

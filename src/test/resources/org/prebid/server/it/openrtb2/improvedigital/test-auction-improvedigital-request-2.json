@@ -1,0 +1,45 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "imp_id",
+      "native": {
+        "request": "{\"context\":1,\"plcmttype\":1,\"assets\":[{\"id\":1,\"required\":1,\"title\":{\"len\":80}},{\"id\":2,\"required\":1,\"data\":{\"type\":2}},{\"id\":3,\"data\":{\"type\":12}},{\"id\":4,\"img\":{\"type\":3,\"wmin\":300,\"hmin\":225,\"ext\":{\"aspectratios\":[\"4:3\"]}}},{\"id\":5,\"img\":{\"type\":1,\"w\":128,\"h\":128}},{\"id\":6,\"data\":{\"type\":3}},{\"id\":7,\"data\":{\"type\":6}}]}",
+        "ver": "1.1"
+      },
+      "ext": {
+        "improvedigital": {
+          "placementId": 123456
+        }
+      }
+    },
+    {
+      "id": "imp_id2",
+      "video": {
+        "mimes": [ "video/mp4" ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "improvedigital": {
+          "placementId": 234567
+        }
+      }
+    }
+  ],
+  "site": {
+    "page": "https://example.com",
+    "publisher": {
+      "id": "publisherId"
+    }
+  },
+  "tmax": 5000,
+  "cur": [
+    "EUR"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -1,12 +1,6 @@
 adapters:
   sa_lunamedia:
-    enabled: false
     endpoint: http://balancer.lmgssp.com/pserver
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@lunamedia.io
       app-media-types:

@@ -34,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -201,9 +202,7 @@ public class DmxBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloor(ExtImpDmx extImp, BigDecimal bidFloor) {
         final BigDecimal extBidFloor = extImp.getBidFloor();
-        return extBidFloor != null && extBidFloor.compareTo(BigDecimal.ZERO) > 0
-                ? extBidFloor
-                : bidFloor;
+        return BidderUtil.isValidPrice(extBidFloor) ? extBidFloor : bidFloor;
     }
 
     private static Banner resolveBanner(Banner banner) {

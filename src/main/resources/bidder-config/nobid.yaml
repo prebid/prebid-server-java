@@ -1,12 +1,6 @@
 adapters:
   nobid:
-    enabled: false
     endpoint: https://ads.servenobid.com/ortb_adreq?tek=pbs&ver=1
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: developers@nobid.io
       app-media-types:
