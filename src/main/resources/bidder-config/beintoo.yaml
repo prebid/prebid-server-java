@@ -1,12 +1,6 @@
 adapters:
   beintoo:
-    enabled: false
     endpoint: https://ib.beintoo.com/um
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: adops@beintoo.com
       app-media-types:

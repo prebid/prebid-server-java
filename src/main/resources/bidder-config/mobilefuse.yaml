@@ -1,12 +1,6 @@
 adapters:
   mobilefuse:
-    enabled: false
     endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@mobilefuse.com
       app-media-types:

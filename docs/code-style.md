@@ -177,7 +177,7 @@ final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : nu
 final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
 ```
 
-For convenience, the `org.prebid.server.util.ObjectUtils` helper can be used for such kind of operations.
+For convenience, the `org.prebid.server.util.ObjectUtil` helper can be used for such kind of operations.
 
 ### Garbage code
 

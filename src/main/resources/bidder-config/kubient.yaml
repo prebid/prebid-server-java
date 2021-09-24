@@ -1,12 +1,6 @@
 adapters:
   kubient:
-    enabled: false
     endpoint: https://kssp.kbntx.ch/prebid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@kubient.com
       app-media-types:

@@ -7,28 +7,23 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 3.33,
-          "adm": "adm001",
-          "adid": "adid001",
-          "cid": "cid001",
-          "crid": "crid001",
-          "w": 300,
-          "h": 250,
+          "crid": "creativeId",
           "ext": {
+            "origbidcpm": 3.33,
             "prebid": {
               "type": "banner"
-            },
-            "origbidcpm": 3.33
+            }
           }
         }
       ],
-      "seat": "improvedigital",
+      "seat": "generic",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "improvedigital": "{{ improvedigital.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

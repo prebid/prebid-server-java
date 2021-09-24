@@ -34,13 +34,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -258,10 +258,10 @@ public class IxBidder implements Bidder<BidRequest> {
 
     private String updateBidAdmWithNativeAttributes(String adm) {
         final NativeV11Wrapper nativeV11 = parseBidAdm(adm, NativeV11Wrapper.class);
-        final Response responseV11 = getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
+        final Response responseV11 = ObjectUtil.getIfNotNull(nativeV11, NativeV11Wrapper::getNativeResponse);
         final boolean isV11 = responseV11 != null;
         final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
-        final List<EventTracker> trackers = getIfNotNull(response, Response::getEventtrackers);
+        final List<EventTracker> trackers = ObjectUtil.getIfNotNull(response, Response::getEventtrackers);
         final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encode(isV11
                 ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
                 : mergeNativeImpTrackers(response, trackers))
@@ -278,17 +278,14 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
-    }
-
     private static Response mergeNativeImpTrackers(Response response, List<EventTracker> eventTrackers) {
         final List<EventTracker> impressionAndImageTrackers = eventTrackers.stream()
                 .filter(tracker -> Objects.equals(tracker.getMethod(), EventType.IMPRESSION.getValue())
                         || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue()))
                 .collect(Collectors.toList());
         final List<String> impTrackers = Stream.concat(
-                impressionAndImageTrackers.stream().map(EventTracker::getUrl), response.getImptrackers().stream())
+                        impressionAndImageTrackers.stream().map(EventTracker::getUrl),
+                        response.getImptrackers().stream())
                 .distinct()
                 .collect(Collectors.toList());
 

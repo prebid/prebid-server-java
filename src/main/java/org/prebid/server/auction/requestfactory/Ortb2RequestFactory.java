@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -60,7 +61,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class Ortb2RequestFactory {
 
@@ -248,12 +248,12 @@ public class Ortb2RequestFactory {
     }
 
     private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
+                || Objects.equals(ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
 
-        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
+        final TraceLevel traceLevel = ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
 
         return DebugContext.of(debugEnabled, traceLevel);
     }
@@ -380,8 +380,8 @@ public class Ortb2RequestFactory {
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
-        final ExtRequestPrebid prebidExt = getIfNotNull(ext, ExtRequest::getPrebid);
-        final String integration = getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
+        final ExtRequestPrebid prebidExt = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
+        final String integration = ObjectUtil.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
         final String accountDefaultIntegration = accountDefaultIntegration(account);
 
         if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
@@ -405,17 +405,18 @@ public class Ortb2RequestFactory {
         final String ipAddress = privacyContext.getIpAddress();
         final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
 
-        final String ipV4InRequest = getIfNotNull(device, Device::getIp);
+        final String ipV4InRequest = ObjectUtil.getIfNotNull(device, Device::getIp);
         final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.v4 ? ipAddress : null;
         final boolean shouldUpdateIpV4 = ipV4 != null && !Objects.equals(ipV4InRequest, ipV4);
 
-        final String ipV6InRequest = getIfNotNull(device, Device::getIpv6);
+        final String ipV6InRequest = ObjectUtil.getIfNotNull(device, Device::getIpv6);
         final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.v6 ? ipAddress : null;
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
-        final Geo geo = getIfNotNull(device, Device::getGeo);
-        final String countryInRequest = getIfNotNull(geo, Geo::getCountry);
-        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
+        final String country = ObjectUtil.getIfNotNull(privacyContext.getTcfContext().getGeoInfo(),
+                GeoInfo::getCountry);
         final boolean shouldUpdateCountry = country != null && !Objects.equals(countryInRequest, country);
 
         if (shouldUpdateIpV4 || shouldUpdateIpV6 || shouldUpdateCountry) {
@@ -465,10 +466,6 @@ public class Ortb2RequestFactory {
     private static boolean isDeepDebugEnabled(ExtRequest extRequest) {
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
         return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.verbose;
-    }
-
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
     }
 
     static class RejectedRequestException extends RuntimeException {
