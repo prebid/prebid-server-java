@@ -3,7 +3,6 @@ package org.prebid.server.bidder.appnexus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.Lists;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -12,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -316,7 +317,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                             ExtRequest requestExt,
                                                             List<Imp> imps,
                                                             String url) {
-        final List<HttpRequest<BidRequest>> result = Lists.partition(imps, MAX_IMP_PER_REQUEST)
+        final List<HttpRequest<BidRequest>> result = ListUtils.partition(imps, MAX_IMP_PER_REQUEST)
                 .stream()
                 .map(impsChunk -> createHttpRequest(bidRequest, requestExt, impsChunk, url))
                 .collect(Collectors.toList());
@@ -362,7 +363,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final BigDecimal reserve = appnexusExt.getReserve();
-        if (!bidFloorIsValid(imp.getBidfloor()) && bidFloorIsValid(reserve)) {
+        if (!BidderUtil.isValidPrice(imp.getBidfloor()) && BidderUtil.isValidPrice(reserve)) {
             impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
         }
 
@@ -373,10 +374,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(),
                 appnexusExt.getGenerateAdPodId());
-    }
-
-    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private static AppnexusImpExt makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {

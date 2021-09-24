@@ -1,0 +1,22 @@
+adapters:
+  yahoossp:
+    endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/MAG
+    aliases:
+      verizonmedia:
+        enabled: false
+      yssp:
+        enabled: false
+    meta-info:
+      maintainer-email: dsp-supply-prebid@verizonmedia.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 25
+    usersync:
+      url: https://ups.analytics.yahoo.com/ups/58401/sync?redir=true&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
+      redirect-url:
+      cookie-family-name: yahoossp
+      type: redirect
+      support-cors: false

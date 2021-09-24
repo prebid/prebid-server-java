@@ -1,0 +1,62 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.23,
+          "crid": "14065",
+          "adm": "{\"assets\":[{\"id\":1,\"title\":{\"text\":\"Luxury Mars Cruises\"}},{\"id\":2,\"data\":{\"type\":2,\"value\":\"Visit the planet in a luxury spaceship.\"}},{\"id\":3,\"data\":{\"type\":12,\"value\":\"Book today\"}},{\"id\":4,\"img\":{\"type\":3,\"url\":\"300x250.jpg\",\"w\":300,\"h\":250}},{\"id\":5,\"img\":{\"type\":1,\"url\":\"128x128.jpg\",\"w\":128,\"h\":128}},{\"id\":6,\"data\":{\"type\":3,\"value\":\"3.8\"}},{\"id\":7,\"data\":{\"type\":6,\"value\":\"FREE\"}}],\"link\":{\"url\":\"https://azerion.com\",\"clicktrackers\":[\"http://localhost.localdomain/click/\"]}}",
+          "adomain": [ "improvedigital.com" ],
+          "cid": "25076",
+          "ext": {
+            "improvedigital": {
+              "buying_type": "rtb",
+              "line_item_id": 5555
+            },
+            "prebid": {
+              "type": "native"
+            },
+            "origbidcpm": 1.23,
+            "origbidcur": "EUR"
+          }
+        },
+        {
+          "id": "bid_id2",
+          "impid": "imp_id2",
+          "price": 2.34,
+          "adm": "<VAST>",
+          "cid": "25077",
+          "crid": "2345",
+          "dealid": "6666",
+          "adomain": [ "example.com" ],
+          "ext": {
+            "improvedigital": {
+              "buying_type": "classic",
+              "line_item_id": 6666
+            },
+            "prebid": {
+              "type": "video"
+            },
+            "origbidcpm": 2.34,
+            "origbidcur": "EUR"
+          }
+        }
+      ],
+      "seat": "improvedigital",
+      "group": 0
+    }
+  ],
+  "cur": "EUR",
+  "ext": {
+    "responsetimemillis": {
+      "improvedigital": "{{ improvedigital.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 1000
+    },
+    "tmaxrequest": 5000
+  }
+}

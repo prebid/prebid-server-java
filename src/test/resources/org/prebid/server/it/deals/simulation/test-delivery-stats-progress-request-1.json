@@ -1,0 +1,149 @@
+{
+  "reportTimeStamp": "2019-10-10T00:00:03.000Z",
+  "dataWindowStartTimeStamp": "2019-10-10T00:00:02.000Z",
+  "dataWindowEndTimeStamp": "2019-10-10T00:00:03.000Z",
+  "instanceId": "localhost",
+  "vendor": "local",
+  "region": "local",
+  "clientAuctions": 1,
+  "lineItemStatus": [
+    {
+      "lineItemSource": "rubicon",
+      "lineItemId": "lineItem2",
+      "dealId": "dealId2",
+      "extLineItemId": "extLineItem2",
+      "accountAuctions": 1,
+      "domainMatched": 0,
+      "targetMatched": 1,
+      "targetMatchedButFcapped": 0,
+      "targetMatchedButFcapLookupFailed": 0,
+      "pacingDeferred": 0,
+      "sentToBidder": 1,
+      "sentToBidderAsTopMatch": 0,
+      "receivedFromBidder": 1,
+      "receivedFromBidderInvalidated": 0,
+      "sentToClient": 0,
+      "sentToClientAsTopMatch": 0,
+      "lostToLineItems": [
+        {
+          "lineItemSource": "rubicon",
+          "lineItemId": "lineItem3",
+          "count": 1
+        },
+        {
+          "lineItemSource": "rubicon",
+          "lineItemId": "lineItem1",
+          "count": 1
+        }
+      ],
+      "events": [],
+      "deliverySchedule": [
+        {
+          "planId": "1",
+          "planStartTimeStamp": "2019-10-10T00:00:00.000Z",
+          "planExpirationTimeStamp": "2019-10-10T00:10:00.000Z",
+          "planUpdatedTimeStamp": "2019-10-10T00:00:00.000Z",
+          "tokens": [
+            {
+              "class": 1,
+              "total": 5000,
+              "spent": 0
+            },
+            {
+              "class": 2,
+              "total": 125,
+              "spent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lineItemSource": "rubicon",
+      "lineItemId": "lineItem3",
+      "dealId": "dealId3",
+      "extLineItemId": "extLineItem3",
+      "accountAuctions": 1,
+      "domainMatched": 0,
+      "targetMatched": 1,
+      "targetMatchedButFcapped": 0,
+      "targetMatchedButFcapLookupFailed": 0,
+      "pacingDeferred": 0,
+      "sentToBidder": 1,
+      "sentToBidderAsTopMatch": 1,
+      "receivedFromBidder": 0,
+      "receivedFromBidderInvalidated": 0,
+      "sentToClient": 0,
+      "sentToClientAsTopMatch": 0,
+      "events": [],
+      "deliverySchedule": [
+        {
+          "planId": "1",
+          "planStartTimeStamp": "2019-10-10T00:00:00.000Z",
+          "planExpirationTimeStamp": "2019-10-10T00:10:00.000Z",
+          "planUpdatedTimeStamp": "2019-10-10T00:00:00.000Z",
+          "tokens": [
+            {
+              "class": 1,
+              "total": 5000,
+              "spent": 0
+            },
+            {
+              "class": 2,
+              "total": 125,
+              "spent": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "lineItemSource": "rubicon",
+      "lineItemId": "lineItem1",
+      "dealId": "dealId1",
+      "extLineItemId": "extLineItem1",
+      "accountAuctions": 1,
+      "domainMatched": 0,
+      "targetMatched": 1,
+      "targetMatchedButFcapped": 0,
+      "targetMatchedButFcapLookupFailed": 0,
+      "pacingDeferred": 0,
+      "sentToBidder": 1,
+      "sentToBidderAsTopMatch": 0,
+      "receivedFromBidder": 1,
+      "receivedFromBidderInvalidated": 0,
+      "sentToClient": 1,
+      "sentToClientAsTopMatch": 1,
+      "lostToLineItems": [
+        {
+          "lineItemSource": "rubicon",
+          "lineItemId": "lineItem3",
+          "count": 1
+        }
+      ],
+      "events": [],
+      "deliverySchedule": [
+        {
+          "planId": "1",
+          "planStartTimeStamp": "2019-10-10T00:00:00.000Z",
+          "planExpirationTimeStamp": "2019-10-10T00:10:00.000Z",
+          "planUpdatedTimeStamp": "2019-10-10T00:00:00.000Z",
+          "tokens": [
+            {
+              "class": 2,
+              "total": 125,
+              "spent": 0,
+              "totalSpent": 0
+            },
+            {
+              "class": 1,
+              "total": 5000,
+              "spent": 1,
+              "totalSpent": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
