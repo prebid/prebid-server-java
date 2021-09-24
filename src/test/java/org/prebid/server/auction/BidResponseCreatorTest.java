@@ -2380,14 +2380,14 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldTolerateWhenStoredVideoFetchIsFailed() {
         // given
         final Imp imp = Imp.builder().id(IMP_ID).ext(
-                mapper.valueToTree(
-                        ExtImp.of(
-                                ExtImpPrebid.builder()
-                                        .storedrequest(ExtStoredRequest.of("st1"))
-                                        .options(ExtOptions.of(true))
-                                        .build(),
-                                null
-                        )))
+                        mapper.valueToTree(
+                                ExtImp.of(
+                                        ExtImpPrebid.builder()
+                                                .storedrequest(ExtStoredRequest.of("st1"))
+                                                .options(ExtOptions.of(true))
+                                                .build(),
+                                        null
+                                )))
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp));
 
@@ -2413,25 +2413,25 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldInjectStoredVideoWhenExtOptionsIsTrueAndVideoNotEmpty() {
         // given
         final Imp imp1 = Imp.builder().id("impId1").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st1"))
-                                .options(ExtOptions.of(true))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st1"))
+                                        .options(ExtOptions.of(true))
+                                        .build(), null)))
                 .build();
         final Imp imp2 = Imp.builder().id("impId2").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st2"))
-                                .options(ExtOptions.of(false))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st2"))
+                                        .options(ExtOptions.of(false))
+                                        .build(), null)))
                 .build();
         final Imp imp3 = Imp.builder().id("impId3").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st3"))
-                                .options(ExtOptions.of(true))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st3"))
+                                        .options(ExtOptions.of(true))
+                                        .build(), null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1, imp2, imp3);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
@@ -2478,12 +2478,12 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldAddErrorsWithPrebidBidderWhenStoredVideoRequestFailed() {
         // given
         final Imp imp1 = Imp.builder().id(IMP_ID).ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                        .storedrequest(ExtStoredRequest.of("st1"))
-                                        .options(ExtOptions.of(true))
-                                        .build(),
-                                null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                                .storedrequest(ExtStoredRequest.of("st1"))
+                                                .options(ExtOptions.of(true))
+                                                .build(),
+                                        null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
