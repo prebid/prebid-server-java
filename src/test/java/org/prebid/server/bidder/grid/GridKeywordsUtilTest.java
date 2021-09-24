@@ -278,17 +278,10 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsShouldCorrectlyResolveUserAndSiteSections() throws JsonProcessingException {
         // given
-        final JsonNode userPublisherSectionItemNode = givenPublisherSectionItemNode("userSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment", "value")));
-        final ArrayNode userPublisherNode = mapper.createArrayNode()
-                .add(userPublisherSectionItemNode);
-        final ObjectNode userSectionNode = mapper.createObjectNode().set("firstPublisher", userPublisherNode);
-
-        final JsonNode sitePublisherSectionItemNode = givenPublisherSectionItemNode("siteSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment", "value")));
-        final ArrayNode sitePublisherNode = mapper.createArrayNode()
-                .add(sitePublisherSectionItemNode);
-        final ObjectNode siteSectionNode = mapper.createObjectNode().set("secondPublisher", sitePublisherNode);
+        final ObjectNode userSectionNode = givenKeywordsSectionNode(
+                "firstPublisher", "userSection", "segment", "value");
+        final ObjectNode siteSectionNode = givenKeywordsSectionNode(
+                "secondPublisher", "siteSection", "segment", "value");
 
         final Keywords keywords = Keywords.of(userSectionNode, siteSectionNode);
 
