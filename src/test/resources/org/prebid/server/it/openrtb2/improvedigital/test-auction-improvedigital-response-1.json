@@ -13,9 +13,15 @@
           "crid": "crid001",
           "w": 300,
           "h": 250,
+          "adomain": [ "improvedigital.com" ],
+          "dealid": "321329",
           "ext": {
             "prebid": {
               "type": "banner"
+            },
+            "improvedigital": {
+              "buying_type": "classic",
+              "line_item_id": 321329
             },
             "origbidcpm": 3.33
           }
