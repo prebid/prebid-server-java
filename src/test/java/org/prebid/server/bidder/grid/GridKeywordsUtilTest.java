@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.grid.model.KeywordSegment;
 import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -294,7 +296,6 @@ public class GridKeywordsUtilTest extends VertxTest {
         final Keywords result = GridKeywordsUtil.resolveKeywords(keywords, jacksonMapper);
 
         // then
-
         assertThat(result).isEqualTo(Keywords.of(userSectionNode, siteSectionNode));
     }
 
@@ -318,29 +319,17 @@ public class GridKeywordsUtilTest extends VertxTest {
         // when
         final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
 
-        final ObjectNode firstKeywordsUserSectionNode = givenPublisherSectionItemNode(
-                "firstKeywordsUserSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment1", "value1")));
-        final ObjectNode secondKeywordsUserSectionNode = givenPublisherSectionItemNode(
-                "secondKeywordsUserSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment2", "value2")));
-        final ArrayNode firstUserPublisherNode = mapper.createArrayNode()
-                .add(firstKeywordsUserSectionNode)
-                .add(secondKeywordsUserSectionNode);
-        final ObjectNode expectedUserSection = mapper.createObjectNode()
-                .set("firstPublisher", firstUserPublisherNode);
-
-        final ObjectNode firstKeywordsSiteSectionNode = givenPublisherSectionItemNode(
-                "firstKeywordsSiteSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment1", "value1")));
-        final ObjectNode secondKeywordsSiteSectionNode = givenPublisherSectionItemNode(
-                "secondKeywordsSiteSection",
-                givenPublisherSegmentsNode(givenPublisherSegmentNode("segment2", "value2")));
-        final ArrayNode firstSitePublisherNode = mapper.createArrayNode()
-                .add(firstKeywordsSiteSectionNode)
-                .add(secondKeywordsSiteSectionNode);
-        final ObjectNode expectedSiteSection = mapper.createObjectNode()
-                .set("secondPublisher", firstSitePublisherNode);
+        // then
+        final ObjectNode expectedUserSection = (ObjectNode) mapper.readTree(
+                "{\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]},"
+                        + "{\"name\":\"secondKeywordsUserSection\",\"segments\""
+                        + ":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
+        final ObjectNode expectedSiteSection = (ObjectNode) mapper.readTree(
+                "{\"secondPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
+                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]},"
+                        + "{\"name\":\"secondKeywordsSiteSection\",\"segments\""
+                        + ":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}");
 
         assertThat(result).isEqualTo(Keywords.of(expectedUserSection, expectedSiteSection));
     }
