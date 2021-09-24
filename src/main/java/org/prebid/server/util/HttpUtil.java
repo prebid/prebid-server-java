@@ -208,7 +208,7 @@ public final class HttpUtil {
         try {
             responseConsumer.accept(response);
             return true;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
             return false;
         }

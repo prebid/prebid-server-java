@@ -50,7 +50,7 @@ public class BasicHttpClient implements HttpClient {
             final HttpClientRequest httpClientRequest;
             try {
                 httpClientRequest = httpClient.requestAbs(method, url);
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 failResponse(e, promise);
                 return promise.future();
             }
