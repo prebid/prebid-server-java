@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Operaads {@link Bidder} implementation.
- */
 public class OperaadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOperaads>> OPERAADS_EXT_TYPE_REFERENCE =

@@ -62,7 +62,7 @@ public class AdmixerBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(givenImp(builder -> builder
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null, null)))))))
+                                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null, null)))))))
                 .build();
 
         // when
@@ -101,7 +101,7 @@ public class AdmixerBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(builder -> builder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdmixer.of("zoneId", BigDecimal.ONE,
-                        givenCustomParams("foo1", singletonList("bar1")))))))))
+                                givenCustomParams("foo1", singletonList("bar1")))))))))
                 .build();
 
         // when
@@ -373,10 +373,10 @@ public class AdmixerBidderTest extends VertxTest {
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null,
-                        givenCustomParams("foo1", singletonList("bar1")))))))
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdmixer.of("veryVeryVerySuperLongZoneIdValue", null,
+                                        givenCustomParams("foo1", singletonList("bar1")))))))
                 .build();
     }
 

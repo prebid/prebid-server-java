@@ -42,32 +42,32 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
 
     @Override
     public Future<InvocationResult<BidderResponsePayload>> call(
-        BidderResponsePayload bidderResponsePayload,
-        BidderInvocationContext invocationContext) {
+            BidderResponsePayload bidderResponsePayload,
+            BidderInvocationContext invocationContext) {
 
         final ExecutionResult<BlockedBids> blockedBidsResult = BidsBlocker
-            .create(
-                bidderResponsePayload.bids(),
-                invocationContext.bidder(),
-                invocationContext.accountConfig(),
-                blockedAttributesFrom(invocationContext),
-                invocationContext.debugEnabled())
-            .block();
+                .create(
+                        bidderResponsePayload.bids(),
+                        invocationContext.bidder(),
+                        invocationContext.accountConfig(),
+                        blockedAttributesFrom(invocationContext),
+                        invocationContext.debugEnabled())
+                .block();
 
         final InvocationResultImpl.InvocationResultImplBuilder<BidderResponsePayload> resultBuilder =
-            InvocationResultImpl.<BidderResponsePayload>builder()
-                .status(InvocationStatus.success)
-                .action(blockedBidsResult.hasValue()
-                    ? InvocationAction.update
-                    : InvocationAction.no_action)
-                .errors(blockedBidsResult.getErrors())
-                .warnings(blockedBidsResult.getWarnings())
-                .debugMessages(blockedBidsResult.getDebugMessages())
-                .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()));
+                InvocationResultImpl.<BidderResponsePayload>builder()
+                        .status(InvocationStatus.success)
+                        .action(blockedBidsResult.hasValue()
+                                ? InvocationAction.update
+                                : InvocationAction.no_action)
+                        .errors(blockedBidsResult.getErrors())
+                        .warnings(blockedBidsResult.getWarnings())
+                        .debugMessages(blockedBidsResult.getDebugMessages())
+                        .analyticsTags(toAnalyticsTags(blockedBidsResult.getAnalyticsResults()));
         if (blockedBidsResult.hasValue()) {
             final ResponseUpdater responseUpdater = ResponseUpdater.create(blockedBidsResult.getValue());
             resultBuilder.payloadUpdate(payload ->
-                BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
+                    BidderResponsePayloadImpl.of(responseUpdater.update(payload.bids())));
         }
 
         return Future.succeededFuture(resultBuilder.build());
@@ -81,8 +81,8 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
     private static BlockedAttributes blockedAttributesFrom(BidderInvocationContext invocationContext) {
         final Object moduleContext = invocationContext.moduleContext();
         return moduleContext instanceof ModuleContext
-            ? ((ModuleContext) moduleContext).blockedAttributesFor(invocationContext.bidder())
-            : null;
+                ? ((ModuleContext) moduleContext).blockedAttributesFor(invocationContext.bidder())
+                : null;
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
@@ -91,25 +91,25 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
         }
 
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
-            ENFORCE_BLOCKING_ACTIVITY,
-            SUCCESS_STATUS,
-            toResults(analyticsResults))));
+                ENFORCE_BLOCKING_ACTIVITY,
+                SUCCESS_STATUS,
+                toResults(analyticsResults))));
     }
 
     private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
         return analyticsResults.stream()
-            .map(this::toResult)
-            .collect(Collectors.toList());
+                .map(this::toResult)
+                .collect(Collectors.toList());
     }
 
     private Result toResult(AnalyticsResult analyticsResult) {
         return ResultImpl.of(
-            analyticsResult.getStatus(),
-            toObjectNode(analyticsResult.getValues()),
-            AppliedToImpl.builder()
-                .bidders(Collections.singletonList(analyticsResult.getBidder()))
-                .impIds(Collections.singletonList(analyticsResult.getImpId()))
-                .build());
+                analyticsResult.getStatus(),
+                toObjectNode(analyticsResult.getValues()),
+                AppliedToImpl.builder()
+                        .bidders(Collections.singletonList(analyticsResult.getBidder()))
+                        .impIds(Collections.singletonList(analyticsResult.getImpId()))
+                        .build());
     }
 
     private ObjectNode toObjectNode(Map<String, Object> values) {

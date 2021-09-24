@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * ImproveDigital {@link Bidder} implementation.
- */
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
@@ -66,12 +63,12 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .body(mapper.encode(request))
-                        .build());
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .body(mapper.encode(request))
+                .build());
     }
 
     private void parseAndValidateImpExt(Imp imp) {
