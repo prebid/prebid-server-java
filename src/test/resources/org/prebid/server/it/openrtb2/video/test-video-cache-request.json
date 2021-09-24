@@ -3,16 +3,19 @@
     {
       "type": "xml",
       "value": "some-test-ad-3",
+      "aid": "bid_id",
       "key": "2.00_IAB10-1_0s_{{uuid}}"
     },
     {
       "type": "xml",
       "value": "some-test-ad",
+      "aid": "bid_id",
       "key": "5.50_IAB20-3_0s_{{uuid}}"
     },
     {
       "type": "xml",
       "value": "some-test-ad-2",
+      "aid": "bid_id",
       "key": "2.70_IAB18-5_0s_{{uuid}}"
     }
   ]

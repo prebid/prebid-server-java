@@ -1,11 +1,11 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "620160380",
-          "impid": "impId17",
+          "id": "bid_id",
+          "impid": "imp_id",
           "price": 8.43,
           "adm": "adm17",
           "crid": "crid17",
@@ -13,7 +13,7 @@
           "h": 250
         }
       ],
-      "seat": "seatId17",
+      "seat": "seat_id",
       "group": 0
     }
   ]

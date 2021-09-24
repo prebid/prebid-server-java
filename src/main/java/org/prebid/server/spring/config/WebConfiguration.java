@@ -14,16 +14,18 @@ import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
-import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserService;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -118,6 +120,7 @@ public class WebConfiguration {
                 .setHandle100ContinueAutomatically(true)
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
+                .setDecompressionSupported(true)
                 .setIdleTimeout(10); // kick off long processing requests
 
         if (ssl) {
@@ -338,7 +341,8 @@ public class WebConfiguration {
     @Bean
     VtrackHandler vtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${vtrack.allow-unkonwn-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.allow-unknown-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.modify-vast-for-unknown-bidder}") boolean modifyVastForUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
@@ -348,6 +352,7 @@ public class WebConfiguration {
         return new VtrackHandler(
                 defaultTimeoutMs,
                 allowUnknownBidder,
+                modifyVastForUnknownBidder,
                 applicationSettings,
                 bidderCatalog,
                 cacheService,
@@ -387,10 +392,23 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(AnalyticsReporterDelegator analyticsReporterDelegator,
-                                                      TimeoutFactory timeoutFactory,
-                                                      ApplicationSettings applicationSettings) {
-        return new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory, applicationSettings);
+    NotificationEventHandler notificationEventHandler(
+            UidsCookieService uidsCookieService,
+            @Autowired(required = false) ApplicationEventService applicationEventService,
+            @Autowired(required = false) UserService userService,
+            AnalyticsReporterDelegator analyticsReporterDelegator,
+            TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings,
+            @Value("${deals.enabled}") boolean dealsEnabled) {
+
+        return new NotificationEventHandler(
+                uidsCookieService,
+                applicationEventService,
+                userService,
+                analyticsReporterDelegator,
+                timeoutFactory,
+                applicationSettings,
+                dealsEnabled);
     }
 
     @Bean

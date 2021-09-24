@@ -42,4 +42,8 @@ public class BidderBid {
      * Will become response.seatbid[i].bid.ext.prebid.video in the final OpenRTB response.
      */
     ExtBidPrebidVideo videoInfo;
+
+    public BidderBid with(Bid bid) {
+        return BidderBid.of(bid, this.type, this.bidCurrency);
+    }
 }

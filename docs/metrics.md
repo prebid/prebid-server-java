@@ -115,6 +115,8 @@ Following metrics are collected and submitted if account is configured with `det
 - `usersync.bad_requests` - number of requests received with bidder not specified
 - `usersync.<bidder-name>.sets` - number of requests received resulted in `uid` cookie update for `<bidder-name>`
 - `usersync.<bidder-name>.tcf.blocked` - number of requests received that didn't result in `uid` cookie update for `<bidder-name>` because of lack of user consent for this action according to TCF
+- `usersync.<bidder-name>.tcf.invalid` - number of requests received that are lacking of a valid consent string for `<bidder-name>` in setuid endpoint
+- `usersync.all.tcf.invalid` - number of requests received that are lacking of a valid consent string for all requested bidders cookieSync endpoint
 
 ## Privacy metrics
 - `privacy.tcf.(missing|invalid)` - number of requests lacking a valid consent string
@@ -127,3 +129,35 @@ Following metrics are collected and submitted if account is configured with `det
 - `privacy.usp.opt-out` - number of requests that required privacy enforcement according to CCPA rules
 - `privacy.lmt` - number of requests that required privacy enforcement according to LMT flag
 - `privacy.coppa` - number of requests that required privacy enforcement according to COPPA rules
+
+## Analytics metrics
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).ok` - number of succeeded processed event requests
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).timeout` - number of event requests, failed with timeout cause
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).err` - number of event requests, failed with errors
+- `analytics.<reporter-name>.(auction|amp|video|cookie_sync|event|setuid).badinput` - number of event requests, rejected with bad input cause
+
+## win notifications
+- `win_notifications` - total number of win notifications.
+- `win_requests` - total number of requests sent to user service for win notifications.
+- `win_request_preparation_failed` - number of request failed validation and were not sent.
+- `win_request_time` - latency between request to user service and response for win notifications.
+- `win_request_failed` - number of failed request sent to user service for win notifications.
+- `win_request_successful` - number of successful request sent to user service for win notifications.
+
+## user details
+- `user_details_requests` - total number of requests sent to user service to get user details.
+- `user_details_request_preparation_failed` - number of request failed validation and were not sent.
+- `user_details_request_time` - latency between request to user service and response to get user details.
+- `user_details_request_failed` - number of failed request sent to user service to get user details.
+- `user_details_request_successful` -  number of successful request sent to user service to get user details.
+
+## Programmatic guaranteed metrics
+- `pg.planner_lineitems_received` - number of line items received from general planner.
+- `pg.planner_requests` - total number of requests sent to general planner.
+- `pg.planner_request_failed` - number of failed request sent to general planner.
+- `pg.planner_request_successful` - number of successful requests sent to general planner.
+- `pg.planner_request_time` - latency between request to general planner and its successful (200 OK) response.
+- `pg.delivery_requests` - total number of requests to delivery stats service.
+- `pg.delivery_request_failed` - number of failed requests to delivery stats service.
+- `pg.delivery_request_successful` - number of successful requests to delivery stats service.
+- `pg.delivery_request_time` - latency between request to delivery stats and its successful (200 OK) response.

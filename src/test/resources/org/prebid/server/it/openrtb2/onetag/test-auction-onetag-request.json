@@ -1,0 +1,30 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "displaymanager": "di_prebid",
+      "displaymanagerver": "2.0.0",
+      "tagid": "possibleTagId",
+      "ext": {
+        "onetag": {
+          "pubId": "386276e072",
+          "ext": {
+            "key1": "value1",
+            "key2": "value2"
+          }
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

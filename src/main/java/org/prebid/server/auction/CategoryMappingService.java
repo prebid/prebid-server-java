@@ -641,7 +641,6 @@ public class CategoryMappingService {
      * Holder of information about rejected bid.
      */
     @Value
-    @AllArgsConstructor
     private static class RejectedBid {
         String bidId;
         String bidder;

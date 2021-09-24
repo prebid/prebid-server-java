@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -22,6 +23,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
@@ -71,18 +73,23 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
+    private IdGenerator idGenerator;
+    @Mock
     private Metrics metrics;
 
     private StoredRequestProcessor storedRequestProcessor;
 
     @Before
     public void setUp() {
+        given(idGenerator.generateId()).willReturn("generated-stored-id");
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 null,
+                false,
                 fileSystem,
                 applicationSettings,
+                idGenerator,
                 metrics,
                 timeoutFactory,
                 jacksonMapper,
@@ -177,8 +184,10 @@ public class StoredRequestProcessorTest extends VertxTest {
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
+                false,
                 fileSystem,
                 applicationSettings,
+                idGenerator,
                 metrics,
                 timeoutFactory,
                 jacksonMapper,
@@ -214,7 +223,79 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnAmpRequest() throws IOException {
+    public void processStoredRequestsShouldGenerateIdWhenAppAndFlagIsTrue() throws IOException {
+        // given
+        storedRequestProcessor = StoredRequestProcessor.create(
+                500,
+                null,
+                true,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123"))
+                        .build())));
+
+        final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
+                .id("stored-bid-request")
+                .build());
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", storedRequestBidRequestJson), emptyMap(),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
+                .build());
+    }
+
+    @Test
+    public void processStoredRequestsShouldGenerateIdWhenAppAndGenerateTemplateInStoredBidRequest() throws IOException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .app(App.builder().build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("123"))
+                        .build())));
+
+        final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
+                .id("{{UUID}}")
+                .build());
+
+        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(singletonMap("123", storedRequestBidRequestJson), emptyMap(),
+                                emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .app(App.builder().build())
+                .id("generated-stored-id")
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReturnAmpRequest() throws IOException {
         // given
         given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
@@ -222,7 +303,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
@@ -241,8 +323,10 @@ public class StoredRequestProcessorTest extends VertxTest {
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
+                false,
                 fileSystem,
                 applicationSettings,
+                idGenerator,
                 metrics,
                 timeoutFactory,
                 jacksonMapper,
@@ -254,13 +338,64 @@ public class StoredRequestProcessorTest extends VertxTest {
                                 BidRequest.builder().id("test-request-id").build())), emptyMap(), emptyList())));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123");
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
 
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
                 .id("test-request-id")
                 .at(1)
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReplaceBidIdWhenGenerateIdFlagIsTrue() throws IOException {
+        // given
+        storedRequestProcessor = StoredRequestProcessor.create(
+                500,
+                null,
+                true,
+                fileSystem,
+                applicationSettings,
+                idGenerator,
+                metrics,
+                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                jacksonMapper,
+                new JsonMerger(jacksonMapper));
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("origin-stored-id").build())), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
+                .build());
+    }
+
+    @Test
+    public void processAmpRequestShouldReplaceBidIdGenerateTemplateIsInStoredRequestId() throws IOException {
+        // given
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(StoredDataResult.of(
+                        singletonMap("123", mapper.writeValueAsString(
+                                BidRequest.builder().id("{{UUID}}").build())), emptyMap(), emptyList())));
+
+        // when
+        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processAmpRequest(null, "123",
+                BidRequest.builder().build());
+
+        // then
+        assertThat(bidRequestFuture.succeeded()).isTrue();
+        assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
+                .id("generated-stored-id")
                 .build());
     }
 
@@ -612,7 +747,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .willReturn(Future.failedFuture("failed"));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verifyZeroInteractions(metrics);
@@ -671,7 +806,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(singletonMap("123", "amp"), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verify(metrics).updateStoredRequestMetric(true);
@@ -685,7 +820,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), emptyList())));
 
         // when
-        storedRequestProcessor.processAmpRequest(null, "123");
+        storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
         verify(metrics).updateStoredRequestMetric(false);

@@ -7,9 +7,14 @@
     "zone": {
       "type": "string",
       "description": "Zone ID to use."
+    },
+    "zoneId": {
+      "type": "string",
+      "description": "Zone ID to use."
     }
   },
-  "required": [
-    "zone"
+  "oneOf": [
+    {"required": ["zone"]},
+    {"required": ["zoneId"]}
   ]
 }

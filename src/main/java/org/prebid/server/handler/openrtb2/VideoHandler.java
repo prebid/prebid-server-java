@@ -11,22 +11,25 @@ import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -102,20 +105,21 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private void handleResult(AsyncResult<VideoResponse> responseResult,
                               VideoEvent.VideoEventBuilder videoEventBuilder,
-                              RoutingContext context,
+                              RoutingContext routingContext,
                               long startTime) {
         final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
-        final int status;
+        final HttpResponseStatus status;
         final String body;
         final VideoResponse videoResponse = responseSucceeded ? responseResult.result() : null;
+
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
-            status = HttpResponseStatus.OK.code();
-            context.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            status = HttpResponseStatus.OK;
+            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
             body = mapper.encode(videoResponse);
         } else {
             final Throwable exception = responseResult.cause();
@@ -124,7 +128,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 logger.info("Invalid request format: {0}", errorMessages);
 
-                status = HttpResponseStatus.BAD_REQUEST.code();
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = errorMessages.stream()
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
@@ -132,10 +136,9 @@ public class VideoHandler implements Handler<RoutingContext> {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
                 logger.info("Unauthorized: {0}", errorMessage);
-
                 errorMessages = Collections.singletonList(errorMessage);
 
-                status = HttpResponseStatus.UNAUTHORIZED.code();
+                status = HttpResponseStatus.UNAUTHORIZED;
                 body = String.format("Unauthorised: %s", errorMessage);
             } else {
                 metricRequestStatus = MetricName.err;
@@ -144,23 +147,24 @@ public class VideoHandler implements Handler<RoutingContext> {
                 final String message = exception.getMessage();
                 errorMessages = Collections.singletonList(message);
 
-                status = HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
                 body = String.format("Critical error while running the auction: %s", message);
             }
         }
-        VideoEvent videoEvent = videoEventBuilder.status(status).errors(errorMessages).build();
+
+        VideoEvent videoEvent = videoEventBuilder.status(status.code()).errors(errorMessages).build();
         final AuctionContext auctionContext = videoEvent.getAuctionContext();
+
         final CachedDebugLog cachedDebugLog = auctionContext != null ? auctionContext.getCachedDebugLog() : null;
-        final String cacheKey = shouldCacheLog(status, cachedDebugLog)
+        final String cacheKey = shouldCacheLog(status.code(), cachedDebugLog)
                 ? cacheDebugLog(auctionContext, videoEvent.getErrors())
                 : null;
-        if (status != 200 && cacheKey != null) {
+        if (status.code() != 200 && cacheKey != null) {
             videoEvent = updateEventWithDebugCacheMessage(videoEvent, cacheKey);
         }
-
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
-        respondWith(context, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
+        respondWith(routingContext, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
     }
 
     private boolean shouldCacheLog(int status, CachedDebugLog cachedDebugLog) {
@@ -171,7 +175,10 @@ public class VideoHandler implements Handler<RoutingContext> {
         final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
         cachedDebugLog.setErrors(errors);
         final Account account = auctionContext.getAccount();
-        final Integer videoCacheTtl = account != null ? account.getVideoCacheTtl() : null;
+        final AccountAuctionConfig accountAuctionConfig =
+                ObjectUtil.getIfNotNull(auctionContext.getAccount(), Account::getAuction);
+        final Integer videoCacheTtl =
+                ObjectUtil.getIfNotNull(accountAuctionConfig, AccountAuctionConfig::getVideoCacheTtl);
         return cacheService.cacheVideoDebugLog(cachedDebugLog, videoCacheTtl);
     }
 
@@ -184,21 +191,26 @@ public class VideoHandler implements Handler<RoutingContext> {
         return videoEvent;
     }
 
-    private void respondWith(RoutingContext context, int status, String body, long startTime,
-                             MetricName metricRequestStatus, VideoEvent event, TcfContext tcfContext) {
-        // don't send the response if client has gone
-        if (context.response().closed()) {
-            logger.warn("The client already closed connection, response will be skipped");
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
-        } else {
-            context.response()
-                    .exceptionHandler(this::handleResponseException)
-                    .setStatusCode(status)
-                    .end(body);
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName metricRequestStatus,
+                             VideoEvent event,
+                             TcfContext tcfContext) {
 
-            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_video,
+                response -> response
+                        .exceptionHandler(this::handleResponseException)
+                        .setStatusCode(status.code())
+                        .end(body));
+
+        if (responseSent) {
+            metrics.updateRequestTimeMetric(REQUEST_TYPE_METRIC, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
+        } else {
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
         }
     }
 

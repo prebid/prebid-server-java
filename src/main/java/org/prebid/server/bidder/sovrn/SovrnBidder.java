@@ -26,8 +26,10 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -103,7 +105,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
 
         final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
         return imp.toBuilder()
-                .bidfloor(sovrnExt.getBidfloor())
+                .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(ObjectUtils.defaultIfNull(sovrnExt.getTagid(), sovrnExt.getLegacyTagId()))
                 .build();
     }
@@ -118,6 +120,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
+
+    private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal extBidFloor) {
+        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(extBidFloor)
+                ? extBidFloor
+                : impBidFloor;
     }
 
     private static MultiMap headers(BidRequest bidRequest) {
@@ -157,7 +165,8 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private static Bid updateBid(Bid bid) {
-        bid.setAdm(HttpUtil.decodeUrl(bid.getAdm()));
-        return bid;
+        return bid.toBuilder()
+                .adm(HttpUtil.decodeUrl(bid.getAdm()))
+                .build();
     }
 }

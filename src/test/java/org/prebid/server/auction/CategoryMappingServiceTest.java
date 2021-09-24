@@ -531,10 +531,10 @@ public class CategoryMappingServiceTest extends VertxTest {
         // then
         assertThat(resultFuture.succeeded()).isTrue();
         assertThat(resultFuture.result().getBiddersToBidsCategories())
-                .isEqualTo(Collections.singletonMap(givenBid("2", null, "10", singletonList("cat2")),
+                .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_10s"));
         assertThat(resultFuture.result().getErrors()).hasSize(1)
-                .containsOnly("Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated");
+                .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated");
     }
 
     @Test

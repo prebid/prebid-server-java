@@ -1,12 +1,12 @@
 package org.prebid.server.auction.model;
 
-import io.vertx.core.MultiMap;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.util.List;
@@ -45,7 +45,7 @@ public class CachedDebugLog {
         this.request = request != null ? request : StringUtils.EMPTY;
     }
 
-    public void setHeadersLog(MultiMap headers) {
+    public void setHeadersLog(CaseInsensitiveMultiMap headers) {
         this.headers = headers != null ? headers.toString() : StringUtils.EMPTY;
     }
 

@@ -20,11 +20,11 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
@@ -34,6 +34,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -234,7 +235,7 @@ public class VideoHandlerTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().imp(emptyList()).build())
-                .account(Account.builder().videoCacheTtl(100).build())
+                .account(Account.builder().auction(AccountAuctionConfig.builder().videoCacheTtl(100).build()).build())
                 .cachedDebugLog(new CachedDebugLog(true, 10, null, jacksonMapper))
                 .build();
 
@@ -262,7 +263,7 @@ public class VideoHandlerTest extends VertxTest {
         cachedDebugLog.setHasBids(false);
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().imp(emptyList()).build())
-                .account(Account.builder().videoCacheTtl(100).build())
+                .account(Account.builder().auction(AccountAuctionConfig.builder().videoCacheTtl(100).build()).build())
                 .cachedDebugLog(cachedDebugLog)
                 .build();
 

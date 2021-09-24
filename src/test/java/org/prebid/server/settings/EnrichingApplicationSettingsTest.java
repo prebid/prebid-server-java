@@ -6,8 +6,14 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.EnabledForRequestType;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,13 +23,14 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
-public class EnrichingApplicationSettingsTest {
+public class EnrichingApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ApplicationSettings delegate;
+    private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);
 
     private EnrichingApplicationSettings enrichingApplicationSettings;
 
@@ -33,7 +40,7 @@ public class EnrichingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
-        enrichingApplicationSettings = new EnrichingApplicationSettings(delegate, null);
+        enrichingApplicationSettings = new EnrichingApplicationSettings(null, delegate, jsonMerger);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -52,11 +59,9 @@ public class EnrichingApplicationSettingsTest {
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsEmpty() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                "{}",
                 delegate,
-                Account.builder()
-                        .bannerCacheTtl(null)
-                        .analyticsSamplingFactor(null)
-                        .build());
+                jsonMerger);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -75,16 +80,22 @@ public class EnrichingApplicationSettingsTest {
     public void getAccountByIdShouldMergeAccountWithDefaultAccount() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                "{\"auction\": {\"banner-cache-ttl\": 100},"
+                        + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"integration-enabled\": {\"web\": false}}}}",
                 delegate,
-                Account.builder()
-                        .bannerCacheTtl(100)
-                        .analyticsSamplingFactor(50)
-                        .build());
+                jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
                 .id("123")
-                .videoCacheTtl(200)
-                .enforceCcpa(true)
+                .auction(AccountAuctionConfig.builder()
+                        .videoCacheTtl(200)
+                        .build())
+                .privacy(AccountPrivacyConfig.of(
+                        true,
+                        AccountGdprConfig.builder()
+                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
+                                .build(),
+                        null))
                 .build()));
 
         // when
@@ -93,10 +104,17 @@ public class EnrichingApplicationSettingsTest {
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
                 .id("123")
-                .bannerCacheTtl(100)
-                .videoCacheTtl(200)
-                .enforceCcpa(true)
-                .analyticsSamplingFactor(50)
+                .auction(AccountAuctionConfig.builder()
+                        .bannerCacheTtl(100)
+                        .videoCacheTtl(200)
+                        .build())
+                .privacy(AccountPrivacyConfig.of(
+                        true,
+                        AccountGdprConfig.builder()
+                                .enabled(true)
+                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
+                                .build(),
+                        null))
                 .build());
     }
 
@@ -104,11 +122,9 @@ public class EnrichingApplicationSettingsTest {
     public void getAccountByIdShouldReturnDefaultAccountWhenDelegateFailed() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
-                Account.builder()
-                        .bannerCacheTtl(100)
-                        .analyticsSamplingFactor(50)
-                        .build());
+                jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 
@@ -118,8 +134,9 @@ public class EnrichingApplicationSettingsTest {
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
                 .id("123")
-                .bannerCacheTtl(100)
-                .analyticsSamplingFactor(50)
+                .auction(AccountAuctionConfig.builder()
+                        .bannerCacheTtl(100)
+                        .build())
                 .build());
     }
 
@@ -127,11 +144,9 @@ public class EnrichingApplicationSettingsTest {
     public void getAccountByIdShouldPassOnFailureWhenDefaultAccountIsEmpty() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                "{}",
                 delegate,
-                Account.builder()
-                        .bannerCacheTtl(null)
-                        .analyticsSamplingFactor(null)
-                        .build());
+                jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 

@@ -1,19 +1,19 @@
 {
-  "id": "tid",
+  "id": "request_id",
   "seatbid": [
     {
       "bid": [
         {
           "price": 0.500000,
           "adm": "some-test-ad",
-          "impid": "test-imp-id",
+          "impid": "imp_id",
           "auid": 46,
-          "id": "1",
+          "id": "bid_id",
           "h": 250,
           "adomain": [
             "goodadvertiser.com"
           ],
-          "crid": "11_222222",
+          "crid": "crid",
           "w": 300
         }
       ],

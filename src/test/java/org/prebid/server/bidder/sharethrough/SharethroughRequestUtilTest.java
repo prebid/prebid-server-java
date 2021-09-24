@@ -286,7 +286,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final Imp notBannerImp = Imp.builder().build();
         final Banner banner = Banner.builder().format(Collections.emptyList()).build();
         final Imp bannerImpEmptyFormat = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList(), null);
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(
+                null, null, Collections.emptyList(), null, null);
 
         // when and then
         final Size expected = Size.of(1, 1);
@@ -301,7 +302,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<Format> formats = Collections.singletonList(Format.builder().w(200).h(200).build());
         final Banner banner = Banner.builder().format(formats).build();
         final Imp imp = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Arrays.asList(100, 100), null);
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(
+                null, null, Arrays.asList(100, 100), null, null);
 
         // when and then
         final Size expected = Size.of(100, 100);
@@ -318,7 +320,8 @@ public class SharethroughRequestUtilTest extends VertxTest {
         final List<Format> formats = Arrays.asList(firstFormat, secondFormat, thirdFormat);
         final Banner banner = Banner.builder().format(formats).build();
         final Imp imp = Imp.builder().banner(banner).build();
-        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(null, null, Collections.emptyList(), null);
+        final ExtImpSharethrough extImpSharethrough = ExtImpSharethrough.of(
+                null, null, Collections.emptyList(), null, null);
 
         // when and then
         final Size expected = Size.of(320, 300);

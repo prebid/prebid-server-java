@@ -12,8 +12,12 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
@@ -84,19 +88,30 @@ public class FileApplicationSettingsTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString())).willReturn(Buffer.buffer(
                 "accounts: ["
                         + "{"
-                        + "id: '123',"
-                        + "priceGranularity: 'low',"
-                        + "bannerCacheTtl: '100',"
-                        + "videoCacheTtl : '100',"
-                        + "eventsEnabled: 'true',"
-                        + "enforceCcpa: 'true',"
+                        + "id: 123,"
+                        + "status: active,"
+                        + "auction: {"
+                        + "price-granularity: low,"
+                        + "banner-cache-ttl: 100,"
+                        + "video-cache-ttl : 100,"
+                        + "truncate-target-attr: 20,"
+                        + "default-integration: web,"
+                        + "bid-validations: {"
+                        + "banner-creative-max-size: enforce"
+                        + "},"
+                        + "events: {"
+                        + "enabled: true"
+                        + "}"
+                        + "},"
+                        + "privacy: {"
+                        + "enforce-ccpa: true,"
                         + "gdpr: {"
-                        + "enabled: 'true',"
+                        + "enabled: true,"
                         + "integration-enabled: {"
-                        + "amp: 'true',"
-                        + "web: 'true',"
-                        + "video: 'true',"
-                        + "app: 'true'"
+                        + "amp: true,"
+                        + "web: true,"
+                        + "video: true,"
+                        + "app: true"
                         + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
@@ -107,17 +122,13 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "sf2: {enforce: false,vendor-exceptions: [openx]}"
                         + "},"
                         + "purpose-one-treatment-interpretation: access-allowed"
+                        + "}"
                         + "},"
-                        + "analyticsSamplingFactor : '1',"
-                        + "truncateTargetAttr: '20',"
-                        + "defaultIntegration: 'web',"
-                        + "analyticsConfig: {"
-                        + "auction-events: {amp: 'true'}"
+                        + "analytics: {"
+                        + "auction-events: {amp: true},"
+                        + "modules: {some-analytics: {supported-endpoints: [auction]}}"
                         + "},"
-                        + "bidValidations: {"
-                        + "banner-creative-max-size: 'enforce'"
-                        + "},"
-                        + "status: 'active'"
+                        + "cookie-sync: {default-limit: 5,max-limit: 8,default-coop-sync: true}"
                         + "}"
                         + "]"));
 
@@ -132,30 +143,39 @@ public class FileApplicationSettingsTest extends VertxTest {
         assertThat(account.succeeded()).isTrue();
         assertThat(account.result()).isEqualTo(Account.builder()
                 .id("123")
-                .priceGranularity("low")
-                .bannerCacheTtl(100)
-                .videoCacheTtl(100)
-                .eventsEnabled(true)
-                .enforceCcpa(true)
-                .gdpr(AccountGdprConfig.builder()
-                        .enabled(true)
-                        .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
-                        .purposes(Purposes.builder()
-                                .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
-                                .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
-                                .build())
-                        .specialFeatures(SpecialFeatures.builder()
-                                .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
-                                .sf2(SpecialFeature.of(false, singletonList("openx")))
-                                .build())
-                        .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                        .build())
-                .analyticsSamplingFactor(1)
-                .truncateTargetAttr(20)
-                .defaultIntegration("web")
-                .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
-                .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                 .status(AccountStatus.active)
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("low")
+                        .bannerCacheTtl(100)
+                        .videoCacheTtl(100)
+                        .truncateTargetAttr(20)
+                        .defaultIntegration("web")
+                        .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .privacy(AccountPrivacyConfig.of(
+                        true,
+                        AccountGdprConfig.builder()
+                                .enabled(true)
+                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                .purposes(Purposes.builder()
+                                        .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
+                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
+                                        .build())
+                                .specialFeatures(SpecialFeatures.builder()
+                                        .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
+                                        .sf2(SpecialFeature.of(false, singletonList("openx")))
+                                        .build())
+                                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                                .build(),
+                        null))
+                .analytics(AccountAnalyticsConfig.of(
+                        singletonMap("amp", true),
+                        singletonMap(
+                                "some-analytics",
+                                mapper.createObjectNode()
+                                        .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
+                .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                 .build());
     }
 

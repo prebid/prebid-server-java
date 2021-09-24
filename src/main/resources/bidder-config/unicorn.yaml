@@ -1,0 +1,16 @@
+adapters:
+  unicorn:
+    endpoint: https://ds.uncn.jp/pb/0/bid.json
+    meta-info:
+      maintainer-email: prebid@unicorn.inc
+      app-media-types:
+        - banner
+      site-media-types:
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: unicorn
+      type: iframe
+      support-cors: false

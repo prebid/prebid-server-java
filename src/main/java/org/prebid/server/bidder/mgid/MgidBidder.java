@@ -22,6 +22,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -32,6 +33,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+/**
+ * Mgid {@link Bidder} implementation.
+ */
 public class MgidBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -50,7 +54,7 @@ public class MgidBidder implements Bidder<BidRequest> {
             try {
                 final ExtImpMgid impExt = parseImpExt(imp);
 
-                if (StringUtils.isBlank(accountId) && StringUtils.isNotBlank(impExt.getAccountId())) {
+                if (accountId == null && StringUtils.isNotBlank(impExt.getAccountId())) {
                     accountId = impExt.getAccountId();
                 }
 
@@ -61,7 +65,7 @@ public class MgidBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (StringUtils.isBlank(accountId)) {
+        if (accountId == null) {
             return Result.withError(BidderError.badInput("accountId is not set"));
         }
 
@@ -70,12 +74,10 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl + accountId)
-                .body(body)
+                .body(mapper.encode(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build());
@@ -93,7 +95,7 @@ public class MgidBidder implements Bidder<BidRequest> {
         final ImpBuilder impBuilder = imp.toBuilder();
 
         final String cur = getCur(impExt);
-        if (StringUtils.isNotBlank(cur)) {
+        if (cur != null) {
             impBuilder.bidfloorcur(cur);
         }
 
@@ -107,29 +109,29 @@ public class MgidBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static String getTagid(Imp imp, ExtImpMgid impMgid) {
-        final String placementId = impMgid.getPlacementId();
-        final String impId = imp.getId();
-
-        return StringUtils.isBlank(placementId) ? impId : String.format("%s/%s", placementId, impId);
-    }
-
     private static String getCur(ExtImpMgid impMgid) {
         return ObjectUtils.defaultIfNull(
                 currencyValueOrNull(impMgid.getCurrency()), currencyValueOrNull(impMgid.getCur()));
-    }
-
-    private static BigDecimal getBidFloor(ExtImpMgid impMgid) {
-        return ObjectUtils.defaultIfNull(
-                bidFloorValueOrNull(impMgid.getBidfloor()), bidFloorValueOrNull(impMgid.getBidFloorSecond()));
     }
 
     private static String currencyValueOrNull(String value) {
         return StringUtils.isNotBlank(value) && !value.equals("USD") ? value : null;
     }
 
-    private static BigDecimal bidFloorValueOrNull(BigDecimal value) {
-        return value != null && value.compareTo(BigDecimal.ZERO) > 0 ? value : null;
+    private static BigDecimal getBidFloor(ExtImpMgid impMgid) {
+        return ObjectUtils.defaultIfNull(
+                validBidFloorOrNull(impMgid.getBidfloor()), validBidFloorOrNull(impMgid.getBidFloorSecond()));
+    }
+
+    private static BigDecimal validBidFloorOrNull(BigDecimal bidFloor) {
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
+    }
+
+    private static String getTagid(Imp imp, ExtImpMgid impMgid) {
+        final String placementId = impMgid.getPlacementId();
+        final String impId = imp.getId();
+
+        return StringUtils.isBlank(placementId) ? impId : String.format("%s/%s", placementId, impId);
     }
 
     @Override
