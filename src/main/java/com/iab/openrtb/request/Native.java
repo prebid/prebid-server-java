@@ -27,7 +27,7 @@ import java.util.List;
  * the offered types.
  */
 @Data
-@SuperBuilder
+@SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 public class Native {
 

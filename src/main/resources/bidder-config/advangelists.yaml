@@ -1,12 +1,6 @@
 adapters:
   advangelists:
-    enabled: false
     endpoint: http://nep.advangelists.com/xp/get?pubid={{PublisherID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@advangelists.com
       app-media-types:

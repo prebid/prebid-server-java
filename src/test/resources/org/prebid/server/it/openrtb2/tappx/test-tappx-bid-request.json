@@ -41,5 +41,10 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "bidder": {
+      "tappxkey": "pub-12345-android-9876"
+    }
   }
 }

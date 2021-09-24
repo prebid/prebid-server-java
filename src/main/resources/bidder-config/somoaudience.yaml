@@ -1,12 +1,6 @@
 adapters:
   somoaudience:
-    enabled: false
     endpoint: http://publisher-east.mobileadtrading.com/rtb/bid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: publishers@somoaudience.com
       app-media-types:
