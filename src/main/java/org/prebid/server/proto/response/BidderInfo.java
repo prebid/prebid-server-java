@@ -2,6 +2,7 @@ package org.prebid.server.proto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
@@ -9,6 +10,8 @@ import java.util.List;
 public class BidderInfo {
 
     boolean enabled;
+
+    boolean usesHttps;
 
     String aliasOf;
 
@@ -25,23 +28,24 @@ public class BidderInfo {
     boolean modifyingVastXmlAllowed;
 
     public static BidderInfo create(boolean enabled,
+                                    String endpoint,
                                     String aliasOf,
                                     String maintainerEmail,
                                     List<String> appMediaTypes,
                                     List<String> siteMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
-                                    boolean enforceGdpr,
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed) {
 
         return of(
                 enabled,
+                StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
                 new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
                 supportedVendors,
-                new GdprInfo(vendorId, enforceGdpr),
+                new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed);
     }
@@ -86,11 +90,5 @@ public class BidderInfo {
          */
         @JsonProperty("vendorId")
         int vendorId;
-
-        /**
-         * Flag, which true value means that PBS will keep gdpr logic for bidder, otherwise bidder will keep
-         * gdpr support and request should be sent without gdpr changes.
-         */
-        boolean enforced;
     }
 }

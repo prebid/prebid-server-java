@@ -1,0 +1,44 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adm": "adm001",
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "w": 300,
+          "h": 250,
+          "adomain": [ "improvedigital.com" ],
+          "dealid": "321329",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "improvedigital": {
+              "buying_type": "classic",
+              "line_item_id": 321329
+            },
+            "origbidcpm": 3.33
+          }
+        }
+      ],
+      "seat": "improvedigital",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "improvedigital": "{{ improvedigital.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

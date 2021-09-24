@@ -37,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -48,7 +49,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -219,7 +222,8 @@ public class CacheServiceTest extends VertxTest {
                 .build();
         // when
         cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(builder -> builder.id("bidId1"))),
+                singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder",
+                        "lineItemId")),
                 givenAuctionContext(),
                 CacheContext.builder()
                         .shouldCacheBids(true)
@@ -227,7 +231,9 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(eventsService).winUrl("bidId1", "bidder", "accountId", eventsContext);
+        verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), eq("lineItemId"), eq(true),
+                eq(EventsContext.builder().enabledForAccount(true).enabledForRequest(true)
+                        .auctionId("auctionId").build()));
     }
 
     @Test
@@ -255,6 +261,7 @@ public class CacheServiceTest extends VertxTest {
         final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
         assertThat(result.getHttpCall())
                 .isEqualTo(DebugHttpCall.builder()
+                        .requestHeaders(givenDebugHeaders())
                         .endpoint("http://cache-service/cache")
                         .requestBody(request.getBody())
                         .requestUri(request.getUri())
@@ -289,6 +296,7 @@ public class CacheServiceTest extends VertxTest {
                         .requestBody(request.getBody())
                         .requestUri(request.getUri())
                         .responseStatus(503)
+                        .requestHeaders(givenDebugHeaders())
                         .responseBody("response")
                         .responseTimeMillis(0)
                         .build());
@@ -320,6 +328,7 @@ public class CacheServiceTest extends VertxTest {
                         .endpoint("http://cache-service/cache")
                         .requestUri(request.getUri())
                         .requestBody(request.getBody())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200)
                         .responseBody("response")
                         .responseTimeMillis(0)
@@ -354,6 +363,7 @@ public class CacheServiceTest extends VertxTest {
                         .endpoint("http://cache-service/cache")
                         .requestBody(request.getBody())
                         .requestUri(request.getUri())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200).responseBody("{}")
                         .responseTimeMillis(0)
                         .build());
@@ -381,6 +391,7 @@ public class CacheServiceTest extends VertxTest {
                         .endpoint("http://cache-service/cache")
                         .requestUri(request.getUri())
                         .requestBody(request.getBody())
+                        .requestHeaders(givenDebugHeaders())
                         .responseStatus(200)
                         .responseBody("{\"responses\":[{\"uuid\":\"uuid1\"}]}")
                         .responseTimeMillis(0)
@@ -549,7 +560,11 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(accountBuilder -> accountBuilder.bannerCacheTtl(10), identity()),
+                givenAuctionContext(
+                        accountBuilder -> accountBuilder.auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(10)
+                                .build()),
+                        identity()),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .build(),
@@ -823,17 +838,8 @@ public class CacheServiceTest extends VertxTest {
         return givenAuctionContext(identity(), identity());
     }
 
-    private static Bid givenBidOpenrtb(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidCustomizer.apply(Bid.builder()).build();
-    }
-
     private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidInfo.builder()
-                .bid(bidCustomizer.apply(Bid.builder()).build())
-                .correspondingImp(givenImp(UnaryOperator.identity()))
-                .bidder("bidder")
-                .bidType(BidType.banner)
-                .build();
+        return givenBidInfo(bidCustomizer, UnaryOperator.identity());
     }
 
     private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer,
@@ -854,6 +860,15 @@ public class CacheServiceTest extends VertxTest {
                 .correspondingImp(givenImp(UnaryOperator.identity()))
                 .bidder(bidder)
                 .bidType(bidType)
+                .build();
+    }
+
+    private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer,
+                                        BidType bidType,
+                                        String bidder,
+                                        String lineItemId) {
+        return givenBidInfo(bidCustomizer, bidType, bidder).toBuilder()
+                .lineItemId(lineItemId)
                 .build();
     }
 
@@ -895,5 +910,12 @@ public class CacheServiceTest extends VertxTest {
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).post(anyString(), any(), captor.capture(), anyLong());
         return mapper.readValue(captor.getValue(), BidCacheRequest.class);
+    }
+
+    private Map<String, List<String>> givenDebugHeaders() {
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Accept", singletonList("application/json"));
+        headers.put("Content-Type", singletonList("application/json;charset=utf-8"));
+        return headers;
     }
 }

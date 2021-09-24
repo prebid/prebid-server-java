@@ -69,7 +69,12 @@
     }
   },
   "user": {
-    "buyeruid": "J5VLCWQP-26-CWFT"
+    "buyeruid": "J5VLCWQP-26-CWFT",
+    "ext": {
+      "ConsentedProvidersSettings": {
+        "consented_providers": "someConsent"
+      }
+    }
   },
   "at": 1,
   "tmax": 5000,

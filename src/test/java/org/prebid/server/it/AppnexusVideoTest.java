@@ -26,13 +26,15 @@ public class AppnexusVideoTest extends IntegrationTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/video/test-video-appnexus-bid-request-1.json")))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/video/test-video-appnexus-bid-request-1.json"), true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/video/test-video-appnexus-bid-response-1.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/video/test-video-appnexus-bid-request-2.json")))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/video/test-video-appnexus-bid-request-2.json"), true, true))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/video/test-video-appnexus-bid-response-2.json"))));
 
         // pre-bid cache

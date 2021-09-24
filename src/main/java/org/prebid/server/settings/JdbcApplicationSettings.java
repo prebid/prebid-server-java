@@ -12,10 +12,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAnalyticsConfig;
-import org.prebid.server.settings.model.AccountBidValidationConfig;
-import org.prebid.server.settings.model.AccountGdprConfig;
-import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.vertx.jdbc.JdbcClient;
@@ -105,28 +101,14 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get account by id from database
-     * and returns {@link Future&lt;{@link Account}&gt;}.
+     * and returns {@link Future}&lt;{@link Account}&gt;.
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return jdbcClient.executeQuery(
                 selectAccountQuery,
                 Collections.singletonList(accountId),
-                result -> mapToModelOrError(result, row -> partialAccountBuilderFrom(row.getString(13))
-                        .id(row.getString(0))
-                        .priceGranularity(row.getString(1))
-                        .bannerCacheTtl(row.getInteger(2))
-                        .videoCacheTtl(row.getInteger(3))
-                        .eventsEnabled(row.getBoolean(4))
-                        .enforceCcpa(row.getBoolean(5))
-                        .gdpr(toModel(row.getString(6), AccountGdprConfig.class))
-                        .analyticsSamplingFactor(row.getInteger(7))
-                        .truncateTargetAttr(row.getInteger(8))
-                        .defaultIntegration(row.getString(9))
-                        .analyticsConfig(toModel(row.getString(10), AccountAnalyticsConfig.class))
-                        .bidValidations(toModel(row.getString(11), AccountBidValidationConfig.class))
-                        .status(toAccountStatus(row.getString(12)))
-                        .build()),
+                result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
                 timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
@@ -153,34 +135,17 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
     }
 
-    private Account.AccountBuilder partialAccountBuilderFrom(String config) {
-        final Account partialAccount = toModel(config, Account.class);
-
-        return partialAccount != null ? partialAccount.toBuilder() : Account.builder();
-    }
-
-    private <T> T toModel(String source, Class<T> targetClass) {
+    private Account toAccount(String source) {
         try {
-            return source != null ? mapper.decodeValue(source, targetClass) : null;
+            return source != null ? mapper.decodeValue(source, Account.class) : null;
         } catch (DecodeException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private static AccountStatus toAccountStatus(String status) {
-        if (status == null) {
-            return null;
-        }
-        try {
-            return AccountStatus.valueOf(status);
-        } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
     /**
      * Runs a process to get stored requests by a collection of ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
      */
     @Override
     public Future<StoredDataResult> getStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
@@ -190,7 +155,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of amp ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
      */
     @Override
     public Future<StoredDataResult> getAmpStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
@@ -200,7 +165,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored requests by a collection of video ids from database
-     * and returns {@link Future&lt;{@link StoredDataResult }&gt;}.
+     * and returns {@link Future}&lt;{@link StoredDataResult}&gt;.
      */
     @Override
     public Future<StoredDataResult> getVideoStoredData(String accountId, Set<String> requestIds, Set<String> impIds,
@@ -210,7 +175,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     /**
      * Runs a process to get stored responses by a collection of ids from database
-     * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}.
+     * and returns {@link Future}&lt;{@link StoredResponseDataResult}&gt;.
      */
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {

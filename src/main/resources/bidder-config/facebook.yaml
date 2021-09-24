@@ -1,15 +1,6 @@
 adapters:
   facebook:
-    enabled: false
     endpoint: https://an.facebook.com/placementbid.ortb
-    platform-id:
-    app-secret:
-    timeout-notification-url-template: https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: none
       app-media-types:
@@ -24,3 +15,6 @@ adapters:
       cookie-family-name: audienceNetwork
       type: redirect
       support-cors: false
+    platform-id:
+    app-secret:
+    timeout-notification-url-template: https://www.facebook.com/audiencenetwork/nurl/?partner=%s&app=%s&auction=%s&ortb_loss_code=2

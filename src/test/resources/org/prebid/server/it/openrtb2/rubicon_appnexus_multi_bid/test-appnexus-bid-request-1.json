@@ -117,6 +117,9 @@
       "channel": {
         "name": "web"
       },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
       "multibid": [
         {
           "bidder": "appnexus",
@@ -127,6 +130,9 @@
       "events": {},
       "channel": {
         "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
       }
     }
   }
