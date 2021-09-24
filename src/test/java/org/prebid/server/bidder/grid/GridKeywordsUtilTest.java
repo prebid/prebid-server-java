@@ -12,13 +12,51 @@ import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class GridKeywordsUtilTest extends VertxTest {
+
+    @Test
+    public void modifyWithKeywordsShouldCorrectlyAddKeywordsSections() {
+        // given
+        final Keywords keywords = Keywords.of(
+                givenKeywordsSectionFromOpenRtb("user"),
+                givenKeywordsSectionFromOpenRtb("site"));
+
+        final Map<String, JsonNode> initialProps = new HashMap<>();
+        initialProps.put("test", TextNode.valueOf("value"));
+
+        // when
+        final Map<String, JsonNode> result =
+                GridKeywordsUtil.modifyWithKeywords(initialProps, keywords, jacksonMapper);
+
+        // then
+        assertThat(result).containsEntry("test", TextNode.valueOf("value"));
+        assertThat(result).containsEntry("keywords", mapper.valueToTree(keywords));
+    }
+
+    @Test
+    public void modifyWithKeywordsShouldDeleteKeywordsKeyIfValueEmptyOrNull() {
+        // given
+        final Keywords keywords = Keywords.of(null, mapper.createObjectNode());
+
+        final Map<String, JsonNode> initialProps = new HashMap<>();
+        initialProps.put("test", TextNode.valueOf("value"));
+
+        // when
+        final Map<String, JsonNode> result =
+                GridKeywordsUtil.modifyWithKeywords(initialProps, keywords, jacksonMapper);
+
+        // then
+        assertThat(result).containsEntry("test", TextNode.valueOf("value"));
+        assertThat(result).doesNotContainKey("keywords");
+    }
 
     @Test
     public void resolveKeywordsSectionFromOpenRtbShouldCorrectlyResolveKeywords() {
@@ -158,6 +196,30 @@ public class GridKeywordsUtilTest extends VertxTest {
     }
 
     @Test
+    public void resolveAlternativePublisherSegmentsShouldSortAlternativeSegmentsByKey() {
+        // given
+        final ObjectNode publisherSectionItemNode = mapper.createObjectNode();
+
+        final JsonNode firstAlternativePublisherSegmentNode = givenAlternativePublisherSegments("foo");
+        final JsonNode secondAlternativePublisherSegmentNode = givenAlternativePublisherSegments("val");
+        final JsonNode thirdAlternativePublisherSegmentNode = givenAlternativePublisherSegments("bar");
+
+        publisherSectionItemNode.set("b", firstAlternativePublisherSegmentNode);
+        publisherSectionItemNode.set("a", secondAlternativePublisherSegmentNode);
+        publisherSectionItemNode.set("c", thirdAlternativePublisherSegmentNode);
+
+        // when
+        final List<KeywordSegment> result = GridKeywordsUtil.resolveAlternativePublisherSegments(
+                publisherSectionItemNode, jacksonMapper);
+
+        // then
+        assertThat(result).containsExactly(
+                KeywordSegment.of("a", "val"),
+                KeywordSegment.of("b", "foo"),
+                KeywordSegment.of("c", "bar"));
+    }
+
+    @Test
     public void resolvePublisherKeywordsShouldSkipInvalidSectionItems() {
         // given
         final JsonNode publisherNode = mapper.createArrayNode()
@@ -232,11 +294,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         final Keywords result = GridKeywordsUtil.resolveKeywords(keywords, jacksonMapper);
 
         // then
-        final ObjectNode expectedUserSection = (ObjectNode) mapper.readTree("{\"firstPublisher\":[{\"name\":"
-                + "\"userSection\",\"segments\":[{\"name\":\"segment\",\"value\":\"value\"}]}]}");
-        final ObjectNode expectedSiteSection = (ObjectNode) mapper.readTree("{\"secondPublisher\":[{\"name\":"
-                + "\"siteSection\",\"segments\":[{\"name\":\"segment\",\"value\":\"value\"}]}]}");
-        assertThat(result).isEqualTo(Keywords.of(expectedUserSection, expectedSiteSection));
+
+        assertThat(result).isEqualTo(Keywords.of(userSectionNode, siteSectionNode));
     }
 
     @Test
