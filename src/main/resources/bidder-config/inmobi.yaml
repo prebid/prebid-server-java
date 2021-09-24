@@ -1,12 +1,6 @@
 adapters:
   inmobi:
-    enabled: false
     endpoint: https://api.w.inmobi.com/showad/openrtb/bidder/prebid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: technology-irv@inmobi.com
       app-media-types:

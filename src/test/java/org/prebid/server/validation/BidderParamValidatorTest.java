@@ -442,13 +442,13 @@ public class BidderParamValidatorTest extends VertxTest {
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
                 true,
+                "https://endpoint.com",
                 aliasOf,
                 null,
                 null,
                 null,
                 null,
                 0,
-                true,
                 true,
                 false);
     }

@@ -1,0 +1,8 @@
+{
+  "adunit.size": {
+    "$intersects": [
+      123,
+      234
+    ]
+  }
+}

@@ -43,7 +43,8 @@ public class ConfigurationYeahmobi {
     @Bean
     BidderDeps yeahmobiBidderDeps() {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties).usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .withConfig(configProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new YeahmobiBidder(config.getEndpoint(), mapper))
                 .assemble();
     }

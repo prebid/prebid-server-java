@@ -39,6 +39,8 @@ public class AuctionRequestFactory {
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
 
+    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
+
     public AuctionRequestFactory(long maxRequestSize,
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
@@ -100,6 +102,8 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
+                .compose(ortb2RequestFactory::populateDealsInfo)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 
@@ -156,7 +160,8 @@ public class AuctionRequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
-                .map(resolvedBidRequest -> paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver))
+                .map(resolvedBidRequest ->
+                        paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
                 .map(ortb2RequestFactory::validateRequest)
                 .map(interstitialProcessor::process);
     }

@@ -87,12 +87,12 @@ public class BidderCatalogTest {
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
                 null,
+                null,
                 "test@email.com",
                 singletonList("banner"),
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 
@@ -161,12 +161,12 @@ public class BidderCatalogTest {
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
                 null,
+                null,
                 "test@email.com",
                 singletonList("banner"),
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 

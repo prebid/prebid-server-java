@@ -1,5 +1,7 @@
 package org.prebid.server.handler;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -25,6 +27,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -38,9 +42,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     private static final String ACCOUNT_PARAMETER = "a";
     private static final String INTEGRATION_PARAMETER = "int";
+    private static final String TYPE_XML = "xml";
 
     private final long defaultTimeout;
     private final boolean allowUnknownBidder;
+    private final boolean modifyVastForUnknownBidder;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
     private final CacheService cacheService;
@@ -49,6 +55,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
     public VtrackHandler(long defaultTimeout,
                          boolean allowUnknownBidder,
+                         boolean modifyVastForUnknownBidder,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          CacheService cacheService,
@@ -57,6 +64,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         this.defaultTimeout = defaultTimeout;
         this.allowUnknownBidder = allowUnknownBidder;
+        this.modifyVastForUnknownBidder = modifyVastForUnknownBidder;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.cacheService = Objects.requireNonNull(cacheService);
@@ -109,14 +117,29 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         final List<PutObject> putObjects = ListUtils.emptyIfNull(bidCacheRequest.getPuts());
         for (PutObject putObject : putObjects) {
-            if (StringUtils.isEmpty(putObject.getBidid())) {
-                throw new IllegalArgumentException("'bidid' is required field and can't be empty");
-            }
-            if (StringUtils.isEmpty(putObject.getBidder())) {
-                throw new IllegalArgumentException("'bidder' is required field and can't be empty");
-            }
+            validatePutObject(putObject);
         }
         return putObjects;
+    }
+
+    private static void validatePutObject(PutObject putObject) {
+        if (StringUtils.isEmpty(putObject.getBidid())) {
+            throw new IllegalArgumentException("'bidid' is required field and can't be empty");
+        }
+
+        if (StringUtils.isEmpty(putObject.getBidder())) {
+            throw new IllegalArgumentException("'bidder' is required field and can't be empty");
+        }
+
+        if (!StringUtils.equals(putObject.getType(), TYPE_XML)) {
+            throw new IllegalArgumentException("vtrack only accepts type xml");
+        }
+
+        final JsonNode value = putObject.getValue();
+        final String valueAsString = value != null ? value.asText() : null;
+        if (!StringUtils.containsIgnoreCase(valueAsString, "<vast")) {
+            throw new IllegalArgumentException("vtrack content must be vast");
+        }
     }
 
     public static String integration(RoutingContext routingContext) {
@@ -129,7 +152,12 @@ public class VtrackHandler implements Handler<RoutingContext> {
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
         return exception instanceof PreBidException
-                ? Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build())
+                ? Future.succeededFuture(Account.builder()
+                    .id(accountId)
+                    .auction(AccountAuctionConfig.builder()
+                            .events(AccountEventsConfig.of(false))
+                            .build())
+                    .build())
                 : Future.failedFuture(exception);
     }
 
@@ -145,11 +173,19 @@ public class VtrackHandler implements Handler<RoutingContext> {
         } else {
             // insert impression tracking if account allows events and bidder allows VAST modification
             final Account account = asyncAccount.result();
-            final Boolean isEventEnabled = account.getEventsEnabled();
+            final Boolean isEventEnabled = accountEventsEnabled(asyncAccount.result());
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
                     .setHandler(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
+    }
+
+    private static Boolean accountEventsEnabled(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final AccountEventsConfig accountEventsConfig =
+                accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
+
+        return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
     }
 
     /**
@@ -166,7 +202,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
         if (bidderCatalog.isValidName(bidderName)) {
             return bidderCatalog.isModifyingVastXmlAllowed(bidderName);
         } else {
-            return allowUnknownBidder;
+            return allowUnknownBidder && modifyVastForUnknownBidder;
         }
     }
 
@@ -191,6 +227,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
         HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
                 response -> response
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())
                         .end(body));
     }

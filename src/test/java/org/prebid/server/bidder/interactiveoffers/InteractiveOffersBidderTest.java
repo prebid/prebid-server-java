@@ -87,10 +87,10 @@ public class InteractiveOffersBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUpdateImpExt() throws JsonProcessingException {
         // given
-        final ObjectNode interactiveOffersExt = (ObjectNode) mapper.readTree("{\"bidder\":{\"pubid\":35}}");
+        final ObjectNode interactiveOffersExt = (ObjectNode) mapper.readTree("{\"bidder\":{\"partnerId\":\"abc123\"}}");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of(35))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of("abc123"))))
                         .build()))
                 .build();
 
@@ -205,7 +205,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of(35))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInteractiveoffers.of("35"))))
                 .build();
     }
 
