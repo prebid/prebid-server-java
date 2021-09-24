@@ -33,9 +33,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Madvertise {@link Bidder} implementation
- */
 public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMadvertise>> MADVERTISE_EXT_TYPE_REFERENCE =

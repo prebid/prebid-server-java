@@ -65,13 +65,13 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(resolveHeaders(request.getDevice()))
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(url)
+                                .headers(resolveHeaders(request.getDevice()))
+                                .payload(outgoingRequest)
+                                .body(mapper.encode(outgoingRequest))
+                                .build()),
                 errors);
     }
 

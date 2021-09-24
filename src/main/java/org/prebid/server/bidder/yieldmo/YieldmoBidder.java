@@ -1,8 +1,9 @@
 package org.prebid.server.bidder.yieldmo;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.prebid.server.bidder.Bidder;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.OpenrtbBidder;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.exception.PreBidException;
@@ -12,9 +13,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 
-/**
- * Yieldmo {@link Bidder} implementation.
- */
 public class YieldmoBidder extends OpenrtbBidder<ExtImpYieldmo> {
 
     public YieldmoBidder(String endpointUrl, JacksonMapper mapper) {
@@ -25,8 +23,13 @@ public class YieldmoBidder extends OpenrtbBidder<ExtImpYieldmo> {
     protected Imp modifyImp(Imp imp, ExtImpYieldmo impExt) throws PreBidException {
         final Imp.ImpBuilder modifiedImp = imp.toBuilder();
 
+        final JsonNode pbadslotNode = imp.getExt().at("/data/pbadslot");
+        final String pbadslot = !pbadslotNode.isMissingNode()
+                ? StringUtils.defaultIfEmpty(pbadslotNode.asText(), null)
+                : null;
+
         try {
-            modifiedImp.ext(mapper.mapper().valueToTree(YieldmoImpExt.of(impExt.getPlacementId())));
+            modifiedImp.ext(mapper.mapper().valueToTree(YieldmoImpExt.of(impExt.getPlacementId(), pbadslot)));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }

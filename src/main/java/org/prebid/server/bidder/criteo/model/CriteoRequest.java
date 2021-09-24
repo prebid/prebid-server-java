@@ -1,9 +1,9 @@
 package org.prebid.server.bidder.criteo.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 
 import java.util.List;
 

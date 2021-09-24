@@ -37,9 +37,6 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Adgeneration {@link Bidder} implementation.
- */
 public class AdgenerationBidder implements Bidder<Void> {
 
     private static final String VERSION = "1.0.2";

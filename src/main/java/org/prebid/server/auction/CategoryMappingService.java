@@ -44,6 +44,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -607,11 +608,11 @@ public class CategoryMappingService {
      */
     private static Stream<CategoryBidContext> getDuplicatedForCategory(Set<CategoryBidContext> categoryBidContexts) {
         final CategoryBidContext highestPriceBid = categoryBidContexts.stream()
-                .reduce((bid1, bid2) -> bid1.getPrice().compareTo(bid2.getPrice()) > 0 ? bid1 : bid2)
+                .max(Comparator.comparing(CategoryBidContext::getPrice))
                 .orElseThrow(() -> new PreBidException("Can't find bid with highest price."));
+
         return categoryBidContexts.stream().filter(categoryBidContext -> ObjectUtils.notEqual(highestPriceBid,
                 categoryBidContext));
-
     }
 
     /**
