@@ -17,7 +17,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -69,7 +69,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        final List<SeatBid> seatBid = ObjectUtils.getIfNotNull(bidResponse, BidResponse::getSeatbid);
+        final List<SeatBid> seatBid = ObjectUtil.getIfNotNull(bidResponse, BidResponse::getSeatbid);
         if (CollectionUtils.isEmpty(seatBid)) {
             return Collections.emptyList();
         }
