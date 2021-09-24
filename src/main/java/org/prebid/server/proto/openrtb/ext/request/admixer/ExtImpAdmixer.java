@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 @Value
@@ -14,7 +15,7 @@ public class ExtImpAdmixer {
     String zone;
 
     @JsonProperty("customFloor")
-    Double customFloor;
+    BigDecimal customFloor;
 
     @JsonProperty("customParams")
     Map<String, JsonNode> customParams;
