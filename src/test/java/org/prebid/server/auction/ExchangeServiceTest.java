@@ -78,6 +78,7 @@ import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -214,6 +215,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private ApplicationEventService applicationEventService;
     @Mock
+    private HttpInteractionLogger httpInteractionLogger;
+    @Mock
     private Metrics metrics;
     @Mock
     private UidsCookie uidsCookie;
@@ -300,6 +303,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -323,6 +327,7 @@ public class ExchangeServiceTest extends VertxTest {
                         bidResponsePostProcessor,
                         hookStageExecutor,
                         applicationEventService,
+                        httpInteractionLogger,
                         metrics,
                         clock,
                         jacksonMapper,
@@ -589,6 +594,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -1626,7 +1632,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .multibid(Collections.singletonList(
+                        .multibid(singletonList(
                                 ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix")))
                         .build())));
 
@@ -1659,6 +1665,31 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .flatExtracting("multibid")
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, null));
+    }
+
+    @Test
+    public void shouldRemoveBidderParametersWithBiddersOtherThanBidderRequestBidder() {
+        // given
+        final ObjectNode requestBidderParams = mapper.createObjectNode()
+                .set("someBidder", mapper.createObjectNode().put("key1", "value1"));
+        requestBidderParams.set("anotherBidder", mapper.createObjectNode().put("key2", "value2"));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidderparams(requestBidderParams)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest capturedRequest = captureBidRequest().getExt();
+        assertThat(capturedRequest).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
+                .auctiontimestamp(1000L)
+                .bidderparams(mapper.createObjectNode()
+                        .set("someBidder", mapper.createObjectNode().put("key1", "value1")))
+                .build()));
     }
 
     @Test
@@ -2343,6 +2374,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,

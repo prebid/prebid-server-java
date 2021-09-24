@@ -8,13 +8,17 @@
         "h": 250
       },
       "ext": {
-        "verizonmedia": {
-          "dcn": "dcn",
-          "pos": "pos"
+        "operaads": {
+          "publisherId": "publisherId",
+          "placementId": "placementId",
+          "endpointId": "endpointId"
         }
       }
     }
   ],
+  "device": {
+    "os": "deviceOs"
+  },
   "tmax": 5000,
   "regs": {
     "ext": {

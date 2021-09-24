@@ -5,9 +5,9 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public final class ObjectUtils {
+public final class ObjectUtil {
 
-    private ObjectUtils() {
+    private ObjectUtil() {
     }
 
     @SafeVarargs

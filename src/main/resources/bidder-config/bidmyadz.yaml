@@ -1,12 +1,6 @@
 adapters:
   bidmyadz:
-    enabled: false
     endpoint: http://endpoint.bidmyadz.com/c0f68227d14ed938c6c49f3967cbe9bc
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: contact@bidmyadz.com
       app-media-types:

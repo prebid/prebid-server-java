@@ -1,12 +1,6 @@
 adapters:
   dmx:
-    enabled: false
     endpoint: https://dmx-direct.districtm.io/b/v2
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@districtm.net
       app-media-types:

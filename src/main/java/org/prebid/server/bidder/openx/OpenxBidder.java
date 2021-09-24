@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -174,13 +175,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal customFloor) {
-        return !bidFloorIsValid(impBidFloor) && bidFloorIsValid(customFloor)
+        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(customFloor)
                 ? customFloor
                 : impBidFloor;
-    }
-
-    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ExtRequest makeReqExt(Imp imp) {

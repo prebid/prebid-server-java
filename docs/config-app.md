@@ -119,7 +119,6 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if PBS server provides GDPR support for bidder or bidder will handle it itself.
 - `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
 - `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
@@ -167,7 +166,7 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.currency-rates.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.currency-rates.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.currency-rates.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.storedrequest.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.storedrequest.path` - the server context path where the endpoint will be accessible.
@@ -182,12 +181,12 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.cache-invalidation.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.cache-invalidation.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.cache-invalidation.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.logging-httpinteraction.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.logging-httpinteraction.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.logging-httpinteraction.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.tracelog.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.tracelog.path` - the server context path where the endpoint will be accessible.
@@ -208,6 +207,11 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
