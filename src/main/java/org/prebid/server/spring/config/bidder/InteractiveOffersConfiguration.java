@@ -42,7 +42,6 @@ public class InteractiveOffersConfiguration {
 
     @Bean
     BidderDeps interactiveoffersBidderDeps() {
-
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))

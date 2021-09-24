@@ -1,12 +1,6 @@
 adapters:
   interactiveoffers:
-    enabled: false
     endpoint: https://prebid-server.ioadx.com/bidRequest/?partnerId={{PartnerId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: dev@interactiveoffers.com
       app-media-types:

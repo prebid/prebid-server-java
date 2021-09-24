@@ -25,7 +25,6 @@ public class BidderInfoCreator {
                 metaInfo.getSiteMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
-                configurationProperties.getPbsEnforcesGdpr(),
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed());
     }
