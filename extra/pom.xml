@@ -8,6 +8,8 @@
     <packaging>pom</packaging>
 
     <scm>
+        <url>https://github.com/prebid/prebid-server-java</url>
+        <connection>scm:git:git@github.com:prebid/prebid-server-java.git</connection>
         <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
         <tag>1.74.0</tag>
     </scm>
