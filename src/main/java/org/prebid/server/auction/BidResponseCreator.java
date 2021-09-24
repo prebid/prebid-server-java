@@ -415,10 +415,10 @@ public class BidResponseCreator {
                                                                             AuctionContext auctionContext) {
 
         return CompositeFuture.join(bidderResponses.stream()
-                .map(bidderResponse -> hookStageExecutor
-                        .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
-                        .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
-                .collect(Collectors.toList()))
+                        .map(bidderResponse -> hookStageExecutor
+                                .executeProcessedBidderResponseStage(bidderResponse, auctionContext)
+                                .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)))
+                        .collect(Collectors.toList()))
                 .map(CompositeFuture::list);
     }
 
@@ -1219,7 +1219,7 @@ public class BidResponseCreator {
                 : ExtBidPrebid.builder();
 
         final ExtBidPrebid updatedExtBidPrebid = extBidPrebidBuilder
-                .targeting(targetingKeywords)
+                .targeting(MapUtils.isEmpty(targetingKeywords) ? null : targetingKeywords)
                 .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
                 .cache(cache)
                 .build();

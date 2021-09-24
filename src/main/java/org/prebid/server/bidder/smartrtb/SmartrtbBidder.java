@@ -32,9 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * SmartRTB {@link Bidder} implementation.
- */
 public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
@@ -90,13 +87,13 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUrl)
-                        .headers(headers)
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(requestUrl)
+                                .headers(headers)
+                                .payload(outgoingRequest)
+                                .body(body)
+                                .build()),
                 errors);
     }
 

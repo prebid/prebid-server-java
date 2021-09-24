@@ -1,12 +1,6 @@
 adapters:
   jixie:
-    enabled: false
     endpoint: https://hb.jixie.io/v2/hbsvrpost
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: contact@jixie.io
       app-media-types:

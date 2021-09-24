@@ -41,9 +41,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Unicorn {@link Bidder} implementation.
- */
 public class UnicornBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpUnicorn>> UNICORN_EXT_TYPE_REFERENCE =

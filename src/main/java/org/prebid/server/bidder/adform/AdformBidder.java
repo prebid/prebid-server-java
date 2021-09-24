@@ -36,9 +36,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adform {@link Bidder} implementation.
- */
 public class AdformBidder implements Bidder<Void> {
 
     private static final String VERSION = "0.1.3";
@@ -106,13 +103,13 @@ public class AdformBidder implements Bidder<Void> {
                 getUserId(user));
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
-                        .uri(url)
-                        .body(null)
-                        .headers(headers)
-                        .payload(null)
-                        .build()),
+                        HttpRequest.<Void>builder()
+                                .method(HttpMethod.GET)
+                                .uri(url)
+                                .body(null)
+                                .headers(headers)
+                                .payload(null)
+                                .build()),
                 errors);
     }
 

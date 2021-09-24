@@ -46,11 +46,11 @@ public class BidderErrorNotifier {
             final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpCall.getRequest());
             if (timeoutNotification != null) {
                 httpClient.request(
-                        timeoutNotification.getMethod(),
-                        timeoutNotification.getUri(),
-                        timeoutNotification.getHeaders(),
-                        timeoutNotification.getBody(),
-                        timeoutNotificationTimeoutMs)
+                                timeoutNotification.getMethod(),
+                                timeoutNotification.getUri(),
+                                timeoutNotification.getHeaders(),
+                                timeoutNotification.getBody(),
+                                timeoutNotificationTimeoutMs)
                         .map(response -> handleTimeoutNotificationSuccess(response, timeoutNotification))
                         .otherwise(exception -> handleTimeoutNotificationFailure(exception, timeoutNotification));
             }

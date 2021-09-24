@@ -34,9 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adkernel {@link Bidder} implementation.
- */
 public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernel>> ADKERNEL_EXT_TYPE_REFERENCE =

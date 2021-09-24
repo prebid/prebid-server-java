@@ -51,13 +51,13 @@ public class AvocetBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(body)
+                                .headers(HttpUtil.headers())
+                                .payload(request)
+                                .build()),
                 Collections.emptyList());
     }
 
