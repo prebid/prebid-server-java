@@ -16,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
@@ -28,6 +27,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -95,17 +95,19 @@ public class GridBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+
+        final ExtImpGrid expectedExtImpGrid = ExtImpGrid.builder()
+                .data(ExtImpGridData.of("pbadslot",
+                        ExtImpGridDataAdServer.of("name", "adslot")))
+                .bidder(ExtImpGridBidder.of(1, null))
+                .gpid("adslot")
+                .build();
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(
-                        mapper.valueToTree(ExtImpGrid.builder()
-                                .data(ExtImpGridData.of("pbadslot",
-                                        ExtImpGridDataAdServer.of("name", "adslot")))
-                                .bidder(ExtImpGridBidder.of(1, null))
-                                .gpid("adslot")
-                                .build()));
+                .containsExactly(mapper.valueToTree(expectedExtImpGrid));
     }
 
     @Test
@@ -168,6 +170,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("123")
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpGridBidder.of(null, Keywords.empty()))))
                         .build()))
@@ -178,10 +181,8 @@ public class GridBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .extracting(BidderError::getType)
-                .containsExactly(BidderError.Type.bad_input, BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).contains(BidderError.badInput("Empty uid in imp with id: 123"));
     }
 
     @Test
@@ -189,6 +190,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
+                        .id("123")
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(null, ExtImpGridBidder.of(0, Keywords.empty()))))
                         .build()))
@@ -200,10 +202,7 @@ public class GridBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .extracting(BidderError::getType)
-                .containsExactly(BidderError.Type.bad_input, BidderError.Type.bad_input);
-        assertThat(result.getErrors()).contains(BidderError.badInput("uid is empty"));
+        assertThat(result.getErrors()).contains(BidderError.badInput("Empty uid in imp with id: 123"));
     }
 
     @Test
@@ -215,10 +214,12 @@ public class GridBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
     }
 
     @Test
@@ -333,11 +334,12 @@ public class GridBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
                                                 UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidResponseCustomizer.apply(BidResponse.builder()
-                        .cur("USD")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                                .build())))
+        return bidResponseCustomizer.apply(
+                        BidResponse.builder()
+                                .cur("USD")
+                                .seatbid(singletonList(SeatBid.builder()
+                                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                                        .build())))
                 .build();
     }
 
