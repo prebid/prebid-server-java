@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.grid.model.KeywordSegment;
 import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 

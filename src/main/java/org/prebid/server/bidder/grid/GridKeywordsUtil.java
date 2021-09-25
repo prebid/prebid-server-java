@@ -113,8 +113,10 @@ public class GridKeywordsUtil {
 
     public static List<KeywordsPublisherItem> resolvePublisherKeywords(JsonNode publisherNode, JacksonMapper mapper) {
         final List<KeywordsPublisherItem> publishersKeywords = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherNode.elements(); it.hasNext();) {
-            JsonNode publisherValueNode = it.next();
+        final Iterator<JsonNode> publisherNodeElements = publisherNode.elements();
+
+        while (publisherNodeElements.hasNext()) {
+            final JsonNode publisherValueNode = publisherNodeElements.next();
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
 
@@ -174,8 +176,10 @@ public class GridKeywordsUtil {
             Map.Entry<String, JsonNode> publisherEntry) {
 
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
-        for (Iterator<JsonNode> it = publisherEntry.getValue().elements(); it.hasNext();) {
-            final JsonNode currentNode = it.next();
+        final Iterator<JsonNode> publisherEntryElements = publisherEntry.getValue().elements();
+
+        while (publisherEntryElements.hasNext()) {
+            final JsonNode currentNode = publisherEntryElements.next();
             if (currentNode.isTextual()) {
                 keywordSegments.add(KeywordSegment.of(publisherEntry.getKey(), currentNode.asText()));
             }
