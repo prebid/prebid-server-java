@@ -138,8 +138,9 @@ public class GridKeywordsUtil {
             return parsedSegments;
         }
 
-        for (Iterator<JsonNode> it = segmentsNode.elements(); it.hasNext();) {
-            final KeywordSegment keywordSegment = resolvePublisherSegment(it.next());
+        final Iterator<JsonNode> segments = segmentsNode.elements();
+        while (segments.hasNext()) {
+            final KeywordSegment keywordSegment = resolvePublisherSegment(segments.next());
             if (keywordSegment != null) {
                 parsedSegments.add(keywordSegment);
             }
