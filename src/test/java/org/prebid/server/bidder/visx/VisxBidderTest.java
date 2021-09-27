@@ -162,6 +162,22 @@ public class VisxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorIfImpIdsFromBidAndRequestWereNotMatchedAndImpWasNotFound()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(givenVisxResponse(visxBidBuilder -> visxBidBuilder.impid("456"), null)));
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("Failed to find impression for ID: \"456\""));
+    }
+
+    @Test
     public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(

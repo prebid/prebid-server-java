@@ -116,8 +116,9 @@ public class VisxBidder implements Bidder<BidRequest> {
                 if (imp.getVideo() != null) {
                     return BidType.video;
                 }
+                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
             }
         }
-        throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
     }
 }
