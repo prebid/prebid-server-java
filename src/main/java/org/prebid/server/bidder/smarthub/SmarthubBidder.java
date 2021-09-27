@@ -91,10 +91,10 @@ public class SmarthubBidder implements Bidder<BidRequest> {
         if (firstBid == null) {
             throw new PreBidException("SeatBid[0].Bid[0] cannot be empty");
         }
-        return Collections.singletonList(constructBidderBid(bidResponse, firstBid));
+        return Collections.singletonList(toBidderBid(bidResponse, firstBid));
     }
 
-    private BidderBid constructBidderBid(BidResponse bidResponse, Bid bid) {
+    private BidderBid toBidderBid(BidResponse bidResponse, Bid bid) {
         try {
             return BidderBid.of(bid, getBidType(bid.getExt()), bidResponse.getCur());
         } catch (IllegalArgumentException | PreBidException e) {
