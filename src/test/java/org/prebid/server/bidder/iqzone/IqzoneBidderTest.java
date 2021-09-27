@@ -3,9 +3,9 @@ package org.prebid.server.bidder.iqzone;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -51,6 +51,21 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .containsOnly(bidRequest);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -68,7 +83,7 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResponseIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
@@ -76,16 +91,12 @@ public class IqzoneBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Bid response is null or seat bid is empty");
-                });
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResponseIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().seatbid(null).build()));
@@ -94,11 +105,7 @@ public class IqzoneBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = iqZoneBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Bid response is null or seat bid is empty");
-                });
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 

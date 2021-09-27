@@ -1,10 +1,6 @@
 adapters:
   adview:
-    enabled: false
     endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
     deprecated-names:
     aliases: {}
     meta-info:

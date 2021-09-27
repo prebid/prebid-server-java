@@ -1,10 +1,6 @@
 adapters:
   iqzone:
-    enabled: false
     endpoint: http://smartssp-us-east.iqzone.com/pserver
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: false
     deprecated-names:
     aliases: {}
     meta-info:

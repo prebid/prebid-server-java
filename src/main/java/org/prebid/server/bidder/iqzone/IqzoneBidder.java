@@ -2,7 +2,6 @@ package org.prebid.server.bidder.iqzone;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -58,8 +57,9 @@ public class IqzoneBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            throw new PreBidException("Bid response is null or seat bid is empty");
+            return Collections.emptyList();
         }
+
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
@@ -69,17 +69,9 @@ public class IqzoneBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> constructBidderBid(bid, bidResponse, bidRequest))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-    }
-
-    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, BidRequest bidRequest) {
-        try {
-            return BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur());
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
