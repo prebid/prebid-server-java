@@ -18,7 +18,6 @@ public abstract class VertxTest {
     }
 
     protected static String jsonFrom(String file) throws IOException {
-        // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(VertxTest.class.getResourceAsStream(file)));
     }
 
