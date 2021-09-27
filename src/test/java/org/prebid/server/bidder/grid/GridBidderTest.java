@@ -2,7 +2,6 @@ package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -29,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -112,31 +112,20 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyModifyRequestExt() throws JsonProcessingException {
+    public void makeHttpRequestsShouldCorrectlyModifyRequestExt() throws IOException {
         // given
-        final ObjectNode impUserKeywordsNode = (ObjectNode) mapper.readTree(
-                "{\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
-                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
-        final ObjectNode impSiteKeywordsNode = (ObjectNode) mapper.readTree(
-                "{\"firstPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
-                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}]}");
-        final ExtImpGrid impExt = ExtImpGrid.builder()
-                .data(ExtImpGridData.of("pbadslot",
-                        ExtImpGridDataAdServer.of("name", "adslot")))
-                .bidder(ExtImpGridBidder.of(1, Keywords.of(impUserKeywordsNode, impSiteKeywordsNode)))
-                .build();
+        final Keywords impExtKeywords = mapper.convertValue(
+                jsonNodeFrom("bidder/grid/imp-ext-keywords.json"), Keywords.class);
 
-        final ExtRequest extRequest = ExtRequest.of(null);
-        extRequest.addProperty("keywords", mapper.readTree(
-                "{\"user\": {\"secondPublisher\":[{\"name\":\"secondKeywordsUserSection\","
-                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}, "
-                        + "\"site\": {\"secondPublisher\":[{\"name\":\"secondKeywordsSiteSection\","
-                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}}"));
+        final ExtImpGrid impExt = ExtImpGrid.builder()
+                .data(ExtImpGridData.of("pbadslot", ExtImpGridDataAdServer.of("name", "adslot")))
+                .bidder(ExtImpGridBidder.of(1, impExtKeywords))
+                .build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.valueToTree(impExt)).build()))
                 .id("request_id")
-                .ext(extRequest)
+                .ext(mapper.convertValue(jsonNodeFrom("bidder/grid/request-ext.json"), ExtRequest.class))
                 .site(Site.builder().keywords("siteKeyword1,siteKeyword2").build())
                 .user(User.builder().keywords("userKeyword1,userKeyword2").build())
                 .build();
@@ -145,25 +134,14 @@ public class GridBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedRequestExtJson =
-                "{\"user\":{\"ortb2\":[{\"name\":\"keywords\",\"segments\":[{\"name\":\"keywords\","
-                        + "\"value\":\"userKeyword1\"},{\"name\":\"keywords\",\"value\":\"userKeyword2\"}]}],"
-                        + "\"firstPublisher\":[{\"name\":\"firstKeywordsUserSection\","
-                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
-                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsUserSection\","
-                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]},"
-                        + "\"site\":{\"ortb2\":[{\"name\":\"keywords\",\"segments\":[{\"name\":\"keywords\","
-                        + "\"value\":\"siteKeyword1\"},{\"name\":\"keywords\",\"value\":\"siteKeyword2\"}]}],"
-                        + "\"firstPublisher\":[{\"name\":\"firstKeywordsSiteSection\","
-                        + "\"segments\":[{\"name\":\"segment1\",\"value\":\"value1\"}]}],"
-                        + "\"secondPublisher\":[{\"name\":\"secondKeywordsSiteSection\","
-                        + "\"segments\":[{\"name\":\"segment2\",\"value\":\"value2\"}]}]}}";
+        final ExtRequest expectedRequestExt = mapper.convertValue(
+                jsonNodeFrom("bidder/grid/expected-request-ext.json"), ExtRequest.class);
+
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(resultExtRequest -> resultExtRequest.getProperty("keywords"))
-                .extracting(JsonNode::toString)
-                .containsExactly(expectedRequestExtJson);
+                .containsExactly(expectedRequestExt);
     }
 
     @Test
@@ -369,5 +347,9 @@ public class GridBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static JsonNode jsonNodeFrom(String path) throws IOException {
+        return mapper.readTree(VertxTest.class.getResourceAsStream(path));
     }
 }
