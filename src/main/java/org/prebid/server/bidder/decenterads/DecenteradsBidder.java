@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Decenterads {@link Bidder} implementation.
- */
 public class DecenteradsBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

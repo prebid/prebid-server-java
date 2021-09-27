@@ -94,7 +94,6 @@ public class BidderCatalogTest {
                 null,
                 99,
                 true,
-                true,
                 false);
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
@@ -168,7 +167,6 @@ public class BidderCatalogTest {
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 

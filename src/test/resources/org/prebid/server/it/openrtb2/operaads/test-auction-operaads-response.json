@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "improvedigital",
+      "seat": "operaads",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "improvedigital": "{{ improvedigital.response_time_ms }}"
+      "operaads": "{{ operaads.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

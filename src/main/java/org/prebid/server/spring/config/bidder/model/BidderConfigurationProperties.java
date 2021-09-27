@@ -11,7 +11,6 @@ import org.springframework.validation.annotation.Validated;
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -29,15 +28,13 @@ public class BidderConfigurationProperties {
     @NotBlank
     private String endpoint;
 
-    private Boolean pbsEnforcesGdpr;
-
     private Boolean pbsEnforcesCcpa;
 
     private Boolean modifyingVastXmlAllowed;
 
-    private List<String> deprecatedNames = Collections.emptyList();
+    private List<String> deprecatedNames;
 
-    private Map<String, Object> aliases = Collections.emptyMap();
+    private Map<String, Object> aliases;
 
     @NotNull
     private MetaInfo metaInfo;
@@ -45,7 +42,7 @@ public class BidderConfigurationProperties {
     @NotNull
     private UsersyncConfigurationProperties usersync;
 
-    private Map<String, String> extraInfo = Collections.emptyMap();
+    private Map<String, String> extraInfo;
 
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
@@ -56,9 +53,11 @@ public class BidderConfigurationProperties {
     @PostConstruct
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
-        pbsEnforcesGdpr = ObjectUtils.defaultIfNull(pbsEnforcesGdpr, defaultProperties.getPbsEnforcesGdpr());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
                 defaultProperties.getModifyingVastXmlAllowed());
+        aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
+        deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
+        extraInfo = ObjectUtils.defaultIfNull(extraInfo, defaultProperties.getExtraInfo());
     }
 }
