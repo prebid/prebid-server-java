@@ -58,7 +58,7 @@ public class TargetingServiceTest extends VertxTest {
     public void parseTargetingDefinitionShouldReturnValidExpression() throws IOException {
         // when
         final TargetingDefinition definition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-valid-targeting-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-valid-targeting-definition.json"), "lineItemId");
 
         // then
         assertThat(definition).isNotNull().isEqualTo(TargetingDefinition.of(
@@ -149,7 +149,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenTopLevelFieldIsNonObject() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-non-object.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-non-object.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected array, got NUMBER");
     }
@@ -157,7 +157,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenTopLevelObjectHasMultipleFields() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-multiple-fields.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-multiple-fields.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected only one element in the object, got 2");
     }
@@ -165,7 +165,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenBooleanOperatorArgumentHasMultipleFields() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-multiple-fields-boolean-args.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-multiple-fields-boolean-args.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected only one element in the object, got 2");
     }
@@ -173,7 +174,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenFieldIsUnknown() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-unknown-field.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-unknown-field.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected either boolean operator or targeting category, got aaa");
     }
@@ -181,7 +182,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenAndWithNonArray() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-and-with-non-array.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-and-with-non-array.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected array, got OBJECT");
     }
@@ -189,7 +190,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenNotWithNonObject() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-not-with-non-object.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-not-with-non-object.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected object, got ARRAY");
     }
@@ -197,7 +198,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithNonObject() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-category-non-object.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-category-non-object.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected object, got NUMBER");
     }
@@ -205,7 +206,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenFunctionHasMultipleFields() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-multiple-fields-function.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-multiple-fields-function.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected only one element in the object, got 2");
     }
@@ -213,7 +214,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenUnknownFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-unknown-function.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-unknown-function.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected matching function, got $abc");
     }
@@ -221,7 +222,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithIncompatibleFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-category-incompatible-function.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-category-incompatible-function.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected $intersects matching function, got $in");
     }
@@ -229,7 +231,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsNonArray() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-non-array.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-intersects-non-array.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected array, got OBJECT");
     }
@@ -237,7 +239,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsSizesWithNonObjects() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-sizes-non-objects.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-intersects-sizes-non-objects.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected object, got NUMBER");
     }
@@ -245,7 +248,9 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsSizesWithNonReadableSize() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-sizes-non-readable-size.json"), null))
+                jsonNodeFrom(
+                        "targeting/test-invalid-targeting-definition-intersects-sizes-non-readable-size.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessageStartingWith("Exception occurred while parsing size: "
                         + "Cannot deserialize instance of `java.lang.Integer`");
@@ -254,7 +259,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsSizesWithEmptySize() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-sizes-empty-size.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-intersects-sizes-empty-size.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Height and width in size definition could not be null or missing");
     }
@@ -262,7 +268,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsStringsWithNonString() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-strings-non-string.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-intersects-strings-non-string.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected string, got NUMBER");
     }
@@ -270,7 +277,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenIntersectsStringsWithEmptyString() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-intersects-strings-empty.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-intersects-strings-empty.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("String value could not be empty");
     }
@@ -278,7 +285,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenUnknownStringFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-unknown-string-function.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-unknown-string-function.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected matching function, got $abc");
     }
@@ -286,7 +293,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithIncompatibleStringFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-category-incompatible-string-function.json"),
+                jsonNodeFrom(
+                        "targeting/test-invalid-targeting-definition-category-incompatible-string-function.json"),
                 null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected one of $matches, $in matching functions, got $intersects");
@@ -295,7 +303,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenMatchesWithNonString() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-matches-non-string.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-matches-non-string.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected string, got NUMBER");
     }
@@ -303,7 +311,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenMatchesWithEmptyString() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-matches-empty.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-matches-empty.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("String value could not be empty");
     }
@@ -311,7 +319,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenInIntegersWithNonInteger() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-in-integers-non-integer.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-in-integers-non-integer.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected integer, got STRING");
     }
@@ -319,7 +327,9 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithIncompatibleGeoFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-category-incompatible-geo-function.json"), null))
+                jsonNodeFrom(
+                        "targeting/test-invalid-targeting-definition-category-incompatible-geo-function.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected $within matching function, got $intersects");
     }
@@ -327,7 +337,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenWithinWithNonObject() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-within-non-object.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-within-non-object.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected object, got ARRAY");
     }
@@ -335,7 +345,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenWithinWithNonReadableGeoRegion() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-within-non-readable-georegion.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-within-non-readable-georegion.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessageStartingWith("Exception occurred while parsing geo region: "
                         + "Cannot deserialize instance of `java.lang.Float`");
@@ -344,17 +355,17 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenWithinWithEmptyGeoRegion() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-within-empty-georegion.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-within-empty-georegion.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Lat, lon and radiusMiles in geo region definition could not be null or missing");
     }
 
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithIncompatibleSegmentFunction() {
+        final String targetingDefinitionJsonPath =
+                "targeting/test-invalid-targeting-definition-category-incompatible-segment-function.json";
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom(
-                        "targeting/test-invalid-targeting-definition-category-incompatible-segment-function.json"),
-                null))
+                jsonNodeFrom(targetingDefinitionJsonPath), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected $intersects matching function, got $in");
     }
@@ -362,7 +373,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenUnknownTypedFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-unknown-typed-function.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-unknown-typed-function.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected matching function, got $abc");
     }
@@ -370,7 +381,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenCategoryWithIncompatibleTypedFunction() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-category-incompatible-typed-function.json"),
+                jsonNodeFrom(
+                        "targeting/test-invalid-targeting-definition-category-incompatible-typed-function.json"),
                 null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected one of $matches, $in, $intersects matching functions, got $within");
@@ -379,7 +391,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenTypedFunctionWithIncompatibleType() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-typed-function-incompatible-type.json"), null))
+                jsonNodeFrom("targeting/test-invalid-targeting-definition-typed-function-incompatible-type.json"),
+                null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected integer or string, got BOOLEAN");
     }
@@ -387,7 +400,8 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void parseTargetingDefinitionShouldFailWhenTypedFunctionWithMixedTypes() {
         assertThatThrownBy(() -> targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-invalid-targeting-definition-typed-function-mixed-types.json"), null))
+                jsonNodeFrom(
+                        "targeting/test-invalid-targeting-definition-typed-function-mixed-types.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessage("Expected integer, got STRING");
     }
@@ -464,7 +478,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotInIntegers() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-in-integers-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-in-integers-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .build();
@@ -490,7 +504,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotInStrings() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-in-strings-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-in-strings-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
@@ -514,7 +528,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void matchesTargetingShouldReturnTrueForNotIntersectsInteger() throws IOException {
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-intersects-integer-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-intersects-integer-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
@@ -539,7 +553,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotIntersectsSizes() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-intersects-sizes-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-intersects-sizes-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -566,7 +580,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotWithin() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-within-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-within-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder()
@@ -594,7 +608,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotFalseAnd() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-and-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-and-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -621,7 +635,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForNotMatches() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-matches-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-matches-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
@@ -647,7 +661,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotTrueOr() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-not-or-definition.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-not-or-definition.json"), "lineItemId");
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -674,7 +688,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForDeviceExt() throws IOException {
         // given
         final TargetingDefinition targetingDefinition = targetingService.parseTargetingDefinition(
-                jsonFrom("targeting/test-device-targeting.json"), "lineItemId");
+                jsonNodeFrom("targeting/test-device-targeting.json"), "lineItemId");
 
         final ExtGeo extGeo = ExtGeo.of();
         extGeo.addProperty("netacuity", mapper.createObjectNode().set("country", new TextNode("us")));
@@ -886,7 +900,7 @@ public class TargetingServiceTest extends VertxTest {
         assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
     }
 
-    private static JsonNode jsonFrom(String file) throws IOException {
+    protected static JsonNode jsonNodeFrom(String file) throws IOException {
         return mapper.readTree(TargetingServiceTest.class.getResourceAsStream(file));
     }
 
