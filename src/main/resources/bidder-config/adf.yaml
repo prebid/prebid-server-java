@@ -1,12 +1,6 @@
 adapters:
   adf:
-    enabled: false
     endpoint: https://adx.adform.net/adx/openrtb
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: scope.sspp@adform.com
       app-media-types:

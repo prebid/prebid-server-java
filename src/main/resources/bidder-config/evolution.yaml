@@ -1,12 +1,6 @@
 adapters:
   e_volution:
-    enabled: false
     endpoint: http://service.e-volution.ai/pbserver
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: { }
     meta-info:
       maintainer-email: admin@e-volution.ai
       app-media-types:

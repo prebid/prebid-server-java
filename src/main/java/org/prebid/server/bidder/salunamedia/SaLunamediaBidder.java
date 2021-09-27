@@ -23,9 +23,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * SaLunamedia {@link Bidder} implementation
- */
 public class SaLunamediaBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

@@ -46,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGeoVendor;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.time.Clock;
@@ -59,7 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -231,7 +231,7 @@ public class DealsProcessor {
     private Device updateDevice(Device device, DeviceInfo deviceInfo, GeoInfo geoInfo) {
         final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
 
-        ExtDevice updatedExtDevice = getIfNotNull(device, Device::getExt);
+        ExtDevice updatedExtDevice = ObjectUtil.getIfNotNull(device, Device::getExt);
         if (deviceInfo != null) {
             final ExtDeviceVendor extDeviceVendor = ExtDeviceVendor.builder()
                     .type(deviceInfo.getDeviceTypeRaw())
@@ -280,9 +280,9 @@ public class DealsProcessor {
     private Geo updateDeviceGeo(Device device, GeoInfo geoInfo) {
         final String geoInfoVendor = geoInfo.getVendor();
 
-        final Geo geo = getIfNotNull(device, Device::getGeo);
-        final ExtGeo extGeo = getIfNotNull(geo, Geo::getExt);
-        final JsonNode extGeoVendorNode = getIfNotNull(extGeo, node -> node.getProperty(geoInfoVendor));
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final ExtGeo extGeo = ObjectUtil.getIfNotNull(geo, Geo::getExt);
+        final JsonNode extGeoVendorNode = ObjectUtil.getIfNotNull(extGeo, node -> node.getProperty(geoInfoVendor));
         final ExtGeoVendor extGeoVendor = parseExt(extGeoVendorNode, ExtGeoVendor.class);
 
         final ExtGeo updatedExtGeoNode = extGeo != null ? extGeo : ExtGeo.of();
@@ -322,7 +322,7 @@ public class DealsProcessor {
      * Returns {@link User} populated with {@link UserDetails} data.
      */
     private User updateUser(User user, UserDetails userDetails, GeoInfo geoInfo) {
-        final ExtUser extUser = getIfNotNull(user, User::getExt);
+        final ExtUser extUser = ObjectUtil.getIfNotNull(user, User::getExt);
         final ExtUser.ExtUserBuilder extUserBuilder = extUser != null ? extUser.toBuilder() : ExtUser.builder();
 
         updateUserExtWithUserDetails(extUserBuilder, userDetails);
@@ -344,7 +344,8 @@ public class DealsProcessor {
     }
 
     private void updateUserExtWithGeoInfo(ExtUser.ExtUserBuilder extUserBuilder, GeoInfo geoInfo) {
-        final ZoneId timeZone = ObjectUtils.firstNonNull(getIfNotNull(geoInfo, GeoInfo::getTimeZone), clock.getZone());
+        final ZoneId timeZone = ObjectUtils.firstNonNull(
+                ObjectUtil.getIfNotNull(geoInfo, GeoInfo::getTimeZone), clock.getZone());
 
         final ZonedDateTime dateTime = ZonedDateTime.now(clock).withZoneSameInstant(timeZone);
 
@@ -450,7 +451,7 @@ public class DealsProcessor {
     }
 
     private static ExtDealLine toExtDealLine(Imp imp, LineItem lineItem) {
-        final List<Format> formats = getIfNotNull(imp.getBanner(), Banner::getFormat);
+        final List<Format> formats = ObjectUtil.getIfNotNull(imp.getBanner(), Banner::getFormat);
         final List<LineItemSize> lineItemSizes = lineItem.getSizes();
 
         final List<Format> lineSizes;
@@ -549,9 +550,5 @@ public class DealsProcessor {
                                                 Set<String> dealsOnlyBiddersToRemove, String messageTemplate) {
         auctionContext.getDeepDebugLog().add(null, Category.cleanup, () ->
                 String.format(messageTemplate, String.join(", ", dealsOnlyBiddersToRemove), imp.getId()));
-    }
-
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
     }
 }

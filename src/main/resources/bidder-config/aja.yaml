@@ -1,12 +1,6 @@
 adapters:
   aja:
-    enabled: false
     endpoint: https://ad.as.amanad.adtdp.com/v1/bid/4
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: dev@aja-kk.co.jp
       app-media-types:

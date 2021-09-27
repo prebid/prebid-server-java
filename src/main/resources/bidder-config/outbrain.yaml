@@ -1,12 +1,6 @@
 adapters:
   outbrain:
-    enabled: false
     endpoint: https://prebidtest.zemanta.com/api/bidder/prebidtest/bid/
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prog-ops-team@outbrain.com
       app-media-types:

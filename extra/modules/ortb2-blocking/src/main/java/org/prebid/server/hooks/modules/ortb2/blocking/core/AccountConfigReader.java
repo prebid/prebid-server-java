@@ -82,19 +82,19 @@ public class AccountConfigReader {
         final Set<String> requestMediaTypes = mediaTypesFrom(bidRequest);
 
         final Result<List<String>> badv =
-            blockedAttribute(BADV_FIELD, String.class, BLOCKED_ADOMAIN_FIELD, requestMediaTypes);
+                blockedAttribute(BADV_FIELD, String.class, BLOCKED_ADOMAIN_FIELD, requestMediaTypes);
         final Result<List<String>> bcat =
-            blockedAttribute(BCAT_FIELD, String.class, BLOCKED_ADV_CAT_FIELD, requestMediaTypes);
+                blockedAttribute(BCAT_FIELD, String.class, BLOCKED_ADV_CAT_FIELD, requestMediaTypes);
         final Result<List<String>> bapp =
-            blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
+                blockedAttribute(BAPP_FIELD, String.class, BLOCKED_APP_FIELD, requestMediaTypes);
         final Result<Map<String, List<Integer>>> btype =
-            blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, bidRequest);
+                blockedAttributesForImps(BTYPE_FIELD, Integer.class, BLOCKED_BANNER_TYPE_FIELD, bidRequest);
         final Result<Map<String, List<Integer>>> battr =
-            blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, bidRequest);
+                blockedAttributesForImps(BATTR_FIELD, Integer.class, BLOCKED_BANNER_ATTR_FIELD, bidRequest);
 
         return Result.of(
-            toBlockedAttributes(badv, bcat, bapp, btype, battr),
-            MergeUtils.mergeMessages(badv, bcat, bapp, btype, battr));
+                toBlockedAttributes(badv, bcat, bapp, btype, battr),
+                MergeUtils.mergeMessages(badv, bcat, bapp, btype, battr));
     }
 
     public Result<ResponseBlockingConfig> responseBlockingConfigFor(BidderBid bidderBid) {
@@ -102,38 +102,38 @@ public class AccountConfigReader {
         final String dealid = bidderBid.getBid().getDealid();
 
         final Result<BidAttributeBlockingConfig<String>> badv = blockingConfigForAttribute(
-            BADV_FIELD,
-            String.class,
-            BLOCK_UNKNOWN_ADOMAIN_FIELD,
-            ALLOWED_ADOMAIN_FOR_DEALS_FIELD,
-            bidMediaTypes,
-            dealid);
+                BADV_FIELD,
+                String.class,
+                BLOCK_UNKNOWN_ADOMAIN_FIELD,
+                ALLOWED_ADOMAIN_FOR_DEALS_FIELD,
+                bidMediaTypes,
+                dealid);
         final Result<BidAttributeBlockingConfig<String>> bcat = blockingConfigForAttribute(
-            BCAT_FIELD,
-            String.class,
-            BLOCK_UNKNOWN_ADV_CAT_FIELD,
-            ALLOWED_ADV_CAT_FOR_DEALS_FIELD,
-            bidMediaTypes,
-            dealid);
+                BCAT_FIELD,
+                String.class,
+                BLOCK_UNKNOWN_ADV_CAT_FIELD,
+                ALLOWED_ADV_CAT_FOR_DEALS_FIELD,
+                bidMediaTypes,
+                dealid);
         final Result<BidAttributeBlockingConfig<String>> bapp = blockingConfigForAttribute(
-            BAPP_FIELD,
-            String.class,
-            ALLOWED_APP_FOR_DEALS_FIELD,
-            bidMediaTypes,
-            dealid);
+                BAPP_FIELD,
+                String.class,
+                ALLOWED_APP_FOR_DEALS_FIELD,
+                bidMediaTypes,
+                dealid);
         final Result<BidAttributeBlockingConfig<Integer>> battr = blockingConfigForAttribute(
-            BATTR_FIELD,
-            Integer.class,
-            ALLOWED_BANNER_ATTR_FOR_DEALS,
-            bidMediaTypes,
-            dealid);
+                BATTR_FIELD,
+                Integer.class,
+                ALLOWED_BANNER_ATTR_FOR_DEALS,
+                bidMediaTypes,
+                dealid);
 
         final ResponseBlockingConfig response = ResponseBlockingConfig.builder()
-            .badv(badv.getValue())
-            .bcat(bcat.getValue())
-            .bapp(bapp.getValue())
-            .battr(battr.getValue())
-            .build();
+                .badv(badv.getValue())
+                .bcat(bcat.getValue())
+                .bapp(bapp.getValue())
+                .battr(battr.getValue())
+                .build();
 
         final List<String> warnings = MergeUtils.mergeMessages(badv, bcat, bapp, battr);
 
@@ -141,7 +141,7 @@ public class AccountConfigReader {
     }
 
     private <T> Result<List<T>> blockedAttribute(
-        String attribute, Class<T> attributeType, String fieldName, Set<String> actualMediaTypes) {
+            String attribute, Class<T> attributeType, String fieldName, Set<String> actualMediaTypes) {
 
         final JsonNode attributeConfig = attributeConfig(attribute);
         if (attributeConfig == null) {
@@ -149,7 +149,7 @@ public class AccountConfigReader {
         }
 
         final Result<JsonNode> override =
-            overrideFor(attributeConfig, actualMediaTypes, fieldName);
+                overrideFor(attributeConfig, actualMediaTypes, fieldName);
 
         final List<T> result = overrideArrayAttribute(attributeConfig, override.getValue(), attributeType, fieldName);
 
@@ -157,14 +157,14 @@ public class AccountConfigReader {
     }
 
     private <T> Result<Map<String, List<T>>> blockedAttributesForImps(
-        String attribute, Class<T> attributeType, String fieldName, BidRequest bidRequest) {
+            String attribute, Class<T> attributeType, String fieldName, BidRequest bidRequest) {
 
         final Map<String, List<T>> attributeValues = new HashMap<>();
         final List<Result<?>> results = new ArrayList<>();
 
         for (final Imp imp : bidRequest.getImp()) {
             final Result<List<T>> attributeForImp =
-                blockedAttribute(attribute, attributeType, fieldName, mediaTypesFrom(imp));
+                    blockedAttribute(attribute, attributeType, fieldName, mediaTypesFrom(imp));
 
             if (attributeForImp.hasValue()) {
                 attributeValues.put(imp.getId(), attributeForImp.getValue());
@@ -173,17 +173,17 @@ public class AccountConfigReader {
         }
 
         return Result.of(
-            !attributeValues.isEmpty() ? attributeValues : null,
-            MergeUtils.mergeMessages(results));
+                !attributeValues.isEmpty() ? attributeValues : null,
+                MergeUtils.mergeMessages(results));
     }
 
     private <T> Result<BidAttributeBlockingConfig<T>> blockingConfigForAttribute(
-        String attribute,
-        Class<T> attributeType,
-        String blockUnknownField,
-        String allowedForDealsField,
-        Set<String> bidMediaTypes,
-        String dealid) {
+            String attribute,
+            Class<T> attributeType,
+            String blockUnknownField,
+            String allowedForDealsField,
+            Set<String> bidMediaTypes,
+            String dealid) {
 
         final JsonNode attributeConfig = attributeConfig(attribute);
         if (attributeConfig == null) {
@@ -191,39 +191,39 @@ public class AccountConfigReader {
         }
 
         final Result<JsonNode> enforceBlocksOverrideResult =
-            overrideFor(attributeConfig, bidMediaTypes, ENFORCE_BLOCKS_FIELD);
+                overrideFor(attributeConfig, bidMediaTypes, ENFORCE_BLOCKS_FIELD);
         final boolean enforceBlocks =
-            mergeBoolean(attributeConfig, enforceBlocksOverrideResult.getValue(), ENFORCE_BLOCKS_FIELD);
+                mergeBoolean(attributeConfig, enforceBlocksOverrideResult.getValue(), ENFORCE_BLOCKS_FIELD);
 
         // for attributes that don't support blocking bids with unknown values
         final Result<JsonNode> blockUnknownOverrideResult = blockUnknownField != null
-            ? overrideFor(attributeConfig, bidMediaTypes, blockUnknownField)
-            : Result.empty();
+                ? overrideFor(attributeConfig, bidMediaTypes, blockUnknownField)
+                : Result.empty();
         final boolean blockUnknown = blockUnknownField != null
-            && mergeBoolean(attributeConfig, blockUnknownOverrideResult.getValue(), blockUnknownField);
+                && mergeBoolean(attributeConfig, blockUnknownOverrideResult.getValue(), blockUnknownField);
 
         final Set<T> dealExceptions =
-            StringUtils.isNotBlank(dealid)
-                ? mergeDealExceptions(
-                attributeConfig,
-                dealExceptionsFor(attributeConfig, dealid, allowedForDealsField),
-                attributeType,
-                allowedForDealsField)
-                : Collections.emptySet();
+                StringUtils.isNotBlank(dealid)
+                        ? mergeDealExceptions(
+                        attributeConfig,
+                        dealExceptionsFor(attributeConfig, dealid, allowedForDealsField),
+                        attributeType,
+                        allowedForDealsField)
+                        : Collections.emptySet();
 
         final BidAttributeBlockingConfig<T> blockingConfig =
-            BidAttributeBlockingConfig.of(enforceBlocks, blockUnknown, dealExceptions);
+                BidAttributeBlockingConfig.of(enforceBlocks, blockUnknown, dealExceptions);
         final List<String> warnings = MergeUtils.mergeMessages(enforceBlocksOverrideResult, blockUnknownOverrideResult);
 
         return Result.of(blockingConfig, warnings);
     }
 
     private <T> Result<BidAttributeBlockingConfig<T>> blockingConfigForAttribute(
-        String attribute,
-        Class<T> type,
-        String allowedForDealsField,
-        Set<String> bidMediaTypes,
-        String dealid) {
+            String attribute,
+            Class<T> type,
+            String allowedForDealsField,
+            Set<String> bidMediaTypes,
+            String dealid) {
 
         return blockingConfigForAttribute(attribute, type, null, allowedForDealsField, bidMediaTypes, dealid);
     }
@@ -241,8 +241,8 @@ public class AccountConfigReader {
 
     private static Set<String> mediaTypesFrom(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
-            .flatMap(imp -> mediaTypesFrom(imp).stream())
-            .collect(Collectors.toSet());
+                .flatMap(imp -> mediaTypesFrom(imp).stream())
+                .collect(Collectors.toSet());
     }
 
     private static Set<String> mediaTypesFrom(Imp imp) {
@@ -280,22 +280,22 @@ public class AccountConfigReader {
 
         for (final JsonNode override : overridesForField) {
             final JsonNode conditions = requireNonNull(
-                objectNodeFrom(override, CONDITIONS_FIELD), CONDITIONS_FIELD);
+                    objectNodeFrom(override, CONDITIONS_FIELD), CONDITIONS_FIELD);
             final List<String> bidders = typedArrayFrom(conditions, String.class, BIDDERS_FIELD);
             final List<String> mediaTypes = typedArrayFrom(conditions, String.class, MEDIA_TYPE_FIELD);
 
             if (bidders == null && mediaTypes == null) {
                 throw new InvalidAccountConfigurationException(
-                    String.format("%s field in account configuration must contain at least one of %s or %s",
-                        CONDITIONS_FIELD,
-                        BIDDERS_FIELD,
-                        MEDIA_TYPE_FIELD));
+                        String.format("%s field in account configuration must contain at least one of %s or %s",
+                                CONDITIONS_FIELD,
+                                BIDDERS_FIELD,
+                                MEDIA_TYPE_FIELD));
             }
 
             final boolean catchAllBidders = bidders == null;
             final boolean matchesBidder = catchAllBidders || bidders.contains(bidder);
             final boolean matchesMediaTypes =
-                mediaTypes == null || !Collections.disjoint(mediaTypes, actualMediaTypes);
+                    mediaTypes == null || !Collections.disjoint(mediaTypes, actualMediaTypes);
 
             if (matchesBidder && matchesMediaTypes) {
                 final JsonNode actions = requireNonNull(override.get(OVERRIDE_FIELD), OVERRIDE_FIELD);
@@ -309,39 +309,39 @@ public class AccountConfigReader {
     }
 
     private Result<JsonNode> toResult(
-        List<JsonNode> specificBidderResults,
-        List<JsonNode> catchAllBidderResults,
-        Set<String> actualMediaTypes) {
+            List<JsonNode> specificBidderResults,
+            List<JsonNode> catchAllBidderResults,
+            Set<String> actualMediaTypes) {
 
         final JsonNode value = ObjectUtils.firstNonNull(
-            specificBidderResults.size() > 0 ? specificBidderResults.get(0) : null,
-            catchAllBidderResults.size() > 0 ? catchAllBidderResults.get(0) : null);
+                specificBidderResults.size() > 0 ? specificBidderResults.get(0) : null,
+                catchAllBidderResults.size() > 0 ? catchAllBidderResults.get(0) : null);
         final List<String> warnings = debugEnabled && specificBidderResults.size() + catchAllBidderResults.size() > 1
-            ? Collections.singletonList(String.format(
-            "More than one conditions matches request. Bidder: %s, request media types: %s",
-            bidder,
-            actualMediaTypes))
-            : null;
+                ? Collections.singletonList(String.format(
+                "More than one conditions matches request. Bidder: %s, request media types: %s",
+                bidder,
+                actualMediaTypes))
+                : null;
 
         return Result.of(value, warnings);
     }
 
     private static BlockedAttributes toBlockedAttributes(
-        Result<List<String>> badv,
-        Result<List<String>> bcat,
-        Result<List<String>> bapp,
-        Result<Map<String, List<Integer>>> btype,
-        Result<Map<String, List<Integer>>> battr) {
+            Result<List<String>> badv,
+            Result<List<String>> bcat,
+            Result<List<String>> bapp,
+            Result<Map<String, List<Integer>>> btype,
+            Result<Map<String, List<Integer>>> battr) {
 
         return badv.hasValue() || bcat.hasValue() || bapp.hasValue() || btype.hasValue() || battr.hasValue()
-            ? BlockedAttributes.builder()
-            .badv(badv.getValue())
-            .bcat(bcat.getValue())
-            .bapp(bapp.getValue())
-            .btype(btype.getValue())
-            .battr(battr.getValue())
-            .build()
-            : null;
+                ? BlockedAttributes.builder()
+                .badv(badv.getValue())
+                .bcat(bcat.getValue())
+                .bapp(bapp.getValue())
+                .btype(btype.getValue())
+                .battr(battr.getValue())
+                .build()
+                : null;
     }
 
     private static List<JsonNode> dealExceptionsFor(JsonNode parent, String dealid, String field) {
@@ -358,9 +358,9 @@ public class AccountConfigReader {
 
             if (dealIds == null) {
                 throw new InvalidAccountConfigurationException(String.format(
-                    "%s field in account configuration must contain %s",
-                    CONDITIONS_FIELD,
-                    DEALIDS_FIELD));
+                        "%s field in account configuration must contain %s",
+                        CONDITIONS_FIELD,
+                        DEALIDS_FIELD));
             }
 
             if (dealIds.contains(dealid)) {
@@ -379,12 +379,12 @@ public class AccountConfigReader {
 
     private static boolean mergeBoolean(JsonNode parent, JsonNode override, String field) {
         return BooleanUtils.toBooleanDefaultIfNull(
-            override != null ? typedAs(override, Boolean.class, OVERRIDE_FIELD) : null,
-            BooleanUtils.toBooleanDefaultIfNull(typedFieldFrom(parent, Boolean.class, field), false));
+                override != null ? typedAs(override, Boolean.class, OVERRIDE_FIELD) : null,
+                BooleanUtils.toBooleanDefaultIfNull(typedFieldFrom(parent, Boolean.class, field), false));
     }
 
     private static <T> Set<T> mergeDealExceptions(
-        JsonNode parent, List<JsonNode> overrides, Class<T> type, String field) {
+            JsonNode parent, List<JsonNode> overrides, Class<T> type, String field) {
 
         final List<T> defaultValue = typedArrayFrom(parent, type, field);
         if (defaultValue == null && CollectionUtils.isEmpty(overrides)) {
@@ -415,12 +415,12 @@ public class AccountConfigReader {
 
         if (!node.isArray()) {
             throw new InvalidAccountConfigurationException(
-                String.format("%s field in account configuration is not an array", field));
+                    String.format("%s field in account configuration is not an array", field));
         }
 
         return StreamUtil.asStream(node.elements())
-            .map(element -> typedAs(element, type, field))
-            .collect(Collectors.toList());
+                .map(element -> typedAs(element, type, field))
+                .collect(Collectors.toList());
     }
 
     private static <T> T typedFieldFrom(JsonNode parent, Class<T> type, String field) {
@@ -453,7 +453,7 @@ public class AccountConfigReader {
         final Boolean hasDesiredType = checker.apply(node);
         if (!hasDesiredType) {
             throw new InvalidAccountConfigurationException(
-                String.format("%s field in account configuration has unexpected type. Expected %s", field, type));
+                    String.format("%s field in account configuration has unexpected type. Expected %s", field, type));
         }
 
         return (T) converter.apply(node);
@@ -467,7 +467,7 @@ public class AccountConfigReader {
 
         if (!child.isObject()) {
             throw new InvalidAccountConfigurationException(
-                String.format("%s field in account configuration is not an object", field));
+                    String.format("%s field in account configuration is not an object", field));
         }
 
         return child;
@@ -481,7 +481,7 @@ public class AccountConfigReader {
 
         if (!child.isArray() || !StreamUtil.asStream(child.elements()).allMatch(JsonNode::isObject)) {
             throw new InvalidAccountConfigurationException(
-                String.format("%s field in account configuration is not an array of objects", field));
+                    String.format("%s field in account configuration is not an array of objects", field));
         }
 
         return child;
@@ -490,7 +490,7 @@ public class AccountConfigReader {
     private static <T> T requireNonNull(T object, String field) {
         if (object == null) {
             throw new InvalidAccountConfigurationException(
-                String.format("%s field in account configuration is missing", field));
+                    String.format("%s field in account configuration is missing", field));
         }
 
         return object;
