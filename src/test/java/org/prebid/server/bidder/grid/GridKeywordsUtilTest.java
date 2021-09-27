@@ -276,8 +276,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsShouldCorrectlyResolveUserAndSiteSections() throws IOException {
         // given
-        final ObjectNode userSectionNode = (ObjectNode) jsonNodeFrom("bidder/grid/util/site-section.json");
-        final ObjectNode siteSectionNode = (ObjectNode) jsonNodeFrom("bidder/grid/util/user-section.json");
+        final ObjectNode userSectionNode = objectNodeFrom("util/site-section.json");
+        final ObjectNode siteSectionNode = objectNodeFrom("util/user-section.json");
 
         final Keywords keywords = Keywords.of(userSectionNode, siteSectionNode);
 
@@ -292,37 +292,33 @@ public class GridKeywordsUtilTest extends VertxTest {
     public void mergeShouldCorrectlyMergeKeywordsArraysNodes() throws IOException {
         // given
         final Keywords firstKeywords = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/util/keywords-array-nodes-1.json"), Keywords.class);
+                objectNodeFrom("util/keywords-array-nodes-1.json"), Keywords.class);
         final Keywords secondKeywords = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/util/keywords-array-nodes-2.json"), Keywords.class);
+                objectNodeFrom("util/keywords-array-nodes-2.json"), Keywords.class);
 
         // when
         final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
 
         // then
-        final JsonNode expectedResultNode = jsonNodeFrom("bidder/grid/util/keywords-array-nodes-merge-result.json");
-
-        assertThat(result)
-                .isEqualTo(mapper.convertValue(expectedResultNode, Keywords.class));
+        assertThat(result).isEqualTo(
+                mapper.convertValue(objectNodeFrom("util/keywords-array-nodes-merge-result.json"), Keywords.class));
     }
 
     @Test
     public void mergeShouldCorrectlyMergeSectionsPublishersArraysNodes() throws IOException {
         // given
         final Keywords firstKeywords = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/util/publisher-array-nodes-1.json"), Keywords.class);
+                objectNodeFrom("util/publisher-array-nodes-1.json"), Keywords.class);
 
         final Keywords secondKeywords = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/util/publisher-array-nodes-2.json"), Keywords.class);
+                objectNodeFrom("util/publisher-array-nodes-2.json"), Keywords.class);
 
         // when
         final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
 
         // then
-        final JsonNode expectedResultNode = jsonNodeFrom("bidder/grid/util/publisher-array-nodes-merge-result.json");
-
-        assertThat(result)
-                .isEqualTo(mapper.convertValue(expectedResultNode, Keywords.class));
+        assertThat(result).isEqualTo(
+                mapper.convertValue(objectNodeFrom("util/publisher-array-nodes-merge-result.json"), Keywords.class));
     }
 
     private static ObjectNode givenKeywordsSectionFromOpenRtb(String... keywords) {
@@ -363,7 +359,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         return givenPublisherSegmentsNode(Arrays.stream(values).map(TextNode::valueOf).toArray(TextNode[]::new));
     }
 
-    private static JsonNode jsonNodeFrom(String path) throws IOException {
-        return mapper.readTree(VertxTest.class.getResourceAsStream(path));
+    private static ObjectNode objectNodeFrom(String path) throws IOException {
+        return (ObjectNode) mapper.readTree(GridKeywordsUtil.class.getResourceAsStream(path));
     }
 }

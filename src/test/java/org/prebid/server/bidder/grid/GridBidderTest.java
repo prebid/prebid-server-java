@@ -114,8 +114,7 @@ public class GridBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectlyModifyRequestExt() throws IOException {
         // given
-        final Keywords impExtKeywords = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/imp-ext-keywords.json"), Keywords.class);
+        final Keywords impExtKeywords = mapper.convertValue(jsonNodeFrom("imp-ext-keywords.json"), Keywords.class);
 
         final ExtImpGrid impExt = ExtImpGrid.builder()
                 .data(ExtImpGridData.of("pbadslot", ExtImpGridDataAdServer.of("name", "adslot")))
@@ -125,7 +124,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.valueToTree(impExt)).build()))
                 .id("request_id")
-                .ext(mapper.convertValue(jsonNodeFrom("bidder/grid/request-ext.json"), ExtRequest.class))
+                .ext(mapper.convertValue(jsonNodeFrom("request-ext.json"), ExtRequest.class))
                 .site(Site.builder().keywords("siteKeyword1,siteKeyword2").build())
                 .user(User.builder().keywords("userKeyword1,userKeyword2").build())
                 .build();
@@ -134,14 +133,11 @@ public class GridBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
 
         // then
-        final ExtRequest expectedRequestExt = mapper.convertValue(
-                jsonNodeFrom("bidder/grid/expected-request-ext.json"), ExtRequest.class);
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(expectedRequestExt);
+                .containsExactly(mapper.convertValue(jsonNodeFrom("expected-request-ext.json"), ExtRequest.class));
     }
 
     @Test
@@ -350,6 +346,6 @@ public class GridBidderTest extends VertxTest {
     }
 
     private static JsonNode jsonNodeFrom(String path) throws IOException {
-        return mapper.readTree(VertxTest.class.getResourceAsStream(path));
+        return mapper.readTree(GridBidderTest.class.getResourceAsStream(path));
     }
 }
