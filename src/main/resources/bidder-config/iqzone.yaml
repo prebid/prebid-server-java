@@ -1,8 +1,6 @@
 adapters:
   iqzone:
     endpoint: http://smartssp-us-east.iqzone.com/pserver
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: smartssp@iqzone.com
       app-media-types:

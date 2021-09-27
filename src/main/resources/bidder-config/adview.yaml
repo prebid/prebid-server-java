@@ -1,8 +1,6 @@
 adapters:
   adview:
     endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: partner@adview.com
       site-media-types:

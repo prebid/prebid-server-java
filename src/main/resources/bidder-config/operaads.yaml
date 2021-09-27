@@ -1,8 +1,6 @@
 adapters:
   operaads:
     endpoint: https://s.adx.opera.com/ortb/v2/{{PublisherID}}?ep={{AccountID}}
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: adtech-prebid-group@opera.com
       app-media-types:
