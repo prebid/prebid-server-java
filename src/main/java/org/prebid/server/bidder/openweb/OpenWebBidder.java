@@ -88,7 +88,8 @@ public class OpenWebBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpOpenweb impExt) {
-        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode().set("openweb", imp.getExt());
+        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode()
+                .set("openweb", mapper.mapper().valueToTree(impExt));
         final BigDecimal bidFloor = impExt.getBidFloor();
         final BigDecimal resolvedBidFloor = BidderUtil.isValidPrice(bidFloor)
                 ? bidFloor
