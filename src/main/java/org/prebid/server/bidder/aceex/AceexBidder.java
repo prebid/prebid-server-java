@@ -106,7 +106,6 @@ public class AceexBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid.getImpid(), bidRequest.getImp()),
                         bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

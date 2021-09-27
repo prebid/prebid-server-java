@@ -65,7 +65,6 @@ public class AceexBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = aceexBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Ext.bidder not provided"));
     }
@@ -118,11 +117,8 @@ public class AceexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Bad Server Response");
-                });
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Bad Server Response"));
     }
 
     @Test
@@ -136,11 +132,8 @@ public class AceexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Empty SeatBid array");
-                });
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
     }
 
     @Test

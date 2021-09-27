@@ -1,12 +1,6 @@
 adapters:
   aceex:
-    enabled: false
     endpoint: http://bl-us.aceex.io/?uqhash={{AccountId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: tech@aceex.io
       app-media-types:
