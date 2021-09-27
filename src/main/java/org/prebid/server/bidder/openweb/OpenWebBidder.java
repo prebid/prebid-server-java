@@ -88,8 +88,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpOpenweb impExt) {
-        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode()
-                .set("openweb", mapper.mapper().valueToTree(impExt));
+        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode().set("openweb", imp.getExt());
         final BigDecimal bidFloor = impExt.getBidFloor();
         final BigDecimal resolvedBidFloor = BidderUtil.isValidPrice(bidFloor)
                 ? bidFloor
@@ -147,12 +146,12 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> constructBidderBid(bid, bidResponse, bidRequest.getImp(), errors))
+                .map(bid -> toBidderBid(bid, bidResponse, bidRequest.getImp(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, BidResponse bidResponse, List<Imp> imps, List<BidderError> errors) {
         try {
             return BidderBid.of(bid, getBidType(bid.getId(), bid.getImpid(), imps), bidResponse.getCur());
         } catch (PreBidException e) {
