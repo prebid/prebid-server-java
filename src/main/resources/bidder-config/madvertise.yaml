@@ -1,12 +1,6 @@
 adapters:
   madvertise:
-    enabled: false
     endpoint: https://mobile.mng-ads.com/bidrequest{{ZoneID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@madvertise.com
       app-media-types:

@@ -26,6 +26,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beintoo.ExtImpBeintoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -123,7 +124,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
         final String stringBidfloor = extImpBeintoo.getBidFloor();
         final BigDecimal bidfloor = StringUtils.isBlank(stringBidfloor) ? null : new BigDecimal(stringBidfloor);
-        return (bidfloor != null ? bidfloor.compareTo(BigDecimal.ZERO) : 0) > 0
+        return BidderUtil.isValidPrice(bidfloor)
                 ? impBuilder.bidfloor(bidfloor).build()
                 : impBuilder.build();
     }

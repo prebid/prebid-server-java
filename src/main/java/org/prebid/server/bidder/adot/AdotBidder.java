@@ -29,9 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adot {@link Bidder} implementation.
- */
 public class AdotBidder implements Bidder<BidRequest> {
 
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
@@ -50,13 +47,13 @@ public class AdotBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(bidRequest)
-                        .body(mapper.encode(bidRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(bidRequest)
+                                .body(mapper.encode(bidRequest))
+                                .build()),
                 errors);
     }
 

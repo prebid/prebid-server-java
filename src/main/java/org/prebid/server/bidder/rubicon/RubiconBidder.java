@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -70,6 +69,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
+import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContextDataAdserver;
@@ -89,6 +90,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -111,9 +113,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-/**
- * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
- */
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
@@ -143,8 +142,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
-    private static final Set<Integer> USER_SEGTAXES = ImmutableSet.of(4);
-    private static final Set<Integer> SITE_SEGTAXES = ImmutableSet.of(1, 2, 5, 6);
+
+    private static final Set<Integer> USER_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Collections.singletonList(4)));
+    private static final Set<Integer> SITE_SEGTAXES = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(1, 2, 5, 6)));
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
@@ -179,7 +181,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
+        headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
     }
 
     @Override
@@ -196,21 +198,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
                 parseRubiconImpExts(imps, errors);
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
+        final String uri = makeUri(bidRequest);
 
         for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt : impToImpExt.entrySet()) {
             try {
                 final Imp imp = impToExt.getKey();
                 final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
-                final BidRequest singleRequest = createSingleRequest(
+                final BidRequest singleImpRequest = createSingleRequest(
                         imp, ext.getPrebid(), ext.getBidder(), bidRequest, impLanguage, errors);
-                final String body = mapper.encode(singleRequest);
-                httpRequests.add(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(makeUri(bidRequest))
-                        .body(body)
-                        .headers(headers)
-                        .payload(singleRequest)
-                        .build());
+                if (hasDeals(imp)) {
+                    httpRequests.addAll(createDealsRequests(singleImpRequest, uri));
+                } else {
+                    httpRequests.add(createHttpRequest(singleImpRequest, uri));
+                }
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -460,7 +460,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : null;
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
     }
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
@@ -1251,6 +1251,64 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return builder.pchain(pchain).build();
         }
         return source;
+    }
+
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, String uri) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(uri)
+                .body(mapper.encode(bidRequest))
+                .headers(headers)
+                .payload(bidRequest)
+                .build();
+    }
+
+    private static boolean hasDeals(Imp imp) {
+        return imp.getPmp() != null && CollectionUtils.isNotEmpty(imp.getPmp().getDeals());
+    }
+
+    private List<HttpRequest<BidRequest>> createDealsRequests(BidRequest bidRequest, String uri) {
+        final Imp singleImp = bidRequest.getImp().get(0);
+        return singleImp.getPmp().getDeals().stream()
+                .map(deal -> mapper.mapper().convertValue(deal.getExt(), ExtDeal.class))
+                .filter(Objects::nonNull)
+                .map(ExtDeal::getLine)
+                .filter(Objects::nonNull)
+                .map(lineItem -> createLineItemBidRequest(lineItem, bidRequest, singleImp))
+                .map((BidRequest request) -> createHttpRequest(request, uri))
+                .collect(Collectors.toList());
+    }
+
+    private BidRequest createLineItemBidRequest(ExtDealLine lineItem, BidRequest bidRequest, Imp imp) {
+        final Imp dealsImp = imp.toBuilder()
+                .banner(modifyBanner(imp.getBanner(), lineItem.getSizes()))
+                .ext(modifyRubiconImpExt(imp.getExt(), bidRequest.getExt(), lineItem.getExtLineItemId(),
+                        getAdSlot(imp, extImpContext(imp))))
+                .build();
+
+        return bidRequest.toBuilder()
+                .imp(Collections.singletonList(dealsImp))
+                .build();
+    }
+
+    private static Banner modifyBanner(Banner banner, List<Format> sizes) {
+        return CollectionUtils.isEmpty(sizes) || banner == null ? banner : banner.toBuilder().format(sizes).build();
+    }
+
+    private ObjectNode modifyRubiconImpExt(ObjectNode impExtNode, ExtRequest extRequest, String extLineItemId,
+                                           String adSlot) {
+        final RubiconImpExt rubiconImpExt = mapper.mapper().convertValue(impExtNode, RubiconImpExt.class);
+        final RubiconImpExtRp impExtRp = rubiconImpExt.getRp();
+
+        final ObjectNode targetNode = impExtRp.getTarget() == null || impExtRp.getTarget().isNull()
+                ? mapper.mapper().createObjectNode() : (ObjectNode) impExtRp.getTarget();
+
+        final ObjectNode modifiedTargetNode = targetNode.put("line_item", extLineItemId);
+        final RubiconImpExtRp modifiedImpExtRp = RubiconImpExtRp.of(impExtRp.getZoneId(), modifiedTargetNode,
+                impExtRp.getTrack());
+
+        return mapper.mapper().valueToTree(RubiconImpExt.of(modifiedImpExtRp, rubiconImpExt.getViewabilityvendors(),
+                getMaxBids(extRequest), adSlot));
     }
 
     private List<BidderBid> extractBids(BidRequest prebidRequest,

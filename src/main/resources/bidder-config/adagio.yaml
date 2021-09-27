@@ -1,12 +1,6 @@
 adapters:
   adagio:
-    enabled: false
     endpoint: https://mp.4dex.io/ortb2
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: false
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: dev@adagio.io
       app-media-types:

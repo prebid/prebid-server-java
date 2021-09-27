@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Synacormedia {@link Bidder} implementation.
- */
 public class SynacormediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
@@ -83,13 +80,13 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .headers(HttpUtil.headers())
-                        .uri(endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()))
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .headers(HttpUtil.headers())
+                                .uri(endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()))
+                                .body(mapper.encode(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 
