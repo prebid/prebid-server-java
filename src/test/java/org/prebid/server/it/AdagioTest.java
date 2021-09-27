@@ -31,6 +31,5 @@ public class AdagioTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/adagio/test-auction-adagio-response.json", response, singletonList("adagio"));
-
     }
 }
