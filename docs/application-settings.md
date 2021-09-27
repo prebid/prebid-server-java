@@ -57,7 +57,7 @@ p3        | Personalized ads profile        | n\a
 p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, device.if attributes and call the adapter.
 p5        | Personalized content profile    | n\a
 p6        | Select personalized content     | n\a
-p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.
+p7        | Measure huaweiAd performance          | Verify consent for each analytics module. If consent is not grantet skip it.
 p8        | Measure content performance     | n\a
 p9        | Generate audience insights      | n\a
 p10       | Develop/improve products        | n\a

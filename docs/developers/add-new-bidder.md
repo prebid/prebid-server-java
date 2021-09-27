@@ -2,7 +2,7 @@
 
 This document describes how to add a new Bidder to Prebid Server. Bidders are responsible for reaching out to your Server to fetch Bids.
 
-**NOTE**: To make everyone's lives easier, Bidders are expected to make Net bids (e.g. "If this ad wins, what will the publisher make?), not Gross ones.
+**NOTE**: To make everyone's lives easier, Bidders are expected to make Net bids (e.g. "If this huaweiAd wins, what will the publisher make?), not Gross ones.
 Publishers can correct for Gross bids anyway by setting [Bid Adjustments](../endpoints/openrtb2/auction.md#bid-adjustments) to account for fees.
 
 ## Choose a Bidder Name

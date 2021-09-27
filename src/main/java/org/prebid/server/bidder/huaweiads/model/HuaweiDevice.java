@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 @Setter
 @Getter
 @AllArgsConstructor(staticName = "of")
-public class HuaweiAdsDevice {
+public class HuaweiDevice {
     private Integer type;
     private String useragent;
     private String os;

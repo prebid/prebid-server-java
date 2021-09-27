@@ -7,15 +7,15 @@ import java.util.List;
 
 @Value
 @Builder
-public class Metadata {
+public class HuaweiMetadata {
     private String title;
     private String description;
-    private List<ImageInfo> imageInfo;
-    private List<Icon> icon;
+    private List<HuaweiImageInfo> imageInfo;
+    private List<HuaweiIcon> icon;
     private String clickUrl;
     private String intent;
-    private VideoInfo videoInfo;
-    private ApkInfo apkInfo;
+    private HuaweiVideoInfo videoInfo;
+    private HuaweiApkInfo apkInfo;
     private Integer duration;
-    private MediaFile mediaFile;
+    private HuaweiMediaFile mediaFile;
 }

@@ -9,8 +9,8 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class Network {
+public class HuaweiNetwork {
     private Integer type;
     private Integer carrier;
-    private List<CellInfo> cellInfoList;
+    private List<HuaweiCellInfo> cellInfoList;
 }

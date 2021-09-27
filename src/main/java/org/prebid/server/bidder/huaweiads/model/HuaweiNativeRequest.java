@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class NativeRequest {
+public class HuaweiNativeRequest {
     private int ver;
     private int plcmtCnt;
     private int seq;

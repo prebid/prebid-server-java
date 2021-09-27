@@ -19,7 +19,7 @@ An example is illustrated in a section below.
 ## Testing
 
 Please consult with our Account Manager for testing. 
-We need to confirm that your ad request is correctly received by our system.
+We need to confirm that your huaweiAd request is correctly received by our system.
 
 The following test parameters can be used to verify that Prebid Server is working properly with the 
 Pubnative adapter.

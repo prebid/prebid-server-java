@@ -7,8 +7,8 @@ import java.util.List;
 
 @Builder
 @Value
-public class HuaweiAdsResponse {
+public class HuaweiResponse {
     private Integer retcode;
     private String reason;
-    private List<Ad> multiad;
+    private List<HuaweiAd> multiad;
 }

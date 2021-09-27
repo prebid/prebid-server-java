@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class VideoInfo {
+public class HuaweiVideoInfo {
     private String videoDownloadUrl;
     private Integer videoDuration;
     private Integer videoFileSize;

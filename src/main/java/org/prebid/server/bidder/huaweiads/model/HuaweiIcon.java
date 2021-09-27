@@ -3,9 +3,9 @@ package org.prebid.server.bidder.huaweiads.model;
 import lombok.Builder;
 import lombok.Value;
 
-@Value
 @Builder
-public class ImageInfo {
+@Value
+public class HuaweiIcon {
     private String url;
     private Integer height;
     private Integer fileSize;

@@ -16,7 +16,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor(staticName = "of")
-public class NativeResponse {
+public class HuaweiNativeResponse {
     private String ver;
     private List<XnativeAsset> assets;
     private String AssetsURL;

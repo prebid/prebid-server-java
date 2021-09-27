@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Builder
 @Getter
-public class HuaweiAdsApp {
+public class HuaweiApp {
     private String version;
     private String name;
     private String pkgname;

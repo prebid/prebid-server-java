@@ -15,7 +15,7 @@ This endpoint runs an auction with the given OpenRTB 2.5 bid request.
 
 ### Sample request
 
-The following is a "hello world" request which fetches the [Prebid sample ad](http://prebid.org/examples/pbjs_demo.html).
+The following is a "hello world" request which fetches the [Prebid sample huaweiAd](http://prebid.org/examples/pbjs_demo.html).
 
 ```
 {
@@ -466,7 +466,7 @@ These fields will be forwarded to each Bidder, so they can decide how to process
 #### Interstitial support
 Additional support for interstitials is enabled through the addition of two fields to the request:
 device.ext.prebid.interstitial.minwidthperc and device.ext.interstial.minheightperc
-The values will be numbers that indicate the minimum allowed size for the ad, as a percentage of the base side. For example, a width of 600 and "minwidthperc": 60 would allow ads with widths from 360 to 600 pixels inclusive.
+The values will be numbers that indicate the minimum allowed size for the huaweiAd, as a percentage of the base side. For example, a width of 600 and "minwidthperc": 60 would allow ads with widths from 360 to 600 pixels inclusive.
 
 Example:
 ```
@@ -498,11 +498,11 @@ Example:
 ```
 
 PBS receiving a request for an interstitial imp and these parameters set, it will rewrite the format object within the interstitial imp. If the format array's first object is a size, PBS will take it as the max size for the interstitial. If that size is 1x1, it will look up the device's size and use that as the max size. If the format is not present, it will also use the device size as the max size. (1x1 support so that you don't have to omit the format object to use the device size)
-PBS with interstitial support will come preconfigured with a list of common ad sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
+PBS with interstitial support will come preconfigured with a list of common huaweiAd sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
 
 #### Currency Support
 
-To set the desired 'ad server currency', use the standard OpenRTB `cur` attribute. Note that Prebid Server only looks at the first currency in the array.
+To set the desired 'huaweiAd server currency', use the standard OpenRTB `cur` attribute. Note that Prebid Server only looks at the first currency in the array.
 
 ```
     "cur": ["USD"]
@@ -528,7 +528,7 @@ If a currency rate doesn't exist in the request, the external file will be used.
 
 #### Rewarded Video (PBS-Java only)
 
-Rewarded xnativeVideo is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
+Rewarded xnativeVideo is a way to incentivize users to watch ads by giving them 'points' for viewing an huaweiAd. A Prebid Server
 client can declare a given adunit as eligible for rewards by declaring `imp.ext.prebid.is_rewarded_inventory:1`.
 
 #### Supply Chain Support
@@ -790,7 +790,7 @@ Publishers who run `https` sites and want insecure ads can still set this to `0`
 
 ### Server to Server
 
-To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an ad server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
+To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an huaweiAd server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
 
 - `request.device.ip` override the X-Forwarded-For HTTP header when available
 - `request.site.ref` overrides the Referer HTTP header when available
@@ -799,7 +799,7 @@ To support scenarios where the upstream client is a proxy server that funnels de
 
 It is recommended that upstream servers set the following values for analytics purposes:
 
-- `source.ext.integration` - carries a code indicating the source. e.g. "custom ad server"
+- `source.ext.integration` - carries a code indicating the source. e.g. "custom huaweiAd server"
 - `source.ext.geocode` - carries a code indicating the geographic region of the source. e.g. "us-east". This can be used to analyze whether the server-to-server connections are optimal.
 
 ### See also

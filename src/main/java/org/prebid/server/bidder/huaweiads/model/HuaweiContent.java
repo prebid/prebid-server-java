@@ -8,12 +8,12 @@ import java.util.List;
 
 @Value
 @Builder
-public class Content {
+public class HuaweiContent {
     private String contentid;
     private Integer interactiontype;
     private Integer creativetype;
-    private Metadata metaData;
-    private List<Monitor> monitor;
+    private HuaweiMetadata metaData;
+    private List<HuaweiMonitor> monitor;
     private String cur;
     private BigDecimal price;
 }

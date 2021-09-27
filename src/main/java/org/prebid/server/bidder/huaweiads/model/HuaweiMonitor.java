@@ -7,7 +7,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class Monitor {
+public class HuaweiMonitor {
     private String eventType;
     private List<String> url;
 }

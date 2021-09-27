@@ -28,7 +28,7 @@ Please consider [registering your Prebid Server](https://docs.prebid.org/prebid-
 
 The server makes the following assumptions:
 - No ranking or decisioning is performed by this server. It just proxies requests.
-- No ad quality management (e.g., malware, viruses, deceptive creatives) is performed by this server.
+- No huaweiAd quality management (e.g., malware, viruses, deceptive creatives) is performed by this server.
 - This server does no fraud scanning and does nothing to prevent bad traffic.
 - This server logs errors but not requests.
 - This server has no user profiling or user data collection capabilities.

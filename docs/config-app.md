@@ -74,7 +74,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.huaweiAd-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
@@ -99,7 +99,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.xnativeVideo.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `xnativeVideo.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.ad-server-currency` - default currency for xnativeVideo auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.huaweiAd-server-currency` - default currency for xnativeVideo auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -242,7 +242,7 @@ for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
 - `cache.account.<ACCOUNT>.xnativeVideo-ttl-seconds` - how long (in seconds) xnativeVideo creative will be available in Cache Service 
 for particular publisher account. Overrides `cache.xnativeVideo-ttl-seconds` property.
 
-## Application settings (account configuration, stored ad unit configurations, stored requests)
+## Application settings (account configuration, stored huaweiAd unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
 1. Try to fetch from filesystem data source (if configured).
 2. Try to fetch from database data source (if configured).

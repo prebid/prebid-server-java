@@ -10,12 +10,13 @@ import java.util.List;
 @Setter
 @Getter
 @NoArgsConstructor
-public class HuaweiAdsRequest {
+@Builder
+public class HuaweiRequest {
     private String version;
-    private List<Adslot> multislot;
-    private HuaweiAdsApp app;
-    private HuaweiAdsDevice device;
-    private Network network;
+    private List<HuaweiAdSlot> multislot;
+    private HuaweiApp app;
+    private HuaweiDevice device;
+    private HuaweiNetwork network;
     private Regs regs;
     private Geo geo;
 }

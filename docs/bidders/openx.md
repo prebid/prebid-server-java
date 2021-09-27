@@ -4,7 +4,7 @@ OpenX supports the following parameters:
 
 | property | type | required? | description | example |
 |----------|------|-----------|-------------|---------|
-| unit | string | required | The ad unit id | "10092842" |
+| unit | string | required | The huaweiAd unit id | "10092842" |
 | delDomain | string | required\* | The delivery domain for the customer | "sademo-d.openx.net" |
 | platform | uuid | required\* | The platform id for the customer | "a3aece0c-9e80-4316-8deb-faf804779bd1" |
 | customFloor | number | optional | The minimum CPM price in USD | 1.50 - sets a $1.50 floor |

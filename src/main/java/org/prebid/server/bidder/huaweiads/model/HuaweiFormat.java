@@ -5,7 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class Format {
+public class HuaweiFormat {
     private Integer w;
     private Integer h;
 }

@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 @Setter
 @Getter
-public class Adslot {
+public class HuaweiAdSlot {
     private String slotId;
     private Integer adType;
     private Integer test;
@@ -19,6 +19,6 @@ public class Adslot {
     private Integer orientation;
     private Integer w;
     private Integer h;
-    private List<Format> format;
+    private List<HuaweiFormat> format;
     private List<String> detailedCreativeTypeList;
 }

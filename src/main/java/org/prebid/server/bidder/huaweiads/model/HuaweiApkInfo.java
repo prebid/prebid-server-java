@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public class ApkInfo {
+public class HuaweiApkInfo {
     private String url;
     private Integer fileSize;
     private String sha256;

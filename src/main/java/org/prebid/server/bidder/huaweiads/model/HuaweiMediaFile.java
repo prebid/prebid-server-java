@@ -5,11 +5,11 @@ import lombok.Value;
 
 @Builder
 @Value
-public class Icon {
-    private String url;
+public class HuaweiMediaFile {
+    private String mime;
+    private Integer width;
     private Integer height;
     private Integer fileSize;
+    private String url;
     private String sha256;
-    private String ImageType;
-    private Integer width;
 }

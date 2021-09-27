@@ -108,11 +108,11 @@ Note that "errors" will only appear if there were any errors generated. They are
 
 This endpoint supports the following query parameters:
 
-1. `h` - `amp-ad` `height`
-2. `w` - `amp-ad` `width`
-3. `oh` - `amp-ad` `data-override-height`
-4. `ow` - `amp-ad` `data-override-width`
-5. `ms` - `amp-ad` `data-multi-size`
+1. `h` - `amp-huaweiAd` `height`
+2. `w` - `amp-huaweiAd` `width`
+3. `oh` - `amp-huaweiAd` `data-override-height`
+4. `ow` - `amp-huaweiAd` `data-override-width`
+5. `ms` - `amp-huaweiAd` `data-multi-size`
 6. `curl` - the canonical URL of the page
 7. `timeout` - the publisher-specified timeout for the RTC callout
    - A configuration option `amp.default-timeout-ms` may be set to account for estimated latency so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
@@ -146,8 +146,8 @@ If present, these will override parts of your Stored Request.
  
 ### Resolving Sizes
  
-We strive to return ads with sizes which are valid for the `amp-ad` on your page. This logic intends to
-track the logic used by `doubleclick` when resolving sizes used to fetch ads from their ad server.
+We strive to return ads with sizes which are valid for the `amp-huaweiAd` on your page. This logic intends to
+track the logic used by `doubleclick` when resolving sizes used to fetch ads from their huaweiAd server.
  
 Specifically:
 

@@ -1,17 +1,17 @@
 package org.prebid.server.bidder.huaweiads;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.DecimalNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.*;
-import com.iab.openrtb.request.Format;
+
 import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.*;
 
-import org.prebid.server.bidder.huaweiads.model.Content;
+import org.prebid.server.bidder.huaweiads.model.HuaweiContent;
+import org.prebid.server.bidder.huaweiads.model.HuaweiFormat;
 import org.prebid.server.bidder.huaweiads.model.xnative.request.EventTracker;
 import org.prebid.server.bidder.model.*;
 import org.prebid.server.exception.PreBidException;
@@ -22,11 +22,9 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.*;
@@ -51,12 +49,12 @@ public class HuaweiadsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .user(User.builder()
-                        .ext(givenUserExt()).build()),
-                identity());
+                .device(Device.builder().ua("someUa").build())
+                        .user(User.builder()
+                                .ext(givenUserExt()).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -69,15 +67,15 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         //do i need to check authorization ?
     }
-
+/*
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpSlotId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
                 .ext(givenImpExt(extImpBuilder -> extImpBuilder.slotId(null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -91,10 +89,10 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpAdType() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
-                        .ext(givenImpExt(extImpBuilder -> extImpBuilder.adtype(null))));
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
+                .ext(givenImpExt(extImpBuilder -> extImpBuilder.adtype(null))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -108,11 +106,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpPublisherId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
-                        .ext(givenImpExt(extImpBuilder -> extImpBuilder.publisherId(null))));
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
+                .ext(givenImpExt(extImpBuilder -> extImpBuilder.publisherId(null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -126,11 +124,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpKeyId() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
-                        .ext(givenImpExt(extImpBuilder -> extImpBuilder.keyId(null))));
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
+                .ext(givenImpExt(extImpBuilder -> extImpBuilder.keyId(null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -144,11 +142,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpSignKey() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
-                        .ext(givenImpExt(extImpBuilder -> extImpBuilder.signKey(null))));
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
+                .ext(givenImpExt(extImpBuilder -> extImpBuilder.signKey(null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -162,11 +160,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfMissingImpIsTestAuth() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
-                        .ext(givenImpExt(extImpBuilder -> extImpBuilder.isTestAuthorization(null))));
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
+                .ext(givenImpExt(extImpBuilder -> extImpBuilder.isTestAuthorization(null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -180,14 +178,14 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorfImpAdTypeIsRollAndVideoMaxDurationIncorrect() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
+        final BidRequest bidRequest = givenHuaweiRequest(identity(),
                 impBuilder -> impBuilder
                         .video(Video.builder().maxduration(-1).build())
                         .ext(givenImpExt(extImpBuilder -> extImpBuilder
                                 .adtype("roll"))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -201,12 +199,12 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorfImpXnativeRequestIsEmpty() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), impBuilder -> impBuilder
                 .banner(null)
                 .xNative(Native.builder().request(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -220,10 +218,10 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBidRequestMissingUser() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.user(null), identity());
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder.user(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -237,11 +235,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBidRequestMissingUserExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                 .user(User.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -255,16 +253,16 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBidRequestUserExtDataIsIncorrect() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .data(mapper.valueToTree(ExtImpAdocean.of("", "", "")))
-                                .build())
-                        .build()),
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder()
+                                .ext(ExtUser.builder()
+                                        .data(mapper.valueToTree(ExtImpAdocean.of("", "", "")))
+                                        .build())
+                                .build()),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -278,15 +276,15 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBidRequestUserExtDataFieldsIncorrect() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .data(mapper.valueToTree(ExtUserDataHuaweiAds.of(
-                                        ExtUserDataDeviceIdHuaweiAds.of(
-                                                new String[]{}, new String[]{}, new String[]{}, new String[]{})))).build()).build()),
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder()
+                                .ext(ExtUser.builder()
+                                        .data(mapper.valueToTree(ExtUserDataHuaweiAds.of(
+                                                ExtUserDataDeviceIdHuaweiAds.of(
+                                                        new String[]{}, new String[]{}, new String[]{}, new String[]{})))).build()).build()),
                 identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -300,11 +298,11 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFailIfBidRequestAppB() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                         .app(App.builder().bundle(null).build()),
                 identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -319,7 +317,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfRetcodeIncorrect() throws JsonProcessingException {
         // given
         final int incorrectRetcode = 250;
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(
                         builder -> builder.retcode(250))));
 
@@ -338,7 +336,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfMultiadEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(
                         builder -> builder.multiad(Collections.emptyList()))));
 
@@ -355,29 +353,9 @@ public class HuaweiadsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidRequestImpNull() throws JsonProcessingException {
-        // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.imp(null),
-                        identity()),
-                mapper.writeValueAsString(givenHuaweiAdsResponse(identity())));
-
-        // when
-        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("convertHuaweiAdsResp2BidderResp: BidRequest.imp is null");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfImpTypeNativeAdTypeBanner() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(identity())));
@@ -397,7 +375,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpTypeBannerAdTypeNative() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(adBuilder -> adBuilder.adType(3)))))); //adType of native
 
@@ -416,9 +394,9 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpBannerAdContentEmpty() throws JsonProcessingException {
         // given
-        final ArrayList<Content> content = new ArrayList<>();
+        final ArrayList<HuaweiContent> content = new ArrayList<>();
         content.add(null);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(adBuilder -> adBuilder
                                 .content(content))))));
@@ -438,9 +416,9 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpVideoAdContentEmpty() throws JsonProcessingException {
         // given
-        final ArrayList<Content> content = new ArrayList<>();
+        final ArrayList<HuaweiContent> content = new ArrayList<>();
         content.add(null);
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .video(Video.builder().build())),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
@@ -462,7 +440,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfNoCreativeTypeFound() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), identity()),
+        final HttpCall<HuaweiRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(adBuilder -> adBuilder
                                 .content(givenContent(contentBuilder -> contentBuilder
@@ -483,7 +461,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfMetaDataImageInfoNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(adBuilder -> adBuilder
                                 .content(givenContent(contentBuilder -> contentBuilder
@@ -505,7 +483,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfNativeRequestEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .xNative(Native.builder().request(null).build())),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
@@ -527,7 +505,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfNativeRequestUnparseable() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .xNative(Native.builder()
                                 .request("somethingUnparseable").build())),
@@ -550,7 +528,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfMetaDataMediaFileUrlNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .video(Video.builder().build())),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
@@ -576,7 +554,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfVideoDownloadUrlNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(), impBuilder -> impBuilder
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
                         .banner(null)
                         .video(Video.builder().build())),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
@@ -601,7 +579,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpVideoNullVideoInfoNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity()),
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(adBuilder -> adBuilder
                                 .content(givenContent(contentBuilder -> contentBuilder
@@ -626,7 +604,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldProceedSuccessfully() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(),
                         firstImpBuilder -> firstImpBuilder
                                 .banner(null)
                                 .video(Video.builder().build())
@@ -634,14 +612,16 @@ public class HuaweiadsBidderTest extends VertxTest {
                                         .slotId("first"))),
                         secondImpBuilder -> secondImpBuilder
                                 .ext(givenImpExt(impExtBuilder -> impExtBuilder
-                                        .slotId("second")))),
+                                        .slotId("second"))),
+                        thirdBuilder -> thirdBuilder.xNative(Native.builder().request(givenNativeRequest(identity())).build())),
+
                 mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
                         .multiad(givenAds(
                                 firstAdBuilder -> firstAdBuilder
-                                    .slotId("first")
-                                    .adType(60),
+                                        .slotId("first")
+                                        .adType(60),
                                 secondAdBuilder -> secondAdBuilder
-                                .slotId("second"))))));
+                                        .slotId("second"))))));
 
         // when
         final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, null);
@@ -649,11 +629,11 @@ public class HuaweiadsBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(2);
         assertThat(result.getValue().get(0)).satisfies(value -> {
-                    assertThat(value.getBidCurrency()).startsWith("CNY");
-                    assertThat(value.getType()).isEqualTo(BidType.video);
-                    assertThat(value.getBid().getAdm()).isNotBlank();
-                    assertThat(value.getBid().getId()).isEqualTo("someImpId");
-                });
+            assertThat(value.getBidCurrency()).startsWith("CNY");
+            assertThat(value.getType()).isEqualTo(BidType.video);
+            assertThat(value.getBid().getAdm()).isNotBlank();
+            assertThat(value.getBid().getId()).isEqualTo("someImpId");
+        });
         assertThat(result.getValue().get(1)).satisfies(value -> {
             assertThat(value.getBidCurrency()).startsWith("CNY");
             assertThat(value.getType()).isEqualTo(BidType.banner);
@@ -666,7 +646,7 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldProceedSuccessfully() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                 .user(User.builder().ext(givenUserExt()).build()), identity());
 
         // when
@@ -680,21 +660,21 @@ public class HuaweiadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectResolveAppLangIfNull() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity(),identity());
+        final BidRequest bidRequest = givenHuaweiRequest(identity(), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getApp().getLang())
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getApp().getLang())
                 .isEqualTo("en");
     }
 
     @Test
     public void makeHttpRequestsShouldCorrectResolveCountry() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                         .device(givenDevice(deviceBuilder -> deviceBuilder
                                 .geo(givenGeo(geoBuilder -> geoBuilder
                                         .country("NLD"))))),
@@ -705,14 +685,14 @@ public class HuaweiadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getDevice().getBelongCountry())
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getDevice().getBelongCountry())
                 .isEqualTo("NL");
     }
 
     @Test
     public void makeHttpRequestsShouldCorrectResolveCountryEdgeCase() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                         .device(givenDevice(deviceBuilder -> deviceBuilder
                                 .geo(givenGeo(geoBuilder -> geoBuilder
                                         .country("CHL"))))),
@@ -723,14 +703,14 @@ public class HuaweiadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getDevice().getBelongCountry())
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getDevice().getBelongCountry())
                 .isEqualTo("CL");
     }
 
     @Test
     public void makeHttpRequestsShouldCorrectResolveCountryIfLengthIncorrect() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                         .device(givenDevice(deviceBuilder -> deviceBuilder
                                 .geo(givenGeo(geoBuilder -> geoBuilder
                                         .country("C"))))),
@@ -741,14 +721,14 @@ public class HuaweiadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getDevice().getBelongCountry())
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getDevice().getBelongCountry())
                 .isEqualTo("ZA");
     }
 
     @Test
     public void makeHttpRequestsShouldCorrectResolveModelName() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
                         .device(givenDevice(deviceBuilder -> deviceBuilder
                                 .model(null))),
                 identity());
@@ -758,32 +738,82 @@ public class HuaweiadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getDevice().getModel())
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getDevice().getModel())
                 .isEqualTo("HUAWEI");
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectResolveNetworkType() throws JsonProcessingException {
+    public void makeHttpRequestsCorrectlyresolveHuaweiAdsReqRegsInfo() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                        .device(givenDevice(deviceBuilder -> deviceBuilder
-                                .connectiontype(null))),
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
+                        .regs(Regs.of(4, null)),
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiAdsRequest.class).getNetwork().getType())
-                .isEqualTo(0);
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getRegs().getCoppa())
+                .isEqualTo(4);
     }
 
+    @Test
+    public void makeHttpRequestsResolveHuaweiAdsReqNetWorkInfo() throws JsonProcessingException {
+        HuaweiNetwork compareNetwork = HuaweiNetwork.of(4, 2, List.of(HuaweiCellInfo.of("46", "000")));
+        // given
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
+                        .device(givenDevice(deviceBuilder -> deviceBuilder
+                                .connectiontype(compareNetwork.getType())
+                                .carrier("4")
+                                .mccmnc("46-000-4"))),
+                identity());
 
+        // when
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(mapper.readValue(result.getValue().get(0).getBody(), HuaweiRequest.class).getNetwork()).satisfies(
+                network -> {
+                    assertThat(network.getType()).isEqualTo(compareNetwork.getType());
+                    assertThat(network.getCarrier()).isEqualTo(compareNetwork.getCarrier());
+                    assertThat(network.getCellInfoList().toString()).isEqualTo(compareNetwork.getCellInfoList().toString());
+                }
+
+        );
+    }
+*/
+    /*
+    @Test
+    public void makeHttpRequestsResolveHuaweiAdsReqGeoInfo() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenHuaweiRequest(bidRequestBuilder -> bidRequestBuilder
+                        .device(givenDevice(deviceBuilder -> deviceBuilder
+                                .geo(givenGeo(geoBuilder -> geoBuilder
+                                        .lat(60.45f)
+                                        .lon(70.45f)
+                                        .accuracy(90))))),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<HuaweiRequest>>> result = huaweiAdsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(HuaweiRequest::getGeo)
+                .extracting(Geo::getLat, Geo::getLon, Geo::getAccuracy)
+                .containsExactly(tuple(60.45f, 70.45f, 90));
+    }
+ */
     private static Geo givenGeo(Function<Geo.GeoBuilder, Geo.GeoBuilder> geoCustomizer) {
         return geoCustomizer.apply(Geo.builder().country("UA")).build();
     }
 
+
+    /*
     private static Device givenDevice(Function<Device.DeviceBuilder, Device.DeviceBuilder> deviceCustomizer) {
         return deviceCustomizer.apply(Device.builder()
                 .geo(givenGeo(identity()))
@@ -794,54 +824,100 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .mccmnc("someMccmnc-andAnotherMccmnc")
                 .ip("someIp")
                 .language("someLanguage")).build();
+    }*/
+
+
+    private static HuaweiDevice givenDevice(Function<HuaweiDevice.HuaweiDeviceBuilder, HuaweiDevice.HuaweiDeviceBuilder> deviceCustomizer) {
+        return deviceCustomizer.apply(HuaweiDevice.builder()
+                .ip("someIp")
+                .useragent("someUserAgent")
+                .localeCountry("someLocaleCountry")
+                .version("someVersion")
+                .belongCountry("someBelongCountry")
+                .os("someOs")
+                .model("someModel")
+                .language("someLanguage")
+                .maker("someMaker")
+                .buildVersion("someBuildVersion")
+                .clientTime("someClientTime") //needs time
+                .emuiVer("someEmuiVer")
+                .imei("someImei")
+                .oaid("someOaid")
+                .gaid("someGaid")
+                .gaidTrackingEnabled("someGaidTrackingEnabled")
+                .isTrackingEnabled("isTrackingEnabled") //can be boolean ?
+                .height(14)
+                .width(14)
+                .pxratio(BigDecimal.ONE)
+                .type(14)
+                .dpi(14)).build();
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-                                              Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizer) {
+    private static HuaweiNetwork givenNetwork(Function<HuaweiNetwork.HuaweiNetworkBuilder, HuaweiNetwork.HuaweiNetworkBuilder> networkCustomizer) {
+        return networkCustomizer.apply(HuaweiNetwork.builder()
+                .carrier(14) //use better type
+                .type(14)//same
+                .cellInfoList(Arrays.asList(HuaweiCellInfo.builder()
+                        .mcc("46")
+                        .mnc("00").build()))).build();
+    }
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .app(App.builder()
-                                .ver("1.0")
-                                .name("appName")
-                                .bundle("someBundle")
-                                .build())
-                        .user(User.builder().ext(givenUserExt()).build())
+        private static HuaweiApp givenApp(Function<HuaweiApp.HuaweiAppBuilder, HuaweiApp.HuaweiAppBuilder> huaweiAdsAppCustomizer) {
+        return huaweiAdsAppCustomizer.apply(HuaweiApp.builder()
+                .country("someFrance")
+                .lang("someLanguage") // is it valid ?
+                .pkgname("somePackageName")
+                .version("someVersion")).build();
+    }
+
+    private static List<HuaweiAdSlot> givenAdSlots(Function<HuaweiAdSlot.HuaweiAdSlotBuilder, HuaweiAdSlot.HuaweiAdSlotBuilder>... adSlotCustomizer) {
+        return Arrays.stream(adSlotCustomizer).map(builder -> builder.apply(HuaweiAdSlot.builder()
+                .test(14)
+                .h(14)
+                .w(14)
+                .slotId("someSlotID")
+                .format(Arrays.asList(HuaweiFormat.of(14, 14)))).build()).collect(Collectors.toList());
+    }
+
+    private static HuaweiRequest givenHuaweiRequest(Function<HuaweiRequest.HuaweiRequestBuilder, HuaweiRequest.HuaweiRequestBuilder> huaweiRequestCustomizer,
+                                                    Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizer) {
+
+        return huaweiRequestCustomizer.apply(HuaweiRequest.builder()
+                        .app(givenApp(identity()))
                         .device(givenDevice(identity()))
-                        .site(Site.builder().page("somePage").build())
-                        .imp(givenImps(impCustomizer)))
+                        .geo(givenGeo(identity()))
+                        .network(givenNetwork(identity()))
+                        .regs(Regs.of(14, null))
+                        .multislot(givenAdSlots(identity())))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return givenBidRequest(bidRequestCustomizer, identity());
+    private static HuaweiRequest givenHuaweiRequest(Function<HuaweiRequest.HuaweiRequestBuilder, HuaweiRequest.HuaweiRequestBuilder> huaweiRequestCustomizer) {
+        return givenHuaweiRequest(huaweiRequestCustomizer, identity());
     }
 
-    private static String givenNativeRequest(Function<NativeRequest.NativeRequestBuilder, NativeRequest.NativeRequestBuilder> nativeRequestCustomizer) {
+    private static String givenNativeRequest(Function<HuaweiNativeRequest.HuaweiNativeRequestBuilder, HuaweiNativeRequest.HuaweiNativeRequestBuilder> nativeRequestCustomizer) {
         String request;
         try {
-             request = mapper.writeValueAsString(nativeRequestCustomizer.apply(NativeRequest.builder()
+            request = mapper.writeValueAsString(nativeRequestCustomizer.apply(HuaweiNativeRequest.builder()
                     .eventTrackers(List.of(EventTracker.builder()
                             .eventTrackingMethods(1)
                             .eventType(1).build()))
-                    .assets(List.of(Asset.builder().build()))));
+                    .assets(List.of(Asset.builder().build()))).build());
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
         return request;
     }
 
+
     private static List<Imp> givenImps(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizer) {
-        List<Imp> imps = new ArrayList<>();
-        for(Function<Imp.ImpBuilder, Imp.ImpBuilder> impBuilderFunction : impCustomizer) {
-            Imp imp = impBuilderFunction.apply(Imp.builder()
-                            .id("someImpId")
-                            .banner(Banner.builder().format(List.of(Format.builder().w(10).h(15).build())).build())
-                            .ext(givenImpExt(identity())))
-                    .build();
-            imps.add(imp);
-        }
-        return imps;
+        return Arrays.stream(impCustomizer).map(builder -> builder.apply(Imp.builder()
+                .id("someImpId")
+                .banner(Banner.builder().format(List.of(Format.builder().w(14).h(14).build())).build())
+                .ext(givenImpExt(identity()))).build()).collect(Collectors.toList());
     }
+
 
     private static ObjectNode givenImpExt(Function<ExtImpHuaweiAds.ExtImpHuaweiAdsBuilder, ExtImpHuaweiAds.ExtImpHuaweiAdsBuilder> extImpCustomizer) {
         return mapper
@@ -855,16 +931,16 @@ public class HuaweiadsBidderTest extends VertxTest {
                         .isTestAuthorization("true")).build()));
     }
 
-    private static MediaFile givenMediaFile(Function<MediaFile.MediaFileBuilder, MediaFile.MediaFileBuilder> mediaFileCustomizer) {
-        return mediaFileCustomizer.apply(MediaFile.builder()
+    private static HuaweiMediaFile givenMediaFile(Function<HuaweiMediaFile.HuaweiMediaFileBuilder, HuaweiMediaFile.HuaweiMediaFileBuilder> mediaFileCustomizer) {
+        return mediaFileCustomizer.apply(HuaweiMediaFile.builder()
                         .url("someMediadFileUrl")
                         .width(14)
                         .height(14))
                 .build();
     }
 
-    private static VideoInfo givenVideoInfo(Function<VideoInfo.VideoInfoBuilder, VideoInfo.VideoInfoBuilder> videoInfoCustomizer) {
-        return videoInfoCustomizer.apply(VideoInfo.builder()
+    private static HuaweiVideoInfo givenVideoInfo(Function<HuaweiVideoInfo.HuaweiVideoInfoBuilder, HuaweiVideoInfo.HuaweiVideoInfoBuilder> videoInfoCustomizer) {
+        return videoInfoCustomizer.apply(HuaweiVideoInfo.builder()
                         .width(14)
                         .height(14)
                         .videoDuration(1)
@@ -872,11 +948,11 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static Metadata givenMetadata(Function<Metadata.MetadataBuilder, Metadata.MetadataBuilder> metadataCustomizer) {
-        return metadataCustomizer.apply(Metadata.builder()
+    private static HuaweiMetadata givenMetadata(Function<HuaweiMetadata.HuaweiMetadataBuilder, HuaweiMetadata.HuaweiMetadataBuilder> metadataCustomizer) {
+        return metadataCustomizer.apply(HuaweiMetadata.builder()
                         .duration(14)
                         .clickUrl("someClickUrl")
-                        .imageInfo(List.of(ImageInfo.builder()
+                        .imageInfo(List.of(HuaweiImageInfo.builder()
                                 .url("someUrl")
                                 .height(14)
                                 .width(14).build()))
@@ -886,44 +962,41 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static List<Content> givenContent(Function<Content.ContentBuilder, Content.ContentBuilder>... contentCustomizer) {
-        List<Content> contents = new ArrayList<>();
-        for(Function<Content.ContentBuilder, Content.ContentBuilder> contentBuilderFunction : contentCustomizer) {
-            Content content = contentBuilderFunction.apply(Content.builder()
-                            .price(BigDecimal.ONE)
-                            .monitor(List.of(Monitor.builder()
-                                    .url(List.of("someMonitorUrl"))
-                                    .eventType("someMonitorEventType").build()))
-                            .metaData(givenMetadata(identity()))
-                            .creativetype(1))
-                    .build();
-            contents.add(content);
-        }
-        return contents;
+    private static HuaweiRequest givenHuaweiAdsRequest(Function<HuaweiRequest.HuaweiRequestBuilder, HuaweiRequest.HuaweiRequestBuilder> huaweiAdsRequestCustomizer) {
+        return huaweiAdsRequestCustomizer.apply(HuaweiRequest.builder()).build();
     }
 
-    private static List<Ad> givenAds(Function<Ad.AdBuilder, Ad.AdBuilder>... adCustomizer) {
-        List<Ad> ads = new ArrayList<>();
-        for(Function<Ad.AdBuilder, Ad.AdBuilder> adBuilderFunction : adCustomizer) {
-            Ad ad = adBuilderFunction.apply(Ad.builder()
-                            .slotId("someSlotId")
-                            .retcode(200)
-                            .content(givenContent(identity()))
-                            .adType(8)) // adType banner code
-                    .build();
-            ads.add(ad);
-        }
-        return ads;
+    private static List<HuaweiContent> givenContent(Function<HuaweiContent.HuaweiContentBuilder, HuaweiContent.HuaweiContentBuilder>... contentCustomizer) {
+        return Arrays.stream(contentCustomizer).map(builder -> builder.apply(HuaweiContent.builder()
+                .price(BigDecimal.ONE)
+                .monitor(List.of(HuaweiMonitor.builder()
+                        .url(List.of("someMonitorUrl"))
+                        .eventType("someMonitorEventType").build()))
+                .metaData(givenMetadata(identity()))
+                .creativetype(1)).build()).collect(Collectors.toList());
+    }
+
+    private static List<HuaweiAd> givenAds(Function<HuaweiAd.HuaweiAdBuilder, HuaweiAd.HuaweiAdBuilder>... adCustomizer) {
+        return Arrays.stream(adCustomizer).map(builder -> builder.apply(HuaweiAd.builder()
+                .slotId("someSlotId")
+                .retcode(200)
+                .content(givenContent(identity()))
+                .adType(8)).build()).collect(Collectors.toList());
     }
 
     private static ExtUser givenUserExt() {
-        return ExtUser.builder().data(mapper.valueToTree(ExtUserDataHuaweiAds.of( ExtUserDataDeviceIdHuaweiAds.of(
+        return ExtUser.builder().data(mapper.valueToTree(ExtUserDataHuaweiAds.of(ExtUserDataDeviceIdHuaweiAds.of(
                 new String[]{"someImei"},
                 new String[]{"someOaid"},
                 new String[]{"someGaid"},
                 new String[]{"someClientTime"})))).build();
     }
 
+    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                .imp(givenImps())).build();
+    }
+/*
     private static HuaweiAdsResponse givenHuaweiAdsResponse(Function<HuaweiAdsResponse.HuaweiAdsResponseBuilder, HuaweiAdsResponse.HuaweiAdsResponseBuilder> huaweiAdsResponseCustomizer) {
         return huaweiAdsResponseCustomizer.apply(HuaweiAdsResponse.builder()
                         .retcode(350)
@@ -931,10 +1004,15 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+
+    private static HttpCall<BidRequest> givenHttpCall(HuaweiAdsRequest huaweiAdsRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
+    /*
+}
+
+ */
 }

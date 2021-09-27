@@ -7,9 +7,9 @@ import java.util.List;
 
 @Value
 @Builder
-public class Ad {
+public class HuaweiAd {
     private Integer adType;
     private String slotId;
     private Integer retcode;
-    private List<Content> content;
+    private List<HuaweiContent> content;
 }
