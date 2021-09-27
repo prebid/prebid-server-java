@@ -239,4 +239,3 @@ public class IqzoneBidderTest extends VertxTest {
                 .build();
     }
 }
-

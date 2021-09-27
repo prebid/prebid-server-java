@@ -70,7 +70,6 @@ public class IqzoneBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

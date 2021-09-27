@@ -34,4 +34,3 @@ public class IqzoneTest extends IntegrationTest {
     }
 
 }
-
