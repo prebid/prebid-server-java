@@ -100,8 +100,10 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private List<HttpRequest<BidRequest>> makeGroupRequests(BidRequest request, Map<Integer, List<Imp>> impGroups) {
-        return impGroups.entrySet().stream()
+    private List<HttpRequest<BidRequest>> makeGroupRequests(BidRequest request,
+                                                            Map<Integer, List<Imp>> sourceIdToImps) {
+
+        return sourceIdToImps.entrySet().stream()
                 .map(impGroupEntry -> makeGroupRequest(request, impGroupEntry.getValue(), impGroupEntry.getKey()))
                 .collect(Collectors.toList());
     }
