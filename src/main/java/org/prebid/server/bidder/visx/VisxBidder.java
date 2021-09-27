@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class VisxBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_CURRENCY = "USD";
+    private static final String DEFAULT_REQUEST_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -56,7 +56,7 @@ public class VisxBidder implements Bidder<BidRequest> {
 
     private BidRequest modifyRequest(BidRequest bidRequest) {
         return CollectionUtils.isEmpty(bidRequest.getCur())
-                ? bidRequest.toBuilder().cur(Collections.singletonList(DEFAULT_CURRENCY)).build()
+                ? bidRequest.toBuilder().cur(Collections.singletonList(DEFAULT_REQUEST_CURRENCY)).build()
                 : bidRequest;
     }
 
@@ -90,7 +90,7 @@ public class VisxBidder implements Bidder<BidRequest> {
     private BidderBid toBidderBid(BidRequest bidRequest, VisxBid visxBid) {
         final Bid bid = toBid(visxBid, bidRequest.getId());
         final BidType bidType = getBidType(visxBid.getImpid(), bidRequest.getImp());
-        return BidderBid.of(bid, bidType, DEFAULT_CURRENCY);
+        return BidderBid.of(bid, bidType, null);
     }
 
     private static Bid toBid(VisxBid visxBid, String id) {
