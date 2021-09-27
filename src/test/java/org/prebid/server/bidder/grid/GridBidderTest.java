@@ -32,6 +32,7 @@ import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -203,6 +204,22 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).contains(BidderError.badInput("Empty uid in imp with id: 123"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorOnZeroValidImps() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(emptyList())
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gridBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).contains(BidderError.badInput("No valid impressions for grid"));
     }
 
     @Test

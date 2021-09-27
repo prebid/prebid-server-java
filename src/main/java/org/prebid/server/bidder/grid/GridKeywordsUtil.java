@@ -161,6 +161,7 @@ public class GridKeywordsUtil {
 
     public static List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode,
                                                                            JacksonMapper mapper) {
+
         return jsonNodeToMap(publisherValueNode, mapper).entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .filter(GridKeywordsUtil::isValidPublisherEntry)
