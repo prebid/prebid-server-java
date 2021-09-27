@@ -35,7 +35,6 @@ public class BidderInfo {
                                     List<String> siteMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
-                                    boolean enforceGdpr,
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed) {
 
@@ -46,7 +45,7 @@ public class BidderInfo {
                 new MaintainerInfo(maintainerEmail),
                 new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
                 supportedVendors,
-                new GdprInfo(vendorId, enforceGdpr),
+                new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed);
     }
@@ -91,11 +90,5 @@ public class BidderInfo {
          */
         @JsonProperty("vendorId")
         int vendorId;
-
-        /**
-         * Flag, which true value means that PBS will keep gdpr logic for bidder, otherwise bidder will keep
-         * gdpr support and request should be sent without gdpr changes.
-         */
-        boolean enforced;
     }
 }

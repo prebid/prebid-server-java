@@ -1,12 +1,6 @@
 adapters:
   smarthub:
-    enabled: false
     endpoint: http://{{Host}}-prebid.smart-hub.io/?seat={{AccountId}}&token={{SourceId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: false
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@smart-hub.io
       app-media-types:

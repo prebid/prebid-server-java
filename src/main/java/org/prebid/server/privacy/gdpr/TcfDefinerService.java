@@ -130,8 +130,8 @@ public class TcfDefinerService {
         return resultForInternal(
                 tcfContext,
                 country -> createAllowAllTcfResponse(bidderNames, country),
-                (tcfConsent, country) ->
-                        tcf2Service.permissionsFor(bidderNames, vendorIdResolver, tcfConsent, accountGdprConfig)
+                (consentString, country) ->
+                        tcf2Service.permissionsFor(bidderNames, vendorIdResolver, consentString, accountGdprConfig)
                                 .map(vendorPermissions -> createBidderNameTcfResponse(vendorPermissions, country)));
     }
 
@@ -379,7 +379,7 @@ public class TcfDefinerService {
     private TCString decodeTcString(String consentString, RequestLogInfo requestLogInfo) {
         try {
             return TCString.decode(consentString);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             logWarn(consentString, e.getMessage(), requestLogInfo);
             return null;
         }

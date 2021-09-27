@@ -37,9 +37,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Lunamedia {@link Bidder} implementation.
- */
 public class LunamediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLunamedia>> IMP_EXT_TYPE_REFERENCE = new

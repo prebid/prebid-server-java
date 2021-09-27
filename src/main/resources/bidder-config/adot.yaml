@@ -1,12 +1,6 @@
 adapters:
   adot:
-    enabled: false
     endpoint: https://dsp.adotmob.com/headerbidding/bidrequest
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: false
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: admin@we-are-adot.com"
       app-media-types:

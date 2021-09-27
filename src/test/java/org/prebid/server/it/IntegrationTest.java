@@ -13,6 +13,9 @@ import io.restassured.config.RestAssuredConfig;
 import io.restassured.internal.mapping.Jackson2Mapper;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
+import lombok.AllArgsConstructor;
+import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -40,6 +43,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -57,6 +68,8 @@ public abstract class IntegrationTest extends VertxTest {
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
     private static final String ANY_SYMBOL_REGEX = ".*";
+    private static final Pattern UTC_MILLIS_PATTERN =
+            Pattern.compile(".*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z).*");
 
     @SuppressWarnings("unchecked")
     @ClassRule
@@ -73,6 +86,8 @@ public abstract class IntegrationTest extends VertxTest {
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
     private static final String CACHE_ENDPOINT = "http://" + HOST_AND_PORT + CACHE_PATH;
+    private static final String USER_SERVICE_PATH = "/user-data-details";
+    private static final String USER_SERVICE_ENDPOINT = "http://" + HOST_AND_PORT + USER_SERVICE_PATH;
 
     @BeforeClass
     public static void setUp() throws IOException {
@@ -109,11 +124,12 @@ public abstract class IntegrationTest extends VertxTest {
     protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
             throws IOException {
 
-        return auctionResponseFrom(templatePath, response, "ext.responsetimemillis.%s", bidders);
+        return auctionResponseFrom(templatePath, response, "ext.responsetimemillis.%s",
+                "ext.debug.httpcalls.userservice[0].requestbody", bidders);
     }
 
     private static String auctionResponseFrom(String templatePath, Response response, String responseTimePath,
-                                              List<String> bidders) throws IOException {
+                                              String responseUserTimePath, List<String> bidders) throws IOException {
 
         String result = replaceStaticInfo(jsonFrom(templatePath));
 
@@ -123,7 +139,32 @@ public abstract class IntegrationTest extends VertxTest {
             result = setResponseTime(response, result, bidder, responseTimePath);
         }
 
+        if (StringUtils.isNotBlank(responseUserTimePath)) {
+            result = setUserServiceTimestamp(response, result, responseUserTimePath);
+        }
         return result;
+    }
+
+    private static String setUserServiceTimestamp(Response response, String expectedResponseJson,
+                                                  String responseUserTimePath) {
+        final Object val;
+        try {
+            val = response.path(responseUserTimePath);
+        } catch (Exception e) {
+            return expectedResponseJson;
+        }
+
+        if (val == null) {
+            return expectedResponseJson;
+        }
+        final String userRequest = val.toString();
+        final Matcher m = UTC_MILLIS_PATTERN.matcher(userRequest);
+        String userRequestDate;
+        if (m.find()) {
+            userRequestDate = m.group(1);
+            return expectedResponseJson.replaceAll("\\{\\{ userservice_time }}", userRequestDate);
+        }
+        return expectedResponseJson;
     }
 
     private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
@@ -226,6 +267,7 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
                 .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
+                .replaceAll("\\{\\{ userservice_uri }}", USER_SERVICE_ENDPOINT)
                 .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
     }
 
@@ -273,5 +315,89 @@ public abstract class IntegrationTest extends VertxTest {
         public boolean applyGlobally() {
             return false;
         }
+    }
+
+    static final String LINE_ITEM_RESPONSE_ORDER = "lineItemResponseOrder";
+    static final String ID_TO_EXECUTION_PARAMETERS = "idToExecutionParameters";
+
+    public static class ResponseOrderTransformer extends ResponseTransformer {
+
+        private static final String LINE_ITEM_PATH = "/imp/0/ext/rp/target/line_item";
+
+        private final Lock lock = new ReentrantLock();
+        private final Condition lockCondition = lock.newCondition();
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public com.github.tomakehurst.wiremock.http.Response transform(
+                Request request,
+                com.github.tomakehurst.wiremock.http.Response response,
+                FileSource files,
+                Parameters parameters) {
+
+            final Queue<String> lineItemResponseOrder =
+                    (Queue<String>) parameters.get(LINE_ITEM_RESPONSE_ORDER);
+            final Map<String, BidRequestExecutionParameters> idToParameters =
+                    (Map<String, BidRequestExecutionParameters>) parameters.get(ID_TO_EXECUTION_PARAMETERS);
+
+            String requestDealId;
+            try {
+                requestDealId = readStringValue(mapper.readTree(request.getBodyAsString()), LINE_ITEM_PATH);
+            } catch (IOException e) {
+                throw new RuntimeException("Request should contain imp/ext/rp/target/line_item for deals request");
+            }
+
+            final BidRequestExecutionParameters requestParameters = idToParameters.get(requestDealId);
+
+            waitForTurn(lineItemResponseOrder, requestParameters.getDealId(), requestParameters.getDelay());
+
+            return com.github.tomakehurst.wiremock.http.Response.response()
+                    .body(requestParameters.getBody())
+                    .status(requestParameters.getStatus())
+                    .build();
+        }
+
+        private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
+            lock.lock();
+            try {
+                while (!dealsResponseOrder.peek().equals(id)) {
+                    lockCondition.await();
+                }
+                TimeUnit.MILLISECONDS.sleep(delay);
+                dealsResponseOrder.poll();
+                lockCondition.signalAll();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(format("Failed on waiting to return bid request for lineItem id = %s",
+                        id));
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        private String readStringValue(JsonNode jsonNode, String path) {
+            return jsonNode.at(path).asText();
+        }
+
+        @Override
+        public String getName() {
+            return "response-order-transformer";
+        }
+
+        @Override
+        public boolean applyGlobally() {
+            return false;
+        }
+    }
+
+    @Value
+    @AllArgsConstructor(staticName = "of")
+    static class BidRequestExecutionParameters {
+        String dealId;
+
+        String body;
+
+        Integer status;
+
+        Long delay;
     }
 }

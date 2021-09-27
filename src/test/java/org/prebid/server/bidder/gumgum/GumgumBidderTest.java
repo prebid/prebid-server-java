@@ -23,6 +23,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 
 import java.math.BigDecimal;
@@ -58,9 +59,8 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
@@ -101,7 +101,8 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().w(0).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
                         .build()))
                 .build();
 
@@ -128,7 +129,8 @@ public class GumgumBidderTest extends VertxTest {
                                 .placement(33)
                                 .linearity(233)
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId"))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
                         .build()))
                 .build();
 
@@ -149,12 +151,11 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotChangeBannerWidthAndHeightIfPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(450).build()))
-                                .w(600).h(900)
-                                .build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.banner(Banner.builder()
+                        .format(singletonList(Format.builder().w(300).h(450).build()))
+                        .w(600).h(900)
+                        .build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
@@ -236,7 +237,7 @@ public class GumgumBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId"))))),
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))),
                         givenImp(identity())))
                 .build();
 
@@ -250,6 +251,69 @@ public class GumgumBidderTest extends VertxTest {
                 .extracting(BidRequest::getSite)
                 .extracting(Site::getId)
                 .containsExactly("zone");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotModifyBannerExtIfSlotIsZeroOrNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
+                .imp(asList(
+                        givenImp(impBuilder -> impBuilder
+                                .id("123")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(1).h(1).build()))
+                                        .build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
+                                        BigInteger.TEN, "irisId", 0L))))),
+                        givenImp(impBuilder -> impBuilder
+                                .id("345")
+                                .banner(Banner.builder()
+                                        .format(singletonList(Format.builder().w(1).h(1).build()))
+                                        .build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))
+                        )))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getExt)
+                .containsExactly(null, null);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBannerExtWithBiggestBannerFormatIfSlotIsNotZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("123")
+                .banner(Banner.builder()
+                        .format(asList(
+                                Format.builder().w(120).h(80).build(),
+                                Format.builder().w(120).h(100).build(),
+                                Format.builder().w(100).h(100).build()))
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
+                        BigInteger.TEN, "irisId", 42L)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getExt)
+                .containsExactly(mapper.valueToTree(ExtImpGumgumBanner.of(42L, 120, 100)));
     }
 
     @Test
@@ -370,7 +434,7 @@ public class GumgumBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -380,9 +444,10 @@ public class GumgumBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("zone", BigInteger.TEN, "irisId")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L)))))
                 .build();
     }
 

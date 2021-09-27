@@ -32,9 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Zeroclickfraud {@link Bidder} implementation.
- */
 public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpZeroclickfraud>> ZEROCLICKFRAUD_EXT_TYPE_REFERENCE =
