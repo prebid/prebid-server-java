@@ -12,11 +12,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -109,5 +109,4 @@ public class SmarthubBidder implements Bidder<BidRequest> {
         }
         return mapper.mapper().convertValue(typeNode.asText(), BidType.class);
     }
-
 }

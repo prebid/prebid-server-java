@@ -1,12 +1,6 @@
 adapters:
   revcontent:
-    enabled: false
     endpoint: https://trends.revcontent.com/rtb
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: developers@revcontent.com
       app-media-types:

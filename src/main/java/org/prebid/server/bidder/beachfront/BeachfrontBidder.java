@@ -48,9 +48,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Beachfront {@link Bidder} implementation.
- */
 public class BeachfrontBidder implements Bidder<Void> {
 
     private static final String DEFAULT_BID_CURRENCY = "USD";

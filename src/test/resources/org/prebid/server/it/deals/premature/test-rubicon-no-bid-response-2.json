@@ -1,0 +1,11 @@
+{
+  "id": "bidResponseId2",
+  "seatbid": [
+    {
+      "seat": "seatId",
+      "bid": [
+
+      ]
+    }
+  ]
+}

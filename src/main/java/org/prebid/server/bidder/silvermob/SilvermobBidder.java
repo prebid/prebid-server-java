@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Silvermob {@link Bidder} implementation.
- */
 public class SilvermobBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSilvermob>> SILVERMOB_EXT_TYPE_REFERENCE =

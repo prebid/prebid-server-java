@@ -1,0 +1,24 @@
+adapters:
+  adview:
+    enabled: false
+    endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
+    pbs-enforces-gdpr: true
+    pbs-enforces-ccpa: true
+    modifying-vast-xml-allowed: true
+    deprecated-names:
+    aliases: {}
+    meta-info:
+      maintainer-email: partner@adview.com
+      site-media-types:
+      app-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1022
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adview
+      type: redirect
+      support-cors: false

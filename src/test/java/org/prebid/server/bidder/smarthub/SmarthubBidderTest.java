@@ -11,12 +11,12 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpCall;
-import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
@@ -32,15 +32,16 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class SmarthubBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
+    private static final String ENDPOINT_URL =
+            "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
 
     private SmarthubBidder smarthubBidder;
 
@@ -89,7 +90,8 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("http://localhost/prebid_server?host=somePartnerName&AccountID=someSeat&SourceId=someToken");
+                .containsExactly(
+                        "http://localhost/prebid_server?host=somePartnerName&AccountID=someSeat&SourceId=someToken");
     }
 
     @Test
@@ -158,9 +160,7 @@ public class SmarthubBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(BidType.video);
-                });
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.video));
     }
 
     @Test
@@ -232,6 +232,7 @@ public class SmarthubBidderTest extends VertxTest {
                 null);
     }
 
+    @SafeVarargs
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
                 .cur("USD")

@@ -74,13 +74,13 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(composedUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(composedUrl)
+                                .body(body)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

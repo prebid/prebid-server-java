@@ -31,9 +31,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-/**
- * Acuityads {@link Bidder} implementation.
- */
 public class AcuityadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAcuityads>> ACUITYADS_EXT_TYPE_REFERENCE =
@@ -68,13 +65,13 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(resolveHeaders(request.getDevice()))
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(url)
+                                .headers(resolveHeaders(request.getDevice()))
+                                .payload(outgoingRequest)
+                                .body(mapper.encode(outgoingRequest))
+                                .build()),
                 Collections.emptyList());
     }
 

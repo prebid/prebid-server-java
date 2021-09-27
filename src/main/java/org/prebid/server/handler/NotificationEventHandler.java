@@ -16,6 +16,9 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserService;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
@@ -44,18 +47,30 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private static final long DEFAULT_TIMEOUT = 1000L;
 
+    private final UidsCookieService uidsCookieService;
+    private final ApplicationEventService applicationEventService;
+    private final UserService userService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final boolean dealsEnabled;
     private final TrackingPixel trackingPixel;
 
-    public NotificationEventHandler(AnalyticsReporterDelegator analyticsDelegator,
+    public NotificationEventHandler(UidsCookieService uidsCookieService,
+                                    ApplicationEventService applicationEventService,
+                                    UserService userService,
+                                    AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
-                                    ApplicationSettings applicationSettings) {
+                                    ApplicationSettings applicationSettings,
+                                    boolean dealsEnabled) {
 
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.applicationEventService = applicationEventService;
+        this.userService = userService;
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.dealsEnabled = dealsEnabled;
 
         trackingPixel = createTrackingPixel();
     }
@@ -93,12 +108,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         }
 
         final EventRequest eventRequest = EventUtil.from(routingContext);
-        if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
-            getAccountById(eventRequest.getAccountId())
-                    .setHandler(async -> handleEvent(async, eventRequest, routingContext));
-        } else {
-            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
-        }
+        getAccountById(eventRequest.getAccountId())
+                .setHandler(async -> handleEvent(async, eventRequest, routingContext));
     }
 
     /**
@@ -130,9 +141,26 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         } else {
             final Account account = async.result();
 
-            if (Objects.equals(accountEventsEnabled(account), true)) {
+            final String lineItemId = eventRequest.getLineItemId();
+            final String bidId = eventRequest.getBidId();
+            if (dealsEnabled && lineItemId != null) {
+                applicationEventService.publishLineItemWinEvent(lineItemId);
+                userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
+            }
+
+            boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+
+            if (!eventsEnabledForAccount && eventsEnabledForRequest) {
+                respondWithUnauthorized(routingContext,
+                        String.format("Account '%s' doesn't support events", account.getId()));
+                return;
+            }
+
+            final EventRequest.Type eventType = eventRequest.getType();
+            if (eventsEnabledForRequest) {
                 final NotificationEvent notificationEvent = NotificationEvent.builder()
-                        .type(eventRequest.getType() == EventRequest.Type.win
+                        .type(eventType == EventRequest.Type.win
                                 ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
                         .bidId(eventRequest.getBidId())
                         .account(account)
@@ -140,14 +168,13 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .timestamp(eventRequest.getTimestamp())
                         .integration(eventRequest.getIntegration())
                         .httpContext(HttpContext.from(routingContext))
+                        .lineItemId(lineItemId)
                         .build();
+
                 analyticsDelegator.processEvent(notificationEvent);
 
-                respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
-            } else {
-                respondWithUnauthorized(routingContext,
-                        String.format("Account '%s' doesn't support events", account.getId()));
             }
+            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
         }
     }
 

@@ -134,10 +134,10 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
-                                result.getMiddle().getBidRequest(),
-                                result.getLeft(),
-                                result.getRight(),
-                                routingContext)
+                                        result.getMiddle().getBidRequest(),
+                                        result.getLeft(),
+                                        result.getRight(),
+                                        routingContext)
                                 .map(ampResponse -> Tuple3.of(result.getLeft(), result.getMiddle(), ampResponse)))
 
                 .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
@@ -360,7 +360,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         .end(body));
 
         if (responseSent) {
-            metrics.updateRequestTimeMetric(clock.millis() - startTime);
+            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {
