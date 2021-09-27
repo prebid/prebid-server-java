@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Bidmachine {@link Bidder} implementation.
- */
 public class BidmachineBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =

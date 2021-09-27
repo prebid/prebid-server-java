@@ -450,7 +450,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 null,
                 0,
                 true,
-                true,
                 false);
     }
 

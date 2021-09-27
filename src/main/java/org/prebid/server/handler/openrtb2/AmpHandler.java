@@ -134,10 +134,10 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
-                                result.getMiddle().getBidRequest(),
-                                result.getLeft(),
-                                result.getRight(),
-                                routingContext)
+                                        result.getMiddle().getBidRequest(),
+                                        result.getLeft(),
+                                        result.getRight(),
+                                        routingContext)
                                 .map(ampResponse -> Tuple3.of(result.getLeft(), result.getMiddle(), ampResponse)))
 
                 .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->

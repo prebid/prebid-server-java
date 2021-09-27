@@ -27,15 +27,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BlockedAttributesResolverTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
-        .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     @Test
     public void shouldReturnEmptyResultWhenInvalidAccountConfigurationAndDebugDisabled() {
         // given
         final ObjectNode accountConfig = mapper.createObjectNode().put("block-lists", 1);
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
-            emptyRequest(), "bidder1", accountConfig, false);
+                emptyRequest(), "bidder1", accountConfig, false);
 
         // when and then
         assertThat(resolver.resolve()).isEqualTo(ExecutionResult.empty());
@@ -46,83 +46,83 @@ class BlockedAttributesResolverTest {
         // given
         final ObjectNode accountConfig = mapper.createObjectNode().put("attributes", 1);
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
-            emptyRequest(), "bidder1", accountConfig, true);
+                emptyRequest(), "bidder1", accountConfig, true);
 
         // when and then
         assertThat(resolver.resolve()).isEqualTo(
-            ExecutionResult.withError("attributes field in account configuration is not an object"));
+                ExecutionResult.withError("attributes field in account configuration is not an object"));
     }
 
     @Test
     public void shouldReturnResultWithValueAndWarnings() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .actionOverrides(AttributeActionOverrides.blocked(
-                    asList(
-                        ArrayOverride.of(
-                            Conditions.of(singletonList("bidder1"), singletonList("video")),
-                            singletonList("domain3.com")),
-                        ArrayOverride.of(
-                            Conditions.of(singletonList("bidder1"), singletonList("banner")),
-                            singletonList("domain4.com")))))
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .actionOverrides(AttributeActionOverrides.blocked(
+                                asList(
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), singletonList("video")),
+                                                singletonList("domain3.com")),
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), singletonList("banner")),
+                                                singletonList("domain4.com")))))
+                        .build())
+                .build()));
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
-            request(imp -> imp
-                .video(Video.builder().build())
-                .banner(Banner.builder().build())),
-            "bidder1",
-            accountConfig,
-            true);
+                request(imp -> imp
+                        .video(Video.builder().build())
+                        .banner(Banner.builder().build())),
+                "bidder1",
+                accountConfig,
+                true);
 
         // when and then
         assertThat(resolver.resolve()).isEqualTo(ExecutionResult.builder()
-            .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
-            .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, " +
-                "request media types: [banner, video]"))
-            .build());
+                .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
+                .warnings(singletonList("More than one conditions matches request. Bidder: bidder1, " +
+                        "request media types: [banner, video]"))
+                .build());
     }
 
     @Test
     public void shouldReturnResultWithValueAndWarningsWhenDebugDisabled() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .actionOverrides(AttributeActionOverrides.blocked(
-                    asList(
-                        ArrayOverride.of(
-                            Conditions.of(singletonList("bidder1"), singletonList("video")),
-                            singletonList("domain3.com")),
-                        ArrayOverride.of(
-                            Conditions.of(singletonList("bidder1"), singletonList("banner")),
-                            singletonList("domain4.com")))))
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .actionOverrides(AttributeActionOverrides.blocked(
+                                asList(
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), singletonList("video")),
+                                                singletonList("domain3.com")),
+                                        ArrayOverride.of(
+                                                Conditions.of(singletonList("bidder1"), singletonList("banner")),
+                                                singletonList("domain4.com")))))
+                        .build())
+                .build()));
         final BlockedAttributesResolver resolver = BlockedAttributesResolver.create(
-            request(imp -> imp
-                .video(Video.builder().build())
-                .banner(Banner.builder().build())),
-            "bidder1",
-            accountConfig,
-            false);
+                request(imp -> imp
+                        .video(Video.builder().build())
+                        .banner(Banner.builder().build())),
+                "bidder1",
+                accountConfig,
+                false);
 
         // when and then
         assertThat(resolver.resolve()).isEqualTo(ExecutionResult.builder()
-            .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
-            .build());
+                .value(BlockedAttributes.builder().badv(singletonList("domain3.com")).build())
+                .build());
     }
 
     private static BidRequest emptyRequest() {
         return BidRequest.builder()
-            .imp(singletonList(Imp.builder().build()))
-            .build();
+                .imp(singletonList(Imp.builder().build()))
+                .build();
     }
 
     private static BidRequest request(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return BidRequest.builder()
-            .imp(singletonList(impCustomizer.apply(Imp.builder()).build()))
-            .build();
+                .imp(singletonList(impCustomizer.apply(Imp.builder()).build()))
+                .build();
     }
 
     private static ObjectNode toObjectNode(ModuleConfig config) {

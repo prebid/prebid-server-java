@@ -1,12 +1,6 @@
 adapters:
   vrtcal:
-    enabled: false
     endpoint: http://rtb.vrtcal.com/bidder_prebid.vap?ssp=1804
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@vrtcal.com
       app-media-types:

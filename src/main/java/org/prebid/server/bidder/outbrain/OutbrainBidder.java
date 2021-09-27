@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Outbrain {@link Bidder} implementation.
- */
 public class OutbrainBidder implements Bidder<BidRequest> {
 
     private static final int IMAGE_TRACKER_METHOD = 1;

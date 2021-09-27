@@ -27,9 +27,9 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
 
     public static BidderInvocationContext of(String bidder, ObjectNode accountConfig, boolean debugEnabled) {
         return BidderInvocationContextImpl.builder()
-            .bidder(bidder)
-            .accountConfig(accountConfig)
-            .debugEnabled(debugEnabled)
-            .build();
+                .bidder(bidder)
+                .accountConfig(accountConfig)
+                .debugEnabled(debugEnabled)
+                .build();
     }
 }

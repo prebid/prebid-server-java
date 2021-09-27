@@ -100,13 +100,13 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encode(updatedRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(updatedRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encode(updatedRequest))
+                                .headers(HttpUtil.headers())
+                                .payload(updatedRequest)
+                                .build()),
                 errors);
     }
 

@@ -1,12 +1,6 @@
 adapters:
   pubnative:
-    enabled: false
     endpoint: http://dsp.pubnative.net/bid/v1/request
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: product@pubnative.net
       app-media-types:

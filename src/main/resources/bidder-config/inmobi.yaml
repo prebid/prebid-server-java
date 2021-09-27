@@ -1,24 +1,19 @@
 adapters:
   inmobi:
-    enabled: false
     endpoint: https://api.w.inmobi.com/showad/openrtb/bidder/prebid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: technology-irv@inmobi.com
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
       supported-vendors:
       vendor-id: 333
     usersync:
-      url: https://id5-sync.com/i/495/0.gif?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&callback=
+      url: https://sync.inmobi.com/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
       redirect-url: /setuid?bidder=inmobi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={ID5UID}
       cookie-family-name: inmobi
       type: redirect
