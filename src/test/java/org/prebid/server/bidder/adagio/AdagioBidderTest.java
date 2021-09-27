@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class AdagioBidderTest extends VertxTest {
 
@@ -91,8 +91,7 @@ public class AdagioBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIpv6"));
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIpv6"));
     }
 
     @Test
@@ -118,8 +117,7 @@ public class AdagioBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
     }
 
     @Test
@@ -139,8 +137,7 @@ public class AdagioBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
+                .contains(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
     }
 
     @Test
@@ -158,7 +155,8 @@ public class AdagioBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
-                .extracting(Map.Entry::getKey).doesNotContain(HttpUtil.X_FORWARDED_FOR_HEADER.toString());
+                .extracting(Map.Entry::getKey)
+                .doesNotContain(HttpUtil.X_FORWARDED_FOR_HEADER.toString());
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -217,9 +215,8 @@ public class AdagioBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
+                .extracting(BidderError::getType)
+                .containsOnly(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -234,14 +231,13 @@ public class AdagioBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
+                .extracting(BidderError::getType)
+                .containsOnly(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldProccedWithErrorsAndValues() throws JsonProcessingException {
+    public void makeBidsShouldProceedWithErrorsAndValues() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(
@@ -256,8 +252,8 @@ public class AdagioBidderTest extends VertxTest {
                                 .ext(mapper
                                         .createObjectNode()
                                         .set("prebid", mapper.valueToTree(ExtBidPrebid.builder()
-                                        .type(BidType.banner)
-                                        .build()))),
+                                                .type(BidType.banner)
+                                                .build()))),
 
                         thirdBuilder -> thirdBuilder.ext(null))));
 
@@ -266,14 +262,12 @@ public class AdagioBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
+                .extracting(BidderError::getType)
+                .containsOnly(BidderError.Type.bad_input);
 
         assertThat(result.getValue()).hasSize(2)
-                .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(BidType.banner);
-                });
+                .extracting(BidderBid::getType)
+                .containsOnly(BidType.banner);
     }
 
     private static BidRequest givenBidRequest(
@@ -281,7 +275,7 @@ public class AdagioBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -289,6 +283,7 @@ public class AdagioBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer);
     }
 
+    @SafeVarargs
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return BidResponse.builder()
                 .cur("USD")
