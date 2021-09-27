@@ -126,7 +126,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), banner, "USD"));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), banner, null));
     }
 
     @Test
@@ -142,7 +142,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), video, "USD"));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), video, null));
     }
 
     @Test
@@ -212,7 +212,7 @@ public class VisxBidderTest extends VertxTest {
                         .h(100)
                         .adomain(singletonList("adomain"))
                         .build(),
-                video, "USD");
+                video, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);
