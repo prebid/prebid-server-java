@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class GridKeywordsUtilTest extends VertxTest {
 
-    private static final String TEST_PATH = "bidder/grid/util/";
-
     @Test
     public void modifyWithKeywordsShouldCorrectlyAddKeywordsSections() {
         // given
@@ -278,10 +276,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsShouldCorrectlyResolveUserAndSiteSections() throws IOException {
         // given
-        final ObjectNode userSectionNode = (ObjectNode) jsonNodeFrom(TEST_PATH
-                + "resolve-keywords-should-correctly-resolve-user-and-site-sections-site.json");
-        final ObjectNode siteSectionNode = (ObjectNode) jsonNodeFrom(TEST_PATH
-                + "resolve-keywords-should-correctly-resolve-user-and-site-sections-user.json");
+        final ObjectNode userSectionNode = (ObjectNode) jsonNodeFrom("bidder/grid/util/site-section.json");
+        final ObjectNode siteSectionNode = (ObjectNode) jsonNodeFrom("bidder/grid/util/user-section.json");
 
         final Keywords keywords = Keywords.of(userSectionNode, siteSectionNode);
 
@@ -295,10 +291,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void mergeShouldCorrectlyMergeKeywordsArraysNodes() throws IOException {
         // given
-        final JsonNode firstKeywordsNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-keywords-arrays-nodes-keywords-1.json");
-        final JsonNode secondKeywordsNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-keywords-arrays-nodes-keywords-2.json");
+        final JsonNode firstKeywordsNode = jsonNodeFrom("bidder/grid/util/keywords-arrays-nodes-1.json");
+        final JsonNode secondKeywordsNode = jsonNodeFrom("bidder/grid/util/keywords-arrays-nodes-2.json");
 
         final Keywords firstKeywords = mapper.convertValue(firstKeywordsNode, Keywords.class);
         final Keywords secondKeywords = mapper.convertValue(secondKeywordsNode, Keywords.class);
@@ -307,8 +301,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
 
         // then
-        final JsonNode expectedResultNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-keywords-arrays-nodes-keywords-result.json.json");
+        final JsonNode expectedResultNode = jsonNodeFrom(
+                "bidder/grid/util/keywords-arrays-nodes-merge-result.json.json");
 
         assertThat(result)
                 .isEqualTo(mapper.convertValue(expectedResultNode, Keywords.class));
@@ -317,20 +311,20 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void mergeShouldCorrectlyMergeSectionsPublishersArraysNodes() throws IOException {
         // given
-        final JsonNode firstKeywordsNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-sections-publishers-arrays-nodes-keywords-1.json");
+        final JsonNode firstKeywordsNode = jsonNodeFrom(
+                "bidder/grid/util/publishers-arrays-nodes-keywords-1.json");
         final Keywords firstKeywords = mapper.convertValue(firstKeywordsNode, Keywords.class);
 
-        final JsonNode secondKeywordsNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-sections-publishers-arrays-nodes-keywords-2.json");
+        final JsonNode secondKeywordsNode = jsonNodeFrom(
+                "bidder/grid/util/publishers-arrays-nodes-keywords-2.json");
         final Keywords secondKeywords = mapper.convertValue(secondKeywordsNode, Keywords.class);
 
         // when
         final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
 
         // then
-        final JsonNode expectedResultNode = jsonNodeFrom(TEST_PATH
-                + "merge-should-correctly-merge-sections-publishers-arrays-nodes-keywords-result.json");
+        final JsonNode expectedResultNode = jsonNodeFrom(
+                "bidder/grid/util/publishers-arrays-nodes-keywords-merge-result.json");
 
         assertThat(result)
                 .isEqualTo(mapper.convertValue(expectedResultNode, Keywords.class));
