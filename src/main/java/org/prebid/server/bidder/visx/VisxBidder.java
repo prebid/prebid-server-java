@@ -28,8 +28,8 @@ import java.util.stream.Collectors;
 
 public class VisxBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_REQUEST_CURRENCY = "USD";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
+    private static final String DEFAULT_CURRENCY = "USD";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -55,12 +55,9 @@ public class VisxBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest) {
-        if (CollectionUtils.isEmpty(bidRequest.getCur())) {
-            return bidRequest.toBuilder()
-                    .cur(Collections.singletonList(DEFAULT_REQUEST_CURRENCY))
-                    .build();
-        }
-        return bidRequest;
+        return CollectionUtils.isEmpty(bidRequest.getCur())
+                ? bidRequest.toBuilder().cur(Collections.singletonList(DEFAULT_CURRENCY)).build()
+                : bidRequest;
     }
 
     @Override
@@ -86,26 +83,31 @@ public class VisxBidder implements Bidder<BidRequest> {
                 .map(VisxSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(makeBid(bid, bidRequest.getId()),
-                        getBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_BID_CURRENCY))
+                .map(visxBid -> toBidderBid(bidRequest, visxBid))
                 .collect(Collectors.toList());
     }
 
-    private Bid makeBid(VisxBid bid, String id) {
+    private BidderBid toBidderBid(BidRequest bidRequest, VisxBid visxBid) {
+        final Bid bid = toBid(visxBid, bidRequest.getId());
+        final BidType bidType = getBidType(visxBid.getImpid(), bidRequest.getImp());
+        return BidderBid.of(bid, bidType, DEFAULT_CURRENCY);
+    }
+
+    private static Bid toBid(VisxBid visxBid, String id) {
         return Bid.builder()
                 .id(id)
-                .impid(bid.getImpid())
-                .price(bid.getPrice())
-                .adm(bid.getAdm())
-                .crid(bid.getCrid())
-                .dealid(bid.getDealid())
-                .h(bid.getH())
-                .w(bid.getW())
-                .adomain(bid.getAdomain())
+                .impid(visxBid.getImpid())
+                .price(visxBid.getPrice())
+                .adm(visxBid.getAdm())
+                .crid(visxBid.getCrid())
+                .dealid(visxBid.getDealid())
+                .h(visxBid.getH())
+                .w(visxBid.getW())
+                .adomain(visxBid.getAdomain())
                 .build();
     }
 
-    private BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
@@ -116,7 +118,6 @@ public class VisxBidder implements Bidder<BidRequest> {
                 }
             }
         }
-
         throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
     }
 }
