@@ -32,9 +32,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Yeahmobi {@link Bidder} implementation.
- */
 public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> YEAHMOBI_EXT_TYPE_REFERENCE =
@@ -76,13 +73,13 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(url)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(url)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(body)
+                                .build()),
                 errors);
     }
 

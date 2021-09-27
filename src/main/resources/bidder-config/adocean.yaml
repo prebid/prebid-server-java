@@ -1,12 +1,6 @@
 adapters:
   adocean:
-    enabled: false
     endpoint: https://{{Host}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: aoteam@gemius.com
       app-media-types:

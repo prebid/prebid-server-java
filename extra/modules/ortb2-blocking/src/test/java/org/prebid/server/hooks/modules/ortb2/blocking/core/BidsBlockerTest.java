@@ -32,8 +32,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BidsBlockerTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
-        .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
-        .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     @Test
     public void shouldReturnEmptyResultWhenNoBlockingResponseConfig() {
@@ -49,22 +49,22 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWithErrorWhenInvalidAccountConfig() {
         // given
         final ObjectNode accountConfig = mapper.createObjectNode()
-            .put("attributes", 1);
+                .put("attributes", 1);
 
         final List<BidderBid> bids = singletonList(bid());
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", accountConfig, null, true);
 
         // when and then
         assertThat(blocker.block()).isEqualTo(ExecutionResult.builder()
-            .errors(singletonList("attributes field in account configuration is not an object"))
-            .build());
+                .errors(singletonList("attributes field in account configuration is not an object"))
+                .build());
     }
 
     @Test
     public void shouldReturnEmptyResultWithoutErrorWhenInvalidAccountConfigAndDebugDisabled() {
         // given
         final ObjectNode accountConfig = mapper.createObjectNode()
-            .put("attributes", 1);
+                .put("attributes", 1);
 
         final List<BidderBid> bids = singletonList(bid());
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", accountConfig, null, false);
@@ -77,11 +77,11 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithoutAdomainAndBlockUnknownFalse() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(false)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(false)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid());
@@ -95,11 +95,11 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithoutAdomainAndEnforceBlocksFalseAndBlockUnknownTrue() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(false)
-                .blockUnknown(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(false)
+                        .blockUnknown(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid());
@@ -113,11 +113,11 @@ class BidsBlockerTest {
     public void shouldReturnResultWithBidWhenBidWithoutAdomainAndBlockUnknownTrue() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid());
@@ -131,10 +131,10 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithBlockedAdomainAndEnforceBlocksFalse() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(false)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(false)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -149,10 +149,10 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithNotBlockedAdomain() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -167,10 +167,10 @@ class BidsBlockerTest {
     public void shouldReturnResultWithBidWhenBidWithBlockedAdomainAndEnforceBlocksTrue() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -185,10 +185,10 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithAdomainAndNoBlockedAttributes() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -202,18 +202,18 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithAttrAndNoBlockedBannerAttrForImp() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .battr(Attribute.battrBuilder()
-                .enforceBlocks(true)
-                .build())
-            .build()));
+                .battr(Attribute.battrBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid
-            .impid("impId2")
-            .attr(singletonList(1))));
+                .impid("impId2")
+                .attr(singletonList(1))));
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
-            .battr(singletonMap("impId1", asList(1, 2)))
-            .build();
+                .battr(singletonMap("impId1", asList(1, 2)))
+                .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", accountConfig, blockedAttributes, true);
 
         // when and then
@@ -224,11 +224,11 @@ class BidsBlockerTest {
     public void shouldReturnEmptyResultWhenBidWithBlockedAdomainAndInDealsExceptions() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .allowedForDeals(singletonList("domain1.com"))
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(singletonList("domain1.com"))
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -243,11 +243,11 @@ class BidsBlockerTest {
     public void shouldReturnResultWithBidWhenBidWithBlockedAdomainAndNotInDealsExceptions() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .allowedForDeals(singletonList("domain2.com"))
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(singletonList("domain2.com"))
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid(bid -> bid.adomain(singletonList("domain1.com"))));
@@ -262,11 +262,11 @@ class BidsBlockerTest {
     public void shouldReturnResultWithBidAndDebugMessageWhenBidIsBlocked() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .bcat(Attribute.bcatBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(true)
-                .build())
-            .build()));
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid());
@@ -276,7 +276,7 @@ class BidsBlockerTest {
         assertThat(blocker.block()).satisfies(result -> {
             assertThat(result.getValue()).isEqualTo(BlockedBids.of(singleton(0)));
             assertThat(result.getDebugMessages()).containsOnly(
-                "Bid 0 from bidder bidder1 has been rejected, failed checks: [bcat]");
+                    "Bid 0 from bidder bidder1 has been rejected, failed checks: [bcat]");
         });
     }
 
@@ -284,11 +284,11 @@ class BidsBlockerTest {
     public void shouldReturnResultWithBidWithoutDebugMessageWhenBidIsBlockedAndDebugDisabled() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .bcat(Attribute.bcatBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(true)
-                .build())
-            .build()));
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = singletonList(bid());
@@ -302,42 +302,42 @@ class BidsBlockerTest {
     public void shouldReturnResultWithAnalyticsResults() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .build())
-            .bcat(Attribute.bcatBuilder()
-                .enforceBlocks(true)
-                .build())
-            .bapp(Attribute.bappBuilder()
-                .enforceBlocks(true)
-                .build())
-            .battr(Attribute.battrBuilder()
-                .enforceBlocks(true)
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .battr(Attribute.battrBuilder()
+                        .enforceBlocks(true)
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = asList(
-            bid(bid -> bid
-                .impid("impId1")
-                .adomain(asList("domain2.com", "domain3.com", "domain4.com"))
-                .bundle("app2")),
-            bid(bid -> bid
-                .impid("impId2")
-                .cat(asList("cat2", "cat3", "cat4"))
-                .attr(asList(2, 3, 4))),
-            bid(bid -> bid
-                .impid("impId1")
-                .adomain(singletonList("domain5.com"))
-                .cat(singletonList("cat5"))
-                .bundle("app5")
-                .attr(singletonList(5))));
+                bid(bid -> bid
+                        .impid("impId1")
+                        .adomain(asList("domain2.com", "domain3.com", "domain4.com"))
+                        .bundle("app2")),
+                bid(bid -> bid
+                        .impid("impId2")
+                        .cat(asList("cat2", "cat3", "cat4"))
+                        .attr(asList(2, 3, 4))),
+                bid(bid -> bid
+                        .impid("impId1")
+                        .adomain(singletonList("domain5.com"))
+                        .cat(singletonList("cat5"))
+                        .bundle("app5")
+                        .attr(singletonList(5))));
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
-            .badv(asList("domain1.com", "domain2.com", "domain3.com"))
-            .bcat(asList("cat1", "cat2", "cat3"))
-            .bapp(asList("app1", "app2", "app3"))
-            .battr(singletonMap("impId2", asList(1, 2, 3)))
-            .build();
+                .badv(asList("domain1.com", "domain2.com", "domain3.com"))
+                .bcat(asList("cat1", "cat2", "cat3"))
+                .bapp(asList("app1", "app2", "app3"))
+                .battr(singletonMap("impId2", asList(1, 2, 3)))
+                .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", accountConfig, blockedAttributes, true);
 
         // when and then
@@ -354,9 +354,9 @@ class BidsBlockerTest {
             analyticsResultValues2.put("attr", asList(2, 3));
 
             assertThat(result.getAnalyticsResults()).containsOnly(
-                AnalyticsResult.of("success-blocked", analyticsResultValues1, "bidder1", "impId1"),
-                AnalyticsResult.of("success-blocked", analyticsResultValues2, "bidder1", "impId2"),
-                AnalyticsResult.of("success-allow", null, "bidder1", "impId1"));
+                    AnalyticsResult.of("success-blocked", analyticsResultValues1, "bidder1", "impId1"),
+                    AnalyticsResult.of("success-blocked", analyticsResultValues2, "bidder1", "impId2"),
+                    AnalyticsResult.of("success-allow", null, "bidder1", "impId1"));
         });
     }
 
@@ -364,61 +364,61 @@ class BidsBlockerTest {
     public void shouldReturnResultWithoutSomeBidsWhenAllAttributesInConfig() {
         // given
         final ObjectNode accountConfig = toObjectNode(ModuleConfig.of(Attributes.builder()
-            .badv(Attribute.badvBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(true)
-                .allowedForDeals(singletonList("domain2.com"))
-                .build())
-            .bcat(Attribute.bcatBuilder()
-                .enforceBlocks(true)
-                .blockUnknown(true)
-                .allowedForDeals(singletonList("cat2"))
-                .build())
-            .bapp(Attribute.bappBuilder()
-                .enforceBlocks(true)
-                .allowedForDeals(singletonList("app2"))
-                .build())
-            .battr(Attribute.battrBuilder()
-                .enforceBlocks(true)
-                .allowedForDeals(singletonList(2))
-                .build())
-            .build()));
+                .badv(Attribute.badvBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(singletonList("domain2.com"))
+                        .build())
+                .bcat(Attribute.bcatBuilder()
+                        .enforceBlocks(true)
+                        .blockUnknown(true)
+                        .allowedForDeals(singletonList("cat2"))
+                        .build())
+                .bapp(Attribute.bappBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(singletonList("app2"))
+                        .build())
+                .battr(Attribute.battrBuilder()
+                        .enforceBlocks(true)
+                        .allowedForDeals(singletonList(2))
+                        .build())
+                .build()));
 
         // when
         final List<BidderBid> bids = asList(
-            bid(bid -> bid.adomain(singletonList("domain1.com"))),
-            bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat1"))),
-            bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2"))),
-            bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app1")),
-            bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app2")),
-            bid(bid -> bid
-                .adomain(singletonList("domain2.com"))
-                .cat(singletonList("cat2"))
-                .bundle("app2")
-                .attr(singletonList(1))),
-            bid(bid -> bid
-                .adomain(singletonList("domain2.com"))
-                .cat(singletonList("cat2"))
-                .bundle("app2")
-                .attr(singletonList(2))),
-            bid());
+                bid(bid -> bid.adomain(singletonList("domain1.com"))),
+                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat1"))),
+                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2"))),
+                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app1")),
+                bid(bid -> bid.adomain(singletonList("domain2.com")).cat(singletonList("cat2")).bundle("app2")),
+                bid(bid -> bid
+                        .adomain(singletonList("domain2.com"))
+                        .cat(singletonList("cat2"))
+                        .bundle("app2")
+                        .attr(singletonList(1))),
+                bid(bid -> bid
+                        .adomain(singletonList("domain2.com"))
+                        .cat(singletonList("cat2"))
+                        .bundle("app2")
+                        .attr(singletonList(2))),
+                bid());
         final BlockedAttributes blockedAttributes = BlockedAttributes.builder()
-            .badv(asList("domain1.com", "domain2.com"))
-            .bcat(asList("cat1", "cat2"))
-            .bapp(asList("app1", "app2"))
-            .battr(singletonMap("impId1", asList(1, 2)))
-            .build();
+                .badv(asList("domain1.com", "domain2.com"))
+                .bcat(asList("cat1", "cat2"))
+                .bapp(asList("app1", "app2"))
+                .battr(singletonMap("impId1", asList(1, 2)))
+                .build();
         final BidsBlocker blocker = BidsBlocker.create(bids, "bidder1", accountConfig, blockedAttributes, true);
 
         // when and then
         assertThat(blocker.block()).satisfies(result -> {
             assertThat(result.getValue()).isEqualTo(BlockedBids.of(new HashSet<>(asList(0, 1, 3, 5, 7))));
             assertThat(result.getDebugMessages()).containsOnly(
-                "Bid 0 from bidder bidder1 has been rejected, failed checks: [badv, bcat]",
-                "Bid 1 from bidder bidder1 has been rejected, failed checks: [bcat]",
-                "Bid 3 from bidder bidder1 has been rejected, failed checks: [bapp]",
-                "Bid 5 from bidder bidder1 has been rejected, failed checks: [battr]",
-                "Bid 7 from bidder bidder1 has been rejected, failed checks: [badv, bcat]");
+                    "Bid 0 from bidder bidder1 has been rejected, failed checks: [badv, bcat]",
+                    "Bid 1 from bidder bidder1 has been rejected, failed checks: [bcat]",
+                    "Bid 3 from bidder bidder1 has been rejected, failed checks: [bapp]",
+                    "Bid 5 from bidder bidder1 has been rejected, failed checks: [battr]",
+                    "Bid 7 from bidder bidder1 has been rejected, failed checks: [badv, bcat]");
         });
     }
 
@@ -428,12 +428,12 @@ class BidsBlockerTest {
 
     private static BidderBid bid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidderBid.of(
-            bidCustomizer.apply(Bid.builder()
-                .impid("impId1")
-                .dealid("dealid1"))
-                .build(),
-            BidType.banner,
-            "USD");
+                bidCustomizer.apply(Bid.builder()
+                                .impid("impId1")
+                                .dealid("dealid1"))
+                        .build(),
+                BidType.banner,
+                "USD");
     }
 
     private static BlockedAttributes attributesWithBadv(List<String> badv) {

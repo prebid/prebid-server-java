@@ -35,9 +35,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Pangle {@link Bidder} implementation.
- */
 public class PangleBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

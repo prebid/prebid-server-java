@@ -1,12 +1,6 @@
 adapters:
   kidoz:
-    enabled: false
     endpoint: http://prebid-adapter.kidoz.net/openrtb2/auction?src=prebid-server
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid-support@kidoz.net
       app-media-types:
