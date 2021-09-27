@@ -113,9 +113,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-/**
- * <a href="https://rubiconproject.com">Rubicon Project</a> {@link Bidder} implementation.
- */
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);

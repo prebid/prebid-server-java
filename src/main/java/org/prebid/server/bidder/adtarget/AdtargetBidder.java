@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adtarget {@link Bidder} implementation.
- */
 public class AdtargetBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdtarget>> ADTARGET_EXT_TYPE_REFERENCE =

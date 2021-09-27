@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Sovrn {@link Bidder} implementation.
- */
 public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
@@ -76,13 +73,13 @@ public class SovrnBidder implements Bidder<BidRequest> {
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(headers(bidRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(body)
+                                .headers(headers(bidRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

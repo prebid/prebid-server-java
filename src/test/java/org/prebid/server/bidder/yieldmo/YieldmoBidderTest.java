@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.yieldmo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -75,14 +77,70 @@ public class YieldmoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
-
-        final YieldmoImpExt expectedExt = YieldmoImpExt.of(PLACEMENT_VALUE);
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsOnly(mapper.valueToTree(expectedExt));
+                .containsExactly(mapper.valueToTree(YieldmoImpExt.of(PLACEMENT_VALUE, null)));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddPbadslotToImpExtIfPresentAndNotEmpty() {
+        // given
+        final ObjectNode impExt = mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)));
+        impExt.set("data", mapper.createObjectNode().set("pbadslot", TextNode.valueOf("pbadslot")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(YieldmoImpExt.of(null, "pbadslot")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAddPbadslotToImpExtIfEmpty() {
+        // given
+        final ObjectNode impExt = mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)));
+        impExt.set("data", mapper.createObjectNode().set("pbadslot", TextNode.valueOf("")));
+
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(YieldmoImpExt.of(null, null)));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAddPbadslotToImpExtIfNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(YieldmoImpExt.of(null, null)));
     }
 
     @Test
@@ -94,10 +152,10 @@ public class YieldmoBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).flatExtracting(httpRequest -> httpRequest.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
@@ -161,7 +219,7 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -180,7 +238,7 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -199,7 +257,7 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -207,7 +265,7 @@ public class YieldmoBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -217,9 +275,9 @@ public class YieldmoBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
                 .build();
     }
 

@@ -2479,10 +2479,10 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final List<Deal> dealsList = asList(
                 Deal.builder().ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, "123",
-                        singletonList(Format.builder().w(120).h(600).build()), null))))
+                                singletonList(Format.builder().w(120).h(600).build()), null))))
                         .build(),
                 Deal.builder().ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, "234",
-                        singletonList(Format.builder().w(300).h(250).build()), null))))
+                                singletonList(Format.builder().w(300).h(250).build()), null))))
                         .build());
 
         final BidRequest bidRequest = givenBidRequest(
