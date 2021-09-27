@@ -51,12 +51,18 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+    public void makeHttpRequestsShouldMakeOneRequestPerImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
-                        .build()))
+                .imp(asList(Imp.builder()
+                                .id("123")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .build(),
+                        Imp.builder()
+                                .id("456")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .build()
+                ))
                 .id("request_id")
                 .build();
 
@@ -65,9 +71,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getPayload)
-                .containsExactly(bidRequest);
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("123", "456");
     }
 
     @Test
