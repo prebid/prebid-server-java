@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -19,7 +18,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
@@ -34,9 +32,11 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,16 +48,14 @@ import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGridBidder>> GRID_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGridBidder>>() {
-            };
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final GridKeywordsProcessor gridKeywordsProcessor;
 
-    public GridBidder(String endpointUrl, JacksonMapper mapper) {
+    public GridBidder(String endpointUrl, JacksonMapper mapper, GridKeywordsProcessor gridKeywordsProcessor) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.gridKeywordsProcessor = Objects.requireNonNull(gridKeywordsProcessor);
     }
 
     @Override
@@ -89,15 +87,19 @@ public class GridBidder implements Bidder<BidRequest> {
         final List<Imp> modifiedImps = new ArrayList<>();
         for (Imp imp : imps) {
             try {
-                final ExtImpGrid extImpGrid = mapper.mapper().convertValue(imp.getExt(), ExtImpGrid.class);
-                validateImpExt(extImpGrid, imp.getId());
-                modifiedImps.add(modifyImp(imp, extImpGrid));
+                modifiedImps.add(modifyImp(imp, parseAndValidateImpExt(imp)));
             } catch (IllegalArgumentException | PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return modifiedImps;
+    }
+
+    private ExtImpGrid parseAndValidateImpExt(Imp imp) {
+        final ExtImpGrid extImpGrid = mapper.mapper().convertValue(imp.getExt(), ExtImpGrid.class);
+        validateImpExt(extImpGrid, imp.getId());
+        return extImpGrid;
     }
 
     private static void validateImpExt(ExtImpGrid extImpGrid, String impId) {
@@ -126,7 +128,7 @@ public class GridBidder implements Bidder<BidRequest> {
 
     private Keywords getKeywordsFromImpExt(JsonNode extImp) {
         try {
-            return mapper.mapper().convertValue(extImp, GRID_EXT_TYPE_REFERENCE).getBidder().getKeywords();
+            return mapper.mapper().convertValue(extImp, ExtImpGrid.class).getBidder().getKeywords();
         } catch (IllegalArgumentException e) {
             return null;
         }
@@ -140,10 +142,7 @@ public class GridBidder implements Bidder<BidRequest> {
 
         final ExtRequest extRequest = bidRequest.getExt();
         final Keywords resolvedKeywords = buildBidRequestExtKeywords(
-                ObjectUtils.defaultIfNull(userKeywords, ""),
-                ObjectUtils.defaultIfNull(siteKeywords, ""),
-                firstImpKeywords,
-                getKeywordsFromRequestExt(extRequest));
+                userKeywords, siteKeywords, firstImpKeywords, getKeywordsFromRequestExt(extRequest));
 
         return bidRequest.toBuilder()
                 .imp(imp)
@@ -166,22 +165,23 @@ public class GridBidder implements Bidder<BidRequest> {
                                                 String siteKeywords,
                                                 Keywords firstImpExtKeywords,
                                                 Keywords requestExtKeywords) {
-        return GridKeywordsUtil.merge(
-                mapper,
-                GridKeywordsUtil.resolveKeywordsFromOpenRtb(userKeywords, siteKeywords, mapper),
-                GridKeywordsUtil.resolveKeywords(firstImpExtKeywords, mapper),
-                GridKeywordsUtil.resolveKeywords(requestExtKeywords, mapper));
+
+        final String resolvedUserKeywords = ObjectUtils.defaultIfNull(userKeywords, "");
+        final String resolvedSiteKeywords = ObjectUtils.defaultIfNull(siteKeywords, "");
+
+        return gridKeywordsProcessor.merge(
+                gridKeywordsProcessor.resolveKeywordsFromOpenRtb(resolvedUserKeywords, resolvedSiteKeywords),
+                gridKeywordsProcessor.resolveKeywords(firstImpExtKeywords),
+                gridKeywordsProcessor.resolveKeywords(requestExtKeywords));
     }
 
     private ExtRequest modifyExtRequest(ExtRequest extRequest, Keywords keywords) {
-        final boolean extRequestPresent = extRequest != null;
-        final ExtRequestPrebid extRequestPrebid = extRequestPresent ? extRequest.getPrebid() : null;
-        final Map<String, JsonNode> extRequestProperties = extRequestPresent
-                ? extRequest.getProperties()
-                : Collections.emptyMap();
+        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+        final Map<String, JsonNode> extRequestProperties = ObjectUtil.getIfNotNullOrDefault(
+                extRequest, ExtRequest::getProperties, Collections::emptyMap);
 
         final Map<String, JsonNode> modifiedExtRequestProperties =
-                GridKeywordsUtil.modifyWithKeywords(extRequestProperties, keywords, mapper);
+                gridKeywordsProcessor.modifyWithKeywords(extRequestProperties, keywords);
         if (modifiedExtRequestProperties.isEmpty()) {
             return null;
         }

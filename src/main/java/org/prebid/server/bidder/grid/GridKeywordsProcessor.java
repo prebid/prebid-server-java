@@ -23,18 +23,20 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class GridKeywordsUtil {
+public class GridKeywordsProcessor {
 
     private static final TypeReference<Map<String, JsonNode>> MAP_TYPE_REF =
             new TypeReference<Map<String, JsonNode>>() {
             };
 
-    private GridKeywordsUtil() {
+    private final JacksonMapper mapper;
+
+    public GridKeywordsProcessor(JacksonMapper mapper) {
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
-    public static Map<String, JsonNode> modifyWithKeywords(Map<String, JsonNode> extRequestProperties,
-                                                           Keywords keywords,
-                                                           JacksonMapper mapper) {
+    public Map<String, JsonNode> modifyWithKeywords(Map<String, JsonNode> extRequestProperties,
+                                                    Keywords keywords) {
 
         final JsonNode keywordsJsonNode = extRequestProperties.get("keywords");
         final ObjectNode keywordsNode = keywordsJsonNode != null && keywordsJsonNode.isObject()
@@ -61,13 +63,13 @@ public class GridKeywordsUtil {
         }
     }
 
-    public static Keywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords, JacksonMapper mapper) {
+    public Keywords resolveKeywordsFromOpenRtb(String userKeywords, String siteKeywords) {
         return Keywords.of(
-                resolveKeywordsSectionFromOpenRtb(userKeywords, mapper),
-                resolveKeywordsSectionFromOpenRtb(siteKeywords, mapper));
+                resolveKeywordsSectionFromOpenRtb(userKeywords),
+                resolveKeywordsSectionFromOpenRtb(siteKeywords));
     }
 
-    public static ObjectNode resolveKeywordsSectionFromOpenRtb(String keywords, JacksonMapper mapper) {
+    public ObjectNode resolveKeywordsSectionFromOpenRtb(String keywords) {
         final List<KeywordSegment> segments = Arrays.stream(keywords.split(","))
                 .filter(StringUtils::isNotEmpty)
                 .map(keyword -> KeywordSegment.of("keywords", keyword))
@@ -82,27 +84,26 @@ public class GridKeywordsUtil {
         return publisherNode;
     }
 
-    public static Keywords resolveKeywords(Keywords keywords, JacksonMapper mapper) {
+    public Keywords resolveKeywords(Keywords keywords) {
         return keywords == null
                 ? Keywords.empty()
                 : Keywords.of(
-                resolveKeywordsSection(keywords.getUser(), mapper),
-                resolveKeywordsSection(keywords.getSite(), mapper));
+                resolveKeywordsSection(keywords.getUser()),
+                resolveKeywordsSection(keywords.getSite()));
     }
 
-    public static ObjectNode resolveKeywordsSection(ObjectNode sectionNode, JacksonMapper mapper) {
+    public ObjectNode resolveKeywordsSection(ObjectNode sectionNode) {
         if (sectionNode == null) {
             return null;
         }
 
         final ObjectNode resolvedSectionNode = mapper.mapper().createObjectNode();
-        final Map<String, JsonNode> sectionMap = jsonNodeToMap(sectionNode, mapper);
+        final Map<String, JsonNode> sectionMap = jsonNodeToMap(sectionNode);
 
         for (Map.Entry<String, JsonNode> entry : sectionMap.entrySet()) {
             JsonNode publisherJsonNode = entry.getValue();
             if (publisherJsonNode != null && publisherJsonNode.isArray()) {
-                final List<KeywordsPublisherItem> publisherKeywords =
-                        resolvePublisherKeywords(publisherJsonNode, mapper);
+                final List<KeywordsPublisherItem> publisherKeywords = resolvePublisherKeywords(publisherJsonNode);
                 if (!publisherKeywords.isEmpty()) {
                     resolvedSectionNode.set(entry.getKey(), mapper.mapper().valueToTree(publisherKeywords));
                 }
@@ -111,7 +112,7 @@ public class GridKeywordsUtil {
         return resolvedSectionNode;
     }
 
-    public static List<KeywordsPublisherItem> resolvePublisherKeywords(JsonNode publisherNode, JacksonMapper mapper) {
+    public List<KeywordsPublisherItem> resolvePublisherKeywords(JsonNode publisherNode) {
         final List<KeywordsPublisherItem> publishersKeywords = new ArrayList<>();
         final Iterator<JsonNode> publisherNodeElements = publisherNode.elements();
 
@@ -122,7 +123,7 @@ public class GridKeywordsUtil {
 
             if (publisherNameNode != null && publisherNameNode.isTextual()) {
                 final List<KeywordSegment> segments = new ArrayList<>(resolvePublisherSegments(segmentsNode));
-                segments.addAll(resolveAlternativePublisherSegments(publisherValueNode, mapper));
+                segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
 
                 if (!segments.isEmpty()) {
                     publishersKeywords.add(KeywordsPublisherItem.of(publisherNameNode.asText(), segments));
@@ -159,13 +160,11 @@ public class GridKeywordsUtil {
                 : null;
     }
 
-    public static List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode,
-                                                                           JacksonMapper mapper) {
-
-        return jsonNodeToMap(publisherValueNode, mapper).entrySet().stream()
+    public List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode) {
+        return jsonNodeToMap(publisherValueNode).entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .filter(GridKeywordsUtil::isValidPublisherEntry)
-                .flatMap(GridKeywordsUtil::mapPublisherEntryToKeywordsStream)
+                .filter(GridKeywordsProcessor::isValidPublisherEntry)
+                .flatMap(GridKeywordsProcessor::mapPublisherEntryToKeywordsStream)
                 .collect(Collectors.toList());
     }
 
@@ -189,19 +188,19 @@ public class GridKeywordsUtil {
         return keywordSegments.stream();
     }
 
-    public static Keywords merge(JacksonMapper mapper, Keywords... keywords) {
+    public Keywords merge(Keywords... keywords) {
         return Keywords.of(
-                mergeSections(extractSections(Keywords::getUser, keywords), mapper),
-                mergeSections(extractSections(Keywords::getSite, keywords), mapper));
+                mergeSections(extractSections(Keywords::getUser, keywords)),
+                mergeSections(extractSections(Keywords::getSite, keywords)));
     }
 
-    public static Stream<ObjectNode> extractSections(Function<Keywords, ObjectNode> extractor, Keywords... keywords) {
+    public Stream<ObjectNode> extractSections(Function<Keywords, ObjectNode> extractor, Keywords... keywords) {
         return Arrays.stream(keywords)
                 .map(keyword -> clearObjectNode(ObjectUtil.getIfNotNull(keyword, extractor)))
                 .filter(Objects::nonNull);
     }
 
-    private static ObjectNode mergeSections(Stream<ObjectNode> sections, JacksonMapper mapper) {
+    private ObjectNode mergeSections(Stream<ObjectNode> sections) {
         return sections.reduce(
                 mapper.mapper().createObjectNode(),
                 (left, right) -> (ObjectNode) mergeSections(left, right));
@@ -228,7 +227,7 @@ public class GridKeywordsUtil {
         return mainNode;
     }
 
-    private static Map<String, JsonNode> jsonNodeToMap(JsonNode jsonNode, JacksonMapper mapper) {
+    private Map<String, JsonNode> jsonNodeToMap(JsonNode jsonNode) {
         try {
             return jsonNode != null && jsonNode.isObject()
                     ? mapper.mapper().convertValue(jsonNode, MAP_TYPE_REF)

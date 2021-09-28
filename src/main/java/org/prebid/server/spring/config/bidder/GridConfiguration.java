@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.grid.GridBidder;
+import org.prebid.server.bidder.grid.GridKeywordsProcessor;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -45,7 +46,8 @@ public class GridConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new GridBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config ->
+                        new GridBidder(config.getEndpoint(), mapper, new GridKeywordsProcessor(mapper)))
                 .assemble();
     }
 }

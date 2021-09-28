@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.grid.model.KeywordSegment;
@@ -20,8 +21,10 @@ import java.util.stream.Collectors;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GridKeywordsUtilTest extends VertxTest {
+public class GridKeywordsProcessorTest extends VertxTest {
 
+    private final GridKeywordsProcessor gridKeywordsProcessor = new GridKeywordsProcessor(jacksonMapper);
+    
     @Test
     public void modifyWithKeywordsShouldCorrectlyAddKeywordsSections() {
         // given
@@ -33,8 +36,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         initialProps.put("test", TextNode.valueOf("value"));
 
         // when
-        final Map<String, JsonNode> result =
-                GridKeywordsUtil.modifyWithKeywords(initialProps, keywords, jacksonMapper);
+        final Map<String, JsonNode> result = gridKeywordsProcessor.modifyWithKeywords(initialProps, keywords);
 
         // then
         assertThat(result).containsEntry("test", TextNode.valueOf("value"));
@@ -51,7 +53,7 @@ public class GridKeywordsUtilTest extends VertxTest {
 
         // when
         final Map<String, JsonNode> result =
-                GridKeywordsUtil.modifyWithKeywords(initialProps, keywords, jacksonMapper);
+                gridKeywordsProcessor.modifyWithKeywords(initialProps, keywords);
 
         // then
         assertThat(result).containsEntry("test", TextNode.valueOf("value"));
@@ -61,8 +63,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsSectionFromOpenRtbShouldCorrectlyResolveKeywords() {
         // given and when
-        final ObjectNode result = GridKeywordsUtil.resolveKeywordsSectionFromOpenRtb(
-                "keyword1,keyword2", jacksonMapper);
+        final ObjectNode result = gridKeywordsProcessor.resolveKeywordsSectionFromOpenRtb(
+                "keyword1,keyword2");
 
         // then
         assertThat(result).isEqualTo(givenKeywordsSectionFromOpenRtb("keyword1", "keyword2"));
@@ -71,8 +73,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsSectionFromOpenRtbShouldReturnEmptyNodeIfKeywordsAreEmpty() {
         // given and when
-        final ObjectNode result = GridKeywordsUtil.resolveKeywordsSectionFromOpenRtb(
-                "", jacksonMapper);
+        final ObjectNode result = gridKeywordsProcessor.resolveKeywordsSectionFromOpenRtb(
+                "");
 
         // then
         assertThat(result).isEqualTo(mapper.createObjectNode());
@@ -81,8 +83,8 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsFromOpenRtbShouldCorrectlyResolveKeywordsFromSiteAndUserSections() {
         // given and when
-        final Keywords result = GridKeywordsUtil.resolveKeywordsFromOpenRtb(
-                "userKeyword", "siteKeyword", jacksonMapper);
+        final Keywords result = gridKeywordsProcessor.resolveKeywordsFromOpenRtb(
+                "userKeyword", "siteKeyword");
 
         // then
         assertThat(result).isEqualTo(
@@ -97,7 +99,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode("name", "value");
 
         // when
-        final KeywordSegment result = GridKeywordsUtil.resolvePublisherSegment(segmentNode);
+        final KeywordSegment result = gridKeywordsProcessor.resolvePublisherSegment(segmentNode);
 
         // then
         assertThat(result).isEqualTo(KeywordSegment.of("name", "value"));
@@ -109,7 +111,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode(null, "value");
 
         // when and then
-        assertThat(GridKeywordsUtil.resolvePublisherSegment(segmentNode)).isEqualTo(null);
+        assertThat(gridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
     }
 
     @Test
@@ -118,7 +120,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode("name", null);
 
         // when and then
-        assertThat(GridKeywordsUtil.resolvePublisherSegment(segmentNode)).isEqualTo(null);
+        assertThat(gridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
     }
 
     @Test
@@ -129,7 +131,7 @@ public class GridKeywordsUtilTest extends VertxTest {
                 givenPublisherSegmentNode("name2", "value2"));
 
         // when
-        final List<KeywordSegment> result = GridKeywordsUtil.resolvePublisherSegments(segmentsNode);
+        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
 
         // then
         assertThat(result).containsExactlyInAnyOrder(
@@ -143,7 +145,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         final JsonNode segmentsNode = givenPublisherSegmentsNode(TextNode.valueOf("brokenNode"), null);
 
         // when
-        final List<KeywordSegment> result = GridKeywordsUtil.resolvePublisherSegments(segmentsNode);
+        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
 
         // then
         assertThat(result).isEmpty();
@@ -152,7 +154,7 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolvePublisherSegmentsShouldReturnEmptyListIfSegmentsNodeIsNotArray() {
         // given and when
-        final List<KeywordSegment> result = GridKeywordsUtil.resolvePublisherSegments(TextNode.valueOf(""));
+        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(TextNode.valueOf(""));
 
         // then
         assertThat(result).isEmpty();
@@ -168,8 +170,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         final JsonNode publisherNode = mapper.createArrayNode().add(publisherSectionItemNode);
 
         // when
-        final List<KeywordsPublisherItem> result = GridKeywordsUtil.resolvePublisherKeywords(
-                publisherNode, jacksonMapper);
+        final List<KeywordsPublisherItem> result = gridKeywordsProcessor.resolvePublisherKeywords(
+                publisherNode);
 
         // then
         assertThat(result).containsExactly(
@@ -186,8 +188,8 @@ public class GridKeywordsUtilTest extends VertxTest {
                 .set("alternativeSectionName", alternativePublisherSegmentNode);
 
         // when
-        final List<KeywordSegment> result = GridKeywordsUtil.resolveAlternativePublisherSegments(
-                publisherSectionItemNode, jacksonMapper);
+        final List<KeywordSegment> result = gridKeywordsProcessor.resolveAlternativePublisherSegments(
+                publisherSectionItemNode);
 
         // then
         assertThat(result).containsExactlyInAnyOrder(
@@ -209,8 +211,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         publisherSectionItemNode.set("c", thirdAlternativePublisherSegmentNode);
 
         // when
-        final List<KeywordSegment> result = GridKeywordsUtil.resolveAlternativePublisherSegments(
-                publisherSectionItemNode, jacksonMapper);
+        final List<KeywordSegment> result = gridKeywordsProcessor.resolveAlternativePublisherSegments(
+                publisherSectionItemNode);
 
         // then
         assertThat(result).containsExactly(
@@ -227,8 +229,8 @@ public class GridKeywordsUtilTest extends VertxTest {
                 .add(TextNode.valueOf("invalidItem"));
 
         // when
-        final List<KeywordsPublisherItem> result = GridKeywordsUtil.resolvePublisherKeywords(
-                publisherNode, jacksonMapper);
+        final List<KeywordsPublisherItem> result = gridKeywordsProcessor.resolvePublisherKeywords(
+                publisherNode);
 
         // then
         assertThat(result).isEmpty();
@@ -248,8 +250,8 @@ public class GridKeywordsUtilTest extends VertxTest {
         final ArrayNode publisherSectionItemsNode = mapper.createArrayNode().add(publisherSectionItemNode);
 
         // when
-        final List<KeywordsPublisherItem> result = GridKeywordsUtil.resolvePublisherKeywords(
-                publisherSectionItemsNode, jacksonMapper);
+        final List<KeywordsPublisherItem> result = gridKeywordsProcessor.resolvePublisherKeywords(
+                publisherSectionItemsNode);
 
         // then
         assertThat(result)
@@ -267,7 +269,7 @@ public class GridKeywordsUtilTest extends VertxTest {
     @Test
     public void resolveKeywordsShouldReturnEmptyKeywordsIfKeywordsIsNull() {
         // given and when
-        final Keywords result = GridKeywordsUtil.resolveKeywords(null, jacksonMapper);
+        final Keywords result = gridKeywordsProcessor.resolveKeywords(null);
 
         // then
         assertThat(result).isEqualTo(Keywords.empty());
@@ -282,7 +284,7 @@ public class GridKeywordsUtilTest extends VertxTest {
         final Keywords keywords = Keywords.of(userSectionNode, siteSectionNode);
 
         // when
-        final Keywords result = GridKeywordsUtil.resolveKeywords(keywords, jacksonMapper);
+        final Keywords result = gridKeywordsProcessor.resolveKeywords(keywords);
 
         // then
         assertThat(result).isEqualTo(Keywords.of(userSectionNode, siteSectionNode));
@@ -297,7 +299,7 @@ public class GridKeywordsUtilTest extends VertxTest {
                 objectNodeFrom("util/keywords-array-nodes-2.json"), Keywords.class);
 
         // when
-        final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
+        final Keywords result = gridKeywordsProcessor.merge(firstKeywords, secondKeywords);
 
         // then
         assertThat(result).isEqualTo(
@@ -314,7 +316,7 @@ public class GridKeywordsUtilTest extends VertxTest {
                 objectNodeFrom("util/publisher-array-nodes-2.json"), Keywords.class);
 
         // when
-        final Keywords result = GridKeywordsUtil.merge(jacksonMapper, firstKeywords, secondKeywords);
+        final Keywords result = gridKeywordsProcessor.merge(firstKeywords, secondKeywords);
 
         // then
         assertThat(result).isEqualTo(
@@ -360,6 +362,6 @@ public class GridKeywordsUtilTest extends VertxTest {
     }
 
     private static ObjectNode objectNodeFrom(String path) throws IOException {
-        return (ObjectNode) mapper.readTree(GridKeywordsUtil.class.getResourceAsStream(path));
+        return (ObjectNode) mapper.readTree(GridKeywordsProcessor.class.getResourceAsStream(path));
     }
 }
