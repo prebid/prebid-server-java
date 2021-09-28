@@ -38,9 +38,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-/**
- * Conversant {@link Bidder} implementation.
- */
 public class ConversantBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
@@ -79,13 +76,13 @@ public class ConversantBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .body(mapper.encode(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 Collections.emptyList());
     }
 

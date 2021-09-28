@@ -189,7 +189,6 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 null,
                 0,
                 true,
-                true,
                 false);
     }
 

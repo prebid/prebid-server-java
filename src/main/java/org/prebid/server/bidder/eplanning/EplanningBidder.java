@@ -50,9 +50,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/**
- * Eplanning {@link Bidder} implementation.
- */
 public class EplanningBidder implements Bidder<Void> {
 
     private static final String NULL_SIZE = "1x1";
@@ -119,13 +116,13 @@ public class EplanningBidder implements Bidder<Void> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
-                        .method(HttpMethod.GET)
-                        .uri(uri)
-                        .headers(createHeaders(request.getDevice()))
-                        .body(null)
-                        .payload(null)
-                        .build()),
+                        HttpRequest.<Void>builder()
+                                .method(HttpMethod.GET)
+                                .uri(uri)
+                                .headers(createHeaders(request.getDevice()))
+                                .body(null)
+                                .payload(null)
+                                .build()),
                 errors);
     }
 

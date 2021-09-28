@@ -59,9 +59,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * AppNexus {@link Bidder} implementation.
- */
 public class AppnexusBidder implements Bidder<BidRequest> {
 
     private static final int AD_POSITION_ABOVE_THE_FOLD = 1; // openrtb.AdPosition.AdPositionAboveTheFold

@@ -2,7 +2,7 @@ adapters:
   algorix:
     endpoint: https://xyz.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
     meta-info:
-      maintainer-email: xunyunbo@algorix.co
+      maintainer-email: prebid@algorix.co
       app-media-types:
         - banner
         - video

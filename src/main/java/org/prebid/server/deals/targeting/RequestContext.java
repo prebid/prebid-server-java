@@ -319,20 +319,18 @@ public class RequestContext {
         public static AttributeReader<Imp> forImpContextData() {
             return new AttributeReader<>(
                     Imp.class,
-                    imp -> getIfNotNull(getIfNotNull(getIfNotNull(
-                            imp,
-                            Imp::getExt),
-                            node -> node.get(EXT_CONTEXT)),
+                    imp -> getIfNotNull(
+                            getIfNotNull(
+                                    getIfNotNull(imp, Imp::getExt), node -> node.get(EXT_CONTEXT)),
                             node -> node.get(EXT_DATA)));
         }
 
         public static AttributeReader<Imp> forImpBidder() {
             return new AttributeReader<>(
                     Imp.class,
-                    imp -> getIfNotNull(getIfNotNull(getIfNotNull(
-                            imp,
-                            Imp::getExt),
-                            node -> node.get(EXT_PREBID)),
+                    imp -> getIfNotNull(
+                            getIfNotNull(
+                                    getIfNotNull(imp, Imp::getExt), node -> node.get(EXT_PREBID)),
                             node -> node.get(EXT_BIDDER)));
         }
 
@@ -354,10 +352,9 @@ public class RequestContext {
         }
 
         public <A> A readFromExt(T target, TargetingCategory category, Function<JsonNode, A> valueExtractor) {
-            return getIfNotNull(getIfNotNull(getIfNotNull(
-                    target,
-                    extPathExtractor),
-                    node -> node.at(toJsonPointer(category.path()))),
+            return getIfNotNull(
+                    getIfNotNull(
+                            getIfNotNull(target, extPathExtractor), node -> node.at(toJsonPointer(category.path()))),
                     valueExtractor);
         }
 

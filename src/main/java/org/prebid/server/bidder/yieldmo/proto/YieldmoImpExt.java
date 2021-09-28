@@ -8,4 +8,6 @@ import lombok.Value;
 public class YieldmoImpExt {
 
     String placementId;
+
+    String pbadslot;
 }

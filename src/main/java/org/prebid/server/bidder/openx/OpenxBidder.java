@@ -41,9 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * OpenX {@link Bidder} implementation.
- */
 public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";

@@ -32,9 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Gamoshi {@link Bidder} implementation.
- */
 public class GamoshiBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -78,13 +75,13 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         final MultiMap headers = resolveHeaders(request.getDevice());
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUrl)
-                        .headers(headers)
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(requestUrl)
+                                .headers(headers)
+                                .payload(outgoingRequest)
+                                .body(body)
+                                .build()),
                 errors);
     }
 

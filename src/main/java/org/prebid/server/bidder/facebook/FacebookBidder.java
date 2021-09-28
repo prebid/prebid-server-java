@@ -47,9 +47,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Facebook {@link Bidder} implementation.
- */
 public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
