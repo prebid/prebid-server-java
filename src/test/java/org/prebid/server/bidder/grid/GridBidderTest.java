@@ -197,7 +197,7 @@ public class GridBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).contains(BidderError.badInput("No valid impressions for grid"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No valid impressions for grid"));
     }
 
     @Test
