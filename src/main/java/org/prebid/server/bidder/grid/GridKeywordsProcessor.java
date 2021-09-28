@@ -173,7 +173,9 @@ public class GridKeywordsProcessor {
                 .collect(Collectors.toList());
     }
 
-    private static List<KeywordSegment> mapPublisherEntryToKeywordSegmentList(Map.Entry<String, JsonNode> publisherEntry) {
+    private static List<KeywordSegment> mapPublisherEntryToKeywordSegmentList(
+            Map.Entry<String, JsonNode> publisherEntry) {
+
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
         final Iterator<JsonNode> publisherEntryElements = publisherEntry.getValue().elements();
 
