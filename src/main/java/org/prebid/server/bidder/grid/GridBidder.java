@@ -17,10 +17,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -32,7 +28,11 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridData;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridDataAdServer;
+import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -128,10 +128,14 @@ public class GridBidder implements Bidder<BidRequest> {
 
     private Keywords getKeywordsFromImpExt(JsonNode extImp) {
         try {
-            return mapper.mapper().convertValue(extImp, ExtImpGrid.class).getBidder().getKeywords();
+            return getExtImpGridBidder(extImp).getKeywords();
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private ExtImpGridBidder getExtImpGridBidder(JsonNode extImp) {
+        return mapper.mapper().convertValue(extImp, ExtImpGrid.class).getBidder();
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Keywords firstImpKeywords, List<Imp> imp) {
@@ -214,13 +218,13 @@ public class GridBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> constructBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .map(bid -> toBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid constructBidderBid(Bid bid, List<Imp> imps, String cur) {
+    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency) {
         final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bid)).build();
-        return BidderBid.of(modifiedBid, getBidMediaType(bid.getImpid(), imps), cur);
+        return BidderBid.of(modifiedBid, getBidMediaType(bid.getImpid(), imps), currency);
     }
 
     private ObjectNode modifyBidExt(Bid bid) {

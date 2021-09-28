@@ -5,14 +5,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.grid.model.KeywordSegment;
-import org.prebid.server.bidder.grid.model.Keywords;
-import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.grid.KeywordSegment;
+import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
+import org.prebid.server.proto.openrtb.ext.request.grid.KeywordsPublisherItem;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,6 +29,9 @@ public class GridKeywordsProcessor {
     private static final TypeReference<Map<String, JsonNode>> MAP_TYPE_REF =
             new TypeReference<Map<String, JsonNode>>() {
             };
+    private static final String KEYWORDS_PROPERTY = "keywords";
+    private static final String USER_PROPERTY = "user";
+    private static final String SITE_PROPERTY = "site";
 
     private final JacksonMapper mapper;
 
@@ -38,24 +42,24 @@ public class GridKeywordsProcessor {
     public Map<String, JsonNode> modifyWithKeywords(Map<String, JsonNode> extRequestProperties,
                                                     Keywords keywords) {
 
-        final JsonNode keywordsJsonNode = extRequestProperties.get("keywords");
-        final ObjectNode keywordsNode = keywordsJsonNode != null && keywordsJsonNode.isObject()
+        final JsonNode keywordsJsonNode = extRequestProperties.get(KEYWORDS_PROPERTY);
+        final ObjectNode keywordsNode = isNotNullObject(keywordsJsonNode)
                 ? (ObjectNode) keywordsJsonNode
                 : mapper.mapper().createObjectNode();
 
-        setIfValueNotNullOrRemove(keywordsNode, "user", clearObjectNode(keywords.getUser()));
-        setIfValueNotNullOrRemove(keywordsNode, "site", clearObjectNode(keywords.getSite()));
+        setIfNotNullOrRemove(keywordsNode, USER_PROPERTY, stripToNull(keywords.getUser()));
+        setIfNotNullOrRemove(keywordsNode, SITE_PROPERTY, stripToNull(keywords.getSite()));
 
         final Map<String, JsonNode> modifiedExtRequestProperties = new HashMap<>(extRequestProperties);
         if (!keywordsNode.isEmpty()) {
-            modifiedExtRequestProperties.put("keywords", keywordsNode);
+            modifiedExtRequestProperties.put(KEYWORDS_PROPERTY, keywordsNode);
         } else {
-            modifiedExtRequestProperties.remove("keywords");
+            modifiedExtRequestProperties.remove(KEYWORDS_PROPERTY);
         }
         return modifiedExtRequestProperties;
     }
 
-    private static void setIfValueNotNullOrRemove(ObjectNode node, String key, JsonNode value) {
+    private static void setIfNotNullOrRemove(ObjectNode node, String key, JsonNode value) {
         if (value != null) {
             node.set(key, value);
         } else {
@@ -72,13 +76,13 @@ public class GridKeywordsProcessor {
     public ObjectNode resolveKeywordsSectionFromOpenRtb(String keywords) {
         final List<KeywordSegment> segments = Arrays.stream(keywords.split(","))
                 .filter(StringUtils::isNotEmpty)
-                .map(keyword -> KeywordSegment.of("keywords", keyword))
+                .map(keyword -> KeywordSegment.of(KEYWORDS_PROPERTY, keyword))
                 .collect(Collectors.toList());
 
         final ObjectNode publisherNode = mapper.mapper().createObjectNode();
         if (!segments.isEmpty()) {
             final List<KeywordsPublisherItem> publisherItems = Collections.singletonList(
-                    KeywordsPublisherItem.of("keywords", segments));
+                    KeywordsPublisherItem.of(KEYWORDS_PROPERTY, segments));
             return publisherNode.set("ortb2", mapper.mapper().valueToTree(publisherItems));
         }
         return publisherNode;
@@ -101,8 +105,8 @@ public class GridKeywordsProcessor {
         final Map<String, JsonNode> sectionMap = jsonNodeToMap(sectionNode);
 
         for (Map.Entry<String, JsonNode> entry : sectionMap.entrySet()) {
-            JsonNode publisherJsonNode = entry.getValue();
-            if (publisherJsonNode != null && publisherJsonNode.isArray()) {
+            final JsonNode publisherJsonNode = entry.getValue();
+            if (isNotNullArray(publisherJsonNode)) {
                 final List<KeywordsPublisherItem> publisherKeywords = resolvePublisherKeywords(publisherJsonNode);
                 if (!publisherKeywords.isEmpty()) {
                     resolvedSectionNode.set(entry.getKey(), mapper.mapper().valueToTree(publisherKeywords));
@@ -121,7 +125,7 @@ public class GridKeywordsProcessor {
             final JsonNode publisherNameNode = publisherValueNode.get("name");
             final JsonNode segmentsNode = publisherValueNode.get("segments");
 
-            if (publisherNameNode != null && publisherNameNode.isTextual()) {
+            if (isNotNullTextual(publisherNameNode)) {
                 final List<KeywordSegment> segments = new ArrayList<>(resolvePublisherSegments(segmentsNode));
                 segments.addAll(resolveAlternativePublisherSegments(publisherValueNode));
 
@@ -135,7 +139,7 @@ public class GridKeywordsProcessor {
 
     public static List<KeywordSegment> resolvePublisherSegments(JsonNode segmentsNode) {
         final List<KeywordSegment> parsedSegments = new ArrayList<>();
-        if (segmentsNode == null || !segmentsNode.isArray()) {
+        if (!isNotNullArray(segmentsNode)) {
             return parsedSegments;
         }
 
@@ -151,9 +155,9 @@ public class GridKeywordsProcessor {
 
     public static KeywordSegment resolvePublisherSegment(JsonNode segmentNode) {
         final JsonNode nameNode = segmentNode.get("name");
-        final String name = nameNode != null && nameNode.isTextual() ? nameNode.asText() : null;
+        final String name = isNotNullTextual(nameNode) ? nameNode.asText() : null;
         final JsonNode valueNode = segmentNode.get("value");
-        final String value = valueNode != null && valueNode.isTextual() ? valueNode.asText() : null;
+        final String value = isNotNullTextual(valueNode) ? valueNode.asText() : null;
 
         return StringUtils.isNotEmpty(name) && StringUtils.isNotEmpty(value)
                 ? KeywordSegment.of(name, value)
@@ -163,19 +167,13 @@ public class GridKeywordsProcessor {
     public List<KeywordSegment> resolveAlternativePublisherSegments(JsonNode publisherValueNode) {
         return jsonNodeToMap(publisherValueNode).entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .filter(GridKeywordsProcessor::isValidPublisherEntry)
-                .flatMap(GridKeywordsProcessor::mapPublisherEntryToKeywordsStream)
+                .filter(publisherEntry -> isNotNullArray(publisherEntry.getValue()))
+                .map(GridKeywordsProcessor::mapPublisherEntryToKeywordSegmentList)
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
-    private static boolean isValidPublisherEntry(Map.Entry<String, JsonNode> publisherEntry) {
-        final JsonNode publisherEntryValue = publisherEntry.getValue();
-        return publisherEntryValue != null && publisherEntryValue.isArray();
-    }
-
-    private static Stream<KeywordSegment> mapPublisherEntryToKeywordsStream(
-            Map.Entry<String, JsonNode> publisherEntry) {
-
+    private static List<KeywordSegment> mapPublisherEntryToKeywordSegmentList(Map.Entry<String, JsonNode> publisherEntry) {
         final List<KeywordSegment> keywordSegments = new ArrayList<>();
         final Iterator<JsonNode> publisherEntryElements = publisherEntry.getValue().elements();
 
@@ -185,7 +183,7 @@ public class GridKeywordsProcessor {
                 keywordSegments.add(KeywordSegment.of(publisherEntry.getKey(), currentNode.asText()));
             }
         }
-        return keywordSegments.stream();
+        return keywordSegments;
     }
 
     public Keywords merge(Keywords... keywords) {
@@ -196,7 +194,7 @@ public class GridKeywordsProcessor {
 
     public Stream<ObjectNode> extractSections(Function<Keywords, ObjectNode> extractor, Keywords... keywords) {
         return Arrays.stream(keywords)
-                .map(keyword -> clearObjectNode(ObjectUtil.getIfNotNull(keyword, extractor)))
+                .map(keyword -> stripToNull(ObjectUtil.getIfNotNull(keyword, extractor)))
                 .filter(Objects::nonNull);
     }
 
@@ -206,30 +204,30 @@ public class GridKeywordsProcessor {
                 (left, right) -> (ObjectNode) mergeSections(left, right));
     }
 
-    public static JsonNode mergeSections(JsonNode mainNode, JsonNode updateNode) {
-        final Iterator<String> updateFieldNames = updateNode.fieldNames();
+    public static JsonNode mergeSections(JsonNode firstSection, JsonNode secondSection) {
+        final Iterator<String> updateFieldNames = secondSection.fieldNames();
         while (updateFieldNames.hasNext()) {
             final String updateFieldName = updateFieldNames.next();
-            final JsonNode valueToBeUpdated = mainNode.get(updateFieldName);
-            final JsonNode updateValue = updateNode.get(updateFieldName);
+            final JsonNode valueToBeUpdated = firstSection.get(updateFieldName);
+            final JsonNode updateValue = secondSection.get(updateFieldName);
 
-            if (valueToBeUpdated != null && valueToBeUpdated.isArray() && updateValue.isArray()) {
+            if (isNotNullArray(valueToBeUpdated) && isNotNullArray(updateValue)) {
                 final ArrayNode arrayToBeUpdated = (ArrayNode) valueToBeUpdated;
                 for (JsonNode updateChildNode : updateValue) {
                     arrayToBeUpdated.add(updateChildNode);
                 }
-            } else if (valueToBeUpdated != null && valueToBeUpdated.isObject()) {
+            } else if (isNotNullObject(valueToBeUpdated)) {
                 mergeSections(valueToBeUpdated, updateValue);
-            } else if (mainNode.isObject()) {
-                ((ObjectNode) mainNode).replace(updateFieldName, updateValue);
+            } else if (isNotNullObject(firstSection)) {
+                ((ObjectNode) firstSection).replace(updateFieldName, updateValue);
             }
         }
-        return mainNode;
+        return firstSection;
     }
 
     private Map<String, JsonNode> jsonNodeToMap(JsonNode jsonNode) {
         try {
-            return jsonNode != null && jsonNode.isObject()
+            return isNotNullObject(jsonNode)
                     ? mapper.mapper().convertValue(jsonNode, MAP_TYPE_REF)
                     : Collections.emptyMap();
         } catch (IllegalArgumentException ignored) {
@@ -237,7 +235,19 @@ public class GridKeywordsProcessor {
         }
     }
 
-    private static ObjectNode clearObjectNode(ObjectNode objectNode) {
+    private static ObjectNode stripToNull(ObjectNode objectNode) {
         return objectNode != null && !objectNode.isEmpty() ? objectNode : null;
+    }
+
+    private static boolean isNotNullArray(JsonNode jsonNode) {
+        return jsonNode != null && jsonNode.isArray();
+    }
+
+    private static boolean isNotNullObject(JsonNode jsonNode) {
+        return jsonNode != null && jsonNode.isObject();
+    }
+
+    private static boolean isNotNullTextual(JsonNode jsonNode) {
+        return jsonNode != null && jsonNode.isTextual();
     }
 }

@@ -1,9 +1,8 @@
-package org.prebid.server.bidder.grid.model;
+package org.prebid.server.proto.openrtb.ext.request.grid;
 
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
 
 @Value
 @Builder(toBuilder = true)

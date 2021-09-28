@@ -4,12 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.KeywordSegment;
-import org.prebid.server.bidder.grid.model.Keywords;
-import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
+import org.prebid.server.proto.openrtb.ext.request.grid.KeywordSegment;
+import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
+import org.prebid.server.proto.openrtb.ext.request.grid.KeywordsPublisherItem;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -24,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class GridKeywordsProcessorTest extends VertxTest {
 
     private final GridKeywordsProcessor gridKeywordsProcessor = new GridKeywordsProcessor(jacksonMapper);
-    
+
     @Test
     public void modifyWithKeywordsShouldCorrectlyAddKeywordsSections() {
         // given
@@ -99,7 +98,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode("name", "value");
 
         // when
-        final KeywordSegment result = gridKeywordsProcessor.resolvePublisherSegment(segmentNode);
+        final KeywordSegment result = GridKeywordsProcessor.resolvePublisherSegment(segmentNode);
 
         // then
         assertThat(result).isEqualTo(KeywordSegment.of("name", "value"));
@@ -111,7 +110,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode(null, "value");
 
         // when and then
-        assertThat(gridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
+        assertThat(GridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
     }
 
     @Test
@@ -120,7 +119,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
         final JsonNode segmentNode = givenPublisherSegmentNode("name", null);
 
         // when and then
-        assertThat(gridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
+        assertThat(GridKeywordsProcessor.resolvePublisherSegment(segmentNode)).isEqualTo(null);
     }
 
     @Test
@@ -131,7 +130,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
                 givenPublisherSegmentNode("name2", "value2"));
 
         // when
-        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
+        final List<KeywordSegment> result = GridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
 
         // then
         assertThat(result).containsExactlyInAnyOrder(
@@ -145,7 +144,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
         final JsonNode segmentsNode = givenPublisherSegmentsNode(TextNode.valueOf("brokenNode"), null);
 
         // when
-        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
+        final List<KeywordSegment> result = GridKeywordsProcessor.resolvePublisherSegments(segmentsNode);
 
         // then
         assertThat(result).isEmpty();
@@ -154,7 +153,7 @@ public class GridKeywordsProcessorTest extends VertxTest {
     @Test
     public void resolvePublisherSegmentsShouldReturnEmptyListIfSegmentsNodeIsNotArray() {
         // given and when
-        final List<KeywordSegment> result = gridKeywordsProcessor.resolvePublisherSegments(TextNode.valueOf(""));
+        final List<KeywordSegment> result = GridKeywordsProcessor.resolvePublisherSegments(TextNode.valueOf(""));
 
         // then
         assertThat(result).isEmpty();
