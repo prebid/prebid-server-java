@@ -51,13 +51,12 @@ public class GridBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        gridBidder = new GridBidder(ENDPOINT_URL, jacksonMapper, new GridKeywordsProcessor(jacksonMapper));
+        gridBidder = new GridBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new GridBidder("invalid_url", jacksonMapper, new GridKeywordsProcessor(jacksonMapper)));
+        assertThatIllegalArgumentException().isThrownBy(() -> new GridBidder("invalid_url", jacksonMapper));
     }
 
     @Test

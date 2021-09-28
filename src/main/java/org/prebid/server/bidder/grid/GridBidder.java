@@ -52,10 +52,10 @@ public class GridBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
     private final GridKeywordsProcessor gridKeywordsProcessor;
 
-    public GridBidder(String endpointUrl, JacksonMapper mapper, GridKeywordsProcessor gridKeywordsProcessor) {
+    public GridBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        this.gridKeywordsProcessor = Objects.requireNonNull(gridKeywordsProcessor);
+        this.gridKeywordsProcessor = new GridKeywordsProcessor(mapper);
     }
 
     @Override
