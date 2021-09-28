@@ -2,6 +2,8 @@ package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -27,6 +29,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
 import java.util.List;
@@ -321,6 +324,38 @@ public class GridBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
+    }
+
+    @Test
+    public void makeBidsShouldModifyBidExtWithMetaIfDemandSourceIsPresentInBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .set("bidder", mapper.createObjectNode()
+                        .set("grid", mapper.createObjectNode()
+                                .set("demandSource", TextNode.valueOf("demandSource"))));
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidExt))));
+
+        // when
+        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final ObjectNode expectedBidMeta = mapper.createObjectNode()
+                .set("networkName", TextNode.valueOf("demandSource"));
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().meta(expectedBidMeta).build(), null));
+
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(expectedBidExt);
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
