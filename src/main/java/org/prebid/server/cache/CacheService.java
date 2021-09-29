@@ -32,11 +32,13 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -67,6 +69,8 @@ public class CacheService {
     private static final MultiMap CACHE_HEADERS = HttpUtil.headers();
     private static final Map<String, List<String>> DEBUG_HEADERS = HttpUtil.toDebugHeaders(CACHE_HEADERS);
     private static final String BID_WURL_ATTRIBUTE = "wurl";
+    private static final String XML_CREATIVE_TYPE = "xml";
+    private static final String JSON_CREATIVE_TYPE = "json";
 
     private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
@@ -572,8 +576,24 @@ public class CacheService {
 
     private void updateCreativeMetrics(String accountId, List<CachedCreative> cachedCreatives) {
         for (final CachedCreative cachedCreative : cachedCreatives) {
-            metrics.updateCacheCreativeSize(accountId, cachedCreative.getSize());
+            metrics.updateCacheCreativeSize(accountId,
+                    cachedCreative.getSize(),
+                    resolveCreativeTypeName(cachedCreative.getPayload()));
         }
+    }
+
+    private static MetricName resolveCreativeTypeName(PutObject putObject) {
+        final String typeValue = ObjectUtil.getIfNotNull(putObject, PutObject::getType);
+
+        if (Objects.equals(typeValue, XML_CREATIVE_TYPE)) {
+            return MetricName.xml;
+        }
+
+        if (Objects.equals(typeValue, JSON_CREATIVE_TYPE)) {
+            return MetricName.json;
+        }
+
+        return MetricName.unknown;
     }
 
     private static int creativeSizeFromAdm(String adm) {
