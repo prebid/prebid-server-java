@@ -28,8 +28,8 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.bidder.grid.model.ExtImpGrid;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
+import org.prebid.server.bidder.grid.model.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
@@ -96,31 +96,31 @@ public class GridBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private ExtImpGrid parseAndValidateImpExt(Imp imp) {
-        final ExtImpGrid extImpGrid = mapper.mapper().convertValue(imp.getExt(), ExtImpGrid.class);
-        validateImpExt(extImpGrid, imp.getId());
-        return extImpGrid;
+    private ExtImp parseAndValidateImpExt(Imp imp) {
+        final ExtImp extImp = mapper.mapper().convertValue(imp.getExt(), ExtImp.class);
+        validateImpExt(extImp, imp.getId());
+        return extImp;
     }
 
-    private static void validateImpExt(ExtImpGrid extImpGrid, String impId) {
-        final ExtImpGridBidder extImpGridBidder = extImpGrid != null ? extImpGrid.getBidder() : null;
-        final Integer uid = extImpGridBidder != null ? extImpGridBidder.getUid() : null;
+    private static void validateImpExt(ExtImp extImp, String impId) {
+        final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
+        final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
         if (uid == null || uid == 0) {
             throw new PreBidException(String.format("Empty uid in imp with id: %s", impId));
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpGrid extImpGrid) {
-        final ExtImpGridData extImpData = extImpGrid.getData();
+    private Imp modifyImp(Imp imp, ExtImp extImp) {
+        final ExtImpGridData extImpData = extImp.getData();
         final ExtImpGridDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
         final String adSlot = adServer != null ? adServer.getAdSlot() : null;
 
         if (StringUtils.isNotEmpty(adSlot)) {
-            final ExtImpGrid modifiedExtImpGrid = extImpGrid.toBuilder()
+            final ExtImp modifiedExtImp = extImp.toBuilder()
                     .gpid(adSlot)
                     .build();
             return imp.toBuilder()
-                    .ext(mapper.mapper().valueToTree(modifiedExtImpGrid))
+                    .ext(mapper.mapper().valueToTree(modifiedExtImp))
                     .build();
         }
         return imp;
@@ -134,8 +134,8 @@ public class GridBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtImpGridBidder getExtImpGridBidder(JsonNode extImp) {
-        return mapper.mapper().convertValue(extImp, ExtImpGrid.class).getBidder();
+    private ExtImpGrid getExtImpGridBidder(JsonNode extImp) {
+        return mapper.mapper().convertValue(extImp, ExtImp.class).getBidder();
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Keywords firstImpKeywords, List<Imp> imp) {
