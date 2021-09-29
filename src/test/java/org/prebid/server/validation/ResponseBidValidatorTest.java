@@ -225,6 +225,23 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldTolerateMissingImpExtBidderNode() {
+        // when
+        final BidRequest bidRequest = givenRequest(impBuilder -> impBuilder
+                .ext(mapper.createObjectNode()
+                        .set("prebid", mapper.createObjectNode())));
+
+        final ValidationResult result = responseBidValidator.validate(
+                givenBid(BidType.video, builder -> builder.w(3).h(3)),
+                BIDDER_NAME,
+                givenAuctionContext(bidRequest),
+                bidderAliases);
+
+        // then
+        assertThat(result.hasErrors()).isFalse();
+    }
+
+    @Test
     public void validateShouldReturnSuccessIfBannerBidHasInvalidSizeButAccountDoesNotEnforceValidation() {
         // when
         final ValidationResult result = responseBidValidator.validate(
