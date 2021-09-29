@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.proto.openrtb.ext.request.grid.KeywordSegment;
-import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
-import org.prebid.server.proto.openrtb.ext.request.grid.KeywordsPublisherItem;
+import org.prebid.server.bidder.grid.model.KeywordSegment;
+import org.prebid.server.bidder.grid.model.Keywords;
+import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 
 import java.io.IOException;
 import java.util.Arrays;

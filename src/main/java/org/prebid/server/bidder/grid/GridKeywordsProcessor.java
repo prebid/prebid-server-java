@@ -6,9 +6,9 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.grid.KeywordSegment;
-import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
-import org.prebid.server.proto.openrtb.ext.request.grid.KeywordsPublisherItem;
+import org.prebid.server.bidder.grid.model.KeywordSegment;
+import org.prebid.server.bidder.grid.model.Keywords;
+import org.prebid.server.bidder.grid.model.KeywordsPublisherItem;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;

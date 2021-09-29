@@ -24,11 +24,11 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridBidder;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridData;
-import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGridDataAdServer;
-import org.prebid.server.proto.openrtb.ext.request.grid.Keywords;
+import org.prebid.server.bidder.grid.model.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;

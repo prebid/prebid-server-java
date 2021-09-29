@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.grid;
+package org.prebid.server.bidder.grid.model;
 
 import lombok.Value;
 
