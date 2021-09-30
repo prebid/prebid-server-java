@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Nobid {@link Bidder} implementation.
- */
 public class NobidBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -43,13 +40,13 @@ public class NobidBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .body(mapper.encode(request))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(request)
+                                .body(mapper.encode(request))
+                                .build()),
                 Collections.emptyList());
     }
 

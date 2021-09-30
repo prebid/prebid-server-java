@@ -17,10 +17,10 @@ public class BlockedAttributesResolver {
     private final boolean debugEnabled;
 
     private BlockedAttributesResolver(
-        BidRequest bidRequest,
-        String bidder,
-        ObjectNode accountConfig,
-        boolean debugEnabled) {
+            BidRequest bidRequest,
+            String bidder,
+            ObjectNode accountConfig,
+            boolean debugEnabled) {
 
         this.bidRequest = bidRequest;
         this.bidder = bidder;
@@ -29,16 +29,16 @@ public class BlockedAttributesResolver {
     }
 
     public static BlockedAttributesResolver create(
-        BidRequest bidRequest,
-        String bidder,
-        ObjectNode accountConfig,
-        boolean debugEnabled) {
+            BidRequest bidRequest,
+            String bidder,
+            ObjectNode accountConfig,
+            boolean debugEnabled) {
 
         return new BlockedAttributesResolver(
-            Objects.requireNonNull(bidRequest),
-            Objects.requireNonNull(bidder),
-            accountConfig,
-            debugEnabled);
+                Objects.requireNonNull(bidRequest),
+                Objects.requireNonNull(bidder),
+                accountConfig,
+                debugEnabled);
     }
 
     public ExecutionResult<BlockedAttributes> resolve() {
@@ -46,12 +46,12 @@ public class BlockedAttributesResolver {
 
         try {
             final Result<BlockedAttributes> blockedAttributesResult =
-                accountConfigReader.blockedAttributesFor(bidRequest);
+                    accountConfigReader.blockedAttributesFor(bidRequest);
 
             return ExecutionResult.<BlockedAttributes>builder()
-                .value(blockedAttributesResult.getValue())
-                .warnings(blockedAttributesResult.getMessages())
-                .build();
+                    .value(blockedAttributesResult.getValue())
+                    .warnings(blockedAttributesResult.getMessages())
+                    .build();
         } catch (InvalidAccountConfigurationException e) {
             return debugEnabled ? ExecutionResult.withError(e.getMessage()) : ExecutionResult.empty();
         }

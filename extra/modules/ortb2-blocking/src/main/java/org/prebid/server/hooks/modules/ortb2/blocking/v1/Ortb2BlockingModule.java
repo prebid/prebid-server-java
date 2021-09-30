@@ -19,7 +19,7 @@ public class Ortb2BlockingModule implements Module {
     @Override
     public Collection<? extends Hook<?, ? extends InvocationContext>> hooks() {
         return Arrays.asList(
-            new Ortb2BlockingBidderRequestHook(),
-            new Ortb2BlockingRawBidderResponseHook());
+                new Ortb2BlockingBidderRequestHook(),
+                new Ortb2BlockingRawBidderResponseHook());
     }
 }

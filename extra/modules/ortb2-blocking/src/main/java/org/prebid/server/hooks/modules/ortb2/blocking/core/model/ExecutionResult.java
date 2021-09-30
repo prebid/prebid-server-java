@@ -33,7 +33,7 @@ public class ExecutionResult<T> {
 
     public static <T> ExecutionResult<T> withError(String error) {
         return ExecutionResult.<T>builder()
-            .errors(Collections.singletonList(error))
-            .build();
+                .errors(Collections.singletonList(error))
+                .build();
     }
 }

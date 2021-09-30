@@ -130,7 +130,7 @@ public class CacheService {
 
         final long startTime = clock.millis();
         return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encode(bidCacheRequest),
-                remainingTimeout)
+                        remainingTimeout)
                 .map(response -> toBidCacheResponse(
                         response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
                 .recover(exception -> failResponse(exception, accountId, startTime));
@@ -292,9 +292,9 @@ public class CacheService {
         final String accountId = account.getId();
         final String requestId = auctionContext.getBidRequest().getId();
         final List<CachedCreative> cachedCreatives = Stream.concat(
-                bids.stream().map(cacheBid ->
-                        createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
-                videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId)))
+                        bids.stream().map(cacheBid ->
+                                createJsonPutObjectOpenrtb(cacheBid, accountId, eventsContext)),
+                        videoBids.stream().map(videoBid -> createXmlPutObjectOpenrtb(videoBid, requestId)))
                 .collect(Collectors.toList());
 
         if (cachedCreatives.isEmpty()) {
@@ -404,7 +404,7 @@ public class CacheService {
                         bidInfo.getBidder(),
                         accountId,
                         eventsContext,
-                bidInfo.getLineItemId());
+                        bidInfo.getLineItemId());
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }

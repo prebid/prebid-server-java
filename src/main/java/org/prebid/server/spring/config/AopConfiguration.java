@@ -33,8 +33,8 @@ public class AopConfiguration {
                 return ((Future<?>) joinPoint.proceed())
                         .map(this::handleSucceedRequest)
                         .recover(this::handleFailRequest);
-            } catch (Throwable throwable) {
-                throw new IllegalStateException("Error while processing health monitoring", throwable);
+            } catch (Throwable e) {
+                throw new IllegalStateException("Error while processing health monitoring", e);
             }
         }
 

@@ -1,12 +1,6 @@
 adapters:
   medianet:
-    enabled: false
     endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@media.net
       app-media-types:

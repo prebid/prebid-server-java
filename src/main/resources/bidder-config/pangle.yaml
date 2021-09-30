@@ -1,12 +1,6 @@
 adapters:
   pangle:
-    enabled: false
     endpoint: https://
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: pangle_dsp@bytedance.com
       app-media-types:
