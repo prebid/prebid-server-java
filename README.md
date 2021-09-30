@@ -94,7 +94,7 @@ and verify response status is `200 OK`.
 ## Development
 - [Endpoints](https://docs.prebid.org/prebid-server/endpoints/pbs-endpoint-overview.html)
 - [Adding new bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html)
-- [Adding new analytics module](docs/developers/add-new-analytics-module.md)
+- [Adding new analytics module](https://docs.prebid.org/prebid-server/developers/pbs-build-an-analytics-adapter.html#adding-an-analytics-adapter-in-pbs-java)
 - [Adding viewability support](docs/developers/add-viewability-vendors.md)
 - [Auction result post-processing](docs/developers/auction-result-post-processing.md)
 - [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
