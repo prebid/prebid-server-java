@@ -1,7 +1,7 @@
 # Build project
 
 To build the project, you will need at least
-[Java 11 JDK](https://docs.aws.amazon.com/corretto/latest/corretto-11-ug/downloads-list.html)
+[Java 11](https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_linux-x64_bin.tar.gz)
 and [Maven](https://maven.apache.org/) installed.
 
 To verify the installed Java run in console:
