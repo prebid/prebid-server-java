@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class HttpInteractionLogger {
 
     private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
-    private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
+    private final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
     private final JacksonMapper mapper;
 
@@ -103,8 +103,8 @@ public class HttpInteractionLogger {
             return false;
         }
 
-        final Account requestAccount = auctionContext != null ? auctionContext.getAccount() : null;
-        final String requestAccountId = requestAccount != null ? requestAccount.getId() : null;
+        final Account requestAccount = ObjectUtil.getIfNotNull(auctionContext, AuctionContext::getAccount);
+        final String requestAccountId = ObjectUtil.getIfNotNull(requestAccount, Account::getId);
 
         final HttpLogSpec spec = specWithCounter.getSpec();
         final HttpLogSpec.Endpoint endpoint = spec.getEndpoint();
