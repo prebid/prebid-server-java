@@ -4,7 +4,7 @@
 
     <groupId>org.prebid.server.hooks.modules</groupId>
     <artifactId>all-modules</artifactId>
-    <version>1.75.0</version>
+    <version>1.76.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -18,7 +18,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <prebid-server.version>1.75.0</prebid-server.version>
+        <prebid-server.version>${project.version}</prebid-server.version>
 
         <lombok.version>1.18.4</lombok.version>
 
