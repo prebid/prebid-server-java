@@ -9,7 +9,11 @@
     <name>prebid-server-bundle</name>
 
     <properties>
-        <java.version>1.8</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>11</java.version>
 
         <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
         <jackson.version>2.10.0</jackson.version>
