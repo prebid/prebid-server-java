@@ -8,7 +8,7 @@ There are two ways to configure application settings: database and file. This do
 - `status` - allows to mark account as `active` or `inactive`.
 - `auction.price-granularity` - defines price granularity types: 'low','med','high','auto','dense','unknown'.
 - `auction.banner-cache-ttl` - how long (in seconds) banner will be available via the external Cache Service.
-- `auction.xnativeVideo-cache-ttl`- how long (in seconds) xnativeVideo creative will be available via the external Cache Service.
+- `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
@@ -24,8 +24,8 @@ There are two ways to configure application settings: database and file. This do
   application.yaml.
 - `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.integration-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
-- `privacy.gdpr.integration-enabled.huaweiAdsApp` - overrides `privacy.gdpr.enabled` property behaviour for huaweiAdsApp requests type.
-- `privacy.gdpr.integration-enabled.xnativeVideo` - overrides `privacy.gdpr.enabled` property behaviour for xnativeVideo requests
+- `privacy.gdpr.integration-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
+- `privacy.gdpr.integration-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
   Default `full`
@@ -57,7 +57,7 @@ p3        | Personalized ads profile        | n\a
 p4        | Select personalized ads         | Verify consent for each vendor that passed the Purpose 2. If consent is not granted, remove the bidrequest.userId, user.ext.eids, device.if attributes and call the adapter.
 p5        | Personalized content profile    | n\a
 p6        | Select personalized content     | n\a
-p7        | Measure huaweiAd performance          | Verify consent for each analytics module. If consent is not grantet skip it.
+p7        | Measure ad performance          | Verify consent for each analytics module. If consent is not grantet skip it.
 p8        | Measure content performance     | n\a
 p9        | Generate audience insights      | n\a
 p10       | Develop/improve products        | n\a
@@ -91,7 +91,7 @@ Here's an example YAML file containing account-specific settings:
       auction:
         price-granularity: low
         banner-cache-ttl: 100
-        xnativeVideo-cache-ttl: 100
+        video-cache-ttl: 100
         truncate-target-attr: 40
         default-integration: web
         bid-validations:
@@ -103,9 +103,9 @@ Here's an example YAML file containing account-specific settings:
         gdpr:
           enabled: true
           integration-enabled:
-            xnativeVideo: true
+            video: true
             web: true
-            huaweiAdsApp: true
+            app: true
             amp: true
           purposes:
             p1:
@@ -193,7 +193,7 @@ Here's an example YAML file containing account-specific settings:
 
 In database approach account properties are stored in database table(s).
 
-SQL query for retrieving account is configurable and can be specified in [application configuration](config-huaweiAdsApp.md).
+SQL query for retrieving account is configurable and can be specified in [application configuration](config-app.md).
 Requirements for the SQL query stated below.
 
 ### Configuration in application.yaml
@@ -241,7 +241,7 @@ example:
   "auction": {
     "price-granularity": "low",
     "banner-cache-ttl": 100,
-    "xnativeVideo-cache-ttl": 100,
+    "video-cache-ttl": 100,
     "truncate-target-attr": 40,
     "default-integration": "web",
     "bid-validations": {
@@ -256,9 +256,9 @@ example:
     "gdpr": {
       "enabled": true,
       "integration-enabled": {
-        "xnativeVideo": true,
+        "video": true,
         "web": true,
-        "huaweiAdsApp": true,
+        "app": true,
         "amp": true
       },
       "purpose-one-treatment-interpretation": "ignore",
@@ -368,8 +368,8 @@ example:
       "web": true,
       // the analytics adapter should log auction events when the channel is AMP
       "amp": true,
-      // the analytics adapter should not log auction events when the channel is huaweiAdsApp
-      "huaweiAdsApp": false
+      // the analytics adapter should not log auction events when the channel is app
+      "app": false
     }
   },
   "cookie-sync": {
@@ -427,7 +427,7 @@ SELECT
         'auction', JSON_OBJECT(
             'price-granularity', price_granularity,
             'banner-cache-ttl', banner_cache_ttl,
-            'xnativeVideo-cache-ttl', video_cache_ttl,
+            'video-cache-ttl', video_cache_ttl,
             'truncate-target-attr', truncate_target_attr,
             'default-integration', default_integration,
             'bid-validations', bid_validations,

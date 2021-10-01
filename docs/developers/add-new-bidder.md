@@ -2,7 +2,7 @@
 
 This document describes how to add a new Bidder to Prebid Server. Bidders are responsible for reaching out to your Server to fetch Bids.
 
-**NOTE**: To make everyone's lives easier, Bidders are expected to make Net bids (e.g. "If this huaweiAd wins, what will the publisher make?), not Gross ones.
+**NOTE**: To make everyone's lives easier, Bidders are expected to make Net bids (e.g. "If this ad wins, what will the publisher make?), not Gross ones.
 Publishers can correct for Gross bids anyway by setting [Bid Adjustments](../endpoints/openrtb2/auction.md#bid-adjustments) to account for fees.
 
 ## Choose a Bidder Name
@@ -23,7 +23,7 @@ your bidder will access them at `request.imp[i].ext.bidder`--regardless of what 
 ## Configuration
 
 Add default configuration properties and metadata(e.g. contact email, platform & media type support) for your Bidder to `src/main/resources/bidder-config/{bidder}.yaml` file.
-For more information about application configuration see [here](../config-huaweiAdsApp.md)
+For more information about application configuration see [here](../config-app.md)
 
 ## Implementation
 

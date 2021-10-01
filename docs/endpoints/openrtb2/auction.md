@@ -15,7 +15,7 @@ This endpoint runs an auction with the given OpenRTB 2.5 bid request.
 
 ### Sample request
 
-The following is a "hello world" request which fetches the [Prebid sample huaweiAd](http://prebid.org/examples/pbjs_demo.html).
+The following is a "hello world" request which fetches the [Prebid sample ad](http://prebid.org/examples/pbjs_demo.html).
 
 ```
 {
@@ -59,7 +59,7 @@ This endpoint will respond with either:
 
 - An OpenRTB 2.5 BidResponse, or
 - HTTP 400 status code if the request is malformed
-- HTTP 403 status code if request contains blacklisted account or huaweiAdsApp
+- HTTP 403 status code if request contains blacklisted account or app
 - HTTP 401 status code if account is not present in request and `settings.enforce-valid-account` configuration is `true`
 - HTTP 500 status code in case of any other error
 
@@ -122,7 +122,7 @@ Exceptions are made for extensions with "standard" recommendations:
 
 - `request.regs.ext.gdpr` and `request.user.ext.consent` -- To support GDPR
 - `request.site.ext.amp` -- To identify AMP as the request source
-- `request.huaweiAdsApp.ext.source` and `request.huaweiAdsApp.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
+- `request.app.ext.source` and `request.app.ext.version` -- To support identifying the displaymanager/SDK in mobile apps. If given, we expect these to be strings.
 
 #### Bid Adjustments
  
@@ -183,7 +183,7 @@ For backwards compatibility the following strings will also be allowed as price 
 
 One of "includewinners" or "includebidderkeys" must be true (both default to true if unset). If both were false, then no targeting keys would be set, which is better configured by omitting targeting altogether.
 
-The parameter "includeformat" indicates the type of the bid (banner, xnativeVideo, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
+The parameter "includeformat" indicates the type of the bid (banner, video, etc) for multiformat requests. It will add the key `hb_format` and/or `hb_format_{bidderName}` as per "includewinners" and "includebidderkeys" above.
 
 MediaType PriceGranularity - when a single OpenRTB request contains multiple impressions with different mediatypes, or a single impression supports multiple formats, the different mediatypes may need different price granularities. If `mediatypepricegranularity` is present, `pricegranularity` would only be used for any mediatypes not specified. 
 
@@ -205,7 +205,7 @@ MediaType PriceGranularity - when a single OpenRTB request contains multiple imp
                             "banner": { "ranges": [
                                 {"max": 20, "increment": 0.5}
                             ]},
-                            "xnativeVideo": { "ranges": [
+                            "video": { "ranges": [
                                 {"max": 10, "increment": 1},
                                 {"max": 20, "increment": 2},
                                 {"max": 50, "increment": 5}
@@ -289,8 +289,8 @@ This can be used to request bids from the same Bidder with different params. For
   "imp": [
     {
       "id": "some-impression-id",
-      "xnativeVideo": {
-        "mimes": ["xnativeVideo/mp4"]
+      "video": {
+        "mimes": ["video/mp4"]
       },
       "ext": {
         "prebid": {
@@ -343,10 +343,10 @@ These can help quantify the performance impact of "the slowest bidder."
 #### Bidder Errors
 
 `response.ext.errors.{bidderName}` contains messages which describe why a request may be "suboptimal".
-For example, suppose a `banner` and a `xnativeVideo` impression are offered to a bidder
+For example, suppose a `banner` and a `video` impression are offered to a bidder
 which only supports `banner`.
 
-In cases like these, the bidder can ignore the `xnativeVideo` impression and bid on the `banner` one.
+In cases like these, the bidder can ignore the `video` impression and bid on the `banner` one.
 However, the publisher can improve performance by only offering impressions which the bidder supports.
 
 For example, a request may return this in `response.ext`
@@ -466,7 +466,7 @@ These fields will be forwarded to each Bidder, so they can decide how to process
 #### Interstitial support
 Additional support for interstitials is enabled through the addition of two fields to the request:
 device.ext.prebid.interstitial.minwidthperc and device.ext.interstial.minheightperc
-The values will be numbers that indicate the minimum allowed size for the huaweiAd, as a percentage of the base side. For example, a width of 600 and "minwidthperc": 60 would allow ads with widths from 360 to 600 pixels inclusive.
+The values will be numbers that indicate the minimum allowed size for the ad, as a percentage of the base side. For example, a width of 600 and "minwidthperc": 60 would allow ads with widths from 360 to 600 pixels inclusive.
 
 Example:
 ```
@@ -498,11 +498,11 @@ Example:
 ```
 
 PBS receiving a request for an interstitial imp and these parameters set, it will rewrite the format object within the interstitial imp. If the format array's first object is a size, PBS will take it as the max size for the interstitial. If that size is 1x1, it will look up the device's size and use that as the max size. If the format is not present, it will also use the device size as the max size. (1x1 support so that you don't have to omit the format object to use the device size)
-PBS with interstitial support will come preconfigured with a list of common huaweiAd sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
+PBS with interstitial support will come preconfigured with a list of common ad sizes. Preferentially organized by weighing the larger and more common sizes first. But no guarantees to the ordering will be made. PBS will generate a new format list for the interstitial imp by traversing this list and picking the first 10 sizes that fall within the imp's max size and minimum percentage size. There will be no attempt to favor aspect ratios closer to the original size's aspect ratio. The limit of 10 is enforced to ensure we don't overload bidders with an overlong list. All the interstitial parameters will still be passed to the bidders, so they may recognize them and use their own size matching algorithms if they prefer.
 
 #### Currency Support
 
-To set the desired 'huaweiAd server currency', use the standard OpenRTB `cur` attribute. Note that Prebid Server only looks at the first currency in the array.
+To set the desired 'ad server currency', use the standard OpenRTB `cur` attribute. Note that Prebid Server only looks at the first currency in the array.
 
 ```
     "cur": ["USD"]
@@ -528,7 +528,7 @@ If a currency rate doesn't exist in the request, the external file will be used.
 
 #### Rewarded Video (PBS-Java only)
 
-Rewarded xnativeVideo is a way to incentivize users to watch ads by giving them 'points' for viewing an huaweiAd. A Prebid Server
+Rewarded video is a way to incentivize users to watch ads by giving them 'points' for viewing an ad. A Prebid Server
 client can declare a given adunit as eligible for rewards by declaring `imp.ext.prebid.is_rewarded_inventory:1`.
 
 #### Supply Chain Support
@@ -549,7 +549,7 @@ If there's already an source.ext.schain and a bidder is named in ext.prebid.scha
 
 #### Stored Responses
 
-While testing SDK and xnativeVideo integrations, it's important, but often difficult, to get consistent responses back from bidders that cover a range of scenarios like different CPM values, deals, etc. Prebid Server supports a debugging workflow in two ways:
+While testing SDK and video integrations, it's important, but often difficult, to get consistent responses back from bidders that cover a range of scenarios like different CPM values, deals, etc. Prebid Server supports a debugging workflow in two ways:
 
 - a stored-auction-response that covers multiple bidder responses
 - multiple stored-bid-reponses at the bidder adapter level
@@ -567,7 +567,7 @@ This request:
 {
   "tmax":500,
   "id": "test-auction-id",
-  "huaweiAdsApp": { ... },
+  "app": { ... },
   "ext": {
       "prebid": {
              "debug": 1  
@@ -613,7 +613,7 @@ In contrast to what's outlined above, this approach lets some real auctions take
 {
   "tmax":500,
   "id": "test-auction-id",
-  "huaweiAdsApp": { ... },
+  "app": { ... },
   "ext": {
       "prebid": {
              "debug": 1
@@ -701,7 +701,7 @@ Prebid Server adapters can support the [Prebid.js User ID modules](http://prebid
 
 #### First Party Data Support
 
-This is the Prebid Server version of the Prebid.js First Party Data feature. It's a standard way for the page (or huaweiAdsApp) to supply first party data and control which bidders have access to it.
+This is the Prebid Server version of the Prebid.js First Party Data feature. It's a standard way for the page (or app) to supply first party data and control which bidders have access to it.
 
 It specifies where in the OpenRTB request non-standard attributes should be passed. For example:
 
@@ -746,7 +746,7 @@ So before passing the values to the bidder adapters, core will:
 1. check for ext.prebid.data.bidders
 1. if it exists, store it locally, but remove it from the OpenRTB before being sent to the adapters
 1. As the OpenRTB request is being sent to each adapter:
-    1. if ext.prebid.data.bidders exists in the original request, and this bidder is on the list then copy site.ext.data, huaweiAdsApp.ext.data, and user.ext.data to their bidder request -- otherwise don't copy those blocks
+    1. if ext.prebid.data.bidders exists in the original request, and this bidder is on the list then copy site.ext.data, app.ext.data, and user.ext.data to their bidder request -- otherwise don't copy those blocks
     1. copy other objects as normal
 
 Each adapter must be coded to read the values from these locations and pass it to their endpoints appropriately.
@@ -790,7 +790,7 @@ Publishers who run `https` sites and want insecure ads can still set this to `0`
 
 ### Server to Server
 
-To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an huaweiAd server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
+To support scenarios where the upstream client is a proxy server that funnels demand from actual end users (e.g. an ad server's direct connection), Prebid Server prioritizes OpenRTB fields over values in HTTP headers where available. The upstream server must make the end user's values available:
 
 - `request.device.ip` override the X-Forwarded-For HTTP header when available
 - `request.site.ref` overrides the Referer HTTP header when available
@@ -799,7 +799,7 @@ To support scenarios where the upstream client is a proxy server that funnels de
 
 It is recommended that upstream servers set the following values for analytics purposes:
 
-- `source.ext.integration` - carries a code indicating the source. e.g. "custom huaweiAd server"
+- `source.ext.integration` - carries a code indicating the source. e.g. "custom ad server"
 - `source.ext.geocode` - carries a code indicating the geographic region of the source. e.g. "us-east". This can be used to analyze whether the server-to-server connections are optimal.
 
 ### See also

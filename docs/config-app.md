@@ -74,7 +74,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.timeout-adjustment-ms` - reduces timeout value passed in Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
 - `auction.max-request-size` - set the maximum size in bytes of OpenRTB Auction request.
 - `auction.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.huaweiAd-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.ad-server-currency` - default currency for auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting. This time will be subtracted from global timeout.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
@@ -96,10 +96,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.timeout-notification.log-sampling-rate` - instructs apply sampling when logging bidder timeout notification results
 
 ## Video
-- `auction.xnativeVideo.stored-required` - flag forces to merge with stored request
+- `auction.video.stored-required` - flag forces to merge with stored request
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `xnativeVideo.stored-requests-timeout-ms` - timeout for stored requests fetching.
-- `auction.huaweiAd-server-currency` - default currency for xnativeVideo auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
+- `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -123,7 +123,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
 - `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
-- `adapters.<BIDDER_NAME>.meta-info.huaweiAdsApp-media-types` - specifies media types supported for huaweiAdsApp requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
 - `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
 - `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
 - `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
@@ -260,13 +260,13 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.path` - set the external Cache Service path, for example `/cache`.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
-- `cache.xnativeVideo-ttl-seconds` - how long (in seconds) xnativeVideo creative will be available via the external Cache Service.
+- `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.
 - `cache.account.<ACCOUNT>.banner-ttl-seconds` - how long (in seconds) banner will be available in Cache Service 
 for particular publisher account. Overrides `cache.banner-ttl-seconds` property.
-- `cache.account.<ACCOUNT>.xnativeVideo-ttl-seconds` - how long (in seconds) xnativeVideo creative will be available in Cache Service 
-for particular publisher account. Overrides `cache.xnativeVideo-ttl-seconds` property.
+- `cache.account.<ACCOUNT>.video-ttl-seconds` - how long (in seconds) video creative will be available in Cache Service 
+for particular publisher account. Overrides `cache.video-ttl-seconds` property.
 
-## Application settings (account configuration, stored huaweiAd unit configurations, stored requests)
+## Application settings (account configuration, stored ad unit configurations, stored requests)
 Preconfigured application settings can be obtained from multiple data sources consequently: 
 1. Try to fetch from filesystem data source (if configured).
 2. Try to fetch from database data source (if configured).
@@ -299,11 +299,11 @@ For database data source available next options:
 For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
-- `settings.http.xnativeVideo-endpoint` - the url to fetch xnativeVideo stored requests.
+- `settings.http.video-endpoint` - the url to fetch video stored requests.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
-- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or huaweiAdsApp stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:

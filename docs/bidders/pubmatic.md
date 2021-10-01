@@ -3,7 +3,7 @@
 ## Test Request
 
 The following test parameters can be used to verify that Prebid Server is working properly with the 
-PubMatic adapter. This example includes an `imp` object with an PubMatic test publisher ID, huaweiAd slot,
+PubMatic adapter. This example includes an `imp` object with an PubMatic test publisher ID, ad slot,
 and sizes that would match with the test creative.
 
 ```

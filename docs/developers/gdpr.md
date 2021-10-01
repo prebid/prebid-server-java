@@ -27,7 +27,7 @@ For all endpoints, `gdpr` should be `1` if GDPR is in effect, `0` if not, and om
 `gdpr_consent` should be an [unpadded base64-URL](https://tools.ietf.org/html/rfc4648#page-7) encoded [Vendor Consent String](https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/Consent%20string%20and%20vendor%20list%20formats%20v1.1%20Final.md#vendor-consent-string-format-).
 
 `gdpr_consent` is required if `gdpr` is `1` and ignored if `gdpr` is `0`. If `gdpr` is omitted, the Prebid Server
-host company can decide whether it behaves like a `1` or `0` through the [huaweiAdsApp configuration](./configuration.md).
+host company can decide whether it behaves like a `1` or `0` through the [app configuration](./configuration.md).
 Callers are encouraged to send the `gdpr_consent` param if `gdpr` is omitted.
 
 ## Geo Location

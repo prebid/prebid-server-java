@@ -15,7 +15,7 @@ Copy `sample` directory from project root
 (it will contain two files)
 
 - `prebid-config.yaml`
-- `sample-huaweiAdsApp-settings.yaml`
+- `sample-app-settings.yaml`
 
 Create `Procfile` which tells how to start application:
 ```bash
