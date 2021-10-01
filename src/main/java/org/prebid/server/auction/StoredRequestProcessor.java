@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -15,7 +16,7 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -40,6 +41,9 @@ import java.util.stream.Collectors;
  */
 public class StoredRequestProcessor {
 
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ?>>() {
+            };
     private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
 
     private final long defaultTimeout;
@@ -137,7 +141,7 @@ public class StoredRequestProcessor {
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
                 applicationSettings.getAmpStoredData(
-                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                                accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
@@ -357,12 +361,13 @@ public class StoredRequestProcessor {
     private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtImp extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
+                final ExtPrebid<ExtImpPrebid, ?> extImp = mapper.mapper()
+                        .convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 if (prebid != null) {
                     return prebid.getStoredrequest();
                 }
-            } catch (JsonProcessingException e) {
+            } catch (IllegalArgumentException e) {
                 throw new InvalidRequestException(String.format(
                         "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
             }

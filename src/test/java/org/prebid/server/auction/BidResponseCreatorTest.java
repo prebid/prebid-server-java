@@ -58,10 +58,10 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
@@ -2381,7 +2381,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp = Imp.builder().id(IMP_ID).ext(
                         mapper.valueToTree(
-                                ExtImp.of(
+                                ExtPrebid.of(
                                         ExtImpPrebid.builder()
                                                 .storedrequest(ExtStoredRequest.of("st1"))
                                                 .options(ExtOptions.of(true))
@@ -2414,21 +2414,23 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp1 = Imp.builder().id("impId1").ext(
                         mapper.valueToTree(
-                                ExtImp.of(ExtImpPrebid.builder()
-                                        .storedrequest(ExtStoredRequest.of("st1"))
-                                        .options(ExtOptions.of(true))
-                                        .build(), null)))
+                                ExtPrebid.of(
+                                        ExtImpPrebid.builder()
+                                                .storedrequest(ExtStoredRequest.of("st1"))
+                                                .options(ExtOptions.of(true))
+                                                .build(),
+                                        null)))
                 .build();
         final Imp imp2 = Imp.builder().id("impId2").ext(
                         mapper.valueToTree(
-                                ExtImp.of(ExtImpPrebid.builder()
+                                ExtPrebid.of(ExtImpPrebid.builder()
                                         .storedrequest(ExtStoredRequest.of("st2"))
                                         .options(ExtOptions.of(false))
                                         .build(), null)))
                 .build();
         final Imp imp3 = Imp.builder().id("impId3").ext(
                         mapper.valueToTree(
-                                ExtImp.of(ExtImpPrebid.builder()
+                                ExtPrebid.of(ExtImpPrebid.builder()
                                         .storedrequest(ExtStoredRequest.of("st3"))
                                         .options(ExtOptions.of(true))
                                         .build(), null)))
@@ -2479,7 +2481,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final Imp imp1 = Imp.builder().id(IMP_ID).ext(
                         mapper.valueToTree(
-                                ExtImp.of(ExtImpPrebid.builder()
+                                ExtPrebid.of(ExtImpPrebid.builder()
                                                 .storedrequest(ExtStoredRequest.of("st1"))
                                                 .options(ExtOptions.of(true))
                                                 .build(),

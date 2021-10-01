@@ -22,7 +22,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
@@ -76,8 +76,8 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         given(applicationSettings.getStoredResponses(any(), any()))
                 .willReturn(Future.succeededFuture(StoredResponseDataResult.of(singletonMap("1",
-                        mapper.writeValueAsString(singletonList(SeatBid.builder().seat("rubicon")
-                                .bid(singletonList(Bid.builder().id("id").build())).build()))),
+                                mapper.writeValueAsString(singletonList(SeatBid.builder().seat("rubicon")
+                                        .bid(singletonList(Bid.builder().id("id").build())).build()))),
                         emptyList())));
 
         // when
@@ -97,7 +97,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldNotChangeImpsAndReturnSeatBidsWhenThereAreNoStoredIds() {
         // given
         final Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(
+                .ext(mapper.valueToTree(ExtPrebid.of(
                         ExtImpPrebid.builder().bidder(mapper.createObjectNode().put("rubicon", 1)).build(),
                         null)))
                 .build();
@@ -126,7 +126,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder()
                         .id("impId1")
-                        .ext(mapper.valueToTree(ExtImp.of(
+                        .ext(mapper.valueToTree(ExtPrebid.of(
                                 ExtImpPrebid.builder().storedAuctionResponse(null).build(),
                                 null)))
                         .build()),
@@ -542,13 +542,13 @@ public class StoredResponseProcessorTest extends VertxTest {
                 "rubicon",
                 BidderSeatBid.of(
                         asList(BidderBid.of(
-                                Bid.builder()
-                                        .id("bid2")
-                                        .impid("storedImp")
-                                        .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
-                                        .build(),
-                                BidType.video,
-                                "USD"),
+                                        Bid.builder()
+                                                .id("bid2")
+                                                .impid("storedImp")
+                                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                                                .build(),
+                                        BidType.video,
+                                        "USD"),
                                 BidderBid.of(
                                         Bid.builder()
                                                 .id("bid1")
@@ -620,12 +620,13 @@ public class StoredResponseProcessorTest extends VertxTest {
                          List<ExtStoredBidResponse> extStoredBidResponse) {
         return Imp.builder()
                 .id(impId)
-                .ext(mapper.valueToTree(ExtImp.of(
-                        ExtImpPrebid.builder()
-                                .storedAuctionResponse(storedAuctionResponse)
-                                .storedBidResponse(extStoredBidResponse)
-                                .build(),
-                        null)))
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(
+                                ExtImpPrebid.builder()
+                                        .storedAuctionResponse(storedAuctionResponse)
+                                        .storedBidResponse(extStoredBidResponse)
+                                        .build(),
+                                null)))
                 .build();
     }
 }

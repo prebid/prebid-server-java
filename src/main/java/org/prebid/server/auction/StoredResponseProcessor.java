@@ -18,7 +18,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
@@ -43,6 +43,9 @@ import java.util.stream.Collectors;
  */
 public class StoredResponseProcessor {
 
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ?>>() {
+            };
     private static final String PREBID_EXT = "prebid";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
@@ -154,10 +157,10 @@ public class StoredResponseProcessor {
                                 resolveStoredBidResponse(impIdToStoredResponses.getValue().getStoredBidResponse())));
     }
 
-    private ExtImp getExtImp(ObjectNode extImpNode, String impId) {
+    private ExtPrebid<ExtImpPrebid, ?> getExtImp(ObjectNode extImpNode, String impId) {
         try {
-            return mapper.mapper().treeToValue(extImpNode, ExtImp.class);
-        } catch (JsonProcessingException e) {
+            return mapper.mapper().convertValue(extImpNode, EXT_IMP_TYPE_REFERENCE);
+        } catch (IllegalArgumentException e) {
             throw new InvalidRequestException(String.format(
                     "Error decoding bidRequest.imp.ext for impId = %s : %s", impId, e.getMessage()));
         }

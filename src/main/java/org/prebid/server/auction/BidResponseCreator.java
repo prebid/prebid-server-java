@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -54,8 +55,8 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtOptions;
@@ -106,6 +107,9 @@ import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
 
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<ExtImpPrebid, ?>>() {
+            };
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
@@ -1091,12 +1095,13 @@ public class BidResponseCreator {
     private boolean checkEchoVideoAttrs(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtImp extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
+                final ExtPrebid<ExtImpPrebid, ?> extImp = mapper.mapper()
+                        .convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 final ExtOptions options = prebid != null ? prebid.getOptions() : null;
                 final Boolean echoVideoAttrs = options != null ? options.getEchoVideoAttrs() : null;
                 return BooleanUtils.toBoolean(echoVideoAttrs);
-            } catch (JsonProcessingException e) {
+            } catch (IllegalArgumentException e) {
                 throw new InvalidRequestException(String.format(
                         "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
             }
