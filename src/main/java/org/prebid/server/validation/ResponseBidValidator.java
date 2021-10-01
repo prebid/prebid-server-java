@@ -363,12 +363,12 @@ public class ResponseBidValidator {
     }
 
     private static boolean isDealsOnlyImp(Imp imp, String bidder) {
-        final JsonNode dealsOnlyNode = bidderParamsFromImp(imp).get(bidder).get(DEALS_ONLY);
-        return dealsOnlyNode != null && dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
+        final JsonNode dealsOnlyNode = bidderParamsFromImp(imp).path(bidder).path(DEALS_ONLY);
+        return dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
     }
 
     private static JsonNode bidderParamsFromImp(Imp imp) {
-        return imp.getExt().get(PREBID_EXT).get(BIDDER_EXT);
+        return imp.getExt().path(PREBID_EXT).path(BIDDER_EXT);
     }
 
     private Set<String> getDealIdsFromImp(Imp imp, String bidder, BidderAliases aliases) {

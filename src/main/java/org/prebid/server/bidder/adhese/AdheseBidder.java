@@ -46,9 +46,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-/**
- * Adhese {@link Bidder} implementation.
- */
 public class AdheseBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
@@ -84,12 +81,12 @@ public class AdheseBidder implements Bidder<Void> {
         final String uri = getUrl(extImpAdhese);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
-                        .method(HttpMethod.POST)
-                        .uri(uri)
-                        .body(mapper.encode(buildBody(request, extImpAdhese)))
-                        .headers(replaceHeaders(request.getDevice()))
-                        .build()),
+                        HttpRequest.<Void>builder()
+                                .method(HttpMethod.POST)
+                                .uri(uri)
+                                .body(mapper.encode(buildBody(request, extImpAdhese)))
+                                .headers(replaceHeaders(request.getDevice()))
+                                .build()),
                 Collections.emptyList());
     }
 

@@ -28,8 +28,6 @@ public class BidderConfigurationProperties {
     @NotBlank
     private String endpoint;
 
-    private Boolean pbsEnforcesGdpr;
-
     private Boolean pbsEnforcesCcpa;
 
     private Boolean modifyingVastXmlAllowed;
@@ -57,7 +55,6 @@ public class BidderConfigurationProperties {
     @PostConstruct
     private void init() {
         enabled = ObjectUtils.defaultIfNull(enabled, defaultProperties.getEnabled());
-        pbsEnforcesGdpr = ObjectUtils.defaultIfNull(pbsEnforcesGdpr, defaultProperties.getPbsEnforcesGdpr());
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
                 defaultProperties.getModifyingVastXmlAllowed());

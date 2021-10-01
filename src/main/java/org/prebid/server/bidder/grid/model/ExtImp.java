@@ -1,19 +1,20 @@
 package org.prebid.server.bidder.grid.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 
-@Builder(toBuilder = true)
 @Value
-public class GridExtImp {
+@Builder(toBuilder = true)
+public class ExtImp {
 
     ExtImpPrebid prebid;
 
-    JsonNode bidder;
+    ExtImpGrid bidder;
 
-    GridExtImpData data;
+    ExtImpGridData data;
 
     String gpid;
 }
+

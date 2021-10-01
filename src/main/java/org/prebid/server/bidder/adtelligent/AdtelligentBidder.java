@@ -39,9 +39,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Adtelligent {@link Bidder} implementation.
- */
 public class AdtelligentBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE =

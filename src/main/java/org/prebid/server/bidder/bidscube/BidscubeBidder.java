@@ -31,9 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Bidscube {@link Bidder} implementation.
- */
 public class BidscubeBidder implements Bidder<BidRequest> {
 
     private static final Set<String> POSSIBLE_BID_TYPES = Collections.unmodifiableSet(

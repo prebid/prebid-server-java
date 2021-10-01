@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Mgid {@link Bidder} implementation.
- */
 public class MgidBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
