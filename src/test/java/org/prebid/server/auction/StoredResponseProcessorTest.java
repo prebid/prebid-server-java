@@ -545,7 +545,8 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         Bid.builder()
                                                 .id("bid2")
                                                 .impid("storedImp")
-                                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                                                .ext(mapper.createObjectNode()
+                                                        .set("prebid", mapper.valueToTree(extBidPrebid)))
                                                 .build(),
                                         BidType.video,
                                         "USD"),

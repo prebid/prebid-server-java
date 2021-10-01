@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext;
 
-import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 
@@ -9,9 +10,14 @@ import org.prebid.server.bidder.Bidder;
  * <p>
  * Can be used by {@link Bidder}s to unmarshal any request.imp[i].ext.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class ExtImp<P, B> extends FlexibleExtension {
+
+    public static <P, B> ExtImp<P, B> empty() {
+        return ExtImp.of(null, null);
+    }
 
     P prebid;
 

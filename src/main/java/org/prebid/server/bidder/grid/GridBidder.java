@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.grid;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,6 +18,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -29,9 +31,6 @@ import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -46,6 +45,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class GridBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtImp<?, ExtImpGrid>> GRID_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpGrid>>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -95,13 +98,13 @@ public class GridBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private org.prebid.server.bidder.grid.model.ExtImp parseAndValidateImpExt(Imp imp) {
-        final org.prebid.server.bidder.grid.model.ExtImp extImp = mapper.mapper().convertValue(imp.getExt(), org.prebid.server.bidder.grid.model.ExtImp.class);
+    private ExtImp<?, ExtImpGrid> parseAndValidateImpExt(Imp imp) {
+        final ExtImp<?, ExtImpGrid> extImp = mapper.mapper().convertValue(imp.getExt(), GRID_EXT_TYPE_REFERENCE);
         validateImpExt(extImp, imp.getId());
         return extImp;
     }
 
-    private static void validateImpExt(org.prebid.server.bidder.grid.model.ExtImp extImp, String impId) {
+    private static void validateImpExt(ExtImp<?, ExtImpGrid> extImp, String impId) {
         final ExtImpGrid extImpGrid = extImp != null ? extImp.getBidder() : null;
         final Integer uid = extImpGrid != null ? extImpGrid.getUid() : null;
         if (uid == null || uid == 0) {
@@ -109,17 +112,14 @@ public class GridBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, org.prebid.server.bidder.grid.model.ExtImp extImp) {
-        final ExtImpGridData extImpData = extImp.getData();
-        final ExtImpGridDataAdServer adServer = extImpData != null ? extImpData.getAdServer() : null;
-        final String adSlot = adServer != null ? adServer.getAdSlot() : null;
+    private Imp modifyImp(Imp imp, ExtImp<?, ExtImpGrid> extImp) {
+        final JsonNode dataNode = extImp.getProperty("data");
+        final String adSlot = dataNode != null ? dataNode.at("/adserver/adslot").asText() : null;
 
         if (StringUtils.isNotEmpty(adSlot)) {
-            final org.prebid.server.bidder.grid.model.ExtImp modifiedExtImp = extImp.toBuilder()
-                    .gpid(adSlot)
-                    .build();
+            extImp.addProperty("gpid", TextNode.valueOf(adSlot));
             return imp.toBuilder()
-                    .ext(mapper.mapper().valueToTree(modifiedExtImp))
+                    .ext(mapper.mapper().valueToTree(extImp))
                     .build();
         }
         return imp;
@@ -134,7 +134,7 @@ public class GridBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpGrid getExtImpGridBidder(JsonNode extImp) {
-        return mapper.mapper().convertValue(extImp, org.prebid.server.bidder.grid.model.ExtImp.class).getBidder();
+        return mapper.mapper().convertValue(extImp, GRID_EXT_TYPE_REFERENCE).getBidder();
     }
 
     private BidRequest modifyRequest(BidRequest bidRequest, Keywords firstImpKeywords, List<Imp> imp) {

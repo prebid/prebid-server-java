@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -113,7 +112,8 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, ExtImpAdtarget extImpAdtarget) {
-        final AdtargetImpExt adtargetImpExt = AdtargetImpExt.of(extImpAdtarget);
+        final ExtImp<?, ?> adtargetImpExt = ExtImp.empty();
+        adtargetImpExt.addProperty("adtarget", mapper.mapper().valueToTree(extImpAdtarget));
         final BigDecimal bidFloor = extImpAdtarget.getBidFloor();
         return imp.toBuilder()
                 .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())

@@ -24,12 +24,12 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
@@ -363,7 +363,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
+                        .ext(mapper.valueToTree(givenImpExt(
                                 ExtImpPubmatic.builder().build(),
                                 PubmaticExtData.of("pbaAdSlot",
                                         PubmaticExtDataAdServer.of("adServerName", "adServerAdSlot"))
@@ -392,7 +392,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
+                        .ext(mapper.valueToTree(givenImpExt(
                                 ExtImpPubmatic.builder().build(),
                                 PubmaticExtData.of("pbaAdSlot", PubmaticExtDataAdServer.of("gam", "adServerAdSlot"))
                         )))
@@ -886,7 +886,7 @@ public class PubmaticBidderTest extends VertxTest {
             Function<ExtImpPubmatic.ExtImpPubmaticBuilder, ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -901,18 +901,25 @@ public class PubmaticBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
+    private static ExtImp<ExtImpPrebid, ExtImpPubmatic> givenImpExt(ExtImpPubmatic extImpPubmatic,
+                                                                    PubmaticExtData data) {
+        final ExtImp<ExtImpPrebid, ExtImpPubmatic> extImp = ExtImp.of(null, extImpPubmatic);
+        extImp.addProperty("data", mapper.valueToTree(data));
+        return extImp;
+    }
+
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 Function<ExtImpPubmatic.ExtImpPubmaticBuilder,
                                         ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
-                        extCustomizer.apply(ExtImpPubmatic.builder()
-                                .publisherId("pub id")
-                                .adSlot("slot@300x250"))
-                                .build()))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtImp.of(null,
+                                extCustomizer.apply(ExtImpPubmatic.builder()
+                                                .publisherId("pub id")
+                                                .adSlot("slot@300x250"))
+                                        .build()))))
                 .build();
     }
 

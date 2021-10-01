@@ -24,7 +24,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
@@ -32,6 +31,7 @@ import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -56,6 +56,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String AD_SERVER_GAM = "gam";
     private static final String PREBID = "prebid";
 
+    private static final TypeReference<ExtImp<?, ExtImpPubmatic>> PUBMATIC_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpPubmatic>>() {
+            };
     private static final TypeReference<Map<String, Integer>> WRAPPER_TYPE =
             new TypeReference<Map<String, Integer>>() {
             };
@@ -82,7 +85,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                     throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
                             + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
                 }
-                final PubmaticBidderImpExt impExt = parseImpExt(imp);
+                final ExtImp<?, ExtImpPubmatic> impExt = parseImpExt(imp);
                 final ExtImpPubmatic extBidder = impExt.getBidder();
                 if (pubId == null) {
                     pubId = StringUtils.trimToNull(extBidder.getPublisherId());
@@ -106,15 +109,15 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(createRequest(request, validImps, pubId, wrapper)), errors);
     }
 
-    private PubmaticBidderImpExt parseImpExt(Imp imp) {
+    private ExtImp<?, ExtImpPubmatic> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), PubmaticBidderImpExt.class);
+            return mapper.mapper().convertValue(imp.getExt(), PUBMATIC_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt) {
+    private Imp modifyImp(Imp imp, ExtImp<?, ExtImpPubmatic> impExt) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder().audio(null);
 
         final Banner banner = imp.getBanner();
@@ -201,16 +204,24 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return modifyWithSizeParams(banner, firstFormat.getW(), firstFormat.getH());
     }
 
-    private ObjectNode makeKeywords(PubmaticBidderImpExt impExt) {
+    private ObjectNode makeKeywords(ExtImp<?, ExtImpPubmatic> impExt) {
         final ObjectNode keywordsNode = mapper.mapper().createObjectNode();
         putExtBidderKeywords(keywordsNode, impExt.getBidder());
 
-        final PubmaticExtData pubmaticExtData = impExt.getData();
+        final PubmaticExtData pubmaticExtData = getExtData(impExt);
         if (pubmaticExtData != null) {
             putExtDataKeywords(keywordsNode, pubmaticExtData);
         }
 
         return keywordsNode;
+    }
+
+    private PubmaticExtData getExtData(ExtImp<?, ExtImpPubmatic> impExt) {
+        try {
+            return mapper.mapper().convertValue(impExt.getProperty("data"), PubmaticExtData.class);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static void putExtBidderKeywords(ObjectNode keywords, ExtImpPubmatic extBidder) {

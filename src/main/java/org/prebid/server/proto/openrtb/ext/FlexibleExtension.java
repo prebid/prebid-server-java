@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
@@ -13,6 +14,7 @@ import java.util.Map;
 
 @ToString
 @EqualsAndHashCode
+@AllArgsConstructor
 public abstract class FlexibleExtension {
 
     public static final TypeReference<Map<String, JsonNode>> PROPERTIES_TYPE_REF =

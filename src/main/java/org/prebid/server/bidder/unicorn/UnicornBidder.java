@@ -3,7 +3,6 @@ package org.prebid.server.bidder.unicorn;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -22,7 +21,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.unicorn.model.UnicornImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -93,23 +91,25 @@ public class UnicornBidder implements Bidder<BidRequest> {
     private List<Imp> modifyImps(List<Imp> imps) {
         final List<Imp> modifiedImps = new ArrayList<>();
         for (Imp imp : imps) {
-            final UnicornImpExt unicornImpExt = parseImpExt(imp);
+            final ExtImp<?, ExtImpUnicorn> unicornImpExt = parseImpExt(imp);
             final ExtImpUnicorn extImpBidder = unicornImpExt.getBidder();
             final Imp.ImpBuilder impBuilder = imp.toBuilder().secure(1);
             final String placementId = extImpBidder.getPlacementId();
 
             if (StringUtils.isEmpty(placementId)) {
                 final String resolvedPlacementId = getStoredRequestImpId(imp);
-                final UnicornImpExt updatedExt = unicornImpExt.toBuilder()
-                        .bidder(extImpBidder.toBuilder().placementId(resolvedPlacementId).build())
-                        .build();
+                final ExtImp<?, ExtImpUnicorn> updatedExt = ExtImp.of(
+                        unicornImpExt.getPrebid(),
+                        extImpBidder.toBuilder().placementId(resolvedPlacementId).build());
+                updatedExt.addProperty("context", unicornImpExt.getProperty("context"));
+
                 impBuilder
                         .tagid(resolvedPlacementId)
-                        .ext(mapper.mapper().convertValue(updatedExt, ObjectNode.class));
+                        .ext(mapper.mapper().valueToTree(updatedExt));
             } else {
                 impBuilder
                         .tagid(placementId)
-                        .ext(mapper.mapper().convertValue(unicornImpExt, ObjectNode.class));
+                        .ext(mapper.mapper().valueToTree(unicornImpExt));
             }
 
             modifiedImps.add(impBuilder.build());
@@ -117,9 +117,9 @@ public class UnicornBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private UnicornImpExt parseImpExt(Imp imp) {
+    private ExtImp<?, ExtImpUnicorn> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), UnicornImpExt.class);
+            return mapper.mapper().convertValue(imp.getExt(), UNICORN_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format(
                     "Error while decoding ext of imp with id: %s, error: %s ", imp.getId(), e.getMessage()));
