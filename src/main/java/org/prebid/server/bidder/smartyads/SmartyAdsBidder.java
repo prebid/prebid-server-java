@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Between {@link Bidder} implementation.
- */
 public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartyAds>> SMARTYADS_EXT_TYPE_REFERENCE =

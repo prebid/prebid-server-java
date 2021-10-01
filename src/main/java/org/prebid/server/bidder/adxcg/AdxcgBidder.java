@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adxcg {@link Bidder} implementation.
- */
 public class AdxcgBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -43,12 +40,12 @@ public class AdxcgBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encode(bidRequest))
-                        .payload(bidRequest)
-                        .build());
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .body(mapper.encode(bidRequest))
+                .payload(bidRequest)
+                .build());
     }
 
     @Override

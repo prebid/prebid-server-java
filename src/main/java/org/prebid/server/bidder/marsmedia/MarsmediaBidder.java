@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Marsmedia {@link Bidder} implementation.
- */
 public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMarsmedia>> MARSMEDIA_EXT_TYPE_REFERENCE =

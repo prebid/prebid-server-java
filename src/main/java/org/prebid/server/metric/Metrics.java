@@ -52,6 +52,7 @@ public class Metrics extends UpdatableMetrics {
     private final CurrencyRatesMetrics currencyRatesMetrics;
     private final Map<MetricName, SettingsCacheMetrics> settingsCacheMetrics;
     private final HooksMetrics hooksMetrics;
+    private final PgMetrics pgMetrics;
 
     public Metrics(MetricRegistry metricRegistry, CounterType counterType,
                    AccountMetricsVerbosity accountMetricsVerbosity) {
@@ -82,6 +83,7 @@ public class Metrics extends UpdatableMetrics {
         currencyRatesMetrics = new CurrencyRatesMetrics(metricRegistry, counterType);
         settingsCacheMetrics = new HashMap<>();
         hooksMetrics = new HooksMetrics(metricRegistry, counterType);
+        pgMetrics = new PgMetrics(metricRegistry, counterType);
     }
 
     RequestStatusMetrics forRequestType(MetricName requestType) {
@@ -106,6 +108,10 @@ public class Metrics extends UpdatableMetrics {
 
     UserSyncMetrics userSync() {
         return userSyncMetrics;
+    }
+
+    PgMetrics pgMetrics() {
+        return pgMetrics;
     }
 
     CookieSyncMetrics cookieSync() {
@@ -196,8 +202,8 @@ public class Metrics extends UpdatableMetrics {
         return impMediaTypes;
     }
 
-    public void updateRequestTimeMetric(long millis) {
-        updateTimer(MetricName.request_time, millis);
+    public void updateRequestTimeMetric(MetricName requestType, long millis) {
+        updateTimer(requestType, millis);
     }
 
     public void updateRequestTypeMetric(MetricName requestType, MetricName requestStatus) {
@@ -444,6 +450,58 @@ public class Metrics extends UpdatableMetrics {
         forCircuitBreakerType(MetricName.http).createGauge(MetricName.existing, numberSupplier);
     }
 
+    public void updatePlannerRequestMetric(boolean successful) {
+        pgMetrics().incCounter(MetricName.planner_requests);
+        if (successful) {
+            pgMetrics().incCounter(MetricName.planner_request_successful);
+        } else {
+            pgMetrics().incCounter(MetricName.planner_request_failed);
+        }
+    }
+
+    public void updateDeliveryRequestMetric(boolean successful) {
+        pgMetrics().incCounter(MetricName.delivery_requests);
+        if (successful) {
+            pgMetrics().incCounter(MetricName.delivery_request_successful);
+        } else {
+            pgMetrics().incCounter(MetricName.delivery_request_failed);
+        }
+    }
+
+    public void updateWinEventRequestMetric(boolean successful) {
+        incCounter(MetricName.win_requests);
+        if (successful) {
+            incCounter(MetricName.win_request_successful);
+        } else {
+            incCounter(MetricName.win_request_failed);
+        }
+    }
+
+    public void updateUserDetailsRequestMetric(boolean successful) {
+        incCounter(MetricName.user_details_requests);
+        if (successful) {
+            incCounter(MetricName.user_details_request_successful);
+        } else {
+            incCounter(MetricName.user_details_request_failed);
+        }
+    }
+
+    public void updateWinRequestTime(long millis) {
+        updateTimer(MetricName.win_request_time, millis);
+    }
+
+    public void updateLineItemsNumberMetric(long count) {
+        pgMetrics().incCounter(MetricName.planner_lineitems_received, count);
+    }
+
+    public void updatePlannerRequestTime(long millis) {
+        pgMetrics().updateTimer(MetricName.planner_request_time, millis);
+    }
+
+    public void updateDeliveryRequestTime(long millis) {
+        pgMetrics().updateTimer(MetricName.delivery_request_time, millis);
+    }
+
     public void updateGeoLocationMetric(boolean successful) {
         incCounter(MetricName.geolocation_requests);
         if (successful) {
@@ -581,5 +639,17 @@ public class Metrics extends UpdatableMetrics {
         static MetricName fromAction(ExecutionAction action) {
             return ACTION_TO_METRIC.getOrDefault(action, MetricName.unknown);
         }
+    }
+
+    public void updateWinNotificationMetric() {
+        incCounter(MetricName.win_notifications);
+    }
+
+    public void updateWinRequestPreparationFailed() {
+        incCounter(MetricName.win_request_preparation_failed);
+    }
+
+    public void updateUserDetailsRequestPreparationFailed() {
+        incCounter(MetricName.user_details_request_preparation_failed);
     }
 }

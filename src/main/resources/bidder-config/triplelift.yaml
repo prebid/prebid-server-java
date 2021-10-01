@@ -1,12 +1,6 @@
 adapters:
   triplelift:
-    enabled: false
     endpoint: https://tlx.3lift.com/s2s/auction?sra=1&supplier_id=20
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@triplelift.com
       app-media-types:

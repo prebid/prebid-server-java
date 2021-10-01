@@ -1,0 +1,10 @@
+{
+  "$not": {
+    "site.domain": {
+      "$in": [
+        "nba.com",
+        "cnn.com"
+      ]
+    }
+  }
+}

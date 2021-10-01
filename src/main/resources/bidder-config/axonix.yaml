@@ -1,12 +1,6 @@
 adapters:
   axonix:
-    enabled: false
     endpoint: https://openrtb-us-east-1.axonix.com/supply/prebid-server/{{SupplyId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support.axonix@emodoinc.com
       app-media-types:

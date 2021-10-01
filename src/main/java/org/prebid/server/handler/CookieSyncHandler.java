@@ -168,7 +168,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, routingContext.request(), account, timeout)
+                                cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)

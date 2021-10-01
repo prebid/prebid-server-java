@@ -24,6 +24,8 @@ import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserService;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -382,10 +384,23 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(AnalyticsReporterDelegator analyticsReporterDelegator,
-                                                      TimeoutFactory timeoutFactory,
-                                                      ApplicationSettings applicationSettings) {
-        return new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory, applicationSettings);
+    NotificationEventHandler notificationEventHandler(
+            UidsCookieService uidsCookieService,
+            @Autowired(required = false) ApplicationEventService applicationEventService,
+            @Autowired(required = false) UserService userService,
+            AnalyticsReporterDelegator analyticsReporterDelegator,
+            TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings,
+            @Value("${deals.enabled}") boolean dealsEnabled) {
+
+        return new NotificationEventHandler(
+                uidsCookieService,
+                applicationEventService,
+                userService,
+                analyticsReporterDelegator,
+                timeoutFactory,
+                applicationSettings,
+                dealsEnabled);
     }
 
     @Bean

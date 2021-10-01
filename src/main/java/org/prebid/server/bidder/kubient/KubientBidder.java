@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * kubient {@link Bidder} implementation.
- */
 public class KubientBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
@@ -67,13 +64,13 @@ public class KubientBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(body)
+                                .headers(HttpUtil.headers())
+                                .payload(request)
+                                .build()),
                 Collections.emptyList());
     }
 

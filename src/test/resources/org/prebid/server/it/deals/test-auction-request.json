@@ -1,0 +1,122 @@
+{
+  "id": "tid",
+  "imp": [
+    {
+      "id": "impId1",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "impId2",
+      "banner": {
+        "format": [
+          {
+            "w": 320,
+            "h": 320
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "impId3",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 600
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001,
+              "dealsonly": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "impId4",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "rubicon": {
+              "accountId": 2001,
+              "siteId": 3001,
+              "zoneId": 4001
+            }
+          }
+        }
+      }
+    }
+  ],
+  "cur": [
+    "USD"
+  ],
+  "site": {
+    "publisher": {
+      "id": "2001"
+    }
+  },
+  "user": {
+    "ext": {
+      "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+    }
+  },
+  "ext": {
+    "prebid": {
+      "debug": 1,
+      "trace": "verbose",
+      "targeting": {
+      },
+      "cache": {
+        "bids": {},
+        "vastxml": {
+          "ttlseconds": 120
+        }
+      },
+      "auctiontimestamp": 1000
+    }
+  }
+}

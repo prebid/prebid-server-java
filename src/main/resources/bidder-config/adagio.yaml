@@ -1,0 +1,19 @@
+adapters:
+  adagio:
+    endpoint: https://mp.4dex.io/ortb2
+    meta-info:
+      maintainer-email: dev@adagio.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 617
+    usersync:
+      url: https://mp.4dex.io/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect=
+      redirect-url: /setuid?bidder=adagio&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+      cookie-family-name: adagio
+      type: redirect
+      support-cors: false
