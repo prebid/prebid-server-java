@@ -1,6 +1,6 @@
 # Overview
 
-Prebid Server doesn't provide the services an SSP normally provides, including account configuration of blocked:
+Prebid Server doesn't provide the services as SSP normally provides, including account configuration of blocked:
 
 - advertiser domains
 - advertiser categories
@@ -10,7 +10,7 @@ Prebid Server doesn't provide the services an SSP normally provides, including a
 
 This module allows Prebid Server host companies to better support adapters that require blocking config.
 
-# Maintainer
+# Maintainer contacts
 
 Any suggestions or questions can be directed to [header-bidding@rubiconproject.com](header-bidding@rubiconproject.com)
 e-mail.
