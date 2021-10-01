@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 
 import java.util.List;
@@ -60,7 +60,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
@@ -75,7 +75,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
@@ -260,7 +260,7 @@ public class AlgorixBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpAlgorix.of("testSid", "testToken")))))
                 .build();
     }

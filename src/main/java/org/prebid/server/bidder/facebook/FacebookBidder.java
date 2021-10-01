@@ -32,7 +32,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
 
 public class FacebookBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
+    private static final TypeReference<ExtImp<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpFacebook>>() {
             };
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);

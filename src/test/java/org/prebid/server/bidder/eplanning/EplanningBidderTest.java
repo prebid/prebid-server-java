@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -80,7 +80,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
@@ -97,7 +97,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 mapper.createObjectNode().put("ci", "")))));
 
         // when
@@ -488,7 +488,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .height(1)
                                         .build()))))));
 
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
                 ExtImpEplanning.of("clientId", null)))));
 
         // when
@@ -560,7 +560,7 @@ public class EplanningBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:")))))
                 .build();
     }

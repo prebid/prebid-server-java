@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.acuity.ExtImpAcuityads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -33,8 +33,8 @@ import java.util.stream.IntStream;
 
 public class AcuityadsBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAcuityads>> ACUITYADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAcuityads>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAcuityads>> ACUITYADS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAcuityads>>() {
             };
     private static final String OPENRTB_VERSION = "2.5";
     private static final String URL_HOST_MACRO = "{{Host}}";

@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.gamma.ExtImpGamma;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -37,8 +37,8 @@ import java.util.Objects;
 
 public class GammaBidder implements Bidder<Void> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGamma>> GAMMA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGamma>>() {
+    private static final TypeReference<ExtImp<?, ExtImpGamma>> GAMMA_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpGamma>>() {
             };
 
     private final String endpointUrl;

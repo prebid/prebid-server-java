@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
@@ -40,8 +40,8 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private static final String UNKONWN_PUBLSIHER_ID = "unknown";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
+    private static final TypeReference<ExtImp<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpTriplelift>>() {
             };
     private static final TypeReference<List<String>> WHITELIST_TYPE_REFERENCE =
             new TypeReference<List<String>>() {

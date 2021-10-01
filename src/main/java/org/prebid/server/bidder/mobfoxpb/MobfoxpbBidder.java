@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -42,8 +42,8 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private static final TypeReference<ExtPrebid<?, ExtImpMobfoxpb>> MOBFOXPB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMobfoxpb>>() {
+    private static final TypeReference<ExtImp<?, ExtImpMobfoxpb>> MOBFOXPB_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpMobfoxpb>>() {
             };
 
     public MobfoxpbBidder(String endpoint, JacksonMapper mapper) {

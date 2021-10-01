@@ -33,7 +33,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adhese.ExtImpAdhese;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -48,8 +48,8 @@ import java.util.TreeMap;
 
 public class AdheseBidder implements Bidder<Void> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdhese>>() {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";

@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ucfunnel.ExtImpUcfunnel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -66,7 +66,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpUcfunnel.of("adUnitId", null)))).build()))
                 .build();
 
@@ -84,7 +84,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpUcfunnel.of(null, "partnerId")))).build()))
                 .build();
 
@@ -102,7 +102,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpUcfunnel.of("adUnitId", "partnerId")))).build()))
                 .build();
 

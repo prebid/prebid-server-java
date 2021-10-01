@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.somoaudience.proto.SomoaudienceReqExt;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -111,20 +111,20 @@ public class SomoaudienceBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnCorrectRequestBodyAndUri() {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         null, ExtImpSomoaudience.of("placement1", BigDecimal.valueOf(1.54)))))),
-                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         null, ExtImpSomoaudience.of("placement2", BigDecimal.valueOf(1.33)))))),
                 givenImp(impBuilder -> impBuilder
                         .video(Video.builder().build())
                         .banner(null)
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 null, ExtImpSomoaudience.of("placement3", BigDecimal.valueOf(1.97)))))),
 
                 givenImp(impBuilder -> impBuilder
                         .xNative(Native.builder().build())
                         .banner(null)
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 null, ExtImpSomoaudience.of("placement4", BigDecimal.valueOf(2.52))))))))
                 .build();
 
@@ -159,7 +159,7 @@ public class SomoaudienceBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("impId")
                         .audio(Audio.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 null, ExtImpSomoaudience.of("placementId", null)))).build()))
                 .build();
 
@@ -179,10 +179,10 @@ public class SomoaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("impId")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
                         givenImp(impBuilder -> impBuilder
                                 .id("impId2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         null, ExtImpSomoaudience.of("placementId", null)))))))
                 .build();
 
@@ -396,7 +396,7 @@ public class SomoaudienceBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(
+                .ext(mapper.valueToTree(ExtImp.of(
                         null, ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.39))))))
                 .build();
     }

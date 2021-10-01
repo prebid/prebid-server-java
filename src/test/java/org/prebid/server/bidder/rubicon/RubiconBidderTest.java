@@ -66,7 +66,7 @@ import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
@@ -367,7 +367,7 @@ public class RubiconBidderTest extends VertxTest {
                                         Format.builder().w(300).h(250).build(),
                                         Format.builder().w(300).h(600).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder()
                                 .sizes(singletonList(15)).build())))
                         .build()))
                 .build();
@@ -395,7 +395,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .format(singletonList(
                                         Format.builder().w(360).h(616).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder().build())))
                         .build()))
                 .build();
 
@@ -425,7 +425,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .format(singletonList(
                                         Format.builder().w(616).h(360).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder().build())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder().build())))
                         .build()))
                 .build();
 
@@ -670,7 +670,7 @@ public class RubiconBidderTest extends VertxTest {
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
 
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtImp<ExtImpPrebid, ExtImpRubicon> ext = ExtImp.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -697,7 +697,7 @@ public class RubiconBidderTest extends VertxTest {
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
 
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtImp<ExtImpPrebid, ExtImpRubicon> ext = ExtImp.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -724,7 +724,7 @@ public class RubiconBidderTest extends VertxTest {
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
 
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtImp<ExtImpPrebid, ExtImpRubicon> ext = ExtImp.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -752,7 +752,7 @@ public class RubiconBidderTest extends VertxTest {
                 .video(null)
                 .build();
 
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtImp<ExtImpPrebid, ExtImpRubicon> ext = ExtImp.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -772,7 +772,7 @@ public class RubiconBidderTest extends VertxTest {
                 .video(RubiconVideoParams.builder().skip(5).skipdelay(10).sizeId(14).build())
                 .build();
 
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = ExtPrebid.of(prebid, rubicon);
+        final ExtImp<ExtImpPrebid, ExtImpRubicon> ext = ExtImp.of(prebid, rubicon);
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
                 .ext(mapper.valueToTree(ext)));
@@ -2311,7 +2311,7 @@ public class RubiconBidderTest extends VertxTest {
                         givenImp(builder -> builder.video(Video.builder().build())),
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -2371,7 +2371,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder()
                                 .sizes(singletonList(3)).build())))
                         .build()))
                 .build();
@@ -2531,7 +2531,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         final ObjectNode expectedBidExt = mapper.valueToTree(
-                ExtPrebid.of(ExtBidPrebid.builder()
+                ExtImp.of(ExtBidPrebid.builder()
                         .meta(mapper.createObjectNode().set("networkId", IntNode.valueOf(123)))
                         .build(), null));
         assertThat(result.getErrors()).isEmpty();
@@ -2822,7 +2822,7 @@ public class RubiconBidderTest extends VertxTest {
                                 mapper.createObjectNode().put("cpmoverride", 5.55))))) // will be ignored
                 .build());
 
-        final ExtPrebid<Void, ExtImpRubicon> extImp = ExtPrebid.of(
+        final ExtImp<Void, ExtImpRubicon> extImp = ExtImp.of(
                 null,
                 ExtImpRubicon.builder()
                         .debug(ExtImpRubiconDebug.of(4.44f))
@@ -3024,7 +3024,7 @@ public class RubiconBidderTest extends VertxTest {
     private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impCustomizer,
                                 Function<ExtImpRubiconBuilder, ExtImpRubiconBuilder> extCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 null, extCustomizer.apply(ExtImpRubicon.builder()).build()))))
                 .build();
     }

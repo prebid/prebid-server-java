@@ -40,7 +40,7 @@ import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
@@ -65,8 +65,8 @@ import java.util.stream.IntStream;
 
 public class SmaatoBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSmaato>>() {
             };
     private static final String CLIENT_VERSION = "prebid_server_0.4";
     private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";
@@ -371,7 +371,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private ObjectNode buildExtPrebid(Bid bid, BidType bidType) {
         final ExtBidPrebidVideo extBidPrebidVideo = getExtBidPrebidVideo(bid, bidType);
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(extBidPrebidVideo).build();
-        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
+        return mapper.mapper().valueToTree(ExtImp.of(extBidPrebid, null));
     }
 
     private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, BidType bidType) {

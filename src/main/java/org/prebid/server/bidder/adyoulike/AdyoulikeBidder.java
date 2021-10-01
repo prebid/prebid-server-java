@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adyoulike.ExtImpAdyoulike;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 
 public class AdyoulikeBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdyoulike>> ADYOULIKE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdyoulike>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdyoulike>> ADYOULIKE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdyoulike>>() {
             };
     private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
 

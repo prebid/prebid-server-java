@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.Collections;
@@ -165,7 +165,7 @@ public class AdponeBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(JsonNode bidderNode) {
         return BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, bidderNode)))
+                        .ext(mapper.valueToTree(ExtImp.of(null, bidderNode)))
                         .build()))
                 .build();
     }

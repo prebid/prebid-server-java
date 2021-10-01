@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -31,8 +31,8 @@ import java.util.Objects;
 
 public class SmarthubBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSmarthub>> SMARTHUB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmarthub>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSmarthub>> SMARTHUB_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSmarthub>>() {
             };
 
     private final String endpointTemplate;

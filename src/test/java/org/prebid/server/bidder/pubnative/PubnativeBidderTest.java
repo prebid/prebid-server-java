@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 
 import java.math.BigDecimal;
@@ -118,7 +118,7 @@ public class PubnativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
@@ -542,7 +542,7 @@ public class PubnativeBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
                 .banner(Banner.builder().h(1).w(1).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPubnative.of(1, "auth")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpPubnative.of(1, "auth")))))
                 .build();
     }
 

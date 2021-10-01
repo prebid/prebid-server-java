@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 
 import java.util.Arrays;
@@ -54,7 +54,7 @@ public class KayzenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
 
@@ -225,8 +225,8 @@ public class KayzenBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
     }
 
-    private static ExtPrebid<?, ExtImpKayzen> givenPrebidKayzenExt(String zoneId, String exchange) {
-        return ExtPrebid.of(null, ExtImpKayzen.of(zoneId, exchange));
+    private static ExtImp<?, ExtImpKayzen> givenPrebidKayzenExt(String zoneId, String exchange) {
+        return ExtImp.of(null, ExtImpKayzen.of(zoneId, exchange));
     }
 
     @SafeVarargs
@@ -246,7 +246,7 @@ public class KayzenBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKayzen.of("zoneId", "exchange")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKayzen.of("zoneId", "exchange")))))
                 .build();
     }
 

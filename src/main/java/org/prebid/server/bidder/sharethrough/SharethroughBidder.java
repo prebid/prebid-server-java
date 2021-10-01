@@ -22,7 +22,7 @@ import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
@@ -47,8 +47,8 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private static final Date TEST_TIME = new Date(1604455678999L);
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSharethrough>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSharethrough>>() {
             };
 
     private final String endpointUrl;

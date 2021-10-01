@@ -29,7 +29,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -51,8 +51,8 @@ import java.util.stream.Collectors;
 
 public class AdoceanBidder implements Bidder<Void> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdocean>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdocean>>() {
             };
     private static final String VERSION = "1.2.0";
     private static final int MAX_URI_LENGTH = 8000;

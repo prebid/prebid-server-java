@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.lunamedia.ExtImpLunamedia;
 import org.prebid.server.util.HttpUtil;
 
@@ -62,7 +62,7 @@ public class LunamediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -429,14 +429,14 @@ public class LunamediaBidderTest extends VertxTest {
                                 ExtImpLunamedia extImpLunamedia) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extImpLunamedia))))
+                        ExtImp.of(null, extImpLunamedia))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpLunamedia.of("pubid", "placment")))))
+                        ExtImp.of(null, ExtImpLunamedia.of("pubid", "placment")))))
                 .build();
     }
 

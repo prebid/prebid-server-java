@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 public class AdopplerBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdoppler>>() {
             };
     private static final String DEFAULT_CLIENT = "app";
 

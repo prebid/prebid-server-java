@@ -29,7 +29,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
@@ -46,8 +46,8 @@ import java.util.Objects;
 
 public class DmxBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpDmx>> DMX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpDmx>>() {
+    private static final TypeReference<ExtImp<?, ExtImpDmx>> DMX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpDmx>>() {
             };
 
     private static final int SECURE = 1;

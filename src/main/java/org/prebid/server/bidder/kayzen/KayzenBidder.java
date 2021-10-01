@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kayzen.ExtImpKayzen;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 
 public class KayzenBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpKayzen>> KAYZEN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKayzen>>() {
+    private static final TypeReference<ExtImp<?, ExtImpKayzen>> KAYZEN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpKayzen>>() {
             };
     private static final String URL_ZONE_ID_MACRO = "{{ZoneID}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";

@@ -55,7 +55,7 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
@@ -107,8 +107,8 @@ import java.util.stream.StreamSupport;
 
 public class BidResponseCreator {
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ?>>() {
+    private static final TypeReference<ExtImp<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<ExtImp<ExtImpPrebid, ?>>() {
             };
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
@@ -1095,7 +1095,7 @@ public class BidResponseCreator {
     private boolean checkEchoVideoAttrs(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtPrebid<ExtImpPrebid, ?> extImp = mapper.mapper()
+                final ExtImp<ExtImpPrebid, ?> extImp = mapper.mapper()
                         .convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 final ExtOptions options = prebid != null ? prebid.getOptions() : null;

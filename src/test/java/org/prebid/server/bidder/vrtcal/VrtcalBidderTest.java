@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
 import org.prebid.server.util.HttpUtil;
 
@@ -51,7 +51,7 @@ public class VrtcalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
@@ -66,7 +66,7 @@ public class VrtcalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
@@ -169,7 +169,7 @@ public class VrtcalBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
                 .build();
     }
 

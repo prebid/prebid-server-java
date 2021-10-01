@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrain;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrainPublisher;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -43,8 +43,8 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     private static final int JS_TRACKER_METHOD = 2;
     private static final int EVENT_TYPE_IMPRESSION = 1;
 
-    private static final TypeReference<ExtPrebid<?, ExtImpOutbrain>> OUTBRAIN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOutbrain>>() {
+    private static final TypeReference<ExtImp<?, ExtImpOutbrain>> OUTBRAIN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpOutbrain>>() {
             };
 
     private final String endpointUrl;

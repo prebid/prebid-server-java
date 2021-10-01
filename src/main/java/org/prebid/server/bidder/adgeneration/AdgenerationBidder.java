@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgeneration;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -45,8 +45,8 @@ public class AdgenerationBidder implements Bidder<Void> {
     private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
             Pattern.CASE_INSENSITIVE);
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdgeneration>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdgeneration>>() {
             };
 
     private final String endpointUrl;

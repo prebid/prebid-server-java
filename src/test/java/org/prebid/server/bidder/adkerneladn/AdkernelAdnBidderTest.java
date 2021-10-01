@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adkerneladn.ExtImpAdkernelAdn;
 import org.prebid.server.util.HttpUtil;
 
@@ -81,7 +81,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -451,7 +451,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
                 .id("123")
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
+                        ExtImp.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
                 .build();
     }
 

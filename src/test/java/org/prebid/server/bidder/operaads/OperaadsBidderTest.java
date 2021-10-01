@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.util.HttpUtil;
 
@@ -207,10 +207,10 @@ public class OperaadsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 impBuilder -> impBuilder
                         .id("234")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOperaads.of(
                                 "placementId", "endpointId", "publisherId")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
@@ -381,7 +381,7 @@ public class OperaadsBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of("placementId",
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOperaads.of("placementId",
                         "endpointId", "publisherId"))))).build();
     }
 

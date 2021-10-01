@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.marsmedia.ExtImpMarsmedia;
 import org.prebid.server.util.HttpUtil;
 
@@ -63,7 +63,7 @@ public class MarsmediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
@@ -77,7 +77,7 @@ public class MarsmediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtZoneIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of(" ")))));
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMarsmedia.of(" ")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
@@ -90,7 +90,7 @@ public class MarsmediaBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldResolveZoneFromJsonZoneIdField() {
         // given
-        final ExtPrebid<?, ObjectNode> impExt = ExtPrebid.of(
+        final ExtImp<?, ObjectNode> impExt = ExtImp.of(
                 null,
                 mapper.createObjectNode().set("zoneId", TextNode.valueOf("zoneId")));
 
@@ -399,7 +399,7 @@ public class MarsmediaBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
                         .banner(Banner.builder().h(150).w(300).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of("zoneId")))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMarsmedia.of("zoneId")))))
                 .build();
     }
 

@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.pulsepoint.ExtImpPulsepoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -56,7 +56,7 @@ public class PulsepointBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pulsepointBidder.makeHttpRequests(bidRequest);
@@ -73,7 +73,7 @@ public class PulsepointBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().build())
                 .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 null, ExtImpPulsepoint.of(null, null)))))))
                 .build();
 
@@ -113,7 +113,7 @@ public class PulsepointBidderTest extends VertxTest {
                 .site(Site.builder().build())
                 .imp(asList(givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpPulsepoint.of(222, 23)))))))
                 .build();
 
@@ -179,7 +179,7 @@ public class PulsepointBidderTest extends VertxTest {
                 .app(App.builder().build())
                 .imp(asList(givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpPulsepoint.of(222, 23)))))))
                 .build();
 
@@ -224,7 +224,7 @@ public class PulsepointBidderTest extends VertxTest {
                 .app(App.builder().publisher(Publisher.builder().build()).build())
                 .imp(asList(givenImp(identity()),
                         givenImp(impBuilder -> impBuilder
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpPulsepoint.of(222, 23)))))))
                 .build();
 
@@ -416,7 +416,7 @@ public class PulsepointBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPulsepoint.of(111, 23)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpPulsepoint.of(111, 23)))))
                 .build();
     }
 

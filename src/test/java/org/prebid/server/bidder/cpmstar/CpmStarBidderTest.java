@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCpmStar;
 
 import java.util.List;
@@ -54,7 +54,7 @@ public class CpmStarBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = cpmStarBidder.makeHttpRequests(bidRequest);
 
@@ -67,7 +67,7 @@ public class CpmStarBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        final ExtPrebid<?, ExtImpCpmStar> ext = ExtPrebid.of(null, ExtImpCpmStar.of(12, 132));
+        final ExtImp<?, ExtImpCpmStar> ext = ExtImp.of(null, ExtImpCpmStar.of(12, 132));
         final Imp bannerImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
                 .id("2")
@@ -227,7 +227,7 @@ public class CpmStarBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCpmStar.of(12, 123)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCpmStar.of(12, 123)))))
                 .build();
     }
 

@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
@@ -55,7 +55,7 @@ public class SynacormediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
                 identity());
 
         // when
@@ -74,7 +74,7 @@ public class SynacormediaBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.ext(
-                                mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                                mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
@@ -96,7 +96,7 @@ public class SynacormediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
+                        ExtImp.of(null, ExtImpSynacormedia.of(" ", "tagId")))),
                 identity());
 
         // when
@@ -114,7 +114,7 @@ public class SynacormediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpSynacormedia.of("seadId", " ")))),
+                        ExtImp.of(null, ExtImpSynacormedia.of("seadId", " ")))),
                 identity());
 
         // when
@@ -260,7 +260,7 @@ public class SynacormediaBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSynacormedia.of("seatId", "tagId")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSynacormedia.of("seatId", "tagId")))))
                 .build();
     }
 

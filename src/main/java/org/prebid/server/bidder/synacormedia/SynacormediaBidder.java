@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtImpSynacormedia;
 import org.prebid.server.proto.openrtb.ext.request.synacormedia.ExtRequestSynacormedia;
@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
 
 public class SynacormediaBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSynacormedia>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSynacormedia>>() {
             };
 
     private final String endpointUrl;

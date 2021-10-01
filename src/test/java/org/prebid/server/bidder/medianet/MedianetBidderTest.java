@@ -15,7 +15,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 
 import java.util.List;
 import java.util.function.Function;
@@ -138,7 +138,7 @@ public class MedianetBidderTest extends VertxTest {
                 .id("request_id")
                 .imp(singletonList(Imp.builder()
                     .id("imp_id")
-                    .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                    .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
                     .build()))
                 .build();
     }

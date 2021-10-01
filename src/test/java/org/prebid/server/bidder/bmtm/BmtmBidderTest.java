@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.bmtm.ExtImpBmtm;
 import org.prebid.server.util.HttpUtil;
 
@@ -57,7 +57,7 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -84,7 +84,7 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotAddIpv6IfIpIsPresent() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -107,7 +107,7 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldAddIpv6IfIpIsNotPresent() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -131,7 +131,7 @@ public class BmtmBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -153,7 +153,7 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldModifyTagIdForOutgoingRequest() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -175,10 +175,10 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateRequestForEachImp() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
         final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id2")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -200,7 +200,7 @@ public class BmtmBidderTest extends VertxTest {
     public void makeHttpRequestsShouldDeleteExtForOutgoingRequestIfRequestIsValid() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBmtm.of("placement_id")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -223,7 +223,7 @@ public class BmtmBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bmtmBidder.makeHttpRequests(bidRequest);
 
@@ -325,7 +325,7 @@ public class BmtmBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBmtm.of("placement_id")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBmtm.of("placement_id")))))
                 .build();
     }
 

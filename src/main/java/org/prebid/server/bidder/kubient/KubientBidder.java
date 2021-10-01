@@ -19,7 +19,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 
 public class KubientBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKubient>>() {
+    private static final TypeReference<ExtImp<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpKubient>>() {
             };
 
     private final String endpointUrl;

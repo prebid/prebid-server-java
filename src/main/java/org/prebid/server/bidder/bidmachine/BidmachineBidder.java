@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 
 public class BidmachineBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>>() {
+    private static final TypeReference<ExtImp<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<ExtImpPrebid, ExtImpBidmachine>>() {
             };
 
     private final String endpointUrl;
@@ -56,7 +56,7 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 validateImp(imp);
-                final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
+                final ExtImp<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
                 final String body = mapper.encode(outgoingRequest);
 
@@ -147,7 +147,7 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 .replace("{{SELLER_ID}}", extImpBidmachine.getSellerId());
     }
 
-    private ExtPrebid<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {
+    private ExtImp<ExtImpPrebid, ExtImpBidmachine> parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), BIDMACHINE_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {

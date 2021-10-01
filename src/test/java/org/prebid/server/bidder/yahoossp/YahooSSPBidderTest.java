@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 
 import java.util.List;
@@ -57,7 +57,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
                 identity());
 
         // when
@@ -74,7 +74,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("", null)))),
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("", null)))),
                 identity());
 
         // when
@@ -91,7 +91,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "")))),
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", "")))),
                 identity());
 
         // when
@@ -110,7 +110,7 @@ public class YahooSSPBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", ""))))),
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", ""))))),
                         givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
 
@@ -383,7 +383,7 @@ public class YahooSSPBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .tagid("tagId")
                 .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
                 .build();
     }
 

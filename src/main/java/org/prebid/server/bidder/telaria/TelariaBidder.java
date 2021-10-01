@@ -24,7 +24,7 @@ import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpOutTelaria;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 public class TelariaBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTelaria>>() {
+    private static final TypeReference<ExtImp<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpTelaria>>() {
             };
 
     private final String endpointUrl;

@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.onetag.ExtImpOnetag;
 
 import java.util.Arrays;
@@ -92,7 +92,7 @@ public class OnetagBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build(),
                         givenImp(identity())))
                 .build();
@@ -116,7 +116,7 @@ public class OnetagBidderTest extends VertxTest {
         oneTagExt.put("someField", "someName");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOnetag.of("somePubId", oneTagExt))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOnetag.of("somePubId", oneTagExt))))
                         .build()))
                 .build();
 
@@ -139,7 +139,7 @@ public class OnetagBidderTest extends VertxTest {
         oneTagExt.put("someField", "someName");
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOnetag.of("", oneTagExt))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOnetag.of("", oneTagExt))))
                         .build()))
                 .build();
 
@@ -159,7 +159,7 @@ public class OnetagBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOnetag.of("anotherPubId",
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOnetag.of("anotherPubId",
                                         mapper.createObjectNode()))))
                                 .build())));
 
@@ -342,7 +342,7 @@ public class OnetagBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOnetag.of("somePubId", mapper.createObjectNode()))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOnetag.of("somePubId", mapper.createObjectNode()))))
                 .build();
     }
 

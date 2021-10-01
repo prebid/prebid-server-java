@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ucfunnel.ExtImpUcfunnel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -30,8 +30,8 @@ import java.util.Objects;
 
 public class UcfunnelBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpUcfunnel>>() {
+    private static final TypeReference<ExtImp<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpUcfunnel>>() {
             };
 
     private final String endpointUrl;

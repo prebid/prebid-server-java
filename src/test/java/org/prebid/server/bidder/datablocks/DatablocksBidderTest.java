@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 
 import java.util.List;
@@ -139,11 +139,11 @@ public class DatablocksBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMakeOneHttpRequestPerEachImpExtWithReplacedImps() {
         // given
         final Imp firstImp = Imp.builder().id("imp1")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDatablocks.of(2, "host")))).build();
         final Imp secondImp = Imp.builder().id("imp2")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(3, "host1")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDatablocks.of(3, "host1")))).build();
         final Imp thirdImp = Imp.builder().id("imp3")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDatablocks.of(2, "host")))).build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(firstImp, secondImp, thirdImp))
@@ -273,7 +273,7 @@ public class DatablocksBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(Object extImpDatablocks) {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpDatablocks)))
+                        .ext(mapper.valueToTree(ExtImp.of(null, extImpDatablocks)))
                         .build()))
                 .build();
     }

@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.nanointeractive.ExtImpNanointeractive;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
 
 public class NanointeractiveBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpNanointeractive>> NANOINTERACTIVE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpNanointeractive>>() {
+    private static final TypeReference<ExtImp<?, ExtImpNanointeractive>> NANOINTERACTIVE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpNanointeractive>>() {
             };
     private final String endpointUrl;
     private final JacksonMapper mapper;

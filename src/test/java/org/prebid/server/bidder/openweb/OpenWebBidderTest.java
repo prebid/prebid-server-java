@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.openweb.ExtImpOpenweb;
 import org.prebid.server.util.HttpUtil;
 
@@ -75,7 +75,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImpExt() {
         // given
-        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
+        final ExtImp<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(openwebImpExt)));
 
         // when
@@ -96,7 +96,7 @@ public class OpenWebBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldModifyImpBidFloorWhenImpExtBidFloorIsValid() {
         // given
-        final ExtPrebid<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
+        final ExtImp<?, ExtImpOpenweb> openwebImpExt = givenOpenWebImpExt(1, 1, 1, BigDecimal.ONE);
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(3L)).ext(mapper.valueToTree(openwebImpExt)));
 
@@ -162,7 +162,7 @@ public class OpenWebBidderTest extends VertxTest {
     public void makePodHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
@@ -324,11 +324,11 @@ public class OpenWebBidderTest extends VertxTest {
                 .build();
     }
 
-    private static ExtPrebid<?, ExtImpOpenweb> givenOpenWebImpExt(Integer sourceId,
-                                                                  Integer placementId,
-                                                                  Integer siteId,
-                                                                  BigDecimal bidFloor) {
-        return ExtPrebid.of(null, ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
+    private static ExtImp<?, ExtImpOpenweb> givenOpenWebImpExt(Integer sourceId,
+                                                               Integer placementId,
+                                                               Integer siteId,
+                                                               BigDecimal bidFloor) {
+        return ExtImp.of(null, ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
     }
 
     private static ObjectNode givenOpenWebImpExtObjectNode(Integer sourceId,

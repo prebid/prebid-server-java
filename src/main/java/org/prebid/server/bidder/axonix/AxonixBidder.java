@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 
 public class AxonixBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAxonix>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAxonix>>() {
             };
     public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
 

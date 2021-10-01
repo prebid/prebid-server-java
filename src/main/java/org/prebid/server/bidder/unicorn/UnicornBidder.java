@@ -26,7 +26,7 @@ import org.prebid.server.bidder.unicorn.model.UnicornImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
@@ -43,8 +43,8 @@ import java.util.stream.Collectors;
 
 public class UnicornBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpUnicorn>> UNICORN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpUnicorn>>() {
+    private static final TypeReference<ExtImp<?, ExtImpUnicorn>> UNICORN_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpUnicorn>>() {
             };
 
     private final String endpointUrl;

@@ -25,7 +25,7 @@ import org.prebid.server.bidder.pangle.model.BidExt;
 import org.prebid.server.bidder.pangle.model.NetworkIds;
 import org.prebid.server.bidder.pangle.model.PangleBidExt;
 import org.prebid.server.bidder.pangle.model.WrappedImpExtBidder;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pangle.ExtImpPangle;
 import org.prebid.server.util.HttpUtil;
@@ -592,7 +592,7 @@ public class PangleBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpPangle.of("token", null, null))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpPangle.of("token", null, null))))
                 .build();
     }
 

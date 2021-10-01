@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.logicad.ExtImpLogicad;
 
 import java.util.List;
@@ -50,7 +50,7 @@ public class LogicadBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -197,7 +197,7 @@ public class LogicadBidderTest extends VertxTest {
                                 ExtImpLogicad extImpLogicad) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extImpLogicad))))
+                        ExtImp.of(null, extImpLogicad))))
                 .build();
     }
 

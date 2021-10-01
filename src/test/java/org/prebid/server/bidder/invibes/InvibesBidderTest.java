@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
 import org.prebid.server.proto.openrtb.ext.request.invibes.model.InvibesDebug;
 
@@ -94,7 +94,7 @@ public class InvibesBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().page(PAGE_URL).build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -329,7 +329,7 @@ public class InvibesBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 ExtImpInvibes extImpInvibes) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpInvibes))))
+                .ext(mapper.valueToTree(ExtImp.of(null, extImpInvibes))))
                 .build();
     }
 }

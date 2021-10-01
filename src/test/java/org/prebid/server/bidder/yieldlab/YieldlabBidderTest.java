@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
@@ -63,7 +63,7 @@ public class YieldlabBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpYieldlab.builder()
                                         .adslotId("invalid path")
                                         .build())))
@@ -90,7 +90,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpYieldlab.builder()
                                         .adslotId("1")
                                         .supplyId("2")
@@ -142,7 +142,7 @@ public class YieldlabBidderTest extends VertxTest {
         final List<Imp> imps = new ArrayList<>();
         imps.add(Imp.builder()
                 .banner(Banner.builder().w(1).h(1).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpYieldlab.builder()
                                 .adslotId("1")
                                 .supplyId("2")
@@ -153,7 +153,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .build());
         imps.add(Imp.builder()
                 .banner(Banner.builder().w(1).h(1).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpYieldlab.builder()
                                 .adslotId("2")
                                 .supplyId("2")
@@ -206,7 +206,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("test-imp-id")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYieldlab.builder()
                                 .adslotId("1")
                                 .supplyId("2")
                                 .adSize("adSize")

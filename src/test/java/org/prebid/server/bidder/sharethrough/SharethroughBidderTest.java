@@ -23,7 +23,7 @@ import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -82,7 +82,7 @@ public class SharethroughBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -102,7 +102,7 @@ public class SharethroughBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .site(Site.builder().page("http://page.com").build())
@@ -127,7 +127,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("abc")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20),
                                         BigDecimal.ONE, ExtData.of("pbAdSlot")))))
                         .banner(Banner.builder().w(40).h(30).build())
@@ -184,7 +184,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSharethrough.of(
                                 "pkey", false, null, null, null))))
                         .build()))
                 .site(Site.builder().page("http://page.com").build())

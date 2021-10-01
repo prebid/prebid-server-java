@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
 import org.prebid.server.util.HttpUtil;
 
@@ -76,7 +76,7 @@ public class SmartrtbBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartrtbBidder.makeHttpRequests(bidRequest);
 
@@ -200,7 +200,7 @@ public class SmartrtbBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSmartrtb.of("publisherID", "123", "Zone ID is empty", true)))))
                 .build();
     }

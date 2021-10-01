@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 import org.prebid.server.util.HttpUtil;
 
@@ -56,7 +56,7 @@ public class RhythmoneBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
 
@@ -72,7 +72,7 @@ public class RhythmoneBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 mapper.valueToTree(ExtImpRhythmone.builder().build())))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rhythmoneBidder.makeHttpRequests(bidRequest);
@@ -242,7 +242,7 @@ public class RhythmoneBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         extCustomizer.apply(ExtImpRhythmone.builder())
                                 .placementId("placementId")
                                 .path("somePath")

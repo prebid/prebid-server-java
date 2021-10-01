@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.applogy.ExtImpApplogy;
 
 import java.util.Arrays;
@@ -59,7 +59,7 @@ public class ApplogyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
 
@@ -74,7 +74,7 @@ public class ApplogyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpApplogy.of(null)))));
 
         // when
@@ -87,7 +87,7 @@ public class ApplogyBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?, ExtImpApplogy> ext = ExtPrebid.of(null, ExtImpApplogy.of("token1"));
+        ExtImp<?, ExtImpApplogy> ext = ExtImp.of(null, ExtImpApplogy.of("token1"));
         Imp imp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
@@ -373,7 +373,7 @@ public class ApplogyBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpApplogy.of("token")))))
                 .build();
     }

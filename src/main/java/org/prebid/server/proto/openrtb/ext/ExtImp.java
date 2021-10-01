@@ -11,7 +11,7 @@ import org.prebid.server.bidder.Bidder;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtPrebid<P, B> extends FlexibleExtension {
+public class ExtImp<P, B> extends FlexibleExtension {
 
     P prebid;
 

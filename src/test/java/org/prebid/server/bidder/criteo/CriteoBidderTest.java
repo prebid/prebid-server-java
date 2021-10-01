@@ -31,7 +31,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpCriteo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -78,10 +78,10 @@ public class CriteoBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(Arrays.asList(
                                 Imp.builder()
-                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1))))
+                                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 1))))
                                         .build(),
                                 Imp.builder()
-                                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 2))))
+                                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 2))))
                                         .build()))
                         .build();
 
@@ -100,7 +100,7 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
 
@@ -359,7 +359,7 @@ public class CriteoBidderTest extends VertxTest {
                         .w(300)
                         .build()
                 )
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 1)))))
                 .build();
     }
 

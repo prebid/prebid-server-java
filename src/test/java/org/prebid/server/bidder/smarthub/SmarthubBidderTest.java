@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -81,7 +81,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))).build()))
+                        ExtImp.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))).build()))
                 .build();
 
         // when
@@ -185,7 +185,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
+                        ExtImp.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
@@ -221,7 +221,7 @@ public class SmarthubBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("someId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))))
+                                ExtImp.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))))
                 .build();
     }
 

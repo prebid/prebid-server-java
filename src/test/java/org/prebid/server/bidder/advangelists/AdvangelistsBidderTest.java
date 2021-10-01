@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.advangelists.ExtImpAdvangelists;
 import org.prebid.server.util.HttpUtil;
 
@@ -63,7 +63,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -429,14 +429,14 @@ public class AdvangelistsBidderTest extends VertxTest {
                                 ExtImpAdvangelists extImpAdvangelists) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, extImpAdvangelists))))
+                        ExtImp.of(null, extImpAdvangelists))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpAdvangelists.of("pubid", "placment")))))
+                        ExtImp.of(null, ExtImpAdvangelists.of("pubid", "placment")))))
                 .build();
     }
 

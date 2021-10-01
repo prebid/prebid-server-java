@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.decenterads.ExtImpDecenterads;
 
 import java.util.Arrays;
@@ -54,7 +54,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDecenterads.of("somePubId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDecenterads.of("somePubId"))))
                                 .build())));
 
         // when
@@ -75,7 +75,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .id("123")
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build(),
                         givenImp(identity())))
                 .build();
@@ -212,7 +212,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDecenterads.of("somePubId"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDecenterads.of("somePubId"))))
                 .build();
     }
 

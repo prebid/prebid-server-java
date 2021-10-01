@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.util.HttpUtil;
 
@@ -57,7 +57,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of(null, null)))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of(null, null)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
 
@@ -85,7 +85,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "")))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of("adUnit", "")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
@@ -172,7 +172,7 @@ public class AdopplerBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
                 .build();
     }
 

@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -66,7 +66,7 @@ public class AdoceanBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
 
@@ -86,7 +86,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("invalid domain", "masterId",
                                         "adoceanmyaozpniqismex")))).build()))
                 .test(1)
@@ -116,16 +116,16 @@ public class AdoceanBidderTest extends VertxTest {
                                 .id("ao-test")
                                 .banner(Banner.builder().format(asList(Format.builder().h(250).w(300).build(),
                                         Format.builder().h(320).w(600).build())).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("myao.adocean.pl", "masterId",
                                                 "adoceanmyaozpniqismex")))).build(),
                         Imp.builder()
                                 .id("notValidImp")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build(),
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))).build(),
                         Imp.builder()
                                 .id("i2-test")
                                 .banner(Banner.builder().w(577).h(333).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("em.dom", "masterId2",
                                                 "slaveId")))).build()))
                 .test(1)
@@ -161,13 +161,13 @@ public class AdoceanBidderTest extends VertxTest {
                                 .id("ao-test")
                                 .banner(Banner.builder().format(asList(Format.builder().h(250).w(300).build(),
                                         Format.builder().h(320).w(600).build())).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("myao.adocean.pl", "masterId",
                                                 "slaveId")))).build(),
                         Imp.builder()
                                 .id("i2-test")
                                 .banner(Banner.builder().w(577).h(333).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("em.dom", "masterId",
                                                 "slaveId")))).build()))
                 .test(1)
@@ -191,7 +191,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "masterId",
                                         "adoceanmyaozpniqismex")))).build()))
                 .test(1)
@@ -221,13 +221,13 @@ public class AdoceanBidderTest extends VertxTest {
                                 .id("ao-test")
                                 .banner(Banner.builder().format(asList(Format.builder().h(250).w(300).build(),
                                         Format.builder().h(320).w(600).build())).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("myao.adocean.pl", "masterId",
                                                 "slaveId")))).build(),
                         Imp.builder()
                                 .id("i2-test")
                                 .banner(Banner.builder().w(577).h(333).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpAdocean.of("em.dom", "masterId",
                                                 "slaveId2")))).build()))
                 .test(1)
@@ -256,7 +256,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("ao-test")
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build()))
                                 .id("banner_id").build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl",
                                         "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
@@ -288,7 +288,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
                         .build()))
@@ -399,7 +399,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
                         .build()))
@@ -429,7 +429,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
                         .build()))
@@ -459,7 +459,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .build())
                 .imp(singletonList(Imp.builder()
                         .id("ao-test")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                         "adoceanmyaozpniqismex"))))
                         .build()))
@@ -513,7 +513,7 @@ public class AdoceanBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
                                 "adoceanmyaozpniqismex")))))
                 .build();

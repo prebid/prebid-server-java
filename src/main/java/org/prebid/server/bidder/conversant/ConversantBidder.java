@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -40,8 +40,8 @@ import java.util.stream.IntStream;
 
 public class ConversantBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpConversant>>() {
+    private static final TypeReference<ExtImp<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpConversant>>() {
             };
 
     // List of API frameworks supported by the publisher

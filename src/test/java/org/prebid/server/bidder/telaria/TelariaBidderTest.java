@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
 import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 
@@ -91,7 +91,7 @@ public class TelariaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
 
@@ -105,7 +105,7 @@ public class TelariaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpTelaria.of("adCode", null, mapper.createObjectNode())))));
 
         // when
@@ -120,7 +120,7 @@ public class TelariaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpTelaria.of("adCode", "seatCode", mapper.createObjectNode())))));
 
         // when
@@ -142,7 +142,7 @@ public class TelariaBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpTelaria.of("adCode", "seatCode",
                                                 mapper.createObjectNode().put("custom", "1234")))))
                                 .build()))
@@ -369,7 +369,7 @@ public class TelariaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpTelaria.of("adCode", "seatCode", null)))))
                 .build();
     }

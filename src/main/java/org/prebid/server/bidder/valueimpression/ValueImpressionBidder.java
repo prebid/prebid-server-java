@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.valueimpression.ExtImpValueImpression;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 
 public class ValueImpressionBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpValueImpression>> VALUE_IMPRESSION_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpValueImpression>>() {
+    private static final TypeReference<ExtImp<?, ExtImpValueImpression>> VALUE_IMPRESSION_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpValueImpression>>() {
             };
 
     private final String endpointUrl;

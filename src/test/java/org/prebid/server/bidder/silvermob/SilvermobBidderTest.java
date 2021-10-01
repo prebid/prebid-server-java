@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.silvermob.ExtImpSilvermob;
 import org.prebid.server.util.HttpUtil;
 
@@ -58,7 +58,7 @@ public class SilvermobBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = silvermobBidder.makeHttpRequests(bidRequest);
 
@@ -73,7 +73,7 @@ public class SilvermobBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfHostIsEmptyOrNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSilvermob.of("testZoneId", "")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = silvermobBidder.makeHttpRequests(bidRequest);
@@ -87,7 +87,7 @@ public class SilvermobBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfZoneIdIsEmptyOrNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSilvermob.of(null, "testHost")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = silvermobBidder.makeHttpRequests(bidRequest);
@@ -114,7 +114,7 @@ public class SilvermobBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.imp(Arrays.asList(givenImp(impBuilder ->
-                                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
                                         ExtImpSilvermob.of(null, "testHost"))))),
                         givenImp(identity()))), identity());
         // when
@@ -281,7 +281,7 @@ public class SilvermobBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSilvermob.of("testZoneId", "testHostId")))))
                 .build();
     }

@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -58,7 +58,7 @@ public class AdformBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpAdform.of(15L, "gross", "color:red", "red", "300X60", 2.5,
                                         "https://adform.com?a=b"))))
                         .build()))
@@ -131,7 +131,7 @@ public class AdformBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("Imp12")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 null, ExtImpAdform.of(0L, null, null, null, null, null, null))))
                         .build()))
                 .build();
@@ -151,7 +151,7 @@ public class AdformBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         null, ExtImpAdform.of(15L, null, null, null, null, null, null))))
                                 .build(),
                         Imp.builder().build()))
@@ -172,7 +172,7 @@ public class AdformBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .secure(1)
-                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         null, ExtImpAdform.of(15L, null, null, null, null, null, null))))
                                 .build(),
                         Imp.builder().build()))
@@ -349,7 +349,7 @@ public class AdformBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .secure(1)
-                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         null, ExtImpAdform.of(15L, null, null, null, null, null, null))))
                                 .build(),
                         Imp.builder().build()))

@@ -36,7 +36,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -109,7 +109,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -739,7 +739,7 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 35)
                 .mapToObj(ignore -> Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(10).build())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAppnexus.builder().placementId(10).build())))
                         .build())
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1224,7 +1224,7 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     private static ObjectNode givenExt(UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
-        return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
+        return mapper.valueToTree(ExtImp.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

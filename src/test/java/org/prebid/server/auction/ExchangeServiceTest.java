@@ -84,7 +84,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
@@ -379,7 +379,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = captureBidRequest();
         assertThat(capturedBidRequest.getImp()).hasSize(1)
                 .element(0)
-                .returns(mapper.valueToTree(ExtPrebid.of(null, 1)), Imp::getExt);
+                .returns(mapper.valueToTree(ExtImp.of(null, 1)), Imp::getExt);
     }
 
     @Test
@@ -408,7 +408,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, 1)))
+                        .ext(mapper.valueToTree(ExtImp.of(null, 1)))
                         .build()))
                 .tmax(500L)
                 .build());
@@ -450,7 +450,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, 1)))
+                        .ext(mapper.valueToTree(ExtImp.of(null, 1)))
                         .build()))
                 .ext(ExtRequest.of(
                         ExtRequestPrebid.builder().currency(ExtRequestCurrency.of(currencyRates, false)).build()))
@@ -899,7 +899,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonList(givenImp(
                                 null,
                                 builder -> builder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, 1))))),
+                                        ExtImp.of(null, 1))))),
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
                                 .aliases(singletonMap("bidderAlias", "bidder"))
@@ -912,7 +912,7 @@ public class ExchangeServiceTest extends VertxTest {
                         singletonList(givenImp(
                                 null,
                                 builder -> builder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, 2))))),
+                                        ExtImp.of(null, 2))))),
                         builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
                                 .aliases(singletonMap("bidderAlias", "bidder"))
@@ -1299,7 +1299,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(400).h(300).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, 1)))
+                        .ext(mapper.valueToTree(ExtImp.of(null, 1)))
                         .build()))
                 .tmax(500L)
                 .build());
@@ -3754,7 +3754,7 @@ public class ExchangeServiceTest extends VertxTest {
         return bidBuilder.apply(Bid.builder()
                         .id("bidId")
                         .price(BigDecimal.ONE)
-                        .ext(mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().build(), null))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtBidPrebid.builder().build(), null))))
                 .build();
     }
 

@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.openweb.ExtImpOpenweb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -36,8 +36,8 @@ import java.util.stream.Collectors;
 
 public class OpenWebBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpOpenweb>> OPENWEB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOpenweb>>() {
+    private static final TypeReference<ExtImp<?, ExtImpOpenweb>> OPENWEB_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpOpenweb>>() {
             };
 
     private final JacksonMapper mapper;

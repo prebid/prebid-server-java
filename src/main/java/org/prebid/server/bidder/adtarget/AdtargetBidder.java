@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -38,8 +38,8 @@ import java.util.stream.Collectors;
 
 public class AdtargetBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdtarget>> ADTARGET_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdtarget>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdtarget>> ADTARGET_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdtarget>>() {
             };
 
     private final String endpointUrl;

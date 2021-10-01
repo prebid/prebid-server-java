@@ -24,7 +24,7 @@ import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -38,8 +38,8 @@ import java.util.stream.Collectors;
 
 public class TtxBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTtx>> TTX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTtx>>() {
+    private static final TypeReference<ExtImp<?, ExtImpTtx>> TTX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpTtx>>() {
             };
 
     private final String endpointUrl;

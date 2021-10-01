@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smartyads.ExtImpSmartyAds;
 import org.prebid.server.util.HttpUtil;
 
@@ -60,7 +60,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
@@ -74,7 +74,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderAccountIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSmartyAds.of("", "testSourceId", "testHost")))));
 
         // when
@@ -89,7 +89,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderSourceIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSmartyAds.of("testAccountId", "", "testHost")))));
 
         // when
@@ -103,7 +103,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderHostParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSmartyAds.of("testAccountId", "testSourceId", "")))));
 
         // when
@@ -349,7 +349,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
                 .build();
     }

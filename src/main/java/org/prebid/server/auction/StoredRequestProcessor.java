@@ -16,7 +16,7 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
  */
 public class StoredRequestProcessor {
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ?>>() {
+    private static final TypeReference<ExtImp<ExtImpPrebid, ?>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<ExtImp<ExtImpPrebid, ?>>() {
             };
     private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
 
@@ -361,7 +361,7 @@ public class StoredRequestProcessor {
     private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
             try {
-                final ExtPrebid<ExtImpPrebid, ?> extImp = mapper.mapper()
+                final ExtImp<ExtImpPrebid, ?> extImp = mapper.mapper()
                         .convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE);
                 final ExtImpPrebid prebid = extImp.getPrebid();
                 if (prebid != null) {

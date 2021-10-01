@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.iqzone.ExtImpIqzone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -203,7 +203,7 @@ public class IqzoneBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("someId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpIqzone.of("somePlacementId")))))
+                                ExtImp.of(null, ExtImpIqzone.of("somePlacementId")))))
                 .build();
     }
 

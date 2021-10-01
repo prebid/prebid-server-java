@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bmtm.ExtImpBmtm;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
 
 public class BmtmBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>> BMTM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>>() {
+    private static final TypeReference<ExtImp<ExtImpPrebid, ExtImpBmtm>> BMTM_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<ExtImpPrebid, ExtImpBmtm>>() {
             };
 
     private final String endpointUrl;

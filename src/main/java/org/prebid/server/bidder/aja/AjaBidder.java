@@ -19,7 +19,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 
 public class AjaBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAja>> AJA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAja>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAja>> AJA_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAja>>() {
             };
 
     private final String endpointUrl;

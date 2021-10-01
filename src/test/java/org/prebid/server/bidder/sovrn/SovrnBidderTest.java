@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
@@ -143,7 +143,7 @@ public class SovrnBidderTest extends VertxTest {
                                         .w(200)
                                         .h(300)
                                         .build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.of(null, ExtRegs.of(1, null)))
@@ -159,7 +159,7 @@ public class SovrnBidderTest extends VertxTest {
                 .containsExactly(BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .id("impId")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of("tagid", null, null))))
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(200).h(300).build()))
                                         .w(200)
@@ -182,7 +182,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(BigDecimal.ZERO)
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -205,7 +205,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(null)
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -228,7 +228,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(BigDecimal.ONE)
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -284,7 +284,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder()
                                 .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
+                                        ExtImp.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
                                 .build()))
                 .build();
 
@@ -306,7 +306,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, "legacyTagId", null))))
                                 .build()))
                 .build();
 
@@ -334,7 +334,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
 

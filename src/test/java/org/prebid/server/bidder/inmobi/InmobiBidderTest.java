@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.inmobi.ExtImpInmobi;
 
 import java.util.Arrays;
@@ -58,7 +58,7 @@ public class InmobiBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfPlcAttributeIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("   ")))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpInmobi.of("   ")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
@@ -71,7 +71,7 @@ public class InmobiBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfPlcAttributeIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of(null)))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpInmobi.of(null)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
@@ -84,7 +84,7 @@ public class InmobiBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
 
@@ -123,11 +123,11 @@ public class InmobiBidderTest extends VertxTest {
         final Format bannerFormat = Format.builder().w(FORMAT_W).h(FORMAT_H).build();
         final Imp firstImp = Imp.builder()
                 .banner(Banner.builder().id("firstBanner").format(Collections.singletonList(bannerFormat)).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpInmobi.of("plc"))))
                 .build();
         final Imp secondImp = Imp.builder()
                 .banner(Banner.builder().id("secondBanner").format(Collections.singletonList(bannerFormat)).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpInmobi.of("plc"))))
                 .build();
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -285,7 +285,7 @@ public class InmobiBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id(IMP_ID)
                 .banner(Banner.builder().id("bannerId").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("plc")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpInmobi.of("plc")))))
                 .build();
     }
 }

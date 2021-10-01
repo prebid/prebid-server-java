@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 
 import java.math.BigDecimal;
@@ -166,7 +166,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .app(App.builder().publisher(Publisher.builder().id("foo").build()).build())
                 .imp(singletonList(Imp.builder()
                         .xNative(Native.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -284,7 +284,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
 
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
+                .ext(mapper.valueToTree(ExtImp.of(null, extImpTriplelift))))
                 .build();
     }
 

@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.deepintent.ExtImpDeepintent;
 
 import java.util.Arrays;
@@ -58,7 +58,7 @@ public class DeepintentBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("impId")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
@@ -148,10 +148,10 @@ public class DeepintentBidderTest extends VertxTest {
         // given
         final Imp firstImp = Imp.builder()
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID))))
                 .build();
         final Imp secondImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -175,9 +175,9 @@ public class DeepintentBidderTest extends VertxTest {
     public void makeRequestShouldCreateSeparateRequestForEveryImp() {
         // given
         final Imp firstImp = givenImp(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("firstImpTagId")))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpDeepintent.of("firstImpTagId")))));
         final Imp secondImp = givenImp(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of("secondImpTagId")))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpDeepintent.of("secondImpTagId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -191,13 +191,13 @@ public class DeepintentBidderTest extends VertxTest {
         final Imp expectedFirstImp =
                 expectedImp(impBuilder ->
                         impBuilder.ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpDeepintent.of("firstImpTagId"))))
+                                ExtImp.of(null, ExtImpDeepintent.of("firstImpTagId"))))
                                 .tagid("firstImpTagId"));
 
         final Imp expectedSecondImp =
                 expectedImp(impBuilder ->
                         impBuilder.ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpDeepintent.of("secondImpTagId"))))
+                                ExtImp.of(null, ExtImpDeepintent.of("secondImpTagId"))))
                                 .tagid("secondImpTagId"));
 
         assertThat(result.getValue())
@@ -304,7 +304,7 @@ public class DeepintentBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
                 .build();
     }
 
@@ -314,7 +314,7 @@ public class DeepintentBidderTest extends VertxTest {
                 .displaymanager(DISPLAY_MANAGER)
                 .displaymanagerver(DISPLAY_MANAGER_VERSION)
                 .tagid(IMP_EXT_TAG_ID)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDeepintent.of(IMP_EXT_TAG_ID)))))
                 .build();
     }
 

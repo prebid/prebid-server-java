@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
@@ -81,7 +81,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotValidImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
@@ -168,7 +168,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetTagIdAndUpdateBidderPlacementIdPropertyWithStoredRequestProperty() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(ExtImpPrebid.builder()
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpPrebid.builder()
                         .storedrequest(ExtStoredRequest.of("storedRequestId"))
                         .build(), ExtImpUnicorn.of("", 123, "mediaId", 456)))));
 
@@ -235,7 +235,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotFoundStoredRequestId() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnicorn.of("", 123, "mediaId", 456)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
@@ -321,7 +321,7 @@ public class UnicornBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
                 .build();
     }
 

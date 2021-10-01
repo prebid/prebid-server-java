@@ -22,7 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -41,8 +41,8 @@ import java.util.stream.Collectors;
 
 public class AdtelligentBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdtelligent>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdtelligent>>() {
             };
 
     private final String endpointUrl;

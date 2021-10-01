@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 
 import java.util.List;
@@ -48,7 +48,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -67,7 +67,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of(null))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKubient.of(null))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -85,7 +85,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpKubient.of("zoneId"))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKubient.of("zoneId"))))
                         .build()))
                 .id("request_id")
                 .build();

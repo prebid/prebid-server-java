@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -42,8 +42,8 @@ public class AdformBidder implements Bidder<Void> {
     private static final String BANNER = "banner";
     private static final String DEFAULT_CURRENCY = "USD";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdform>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAdform>> ADFORM_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAdform>>() {
             };
 
     private final String endpointUrl;

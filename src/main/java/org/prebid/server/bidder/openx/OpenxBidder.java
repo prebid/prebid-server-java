@@ -24,7 +24,7 @@ import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -46,8 +46,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>>() {
+    private static final TypeReference<ExtImp<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<ExtImpPrebid, ExtImpOpenx>>() {
             };
 
     private final String endpointUrl;
@@ -153,7 +153,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp) {
-        final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
+        final ExtImp<ExtImpPrebid, ExtImpOpenx> impExt = parseOpenxExt(imp);
         final ExtImpOpenx openxImpExt = impExt.getBidder();
         final ExtImpPrebid prebidImpExt = impExt.getPrebid();
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
@@ -184,9 +184,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 OpenxRequestExt.of(openxImpExt.getDelDomain(), openxImpExt.getPlatform(), OPENX_CONFIG));
     }
 
-    private ExtPrebid<ExtImpPrebid, ExtImpOpenx> parseOpenxExt(Imp imp) {
+    private ExtImp<ExtImpPrebid, ExtImpOpenx> parseOpenxExt(Imp imp) {
         final ObjectNode impExtRaw = imp.getExt();
-        final ExtPrebid<ExtImpPrebid, ExtImpOpenx> impExt;
+        final ExtImp<ExtImpPrebid, ExtImpOpenx> impExt;
         if (impExtRaw == null) {
             throw new PreBidException("openx parameters section is missing");
         }

@@ -28,7 +28,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -46,8 +46,8 @@ import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpIx>>() {
+    private static final TypeReference<ExtImp<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE = new
+            TypeReference<ExtImp<?, ExtImpIx>>() {
             };
 
     private static final int REQUEST_LIMIT = 20;

@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smartadserver.ExtImpSmartadserver;
 
 import java.util.Arrays;
@@ -54,7 +54,7 @@ public class SmartadserverBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -138,7 +138,7 @@ public class SmartadserverBidderTest extends VertxTest {
                 .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
                         Imp.builder()
                                 .id("invalidImp")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                                 .build()
                 ))
                 .build();
@@ -261,7 +261,7 @@ public class SmartadserverBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
                 .build();
     }
 

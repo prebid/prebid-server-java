@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.aceex.ExtImpAceex;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -30,8 +30,8 @@ import java.util.stream.Collectors;
 
 public class AceexBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAceex>> ACEEX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAceex>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAceex>> ACEEX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAceex>>() {
             };
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
     private static final String X_OPENRTB_VERSION = "2.5";

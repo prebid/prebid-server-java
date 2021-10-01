@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class YeahmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
 
@@ -70,7 +70,7 @@ public class YeahmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
@@ -320,7 +320,7 @@ public class YeahmobiBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYeahmobi.of("pubId", "zoneId")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYeahmobi.of("pubId", "zoneId")))))
                 .build();
     }
 

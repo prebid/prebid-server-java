@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.cpmstar.ExtImpCpmStar;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 
 public class CpmStarBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpCpmStar>> CPM_STAR_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpCpmStar>>() {
+    private static final TypeReference<ExtImp<?, ExtImpCpmStar>> CPM_STAR_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpCpmStar>>() {
             };
 
     private final String endpointUrl;

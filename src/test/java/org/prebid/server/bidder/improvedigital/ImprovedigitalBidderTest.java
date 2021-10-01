@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 
 import java.util.List;
@@ -56,11 +56,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpImprovedigital.of(1234))))
                                 .build(),
                         Imp.builder()
                                 .id("456")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpImprovedigital.of(1234))))
                                 .build()
                 ))
                 .id("request_id")
@@ -83,7 +83,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -103,7 +103,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -118,7 +118,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnTwoErrorsOnTwoErrorEvents() {
         // given
-        final Imp imp = Imp.builder().ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build();
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode()))).build();
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
 
         // when

@@ -19,7 +19,7 @@ import org.prebid.server.bidder.somoaudience.proto.SomoaudienceReqExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -35,8 +35,8 @@ import java.util.stream.Collectors;
 
 public class SomoaudienceBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSomoaudience>> SOMOAUDIENCE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSomoaudience>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSomoaudience>> SOMOAUDIENCE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSomoaudience>>() {
             };
 
     private static final String CONFIG = "hb_pbs_1.0.0";

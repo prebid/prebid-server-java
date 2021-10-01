@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.colossus.ExtImpColossus;
 
 import java.util.Arrays;
@@ -52,7 +52,7 @@ public class ColossusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -91,7 +91,7 @@ public class ColossusBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpColossus.of("otherTagId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpColossus.of("otherTagId"))))
                                 .build())));
 
         // when
@@ -215,7 +215,7 @@ public class ColossusBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpColossus.of("tagidString"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpColossus.of("tagidString"))))
                 .build();
     }
 

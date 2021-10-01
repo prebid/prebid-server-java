@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 
 import java.util.List;
@@ -52,7 +52,7 @@ public class UnrulyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unrulyBidder.makeHttpRequests(bidRequest);
@@ -181,7 +181,7 @@ public class UnrulyBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnruly.of("uuid", "site_id")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnruly.of("uuid", "site_id")))))
                 .build();
     }
 

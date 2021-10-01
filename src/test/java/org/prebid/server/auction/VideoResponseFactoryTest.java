@@ -9,7 +9,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -51,19 +51,19 @@ public class VideoResponseFactoryTest extends VertxTest {
         final Bid bid0 = Bid.builder()
                 .impid("0_0")
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().targeting(targeting).build(),
+                        ExtImp.of(ExtBidPrebid.builder().targeting(targeting).build(),
                                 mapper.createObjectNode())))
                 .build();
         final Bid bid1 = Bid.builder()
                 .impid("1_1")
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().targeting(targeting).build(),
+                        ExtImp.of(ExtBidPrebid.builder().targeting(targeting).build(),
                                 mapper.createObjectNode())))
                 .build();
         final Bid bid2 = Bid.builder()
                 .impid("2_1")
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(ExtBidPrebid.builder().build(),
+                        ExtImp.of(ExtBidPrebid.builder().build(),
                                 mapper.createObjectNode())))
                 .build();
 

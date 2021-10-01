@@ -28,7 +28,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -69,8 +69,8 @@ public class EplanningBidder implements Bidder<Void> {
     private static final List<String> PRIORITY_SIZES_FOR_DESKTOP = new ArrayList<>(
             Arrays.asList("300x250", "728x90", "300x600", "160x600", "970x250", "970x90", "1x1"));
 
-    private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
+    private static final TypeReference<ExtImp<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpEplanning>>() {
             };
 
     private final String endpointUrl;

@@ -34,7 +34,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -67,8 +67,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final String POD_SEPARATOR = "_";
     private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
+    private static final TypeReference<ExtImp<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpAppnexus>>() {
             };
 
     static {

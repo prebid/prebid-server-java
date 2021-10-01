@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adot.ExtImpAdot;
 
 import java.util.List;
@@ -186,7 +186,7 @@ public class AdotBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("firstImp")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdot.of(true, "placementId")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdot.of(true, "placementId")))))
                 .build();
     }
 

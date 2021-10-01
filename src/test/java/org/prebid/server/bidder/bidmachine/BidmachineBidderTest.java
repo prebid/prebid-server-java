@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.util.HttpUtil;
@@ -56,7 +56,7 @@ public class BidmachineBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpBidmachine.of("host", "pubId", "1")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -80,7 +80,7 @@ public class BidmachineBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
 
@@ -133,7 +133,7 @@ public class BidmachineBidderTest extends VertxTest {
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(300).h(500).build()))
                         .battr(singletonList(1)).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .isRewardedInventory(1)
                                 .build(), ExtImpBidmachine.of("host", "pubId", "1")))));
@@ -159,7 +159,7 @@ public class BidmachineBidderTest extends VertxTest {
         // given
         final Imp imp = givenImp(impBuilder -> impBuilder
                 .video(Video.builder().battr(singletonList(1)).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder()
                                 .isRewardedInventory(1)
                                 .build(), ExtImpBidmachine.of("host", "pubId", "1")))));
@@ -250,7 +250,7 @@ public class BidmachineBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidmachine.of("127.0.0.1", "path", "1")))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBidmachine.of("127.0.0.1", "path", "1")))))
                 .build();
     }
 

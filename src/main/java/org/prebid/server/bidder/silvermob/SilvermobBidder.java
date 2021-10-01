@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.silvermob.ExtImpSilvermob;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 
 public class SilvermobBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSilvermob>> SILVERMOB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSilvermob>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSilvermob>> SILVERMOB_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSilvermob>>() {
             };
 
     private static final String URL_HOST_MACRO = "{{Host}}";

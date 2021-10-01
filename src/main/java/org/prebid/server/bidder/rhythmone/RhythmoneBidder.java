@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -32,8 +32,8 @@ import java.util.stream.Collectors;
 
 public class RhythmoneBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpRhythmone>> RHYTHMONE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpRhythmone>>() {
+    private static final TypeReference<ExtImp<?, ExtImpRhythmone>> RHYTHMONE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpRhythmone>>() {
             };
 
     private final String endpointUrl;
@@ -104,7 +104,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
     private ObjectNode impExtToObjectNode(ExtImpRhythmone extImpRhythmone) {
         final ObjectNode impExt;
         try {
-            impExt = mapper.mapper().valueToTree(ExtPrebid.of(null, extImpRhythmone));
+            impExt = mapper.mapper().valueToTree(ExtImp.of(null, extImpRhythmone));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
         }

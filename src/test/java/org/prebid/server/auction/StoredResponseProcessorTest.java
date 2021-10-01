@@ -22,7 +22,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredAuctionResponse;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredBidResponse;
@@ -97,7 +97,7 @@ public class StoredResponseProcessorTest extends VertxTest {
     public void getStoredResponseResultShouldNotChangeImpsAndReturnSeatBidsWhenThereAreNoStoredIds() {
         // given
         final Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpPrebid.builder().bidder(mapper.createObjectNode().put("rubicon", 1)).build(),
                         null)))
                 .build();
@@ -126,7 +126,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
                 singletonList(Imp.builder()
                         .id("impId1")
-                        .ext(mapper.valueToTree(ExtPrebid.of(
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpPrebid.builder().storedAuctionResponse(null).build(),
                                 null)))
                         .build()),
@@ -621,7 +621,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         return Imp.builder()
                 .id(impId)
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(
+                        ExtImp.of(
                                 ExtImpPrebid.builder()
                                         .storedAuctionResponse(storedAuctionResponse)
                                         .storedBidResponse(extStoredBidResponse)

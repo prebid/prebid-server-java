@@ -19,7 +19,7 @@ import org.prebid.server.bidder.tappx.model.TappxBidderExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,8 +39,8 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final String VERSION = "1.3";
     private static final String TYPE_CNN = "prebid";
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTappx>>() {
+    private static final TypeReference<ExtImp<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpTappx>>() {
             };
 
     private final String endpointUrl;

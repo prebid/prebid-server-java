@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
 import org.prebid.server.util.HttpUtil;
 
@@ -57,7 +57,7 @@ public class YieldmoBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
@@ -88,7 +88,7 @@ public class YieldmoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddPbadslotToImpExtIfPresentAndNotEmpty() {
         // given
-        final ObjectNode impExt = mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)));
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(null, ExtImpYieldmo.of(null)));
         impExt.set("data", mapper.createObjectNode().set("pbadslot", TextNode.valueOf("pbadslot")));
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
@@ -108,7 +108,7 @@ public class YieldmoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotAddPbadslotToImpExtIfEmpty() {
         // given
-        final ObjectNode impExt = mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)));
+        final ObjectNode impExt = mapper.valueToTree(ExtImp.of(null, ExtImpYieldmo.of(null)));
         impExt.set("data", mapper.createObjectNode().set("pbadslot", TextNode.valueOf("")));
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(impExt));
@@ -129,7 +129,7 @@ public class YieldmoBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotAddPbadslotToImpExtIfNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(null)))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpYieldmo.of(null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yieldmoBidder.makeHttpRequests(bidRequest);
@@ -277,7 +277,7 @@ public class YieldmoBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYieldmo.of(PLACEMENT_VALUE)))))
                 .build();
     }
 

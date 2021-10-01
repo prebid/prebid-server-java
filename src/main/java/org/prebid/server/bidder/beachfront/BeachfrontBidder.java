@@ -32,7 +32,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
@@ -62,8 +62,8 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final int DEFAULT_VIDEO_WIDTH = 300;
     private static final int DEFAULT_VIDEO_HEIGHT = 250;
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
+    private static final TypeReference<ExtImp<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpBeachfront>>() {
             };
 
     private final String bannerEndpointUrl;

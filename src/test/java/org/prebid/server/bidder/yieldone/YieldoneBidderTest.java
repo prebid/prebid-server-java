@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.yieldone.ExtImpYieldone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
@@ -55,7 +55,7 @@ public class YieldoneBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))).build()))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))).build()))
                 .build();
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yieldoneBidder.makeHttpRequests(bidRequest);
@@ -216,7 +216,7 @@ public class YieldoneBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpYieldone.of("placementId")))))
                 .build();
     }

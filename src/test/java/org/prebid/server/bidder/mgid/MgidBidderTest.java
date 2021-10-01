@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 
 import java.math.BigDecimal;
@@ -51,7 +51,7 @@ public class MgidBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -77,7 +77,7 @@ public class MgidBidderTest extends VertxTest {
         final String accId = "";
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, placementId, currency, currency, bidFloor, bidFloor))))
                         .build()))
                 .id("reqID")
@@ -100,7 +100,7 @@ public class MgidBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id(impId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, null, null, null, null, null))))
                         .build()))
                 .build();
@@ -125,7 +125,7 @@ public class MgidBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id(impId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, placementId, null, null, null, null))))
                         .build()))
                 .build();
@@ -156,7 +156,7 @@ public class MgidBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .bidfloor(new BigDecimal(3))
                         .bidfloorcur("be replaced")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, placementId, currency, null, bidFloor, null))))
                         .build()))
                 .id("reqID")
@@ -172,7 +172,7 @@ public class MgidBidderTest extends VertxTest {
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
                         .tagid(expectedTagId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of("accId", placementId, currency, null, bidFloor, null))))
                         .build()))
                 .id("reqID")
@@ -195,7 +195,7 @@ public class MgidBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .bidfloor(new BigDecimal(3))
                         .bidfloorcur("be replaced")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, placementId, null, currency, null, bidFloor))))
                         .build()))
                 .id("reqID")
@@ -211,7 +211,7 @@ public class MgidBidderTest extends VertxTest {
                         .bidfloor(bidFloor)
                         .bidfloorcur(currency)
                         .tagid(expectedTagId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of("accId", placementId, null, currency, null, bidFloor))))
                         .build()))
                 .id("reqID")
@@ -232,7 +232,7 @@ public class MgidBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id(impId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of(accId, placementId, null, null, null, null))))
                         .build()))
                 .tmax(1000L)
@@ -248,7 +248,7 @@ public class MgidBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id(impId)
                         .tagid(expectedTagId)
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpMgid.of("accId", placementId, null, null, null, null))))
                         .build()))
                 .tmax(1000L)

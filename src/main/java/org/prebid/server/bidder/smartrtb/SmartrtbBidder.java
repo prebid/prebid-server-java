@@ -21,7 +21,7 @@ import org.prebid.server.bidder.smartrtb.model.SmartrtbResponseExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtImpSmartrtb;
 import org.prebid.server.proto.openrtb.ext.request.smartrtb.ExtRequestSmartrtb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -34,8 +34,8 @@ import java.util.Objects;
 
 public class SmartrtbBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
+    private static final TypeReference<ExtImp<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpSmartrtb>>() {
             };
 
     private static final String CREATIVE_TYPE_BANNER = "BANNER";

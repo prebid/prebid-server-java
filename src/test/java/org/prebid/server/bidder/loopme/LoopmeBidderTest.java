@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.loopme.ExtImpLoopme;
 
 import java.util.Arrays;
@@ -178,7 +178,7 @@ public class LoopmeBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoopme.of("somePubId"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLoopme.of("somePubId"))))
                 .build();
     }
 

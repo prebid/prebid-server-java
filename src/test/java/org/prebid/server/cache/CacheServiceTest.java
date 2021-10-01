@@ -33,7 +33,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.model.Account;
@@ -422,7 +422,7 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedBody() throws IOException {
         // given
         final ObjectNode bidExt2 = mapper.valueToTree(
-                ExtPrebid.of(ExtBidPrebid.builder().bidid("generatedId").build(),
+                ExtImp.of(ExtBidPrebid.builder().bidid("generatedId").build(),
                         emptyMap()));
         final String receivedBid2Adm = "adm2";
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1");

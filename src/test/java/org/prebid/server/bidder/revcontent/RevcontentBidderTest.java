@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -56,7 +56,7 @@ public class RevcontentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().name("appname").build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -83,7 +83,7 @@ public class RevcontentBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -105,7 +105,7 @@ public class RevcontentBidderTest extends VertxTest {
                 .app(App.builder().build())
                 .site(Site.builder().build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();

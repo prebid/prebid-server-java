@@ -22,9 +22,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.bidder.grid.model.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
@@ -65,7 +64,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGrid.of(10, Keywords.empty()))))
+                                ExtImp.of(null, ExtImpGrid.of(10, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -85,7 +84,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.builder()
+                        .ext(mapper.valueToTree(org.prebid.server.bidder.grid.model.ExtImp.builder()
                                 .data(ExtImpGridData.of("pbadslot",
                                         ExtImpGridDataAdServer.of("name", "adslot")))
                                 .bidder(ExtImpGrid.of(1, null))
@@ -100,7 +99,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final ExtImp expectedExtImp = ExtImp.builder()
+        final org.prebid.server.bidder.grid.model.ExtImp expectedExtImp = org.prebid.server.bidder.grid.model.ExtImp.builder()
                 .data(ExtImpGridData.of("pbadslot",
                         ExtImpGridDataAdServer.of("name", "adslot")))
                 .bidder(ExtImpGrid.of(1, null))
@@ -119,7 +118,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final Keywords impExtKeywords = mapper.convertValue(jsonNodeFrom("imp-ext-keywords.json"), Keywords.class);
 
-        final ExtImp impExt = ExtImp.builder()
+        final org.prebid.server.bidder.grid.model.ExtImp impExt = org.prebid.server.bidder.grid.model.ExtImp.builder()
                 .data(ExtImpGridData.of("pbadslot", ExtImpGridDataAdServer.of("name", "adslot")))
                 .bidder(ExtImpGrid.of(1, impExtKeywords))
                 .build();
@@ -150,7 +149,7 @@ public class GridBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGrid.of(null, Keywords.empty()))))
+                                ExtImp.of(null, ExtImpGrid.of(null, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -170,7 +169,7 @@ public class GridBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpGrid.of(0, Keywords.empty()))))
+                                ExtImp.of(null, ExtImpGrid.of(0, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -350,7 +349,7 @@ public class GridBidderTest extends VertxTest {
         final ObjectNode expectedBidMeta = mapper.createObjectNode()
                 .set("networkName", TextNode.valueOf("demandSource"));
         final ObjectNode expectedBidExt = mapper.valueToTree(
-                ExtPrebid.of(ExtBidPrebid.builder().meta(expectedBidMeta).build(), null));
+                ExtImp.of(ExtBidPrebid.builder().meta(expectedBidMeta).build(), null));
 
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)

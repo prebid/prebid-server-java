@@ -28,7 +28,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.invibes.ExtImpInvibes;
@@ -45,8 +45,8 @@ import java.util.stream.Collectors;
 
 public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpInvibes>> INVIBES_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpInvibes>>() {
+    private static final TypeReference<ExtImp<?, ExtImpInvibes>> INVIBES_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpInvibes>>() {
             };
     private static final String INVIBES_BID_VERSION = "4";
     private static final String ADAPTER_VERSION = "prebid_1.0.0";

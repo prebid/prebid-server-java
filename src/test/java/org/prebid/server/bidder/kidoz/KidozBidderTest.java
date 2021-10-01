@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kidoz.ExtImpKidoz;
 import org.prebid.server.util.HttpUtil;
 
@@ -67,7 +67,7 @@ public class KidozBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kidozBidder.makeHttpRequests(bidRequest);
 
@@ -85,7 +85,7 @@ public class KidozBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpKidoz.of(null, "publisherId")))));
 
         // when
@@ -103,7 +103,7 @@ public class KidozBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpKidoz.of("accessToken", null)))));
 
         // when
@@ -116,7 +116,7 @@ public class KidozBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?, ExtImpKidoz> ext = ExtPrebid.of(null, ExtImpKidoz.of("token1", "publisherId"));
+        ExtImp<?, ExtImpKidoz> ext = ExtImp.of(null, ExtImpKidoz.of("token1", "publisherId"));
         final Imp validImp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
@@ -356,7 +356,7 @@ public class KidozBidderTest extends VertxTest {
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(300).h(500).build()))
                         .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpKidoz.of("acessToken", "publisherId")))))
                 .build();
     }

@@ -27,7 +27,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -46,8 +46,8 @@ import java.util.stream.Collectors;
 
 public class GumgumBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGumgum>>() {
+    private static final TypeReference<ExtImp<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpGumgum>>() {
             };
 
     private final String endpointUrl;

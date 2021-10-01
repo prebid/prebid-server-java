@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.triplelift.model.TripleliftInnerExt;
 import org.prebid.server.bidder.triplelift.model.TripleliftResponseExt;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 
 import java.math.BigDecimal;
@@ -71,7 +71,7 @@ public class TripleliftBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .banner(Banner.builder().build())
                         .build()))
                 .build();
@@ -90,7 +90,7 @@ public class TripleliftBidderTest extends VertxTest {
     public void makeHttpRequestsShouldModifyTagIdFromImpExt() {
         // given
         final String inventoryCode = "inventoryCode";
-        final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, ExtImpTriplelift.of(inventoryCode, null)));
+        final ObjectNode ext = mapper.valueToTree(ExtImp.of(null, ExtImpTriplelift.of(inventoryCode, null)));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .tagid("tag")
@@ -120,7 +120,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .bidfloor(new BigDecimal(1))
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTriplelift.of(null, floor))))
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTriplelift.of(null, floor))))
                         .build()))
                 .id("request_id")
                 .build();

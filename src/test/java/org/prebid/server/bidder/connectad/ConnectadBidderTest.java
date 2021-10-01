@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.connectad.ExtImpConnectAd;
 
 import java.math.BigDecimal;
@@ -55,7 +55,7 @@ public class ConnectadBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -134,7 +134,7 @@ public class ConnectadBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = connectadBidder.makeHttpRequests(bidRequest);
 
@@ -151,7 +151,7 @@ public class ConnectadBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpConnectAd.of(12, null, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = connectadBidder.makeHttpRequests(bidRequest);
@@ -169,7 +169,7 @@ public class ConnectadBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(null,
                                 ExtImpConnectAd.of(12, 1, BigDecimal.ONE)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = connectadBidder.makeHttpRequests(bidRequest);
@@ -203,7 +203,7 @@ public class ConnectadBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").w(14).h(15).build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                .banner(Banner.builder().id("banner_id").w(14).h(15).build()).ext(mapper.valueToTree(ExtImp.of(null,
                         ExtImpConnectAd.of(12, 12, BigDecimal.ONE)))))
                 .build();
     }

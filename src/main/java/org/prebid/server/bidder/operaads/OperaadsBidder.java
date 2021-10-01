@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 public class OperaadsBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpOperaads>> OPERAADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOperaads>>() {
+    private static final TypeReference<ExtImp<?, ExtImpOperaads>> OPERAADS_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtImp<?, ExtImpOperaads>>() {
             };
     private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
