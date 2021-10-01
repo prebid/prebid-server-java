@@ -11,7 +11,7 @@ public class HuaweiVideoInfo {
     private Integer videoFileSize;
     private String sha256;
     private Float videoRatio;
-    private Integer width;
-    private Integer height;
+    private int width;
+    private int height;
 }
 

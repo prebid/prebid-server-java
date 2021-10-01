@@ -10,8 +10,8 @@ import java.util.List;
 @Builder
 public class HuaweiContent {
     private String contentid;
-    private Integer interactiontype;
-    private Integer creativetype;
+    private int interactiontype;
+    private int creativetype;
     private HuaweiMetadata metaData;
     private List<HuaweiMonitor> monitor;
     private String cur;

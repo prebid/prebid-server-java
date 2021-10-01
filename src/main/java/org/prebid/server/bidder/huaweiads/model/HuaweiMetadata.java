@@ -16,6 +16,6 @@ public class HuaweiMetadata {
     private String intent;
     private HuaweiVideoInfo videoInfo;
     private HuaweiApkInfo apkInfo;
-    private Integer duration;
+    private int duration;
     private HuaweiMediaFile mediaFile;
 }

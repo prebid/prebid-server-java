@@ -1,13 +1,11 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Builder
 @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor(staticName = "of")
 public class XnativeAsset {
@@ -18,5 +16,6 @@ public class XnativeAsset {
     private XnativeVideo video;
     private XnativeData data;
     private XnativeLink link;
-   private ObjectNode ext;
+    private ObjectNode ext;
 }
+

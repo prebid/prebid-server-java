@@ -1,11 +1,7 @@
 package org.prebid.server.bidder.huaweiads.model;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.response.Link;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.prebid.server.bidder.huaweiads.model.xnative.XnativeAsset;
 import org.prebid.server.bidder.huaweiads.model.xnative.XnativeLink;
 import org.prebid.server.bidder.huaweiads.model.xnative.request.EventTracker;
@@ -14,6 +10,7 @@ import java.util.List;
 
 @Builder
 @Setter
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor(staticName = "of")
 public class HuaweiNativeResponse {
