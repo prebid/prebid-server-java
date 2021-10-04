@@ -28,7 +28,7 @@ Please consider [registering your Prebid Server](https://docs.prebid.org/prebid-
 
 The server makes the following assumptions:
 - No ranking or decisioning is performed by this server. It just proxies requests.
-- No huaweiAd quality management (e.g., malware, viruses, deceptive creatives) is performed by this server.
+- No ad quality management (e.g., malware, viruses, deceptive creatives) is performed by this server.
 - This server does no fraud scanning and does nothing to prevent bad traffic.
 - This server logs errors but not requests.
 - This server has no user profiling or user data collection capabilities.
@@ -70,7 +70,7 @@ For more information how to configure the server follow [documentation](docs/bui
 ## Configuration
 
 The source code includes minimal required configuration file `sample/prebid-config.yaml`.
-Also, check the account settings file `sample/sample-huaweiAdsApp-settings.yaml`.
+Also, check the account settings file `sample/sample-app-settings.yaml`.
 
 For more information how to configure the server follow [documentation](docs/config.md).
 
@@ -106,7 +106,7 @@ and verify response status is `200 OK`.
 - [Build for local](docs/build.md)
 - [Build for AWS](docs/build-aws.md)
 - [Configure application](docs/config.md)
-  - [Full list of configuration options](docs/config-huaweiAdsApp.md)
+  - [Full list of configuration options](docs/config-app.md)
   - [Application settings](docs/application-settings.md)
 - [Run with optimizations](docs/run.md)
 - [Metrics](docs/metrics.md)
