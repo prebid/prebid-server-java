@@ -69,17 +69,19 @@ public class IqzoneBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpIqzone impExt) {
         final String placementId = impExt.getPlacementId();
-        final ObjectNode modifiedImpExt = mapper.mapper().createObjectNode();
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
         if (StringUtils.isNotEmpty(placementId)) {
-            modifiedImpExt.set("placementId", TextNode.valueOf(placementId));
-            modifiedImpExt.set("type", TextNode.valueOf("publisher"));
+            modifiedImpExtBidder.set("placementId", TextNode.valueOf(placementId));
+            modifiedImpExtBidder.set("type", TextNode.valueOf("publisher"));
         } else {
-            modifiedImpExt.set("endpointId", TextNode.valueOf(impExt.getEndpointId()));
-            modifiedImpExt.set("type", TextNode.valueOf("network"));
+            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(impExt.getEndpointId()));
+            modifiedImpExtBidder.set("type", TextNode.valueOf("network"));
         }
 
-        return imp.toBuilder().ext(modifiedImpExt).build();
+        return imp.toBuilder()
+                .ext(mapper.mapper().createObjectNode().set("bidder", modifiedImpExtBidder))
+                .build();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {

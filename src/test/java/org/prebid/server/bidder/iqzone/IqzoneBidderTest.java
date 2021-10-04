@@ -84,7 +84,7 @@ public class IqzoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final Map<String, JsonNode> expectedImpExt = Map.of(
+        final Map<String, JsonNode> expectedImpExtBidder = Map.of(
                 "placementId", TextNode.valueOf("placementId"),
                 "type", TextNode.valueOf("publisher"));
 
@@ -92,7 +92,9 @@ public class IqzoneBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(expectedImpExt));
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .set("bidder", mapper.valueToTree(expectedImpExtBidder)));
     }
 
     @Test
@@ -108,7 +110,7 @@ public class IqzoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final Map<String, JsonNode> expectedImpExt = Map.of(
+        final Map<String, JsonNode> expectedImpExtBidder = Map.of(
                 "endpointId", TextNode.valueOf("endpointId"),
                 "type", TextNode.valueOf("network"));
 
@@ -116,7 +118,9 @@ public class IqzoneBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(expectedImpExt));
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .set("bidder", mapper.valueToTree(expectedImpExtBidder)));
     }
 
     @Test
