@@ -9,6 +9,7 @@ import lombok.Value;
 @Builder
 @Value
 public class ExtImpHuaweiAds {
+
     @JsonProperty("slotId")
     String slotId;
     @JsonProperty("adType")

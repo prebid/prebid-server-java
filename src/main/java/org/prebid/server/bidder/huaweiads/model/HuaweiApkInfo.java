@@ -6,13 +6,14 @@ import lombok.Value;
 @Builder
 @Value
 public class HuaweiApkInfo {
-    private String url;
-    private Integer fileSize;
-    private String sha256;
-    private String packageName;
-    private String secondUrl;
-    private String appName;
-    private String versionName;
-    private String appDesc;
-    private String appIcon;
+
+    String url;
+    Integer fileSize;
+    String sha256;
+    String packageName;
+    String secondUrl;
+    String appName;
+    String versionName;
+    String appDesc;
+    String appIcon;
 }

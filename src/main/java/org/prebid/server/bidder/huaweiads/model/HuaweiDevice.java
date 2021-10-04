@@ -1,35 +1,40 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
 @Builder
 @NoArgsConstructor
-@Setter
+@AllArgsConstructor
 @Getter
-@AllArgsConstructor(staticName = "of")
+@Setter
 public class HuaweiDevice {
-    private Integer type;
-    private String useragent;
-    private String os;
-    private String version;
-    private String maker;
-    private String model;
-    private Integer width;
-    private Integer height;
-    private String language;
-    private String buildVersion;
-    private Integer dpi;
-    private BigDecimal pxratio;
-    private String imei;
-    private String oaid;
-    private String isTrackingEnabled;
-    private String emuiVer;
-    private String localeCountry;
-    private String belongCountry;
-    private String gaidTrackingEnabled;
-    private String gaid;
-    private String clientTime;
-    private String ip;
+
+    Integer type;
+    String useragent;
+    String os;
+    String version;
+    String maker;
+    String model;
+    Integer width;
+    Integer height;
+    String language;
+    String buildVersion;
+    Integer dpi;
+    BigDecimal pxratio;
+    String imei;
+    String oaid;
+    String isTrackingEnabled;
+    String emuiVer;
+    String localeCountry;
+    String belongCountry;
+    String gaidTrackingEnabled;
+    String gaid;
+    String clientTime;
+    String ip;
 }

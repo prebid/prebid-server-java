@@ -1,13 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.*;
+import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Builder
-@Setter
-@Getter
-@ToString
+@Value(staticConstructor = "of")
 public class HuaweiCellInfo {
-    private String mcc;
-    private String mnc;
+
+    String mcc;
+    String mnc;
 }

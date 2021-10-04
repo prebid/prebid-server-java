@@ -1,6 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
 public class DataAssetType {
+
+    private DataAssetType() {
+    }
+
     //Type ID
     //   1
     // Name:

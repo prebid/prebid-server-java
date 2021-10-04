@@ -11,10 +11,11 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor(staticName = "of")
 public class XnativeData {
-    private Integer dataAssetType;
-    private Integer len;
-    private String label;
-    private String value;
-    private ObjectNode ext;
+
+    Integer dataAssetType;
+    Integer len;
+    String label;
+    String value;
+    ObjectNode ext;
 
 }

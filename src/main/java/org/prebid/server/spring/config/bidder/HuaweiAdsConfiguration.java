@@ -20,6 +20,7 @@ import javax.validation.constraints.NotBlank;
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/huaweiads.yaml", factory = YamlPropertySourceFactory.class)
 public class HuaweiAdsConfiguration {
+
     private static final String BIDDER_NAME = "huaweiads";
 
     @Value("${external-url}")

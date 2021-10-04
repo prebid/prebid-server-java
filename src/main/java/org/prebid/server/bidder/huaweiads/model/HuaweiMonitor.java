@@ -8,6 +8,7 @@ import java.util.List;
 @Builder
 @Value
 public class HuaweiMonitor {
-    private String eventType;
-    private List<String> url;
+
+    String eventType;
+    List<String> url;
 }

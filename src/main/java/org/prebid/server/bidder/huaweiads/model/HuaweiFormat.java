@@ -1,11 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class HuaweiFormat {
-    private Integer w;
-    private Integer h;
+
+    Integer w;
+    Integer h;
 }

@@ -8,6 +8,7 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 @Builder
 public class ExtUserDataDeviceIdHuaweiAds {
+
     String[] imei;
     String[] oaid;
     String[] gaid;

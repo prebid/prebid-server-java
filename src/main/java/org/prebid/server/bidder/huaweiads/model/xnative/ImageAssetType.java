@@ -1,6 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
 public class ImageAssetType {
+
+    private ImageAssetType() {
+    }
+
     public static Integer imageAssetTypeIcon = 1; // Icon; Icon image; Optional. Max height: at least 50; aspect ratio: 1:1
     public static Integer imageAssetTypeLogo = 2; // Logo; Logo image for the brand/app. Deprecated in version 1.2 - use type 1 Icon.
 

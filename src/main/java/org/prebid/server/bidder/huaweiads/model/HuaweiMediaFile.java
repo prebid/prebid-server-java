@@ -6,10 +6,11 @@ import lombok.Value;
 @Builder
 @Value
 public class HuaweiMediaFile {
-    private String mime;
-    private Integer width;
-    private Integer height;
-    private Integer fileSize;
-    private String url;
-    private String sha256;
+
+    String mime;
+    Integer width;
+    Integer height;
+    Integer fileSize;
+    String url;
+    String sha256;
 }

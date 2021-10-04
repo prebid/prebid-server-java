@@ -6,12 +6,13 @@ import lombok.Value;
 @Value
 @Builder
 public class HuaweiVideoInfo {
-    private String videoDownloadUrl;
-    private Integer videoDuration;
-    private Integer videoFileSize;
-    private String sha256;
-    private Float videoRatio;
-    private int width;
-    private int height;
+
+    String videoDownloadUrl;
+    Integer videoDuration;
+    Integer videoFileSize;
+    String sha256;
+    Float videoRatio;
+    int width;
+    int height;
 }
 

@@ -1,21 +1,20 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.*;
+import lombok.Builder;
+import lombok.Value;
 
 @Builder
-@Setter
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class XnativeAsset {
-    private Integer id;
-    private Integer required;
-    private XnativeTitle title;
-    private XnativeImage image;
-    private XnativeVideo video;
-    private XnativeData data;
-    private XnativeLink link;
-    private ObjectNode ext;
+
+    Integer id;
+    Integer required;
+    XnativeTitle title;
+    XnativeImage image;
+    XnativeVideo video;
+    XnativeData data;
+    XnativeLink link;
+    ObjectNode ext;
 }
 

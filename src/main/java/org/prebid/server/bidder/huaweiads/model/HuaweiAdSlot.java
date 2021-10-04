@@ -12,6 +12,7 @@ import java.util.List;
 @Setter
 @Getter
 public class HuaweiAdSlot {
+
     private String slotId;
     private Integer adType;
     private Integer test;
