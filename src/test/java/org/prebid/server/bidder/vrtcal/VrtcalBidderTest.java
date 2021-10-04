@@ -139,19 +139,20 @@ public class VrtcalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldAlwaysReturnBannerBid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBidTypeNotValid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().build())).build(),
+                BidRequest.builder().imp(singletonList(Imp.builder().id("someImpId").build())).build(),
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
         final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getType, BidderError::getMessage)
+                .containsOnly(tuple(BidderError.Type.bad_server_response, "Bid type is not valid"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(
