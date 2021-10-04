@@ -526,7 +526,6 @@ public class ServiceConfiguration {
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
             BidderCatalog bidderCatalog,
-            DebugResolver debugResolver,
             VastModifier vastModifier,
             EventsService eventsService,
             StoredRequestProcessor storedRequestProcessor,
@@ -540,7 +539,6 @@ public class ServiceConfiguration {
         return new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,

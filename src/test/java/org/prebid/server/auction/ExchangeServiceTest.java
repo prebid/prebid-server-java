@@ -955,7 +955,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldOverrideDebugEnabledFlag() {
         // given
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
-        given(debugResolver.resolveDebugForBidder("bidder", true, true))
+        given(debugResolver.resolveDebugForBidder("bidder", true, true, emptyList()))
                 .willReturn(true);
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
@@ -1004,7 +1004,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .build()));
 
-        given(debugResolver.resolveDebugForBidder("bidder", true, false))
+        given(debugResolver.resolveDebugForBidder("bidder", true, false, emptyList()))
                 .willReturn(true);
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
@@ -1032,7 +1032,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
-        given(debugResolver.resolveDebugForBidder("bidder", false, false)).willReturn(false);
+        given(debugResolver.resolveDebugForBidder("bidder", false, false, emptyList()))
+                .willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
@@ -1063,7 +1064,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
-        given(debugResolver.resolveDebugForBidder("bidder", true, false)).willReturn(false);
+        given(debugResolver.resolveDebugForBidder("bidder", true, false, emptyList()))
+                .willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));

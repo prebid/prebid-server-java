@@ -4,8 +4,6 @@ adapters:
     aliases:
       '33across':
         enabled: false
-    debug:
-      allowed: true
     meta-info:
       maintainer-email: headerbidding@33across.com
       app-media-types:

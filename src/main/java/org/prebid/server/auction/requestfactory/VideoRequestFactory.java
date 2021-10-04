@@ -148,7 +148,7 @@ public class VideoRequestFactory {
         final Set<String> podConfigIds = podConfigIds(bidRequestVideo);
 
         return storedRequestProcessor.processVideoRequest(
-                accountIdFrom(bidRequestVideo), storedRequestId, podConfigIds, bidRequestVideo)
+                        accountIdFrom(bidRequestVideo), storedRequestId, podConfigIds, bidRequestVideo)
                 .map(bidRequestToErrors -> fillImplicitParametersAndValidate(httpRequest, bidRequestToErrors));
     }
 

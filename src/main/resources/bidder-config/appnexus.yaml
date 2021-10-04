@@ -4,8 +4,6 @@ adapters:
     aliases:
       districtm:
         enabled: false
-    debug:
-      allowed: true
     meta-info:
       maintainer-email: prebid-server@xandr.com
       app-media-types:
