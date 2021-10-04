@@ -30,6 +30,5 @@ public class VrtcalBidder extends OpenrtbBidder<ExtImpVrtcal> {
         }
         throw new PreBidException("Bid type is not valid");
     }
-
-
 }
+
