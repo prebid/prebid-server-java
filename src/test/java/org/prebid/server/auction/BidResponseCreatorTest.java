@@ -1658,7 +1658,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                context -> context.debugContext(DebugContext.of(true, false, null)));
+                context -> context.debugContext(DebugContext.of(true, null)));
 
         final Bid bid = Bid.builder()
                 .id("bidId1")
@@ -2584,7 +2584,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 bidRequest,
                 builder -> builder
                         .debugWarnings(warnings)
-                        .debugContext(DebugContext.of(true, false, null)));
+                        .debugContext(DebugContext.of(true, null)));
         givenCacheServiceResult(CacheServiceResult.of(
                 DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")

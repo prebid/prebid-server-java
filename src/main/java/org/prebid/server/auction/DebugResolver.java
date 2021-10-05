@@ -12,10 +12,9 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.util.ObjectUtil;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class DebugResolver {
 
@@ -31,59 +30,62 @@ public class DebugResolver {
     }
 
     public DebugContext debugContextFrom(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final boolean debugOverridden = isDebugOverridden(auctionContext.getHttpRequest());
-        final boolean debugEnabled = debugOverridden || isDebugEnabled(auctionContext, extRequestPrebid);
-
-        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
-
-        return DebugContext.of(debugEnabled, debugOverridden, traceLevel);
+        final boolean debugEnabled = isDebugEnabled(auctionContext);
+        final TraceLevel traceLevel = getTraceLevel(auctionContext.getBidRequest());
+        return DebugContext.of(debugEnabled, traceLevel);
     }
 
-    private boolean isDebugOverridden(HttpRequestContext httpRequestContext) {
-        return StringUtils.isNotEmpty(debugOverrideToken)
-                && StringUtils.equals(httpRequestContext.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
-    }
-
-    private boolean isDebugEnabled(AuctionContext auctionContext, ExtRequestPrebid extRequestPrebid) {
+    private boolean isDebugEnabled(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final boolean debugEnabledForRequest = isDebugEnabledForRequest(bidRequest, extRequestPrebid);
-        final boolean debugAllowedByAccount = isDebugAllowedByAccount(auctionContext);
+        final boolean debugOverride = isDebugOverridden(auctionContext.getHttpRequest());
+        final boolean debugEnabledForRequest = isDebugEnabledForRequest(bidRequest);
+        final boolean debugAllowedByAccount = isDebugAllowedByAccount(auctionContext.getAccount());
 
-        if (debugEnabledForRequest && !debugAllowedByAccount) {
-            final List<String> warnings = auctionContext.getDebugWarnings();
-            warnings.add("Debug turned off for account");
+        if (debugEnabledForRequest && !debugOverride && !debugAllowedByAccount) {
+            auctionContext.getDebugWarnings()
+                    .add("Debug turned off for account");
         }
 
-        return debugEnabledForRequest && debugAllowedByAccount;
+        return debugOverride || (debugEnabledForRequest && debugAllowedByAccount);
     }
 
-    private boolean isDebugEnabledForRequest(BidRequest bidRequest, ExtRequestPrebid extRequestPrebid) {
+    private boolean isDebugOverridden(HttpRequestContext httpRequest) {
+        return StringUtils.isNotEmpty(debugOverrideToken)
+                && StringUtils.equals(httpRequest.getHeaders().get(DEBUG_OVERRIDE_HEADER), debugOverrideToken);
+    }
+
+    private boolean isDebugEnabledForRequest(BidRequest bidRequest) {
         return Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
+                || Objects.equals(ObjectUtil.getIfNotNull(getExtRequestPrebid(bidRequest),
+                ExtRequestPrebid::getDebug), 1);
     }
 
-    private boolean isDebugAllowedByAccount(AuctionContext auctionContext) {
-        final AccountAuctionConfig auctionConfig = getIfNotNull(auctionContext.getAccount(), Account::getAuction);
-        final Boolean debugAllowedByAccount = getIfNotNull(auctionConfig, AccountAuctionConfig::getDebugAllow);
-        return ObjectUtils.defaultIfNull(debugAllowedByAccount, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
+    private boolean isDebugAllowedByAccount(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+        final Boolean debugAllowed = ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getDebugAllow);
+        return ObjectUtils.defaultIfNull(debugAllowed, DEFAULT_DEBUG_ALLOWED_BY_ACCOUNT);
     }
 
-    public boolean resolveDebugForBidder(String bidderName, boolean debugEnabled, boolean debugOverride,
-                                         List<String> warnings) {
+    private static TraceLevel getTraceLevel(BidRequest bidRequest) {
+        return ObjectUtil.getIfNotNull(getExtRequestPrebid(bidRequest), ExtRequestPrebid::getTrace);
+    }
 
-        final boolean debugAllowedByBidder = bidderCatalog.isDebugAllowed(bidderName);
+    private static ExtRequestPrebid getExtRequestPrebid(BidRequest bidRequest) {
+        return ObjectUtil.getIfNotNull(
+                ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt), ExtRequest::getPrebid);
+    }
 
-        if (debugEnabled && !debugAllowedByBidder) {
-            warnings.add(String.format("Debug turned off for bidder: %s", bidderName));
+    public boolean resolveDebugForBidder(AuctionContext auctionContext, String bidder) {
+        final DebugContext debugContext = auctionContext.getDebugContext();
+        final boolean debugEnabled = debugContext.isDebugEnabled();
+        final boolean debugOverride = isDebugOverridden(auctionContext.getHttpRequest());
+        final boolean debugAllowedByBidder = bidderCatalog.isDebugAllowed(bidder);
+
+        if (debugEnabled && !debugOverride && !debugAllowedByBidder) {
+            auctionContext.getDebugWarnings()
+                    .add(String.format("Debug turned off for bidder: %s", bidder));
         }
 
         return debugOverride || (debugEnabled && debugAllowedByBidder);
-    }
-
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
     }
 }

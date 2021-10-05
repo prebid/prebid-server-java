@@ -30,7 +30,6 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -1139,9 +1138,7 @@ public class ExchangeService {
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
 
-        final DebugContext debugContext = auctionContext.getDebugContext();
-        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(resolvedBidderName,
-                debugContext.isDebugEnabled(), debugContext.isDebugOverride(), auctionContext.getDebugWarnings());
+        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
 
         final long startTime = clock.millis();
 
