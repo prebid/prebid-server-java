@@ -58,7 +58,9 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
     private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
-    private static final String VAST_MARKUP = "<VAST version=\"2.0\"><Ad id=\"%s\"><Wrapper><AdSystem>Yieldlab</AdSystem><VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>";
+    private static final String VAST_MARKUP = "<VAST version=\"2.0\"><Ad id=\"%s\"><Wrapper><AdSystem>Yieldlab"
+            + "</AdSystem><VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
+            + "</Wrapper></Ad></VAST>";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
