@@ -67,6 +67,7 @@ public final class HttpUtil {
     public static final CharSequence LOCATION_HEADER = HttpHeaders.createOptimized("Location");
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
+    public static final CharSequence CONTENT_ENCODING_HEADER = HttpHeaders.createOptimized("Content-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
     private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));

@@ -2,9 +2,11 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -18,6 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
@@ -25,6 +28,9 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +40,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Implements HTTP communication functionality common for {@link Bidder}'s.
@@ -164,10 +171,51 @@ public class HttpBidderRequester {
             return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest);
         }
 
-        return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
-                        httpRequest.getBody(), remainingTimeout)
+        return createRequest(httpRequest, remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
                 .recover(exception -> failResponse(exception, httpRequest));
+    }
+
+    private <T> Future<HttpClientResponse> createRequest(HttpRequest<T> httpRequest, long remainingTimeout) {
+        final String requestBody = httpRequest.getBody();
+        final MultiMap requestHeaders = httpRequest.getHeaders();
+
+        final byte[] compressedBody = compressIfRequired(requestBody, requestHeaders);
+
+        return compressedBody != null
+                ? httpClient.request(httpRequest.getMethod(),
+                httpRequest.getUri(),
+                requestHeaders,
+                compressedBody,
+                remainingTimeout)
+                : httpClient.request(httpRequest.getMethod(),
+                httpRequest.getUri(),
+                requestHeaders,
+                requestBody,
+                remainingTimeout);
+    }
+
+    private static byte[] compressIfRequired(String existingBody, MultiMap headers) {
+        final String contentEncodingHeader = headers.get(HttpUtil.CONTENT_ENCODING_HEADER);
+        if (Objects.equals(contentEncodingHeader, HttpHeaderValues.GZIP.toString())) {
+            return gzip(existingBody);
+        }
+
+        return null;
+    }
+
+    private static byte[] gzip(String value) {
+        try (ByteArrayOutputStream obj = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(
+                obj)) {
+
+            gzip.write(value.getBytes(StandardCharsets.UTF_8));
+            gzip.finish();
+
+            return obj.toByteArray();
+        } catch (IOException e) {
+            throw new PreBidException(String.format("[pubstack] failed to compress, skip the events : %s",
+                    e.getMessage()));
+        }
     }
 
     /**
