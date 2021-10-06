@@ -30,5 +30,5 @@ public enum ImageAssetType {
     public Integer getValue() {
         return this.value;
     }
-
 }
+

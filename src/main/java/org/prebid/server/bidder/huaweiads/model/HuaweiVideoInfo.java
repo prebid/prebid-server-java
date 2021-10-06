@@ -22,4 +22,3 @@ public class HuaweiVideoInfo {
     Integer height;
 }
 
-
