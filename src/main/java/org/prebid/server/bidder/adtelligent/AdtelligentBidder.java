@@ -12,6 +12,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -165,8 +166,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
      * Updates {@link Imp} with bidfloor if it is present in imp.ext.bidder
      */
     private Imp updateImp(Imp imp, ExtImpAdtelligent extImpAdtelligent) {
-        final ExtImp<?, ?> adtelligentImpExt = ExtImp.empty();
-        adtelligentImpExt.addProperty("adtelligent", mapper.mapper().valueToTree(extImpAdtelligent));
+        final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(extImpAdtelligent);
         final BigDecimal bidFloor = extImpAdtelligent.getBidFloor();
         return imp.toBuilder()
                 .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())

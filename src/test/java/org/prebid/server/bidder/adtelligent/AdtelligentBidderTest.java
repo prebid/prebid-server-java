@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.adtelligent.proto.AdtelligentImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -75,17 +76,14 @@ public class AdtelligentBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-
-        final ExtImp<?, ?> expectedExtImp = ExtImp.empty();
-        expectedExtImp.addProperty("adtelligent", mapper.valueToTree(
-                ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3))));
         assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
                 BidRequest.builder()
                         .imp(singletonList(
                                 Imp.builder()
                                         .banner(Banner.builder().build())
                                         .bidfloor(BigDecimal.valueOf(3))
-                                        .ext(mapper.valueToTree(expectedExtImp))
+                                        .ext(mapper.valueToTree(AdtelligentImpExt.of(
+                                                ExtImpAdtelligent.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                         .build()))
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())

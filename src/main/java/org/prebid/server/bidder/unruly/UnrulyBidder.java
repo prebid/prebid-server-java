@@ -14,6 +14,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.unruly.proto.ImpExtUnruly;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -76,8 +77,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder modifiedImp = imp.toBuilder();
 
         try {
-            modifiedImp.ext(mapper.mapper().createObjectNode()
-                    .set("unruly", mapper.mapper().valueToTree(extImpUnruly)));
+            modifiedImp.ext(mapper.mapper().valueToTree(ImpExtUnruly.of(extImpUnruly)));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }

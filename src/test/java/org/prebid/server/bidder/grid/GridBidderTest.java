@@ -16,7 +16,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -26,6 +25,9 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
+import org.prebid.server.bidder.grid.model.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
@@ -82,7 +84,11 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(givenExtImp(ExtImpGrid.of(1, null), "adslot", null)))
+                        .ext(mapper.valueToTree(org.prebid.server.bidder.grid.model.ExtImp.builder()
+                                .data(ExtImpGridData.of("pbadslot",
+                                        ExtImpGridDataAdServer.of("name", "adslot")))
+                                .bidder(ExtImpGrid.of(1, null))
+                                .build()))
                         .build()))
                 .id("request_id")
                 .build();
@@ -93,18 +99,29 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
+        final org.prebid.server.bidder.grid.model.ExtImp expectedExtImp = org.prebid.server.bidder.grid.model.ExtImp.builder()
+                .data(ExtImpGridData.of("pbadslot",
+                        ExtImpGridDataAdServer.of("name", "adslot")))
+                .bidder(ExtImpGrid.of(1, null))
+                .gpid("adslot")
+                .build();
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(givenExtImp(ExtImpGrid.of(1, null), "adslot", "adslot")));
+                .containsExactly(mapper.valueToTree(expectedExtImp));
     }
 
     @Test
     public void makeHttpRequestsShouldCorrectlyModifyRequestExt() throws IOException {
         // given
         final Keywords impExtKeywords = mapper.convertValue(jsonNodeFrom("imp-ext-keywords.json"), Keywords.class);
-        final ExtImp<?, ExtImpGrid> impExt = givenExtImp(ExtImpGrid.of(1, impExtKeywords), "adslot", null);
+
+        final org.prebid.server.bidder.grid.model.ExtImp impExt = org.prebid.server.bidder.grid.model.ExtImp.builder()
+                .data(ExtImpGridData.of("pbadslot", ExtImpGridDataAdServer.of("name", "adslot")))
+                .bidder(ExtImpGrid.of(1, impExtKeywords))
+                .build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.valueToTree(impExt)).build()))
@@ -338,15 +355,6 @@ public class GridBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getExt)
                 .containsExactly(expectedBidExt);
-    }
-
-    private static ExtImp<?, ExtImpGrid> givenExtImp(ExtImpGrid extImpGrid, String adSlot, String gpid) {
-        final ExtImp<?, ExtImpGrid> extImp = ExtImp.of(null, extImpGrid);
-        extImp.addProperty("data", mapper.createObjectNode()
-                .set("adserver", mapper.createObjectNode()
-                        .set("adslot", TextNode.valueOf(adSlot))));
-        extImp.addProperty("gpid", TextNode.valueOf(gpid));
-        return extImp;
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,

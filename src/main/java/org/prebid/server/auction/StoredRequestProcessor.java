@@ -139,10 +139,11 @@ public class StoredRequestProcessor {
      * Fetches AMP request from the source.
      */
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
-        final Future<StoredDataResult> ampStoredDataFuture = applicationSettings.getAmpStoredData(
-                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
-                .compose(storedDataResult -> updateMetrics(
-                        storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
+        final Future<StoredDataResult> ampStoredDataFuture =
+                applicationSettings.getAmpStoredData(
+                                accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(
+                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
                 .map(this::generateBidRequestId);

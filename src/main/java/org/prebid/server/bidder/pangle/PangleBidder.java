@@ -1,8 +1,6 @@
 package org.prebid.server.bidder.pangle;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -21,10 +19,10 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pangle.model.BidExt;
 import org.prebid.server.bidder.pangle.model.NetworkIds;
 import org.prebid.server.bidder.pangle.model.PangleBidExt;
+import org.prebid.server.bidder.pangle.model.WrappedImpExtBidder;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pangle.ExtImpPangle;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -39,9 +37,6 @@ import java.util.stream.Collectors;
 
 public class PangleBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtImp<ExtImpPrebid, ExtImpPangle>> PANGLE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtImp<ExtImpPrebid, ExtImpPangle>>() {
-            };
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -57,7 +52,7 @@ public class PangleBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImp<ExtImpPrebid, ExtImpPangle> extBidder = parseImpExt(imp);
+                final WrappedImpExtBidder extBidder = parseImpExt(imp);
                 final ExtImpPangle extImpPangle = extBidder.getBidder();
                 final Integer adType = resolveAdType(imp, extBidder);
                 final Imp modifiedImp = modifyImp(imp, adType, extBidder, extImpPangle);
@@ -71,15 +66,15 @@ public class PangleBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private ExtImp<ExtImpPrebid, ExtImpPangle> parseImpExt(Imp imp) {
+    private WrappedImpExtBidder parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), PANGLE_EXT_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(imp.getExt(), WrappedImpExtBidder.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("failed unmarshalling imp ext (err)%s", e.getMessage()));
         }
     }
 
-    private static int resolveAdType(Imp imp, ExtImp<ExtImpPrebid, ExtImpPangle> extBidder) {
+    private static int resolveAdType(Imp imp, WrappedImpExtBidder extBidder) {
         if (imp.getVideo() != null) {
             final ExtImpPrebid extPrebid = extBidder != null ? extBidder.getPrebid() : null;
             final Integer isRewardedInventory = extPrebid != null ? extPrebid.getIsRewardedInventory() : null;
@@ -106,20 +101,17 @@ public class PangleBidder implements Bidder<BidRequest> {
         throw new PreBidException("not a supported adtype");
     }
 
-    private Imp modifyImp(Imp imp,
-                          Integer adType,
-                          ExtImp<ExtImpPrebid, ExtImpPangle> extBidder,
-                          ExtImpPangle bidderImpExt) {
-
+    private Imp modifyImp(Imp imp, Integer adType, WrappedImpExtBidder extBidder, ExtImpPangle bidderImpExt) {
         final NetworkIds modifiedNetworkIds = getNetworkIds(bidderImpExt);
-        extBidder.addProperty("adtype", IntNode.valueOf(adType));
-        extBidder.addProperty("is_prebid", BooleanNode.getTrue());
-        if (modifiedNetworkIds != null) {
-            extBidder.addProperty("networkids", mapper.mapper().valueToTree(modifiedNetworkIds));
-        }
+
+        final WrappedImpExtBidder updatedImpExt = extBidder.toBuilder()
+                .adType(adType)
+                .isPrebid(true)
+                .networkids(modifiedNetworkIds == null ? extBidder.getNetworkids() : modifiedNetworkIds)
+                .build();
 
         return imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(extBidder))
+                .ext(mapper.mapper().convertValue(updatedImpExt, ObjectNode.class))
                 .build();
     }
 

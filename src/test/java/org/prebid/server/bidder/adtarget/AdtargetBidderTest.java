@@ -15,6 +15,7 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -59,13 +60,12 @@ public class AdtargetBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
 
         // then
-        final ExtImp<?, ?> expectedExtImp = ExtImp.empty();
-        expectedExtImp.addProperty("adtarget", mapper.valueToTree(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))));
         final BidRequest expectedBidRequest = bidRequest
                 .toBuilder()
                 .imp(singletonList(bidRequest.getImp().get(0).toBuilder()
                         .bidfloor(BigDecimal.valueOf(3))
-                        .ext(mapper.valueToTree(expectedExtImp))
+                        .ext(mapper.valueToTree(AdtargetImpExt.of(
+                                ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
                         .build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
