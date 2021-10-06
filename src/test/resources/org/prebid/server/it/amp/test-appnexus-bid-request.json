@@ -104,7 +104,7 @@
           "consent_type": "3",
           "consent_string": "1YNN",
           "gdpr_applies": "false",
-          "attl_consent": "someConsent",
+          "addtl_consent": "someConsent",
           "ow": "980",
           "oh": "120",
           "tag_id": "test-amp-stored-request",
