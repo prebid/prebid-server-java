@@ -99,7 +99,13 @@ Here's an example YAML file containing account-specific settings:
         events:
           enabled: true
       privacy:
-        enforce-ccpa: true
+        ccpa:
+          enabled: true
+          integration-enabled:
+            video: true
+            web: true
+            app: true
+            amp: true
         gdpr:
           enabled: true
           integration-enabled:
@@ -252,7 +258,15 @@ example:
     }
   },
   "privacy": {
-    "enforce-ccpa": true,
+    "ccpa": {
+      "enabled": true,
+      "integration-enabled": {
+          "web": true,
+          "amp": false,
+          "app": true,
+          "video": false
+      }
+    },
     "gdpr": {
       "enabled": true,
       "integration-enabled": {
@@ -393,7 +407,7 @@ several tables. MySQL and Postgres provides necessary functions allowing to proj
 expected JSON format.
 
 Let's assume following table schema for example:
-```sql
+```mysql-sql
 'CREATE TABLE `accounts_account` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) NOT NULL,
@@ -419,7 +433,7 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8'
 
 The following Mysql SQL query could be used to construct a JSON document of required shape on the fly:
 
-```sql
+```mysql-sql
 SELECT 
     JSON_MERGE_PATCH(config, JSON_OBJECT(
         'id', uuid,

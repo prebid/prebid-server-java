@@ -2,7 +2,6 @@ package org.prebid.server.bidder;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.proto.response.BidderInfo;
 
 import java.util.List;
 

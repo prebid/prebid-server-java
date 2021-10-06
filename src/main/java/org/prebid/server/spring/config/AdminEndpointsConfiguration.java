@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import com.codahale.metrics.MetricRegistry;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -7,6 +8,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DeliveryProgressService;
 import org.prebid.server.deals.simulation.DealsSimulationAdminHandler;
 import org.prebid.server.handler.AccountCacheInvalidationHandler;
+import org.prebid.server.handler.CollectedMetricsHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.DealsStatusHandler;
@@ -233,6 +235,24 @@ public class AdminEndpointsConfiguration {
         return new CustomizedAdminEndpoint(
                 path,
                 dealsSimulationAdminHandler,
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${admin-endpoints.collected-metrics.enabled} == true")
+    CustomizedAdminEndpoint collectedMetricsAdminEndpoint(
+            MetricRegistry metricRegistry,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.collected-metrics.path}") String path,
+            @Value("${admin-endpoints.collected-metrics.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.collected-metrics.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new CollectedMetricsHandler(metricRegistry, mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

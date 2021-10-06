@@ -114,9 +114,9 @@ public class HttpBidderRequester {
                                                     BidRequest bidRequest) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(requestEnricher.enrichHeaders(
-                        httpRequest.getHeaders(), requestHeaders, bidRequest))
-                .build())
+                        .headers(requestEnricher.enrichHeaders(
+                                httpRequest.getHeaders(), requestHeaders, bidRequest))
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -165,7 +165,7 @@ public class HttpBidderRequester {
         }
 
         return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
-                httpRequest.getBody(), remainingTimeout)
+                        httpRequest.getBody(), remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
                 .recover(exception -> failResponse(exception, httpRequest));
     }
@@ -203,7 +203,7 @@ public class HttpBidderRequester {
     private static BidderError errorOrNull(int statusCode) {
         if (statusCode != HttpResponseStatus.OK.code() && statusCode != HttpResponseStatus.NO_CONTENT.code()) {
             return BidderError.create(String.format(
-                    "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
+                            "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
                     statusCode == HttpResponseStatus.BAD_REQUEST.code()
                             ? BidderError.Type.bad_input
                             : BidderError.Type.bad_server_response);
@@ -335,8 +335,8 @@ public class HttpBidderRequester {
             final List<BidderError> bidderErrors = new ArrayList<>(requestErrors);
             bidderErrors.addAll(
                     Stream.concat(
-                            responseErrors.stream(),
-                            calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
+                                    responseErrors.stream(),
+                                    calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
                             .collect(Collectors.toList()));
             return bidderErrors;
         }

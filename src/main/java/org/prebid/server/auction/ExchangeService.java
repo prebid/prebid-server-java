@@ -64,6 +64,7 @@ import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -157,6 +158,7 @@ public class ExchangeService {
     private final ApplicationEventService applicationEventService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final HookStageExecutor hookStageExecutor;
+    private final HttpInteractionLogger httpInteractionLogger;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -175,6 +177,7 @@ public class ExchangeService {
                            BidResponsePostProcessor bidResponsePostProcessor,
                            HookStageExecutor hookStageExecutor,
                            ApplicationEventService applicationEventService,
+                           HttpInteractionLogger httpInteractionLogger,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -196,6 +199,7 @@ public class ExchangeService {
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.applicationEventService = applicationEventService;
+        this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -243,6 +247,7 @@ public class ExchangeService {
                         context, storedResponseResult, aliases, bidderToMultiBid))
                 .map(bidderRequests -> updateRequestMetric(
                         bidderRequests, uidsCookie, aliases, publisherId, context.getRequestTypeMetric()))
+                .map(bidderRequests -> maybeLogBidderInteraction(context, bidderRequests))
                 .compose(bidderRequests -> CompositeFuture.join(
                         bidderRequests.stream()
                                 .map(bidderRequest -> invokeHooksAndRequestBids(
@@ -255,6 +260,7 @@ public class ExchangeService {
                 .map(CompositeFuture::<BidderResponse>list)
                 .map(bidderResponses -> storedResponseProcessor.mergeWithBidderResponses(
                         bidderResponses, storedAuctionResponses, bidRequest.getImp()))
+                .map(bidderResponses -> dropZeroNonDealBids(bidderResponses, context.getDebugWarnings()))
                 .map(bidderResponses -> validateAndAdjustBids(bidderResponses, context, aliases))
                 .map(bidderResponses -> updateMetricsFromResponses(bidderResponses, publisherId, aliases))
                 // produce response from bidder results
@@ -1012,13 +1018,14 @@ public class ExchangeService {
         final boolean suppressSchains = extPrebidSchains != null;
         final boolean suppressBidderConfig = extPrebidBidderconfig != null;
         final boolean suppressPrebidData = extPrebidData != null;
+        final boolean suppressBidderParameters = extPrebid != null && extPrebid.getBidderparams() != null;
 
         if (bidderToPrebidBidders.isEmpty()
                 && bidderToMultiBid.isEmpty()
                 && !suppressSchains
                 && !suppressBidderConfig
-                && !suppressPrebidData) {
-
+                && !suppressPrebidData
+                && !suppressBidderParameters) {
             return requestExt;
         }
 
@@ -1035,6 +1042,7 @@ public class ExchangeService {
                 extPrebidBuilder
                         .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
+                        .bidderparams(prepareBidderParameters(extPrebid, bidder))
                         .schains(null)
                         .data(null)
                         .bidderconfig(null)
@@ -1047,6 +1055,16 @@ public class ExchangeService {
                 ? Collections.singletonList(ExtRequestPrebidMultiBid.of(
                 bidder, null, multiBidConfig.getMaxBids(), multiBidConfig.getTargetBidderCodePrefix()))
                 : null;
+    }
+
+    /**
+     * Prepares parameters for specified bidder removing parameters for all other bidders.
+     * Returns null if there are no parameters for specified bidder.
+     */
+    private ObjectNode prepareBidderParameters(ExtRequestPrebid prebid, String bidder) {
+        final ObjectNode bidderParams = prebid != null ? prebid.getBidderparams() : null;
+        final JsonNode params = bidderParams != null ? bidderParams.get(bidder) : null;
+        return params != null ? mapper.mapper().createObjectNode().set(bidder, params) : null;
     }
 
     /**
@@ -1134,6 +1152,41 @@ public class ExchangeService {
 
         return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabled)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
+    }
+
+    private List<BidderResponse> dropZeroNonDealBids(List<BidderResponse> bidderResponses, List<String> debugWarnings) {
+
+        return bidderResponses.stream()
+                .map(bidderResponse -> dropZeroNonDealBids(bidderResponse, debugWarnings))
+                .collect(Collectors.toList());
+    }
+
+    private BidderResponse dropZeroNonDealBids(BidderResponse bidderResponse, List<String> debugWarnings) {
+        final BidderSeatBid seatBid = bidderResponse.getSeatBid();
+        final List<BidderBid> bidderBids = seatBid.getBids();
+        final List<BidderBid> validBids = new ArrayList<>();
+
+        for (BidderBid bidderBid : bidderBids) {
+            final Bid bid = bidderBid.getBid();
+            if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
+                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
+                debugWarnings.add(String.format(
+                        "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
+                        bid.getId()));
+            } else {
+                validBids.add(bidderBid);
+            }
+        }
+
+        return validBids.size() != bidderBids.size()
+                ? bidderResponse.with(seatBid.with(validBids))
+                : bidderResponse;
+    }
+
+    private boolean isZeroNonDealBids(BigDecimal price, String dealId) {
+        return price == null
+                || price.compareTo(BigDecimal.ZERO) < 0
+                || (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(dealId));
     }
 
     private List<BidderResponse> validateAndAdjustBids(
@@ -1377,6 +1430,11 @@ public class ExchangeService {
         // should be replaced by code which tracks the response time of recent cache calls and adjusts the time
         // dynamically.
         return shouldCacheBids ? timeout.minus(expectedCacheTime) : timeout;
+    }
+
+    private List<BidderRequest> maybeLogBidderInteraction(AuctionContext context, List<BidderRequest> bidderRequests) {
+        bidderRequests.forEach(bidderRequest -> httpInteractionLogger.maybeLogBidderRequest(context, bidderRequest));
+        return bidderRequests;
     }
 
     /**

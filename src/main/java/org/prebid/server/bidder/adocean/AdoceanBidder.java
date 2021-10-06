@@ -49,9 +49,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-/**
- * Adocean {@link Bidder} implementation.
- */
 public class AdoceanBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =

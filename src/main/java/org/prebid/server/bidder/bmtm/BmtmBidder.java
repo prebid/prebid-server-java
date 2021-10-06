@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Bmtm {@link Bidder} implementation.
- */
 public class BmtmBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>> BMTM_EXT_TYPE_REFERENCE =

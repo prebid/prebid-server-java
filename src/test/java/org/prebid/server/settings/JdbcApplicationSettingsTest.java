@@ -234,7 +234,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .events(AccountEventsConfig.of(true))
                             .build())
                     .privacy(AccountPrivacyConfig.of(
-                            true,
                             AccountGdprConfig.builder()
                                     .enabled(true)
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))

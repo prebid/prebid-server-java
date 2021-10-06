@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Unruly {@link Bidder} implementation.
- */
 public class UnrulyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
