@@ -1,12 +1,6 @@
 adapters:
   bidmachine:
-    enabled: false
     endpoint: https://{{Host}}.bidmachine.io/{{PATH}}/{{SELLER_ID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: hi@bidmachine.io
       app-media-types:

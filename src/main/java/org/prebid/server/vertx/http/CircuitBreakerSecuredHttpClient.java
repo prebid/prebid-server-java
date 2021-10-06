@@ -29,7 +29,6 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredHttpClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
     private static final int LOG_PERIOD_SECONDS = 5;
-    private static final long IDLE_EXPIRE_DAYS = 3;
 
     private final Function<String, CircuitBreaker> circuitBreakerCreator;
     private final Map<String, CircuitBreaker> circuitBreakerByName;
@@ -42,6 +41,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            int openingThreshold,
                                            long openingIntervalMs,
                                            long closingIntervalMs,
+                                           int idleExpireHours,
                                            Clock clock) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -50,7 +50,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, clock, metrics);
 
         circuitBreakerByName = Caffeine.newBuilder()
-                .expireAfterAccess(IDLE_EXPIRE_DAYS, TimeUnit.DAYS) // remove unused CBs
+                .expireAfterAccess(idleExpireHours, TimeUnit.HOURS)
                 .<String, CircuitBreaker>removalListener((name, cb, cause) -> removeCircuitBreakerGauge(name, metrics))
                 .build()
                 .asMap();

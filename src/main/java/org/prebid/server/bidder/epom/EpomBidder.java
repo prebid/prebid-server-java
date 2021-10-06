@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Epom {@link Bidder} implementation.
- */
 public class EpomBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;

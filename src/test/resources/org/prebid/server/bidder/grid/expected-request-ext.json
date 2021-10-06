@@ -1,0 +1,85 @@
+{
+  "keywords": {
+    "invalidKeywords": [
+      "should be present in result"
+    ],
+    "user": {
+      "ortb2": [
+        {
+          "name": "keywords",
+          "segments": [
+            {
+              "name": "keywords",
+              "value": "userKeyword1"
+            },
+            {
+              "name": "keywords",
+              "value": "userKeyword2"
+            }
+          ]
+        }
+      ],
+      "firstPublisher": [
+        {
+          "name": "firstKeywordsUserSection",
+          "segments": [
+            {
+              "name": "segment1",
+              "value": "value1"
+            }
+          ]
+        }
+      ],
+      "secondPublisher": [
+        {
+          "name": "secondKeywordsUserSection",
+          "segments": [
+            {
+              "name": "segment2",
+              "value": "value2"
+            }
+          ]
+        }
+      ]
+    },
+    "site": {
+      "ortb2": [
+        {
+          "name": "keywords",
+          "segments": [
+            {
+              "name": "keywords",
+              "value": "siteKeyword1"
+            },
+            {
+              "name": "keywords",
+              "value": "siteKeyword2"
+            }
+          ]
+        }
+      ],
+      "firstPublisher": [
+        {
+          "name": "firstKeywordsSiteSection",
+          "segments": [
+            {
+              "name": "segment1",
+              "value": "value1"
+            }
+          ]
+        }
+      ],
+      "secondPublisher": [
+        {
+          "name": "secondKeywordsSiteSection",
+          "segments": [
+            {
+              "name": "segment2",
+              "value": "value2"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
