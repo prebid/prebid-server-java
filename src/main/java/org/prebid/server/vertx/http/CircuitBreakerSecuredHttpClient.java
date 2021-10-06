@@ -39,9 +39,9 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                            HttpClient httpClient,
                                            Metrics metrics,
                                            int openingThreshold,
-                                           int idleExpireHours,
                                            long openingIntervalMs,
                                            long closingIntervalMs,
+                                           int idleExpireHours,
                                            Clock clock) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
