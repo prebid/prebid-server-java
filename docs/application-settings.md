@@ -99,6 +99,7 @@ Here's an example YAML file containing account-specific settings:
         events:
           enabled: true
       privacy:
+        enforce-ccpa: true
         gdpr:
           enabled: true
           integration-enabled:
@@ -251,6 +252,7 @@ example:
     }
   },
   "privacy": {
+    "enforce-ccpa": true,
     "gdpr": {
       "enabled": true,
       "integration-enabled": {
