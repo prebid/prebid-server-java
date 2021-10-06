@@ -114,7 +114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
                 .privacyContext(defaultPrivacyContext)
-                .debugContext(DebugContext.of(true, true, null))
+                .debugContext(DebugContext.of(true, null))
                 .build();
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -125,7 +125,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
-        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
 
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -288,7 +288,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext()).isEqualTo(
-                DebugContext.of(true, true, null));
+                DebugContext.of(true, null));
     }
 
     @Test

@@ -30,7 +30,6 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -1099,14 +1098,11 @@ public class ExchangeService {
                                                              Timeout timeout,
                                                              BidderAliases aliases) {
 
-        final CaseInsensitiveMultiMap headers = auctionContext.getHttpRequest().getHeaders();
-        final DebugContext debugContext = auctionContext.getDebugContext();
-        final boolean debugEnabled = debugContext.isDebugEnabled();
-        final boolean debugOverride = debugContext.isDebugOverride();
-
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
+
                 .compose(stageResult -> requestBidsOrRejectBidder(
-                        stageResult, bidderRequest, timeout, headers, debugEnabled, debugOverride, aliases))
+                        stageResult, bidderRequest, auctionContext, timeout, aliases))
+
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
                                 bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
@@ -1115,21 +1111,39 @@ public class ExchangeService {
     private Future<BidderResponse> requestBidsOrRejectBidder(
             HookStageExecutionResult<BidderRequestPayload> hookStageResult,
             BidderRequest bidderRequest,
+            AuctionContext auctionContext,
             Timeout timeout,
-            CaseInsensitiveMultiMap requestHeaders,
-            boolean debugEnabled,
-            boolean debugOverride,
             BidderAliases aliases) {
 
-        return hookStageResult.isShouldReject()
-                ? Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0))
-                : requestBids(
-                bidderRequest.with(hookStageResult.getPayload().bidRequest()),
-                timeout,
-                requestHeaders,
-                debugEnabled,
-                debugOverride,
-                aliases);
+        if (hookStageResult.isShouldReject()) {
+            return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
+        }
+
+        final BidderRequest enrichedBidderRequest = bidderRequest.with(hookStageResult.getPayload().bidRequest());
+        return requestBids(enrichedBidderRequest, auctionContext, timeout, aliases);
+    }
+
+    /**
+     * Passes the request to a corresponding bidder and wraps response in {@link BidderResponse} which also holds
+     * recorded response time.
+     */
+    private Future<BidderResponse> requestBids(BidderRequest bidderRequest,
+                                               AuctionContext auctionContext,
+                                               Timeout timeout,
+                                               BidderAliases aliases) {
+
+        final CaseInsensitiveMultiMap requestHeaders = auctionContext.getHttpRequest().getHeaders();
+
+        final String bidderName = bidderRequest.getBidder();
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
+
+        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(auctionContext, resolvedBidderName);
+
+        final long startTime = clock.millis();
+
+        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+                .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
     private BidderResponse rejectBidderResponseOrProceed(HookStageExecutionResult<BidderResponsePayload> stageResult,
@@ -1141,28 +1155,6 @@ public class ExchangeService {
 
         return bidderResponse
                 .with(bidderResponse.getSeatBid().with(bids));
-    }
-
-    /**
-     * Passes the request to a corresponding bidder and wraps response in {@link BidderResponse} which also holds
-     * recorded response time.
-     */
-    private Future<BidderResponse> requestBids(BidderRequest bidderRequest,
-                                               Timeout timeout,
-                                               CaseInsensitiveMultiMap requestHeaders,
-                                               boolean debugEnabled,
-                                               boolean debugOverride,
-                                               BidderAliases aliases) {
-        final String bidderName = bidderRequest.getBidder();
-        final String resolvedBidderName = aliases.resolveBidder(bidderName);
-        final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
-        final boolean debugEnabledForBidder = debugResolver.resolveDebugForBidder(
-                resolvedBidderName, debugEnabled, debugOverride);
-
-        final long startTime = clock.millis();
-
-        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabledForBidder)
-                .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
     private List<BidderResponse> validateAndAdjustBids(

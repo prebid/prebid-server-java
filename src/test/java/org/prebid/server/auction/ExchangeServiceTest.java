@@ -955,8 +955,15 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldOverrideDebugEnabledFlag() {
         // given
         given(bidderCatalog.isDebugAllowed(anyString())).willReturn(false);
-        given(debugResolver.resolveDebugForBidder("bidder", true, true))
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, null))
+                .build();
+
+        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
                 .willReturn(true);
+
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
                         singletonList(ExtHttpCall.builder().build()), emptyList())));
@@ -969,11 +976,6 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .build()));
 
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .debugContext(DebugContext.of(true, true, null))
-                .build();
-
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
 
@@ -982,8 +984,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
-        assertThat(captor.getValue().getDebugContext()).isEqualTo(
-                DebugContext.of(true, true, null));
+        assertThat(captor.getValue().getDebugContext()).isEqualTo(DebugContext.of(true, null));
 
         assertThat(bidResponse.getExt().getDebug()).isNotNull();
     }
@@ -1004,13 +1005,12 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .build()));
 
-        given(debugResolver.resolveDebugForBidder("bidder", true, false))
-                .willReturn(true);
-
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .debugContext(DebugContext.of(true, false, null))
+                .debugContext(DebugContext.of(true, null))
                 .build();
+        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+                .willReturn(true);
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
@@ -1021,7 +1021,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(anyList(), captor.capture(), any(), anyMap());
         assertThat(captor.getValue().getDebugContext())
-                .isEqualTo(DebugContext.of(true, false, null));
+                .isEqualTo(DebugContext.of(true, null));
 
         assertThat(bidResponse.getExt().getDebug()).isNotNull();
     }
@@ -1032,15 +1032,16 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
-        given(debugResolver.resolveDebugForBidder("bidder", false, false)).willReturn(false);
-
-        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
-                Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .debugContext(DebugContext.of(false, false, null))
+                .debugContext(DebugContext.of(false, null))
                 .build();
+        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+                .willReturn(false);
+
+        given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
+                Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
@@ -1051,7 +1052,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
         assertThat(captor.getValue().getDebugContext()).isEqualTo(
-                DebugContext.of(false, false, null));
+                DebugContext.of(false, null));
 
         assertThat(bidResponse.getExt().getDebug()).isNull();
     }
@@ -1063,15 +1064,15 @@ public class ExchangeServiceTest extends VertxTest {
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
-        given(debugResolver.resolveDebugForBidder("bidder", true, false)).willReturn(false);
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .debugContext(DebugContext.of(true, null))
+                .build();
+        given(debugResolver.resolveDebugForBidder(auctionContext, "bidder"))
+                .willReturn(false);
 
         given(bidResponseCreator.create(anyList(), any(), any(), any())).willReturn(
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
-
-        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
-        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
-                .debugContext(DebugContext.of(true, false, null))
-                .build();
 
         // when
         final BidResponse bidResponse = exchangeService.holdAuction(auctionContext).result();
@@ -1082,7 +1083,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(bidResponseCreator).create(any(), captor.capture(), any(), anyMap());
         assertThat(captor.getValue().getDebugContext()).isEqualTo(
-                DebugContext.of(true, false, null));
+                DebugContext.of(true, null));
 
         assertThat(bidResponse.getExt().getDebug()).isNull();
     }
@@ -1121,8 +1122,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 duplicateMultiBids1, multiBid4))
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(53, true),
                                 ExtRequestPrebidCacheVastxml.of(34, true), true))
-                        .build()))
-        );
+                        .build())));
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
@@ -3223,7 +3223,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, false, null))
+                .debugContext(DebugContext.of(true, null))
                 .build();
 
         // when
@@ -3290,7 +3290,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, TraceLevel.basic))
                 .build();
 
         // when
@@ -3383,7 +3383,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
+                .debugContext(DebugContext.of(false, TraceLevel.verbose))
                 .build();
 
         // when
@@ -3423,7 +3423,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, false, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, TraceLevel.basic))
                 .build();
 
         // when
@@ -3444,7 +3444,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(
                         Endpoint.openrtb2_auction,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, false, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, TraceLevel.basic))
                 .requestRejected(true)
                 .build();
 
@@ -3472,7 +3472,7 @@ public class ExchangeServiceTest extends VertxTest {
                         new EnumMap<>(singletonMap(
                                 Stage.entrypoint,
                                 singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
-                .debugContext(DebugContext.of(false, false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, TraceLevel.basic))
                 .build();
 
         // when
@@ -3632,8 +3632,8 @@ public class ExchangeServiceTest extends VertxTest {
         willReturn(ValidationResult.error("validation error")).given(responseBidValidator)
                 .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId2")), any(), any(), any());
 
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("someBidder", 1),
-                builder -> builder
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("someBidder", 1), builder -> builder
                         .id("impId")
                         .pmp(Pmp.builder()
                                 .deals(asList(

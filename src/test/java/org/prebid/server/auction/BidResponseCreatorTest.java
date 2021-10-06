@@ -149,8 +149,6 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private DebugResolver debugResolver;
-    @Mock
     private VastModifier vastModifier;
     @Mock
     private EventsService eventsService;
@@ -192,7 +190,6 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -1289,7 +1286,6 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
                 cacheService,
                 bidderCatalog,
-                debugResolver,
                 vastModifier,
                 eventsService,
                 storedRequestProcessor,
@@ -1662,7 +1658,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
-                context -> context.debugContext(DebugContext.of(true, false, null)));
+                context -> context.debugContext(DebugContext.of(true, null)));
 
         final Bid bid = Bid.builder()
                 .id("bidId1")
@@ -2580,17 +2576,15 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
-    public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabledAndBidderAllowedDebug() {
+    public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() {
         // given
-        given(debugResolver.resolveDebugForBidder("bidder1", true, false)).willReturn(true);
-
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final List<String> warnings = asList("warning1", "warning2");
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
                 builder -> builder
                         .debugWarnings(warnings)
-                        .debugContext(DebugContext.of(true, false, null)));
+                        .debugContext(DebugContext.of(true, null)));
         givenCacheServiceResult(CacheServiceResult.of(
                 DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -2637,36 +2631,6 @@ public class BidResponseCreatorTest extends VertxTest {
                                 ExtBidderError.of(BidderError.Type.generic.getCode(), "warning2"))));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
-    }
-
-    @Test
-    public void shouldNotPopulateResponseDebugExtensionWithHttpCallsIfDebugIsEnabledAndBidderDisallowedDebug() {
-        // given
-        given(bidderCatalog.isDebugAllowed("bidder1")).willReturn(false);
-        givenCacheServiceResult(CacheServiceResult.of(null, null, emptyMap()));
-
-        final BidRequest bidRequest = givenBidRequest(givenImp());
-        final AuctionContext auctionContext = givenAuctionContext(
-                bidRequest,
-                builder -> builder
-                        .debugWarnings(emptyList())
-                        .debugContext(DebugContext.of(true, false, null)));
-
-        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
-
-        final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-                BidderSeatBid.of(singletonList(BidderBid.of(bid, banner, null)),
-                        singletonList(ExtHttpCall.builder().status(200).build()), null), 100));
-
-        // when
-        final BidResponse bidResponse =
-                bidResponseCreator.create(bidderResponses, auctionContext, cacheInfo, MULTI_BIDS).result();
-
-        // then
-        final ExtBidResponse responseExt = bidResponse.getExt();
-
-        assertThat(responseExt.getDebug().getHttpcalls()).isNull();
     }
 
     @Test

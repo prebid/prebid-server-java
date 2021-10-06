@@ -100,7 +100,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
 
         given(debugResolver.debugContextFrom(any()))
-                .willReturn(DebugContext.of(true, true, null));
+                .willReturn(DebugContext.of(true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -260,7 +260,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getData().getDebugContext())
-                .isEqualTo(DebugContext.of(true, true, null));
+                .isEqualTo(DebugContext.of(true, null));
     }
 
     @Test
