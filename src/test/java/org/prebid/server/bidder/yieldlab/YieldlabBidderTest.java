@@ -232,11 +232,9 @@ public class YieldlabBidderTest extends VertxTest {
         // then
         final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String adm = "<VAST version=\"2.0\"><Ad id=\"1\"><Wrapper>" +
-                "<AdSystem>Yieldlab</AdSystem>" +
-                "<VASTAdTagURI>" +
-                "<![CDATA[ https://ad.yieldlab.net/d/1/123456789/728x90?id=abc&ids=ylid%3A34a53e82-0dc3-4815-8b7e-b725ede0361c&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ts=testing ]]></VASTAdTagURI>" +
-                "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>";
+        final String adm = String.format(
+                "<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>",
+                timestamp);
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("1")
