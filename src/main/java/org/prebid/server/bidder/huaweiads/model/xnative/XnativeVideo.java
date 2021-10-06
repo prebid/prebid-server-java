@@ -1,11 +1,10 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
-import lombok.Builder;
 import lombok.Value;
 
-@Value
-@Builder
+@Value(staticConstructor = "of")
 public class XnativeVideo {
 
     String vastTag;
 }
+

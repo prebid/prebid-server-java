@@ -9,6 +9,9 @@ import lombok.Value;
 public class XnativeTitle {
 
     String text;
+
     Integer len;
+
     ObjectNode ext;
 }
+

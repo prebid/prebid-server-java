@@ -472,17 +472,17 @@ public class HuaweiUtilResponse {
     private static XnativeData resolveAssetData(Asset asset, HuaweiMetadata metadata) {
         final DataObject dataFromAsset = asset.getData();
         if (dataFromAsset != null) {
-            XnativeData data = new XnativeData();
-            data.setLabel("");
-            data.setValue("");
             Integer dataType = dataFromAsset.getType();
-            if (dataType.equals(DataAssetType.dataAssetTypeDesc) || dataType.equals(DataAssetType.dataAssetTypeDesc2)) {
-                data.setLabel("");
-                data.setValue(getDecodedValue(metadata.getDescription()));
+            if (dataType.equals(DataAssetType.DATA_ASSET_TYPE_DESC.getValue())
+                    || dataType.equals(DataAssetType.DATA_ASSET_TYPE_DESC_2.getValue())) {
+                return XnativeData.builder()
+                        .label("")
+                        .value(getDecodedValue(metadata.getDescription())).build();
             }
-            return data;
         }
-        return null;
+        return XnativeData.builder()
+                .value("")
+                .label("").build();
     }
 
     private static XnativeImage resolveAssetImage(Asset asset, Iterator<HuaweiIcon> iconIterator,
@@ -493,7 +493,7 @@ public class HuaweiUtilResponse {
             if (imageType == null) {
                 throw new PreBidException("resolveAssetImage: Asset.Image.Type is null");
             }
-            if (imageType.equals(ImageAssetType.imageAssetTypeIcon) && iconIterator.hasNext()) {
+            if (imageType.equals(ImageAssetType.IMAGE_ASSET_TYPE_ICON.getValue()) && iconIterator.hasNext()) {
                 final HuaweiIcon icon = iconIterator.next();
                 @NonNull final Integer width = icon.getWidth();
                 @NonNull final Integer height = icon.getHeight();
@@ -514,7 +514,7 @@ public class HuaweiUtilResponse {
         if (asset.getVideo() != null) {
             Bid bid = resolveVideoBid(adType, content, metadata, bidType, imp, newBidIdFromImp,
                     monitorList, bidPrice, bidCrid);
-            return XnativeVideo.builder().vastTag(bid.getAdm()).build();
+            return XnativeVideo.of(bid.getAdm());
         }
         return null;
     }

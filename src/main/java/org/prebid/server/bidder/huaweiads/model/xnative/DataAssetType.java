@@ -1,9 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model.xnative;
 
-public class DataAssetType {
-
-    private DataAssetType() {
-    }
+public enum DataAssetType {
 
     //Type ID
     //   1
@@ -15,7 +12,7 @@ public class DataAssetType {
     //   text
     // Recommendations:
     //   Required. Max 25 or longer
-    public static Integer dataAssetTypeSponsored = 1;
+    DATA_ASSET_TYPE_SPONSORED(1),
 
     // Type ID:
     //   2
@@ -28,7 +25,7 @@ public class DataAssetType {
     //   text
     // Recommendations:
     //   Recommended. Max 140 or longer.
-    public static Integer dataAssetTypeDesc = 2;
+    DATA_ASSET_TYPE_DESC(2),
 
     // Type ID:
     //   3
@@ -41,7 +38,7 @@ public class DataAssetType {
     //   number formatted as string
     // Recommendations:
     //   Optional. 0-5 integer formatted as string.
-    public static Integer dataAssetTypeRating = 3;
+    DATA_ASSET_TYPE_RATING(3),
 
     // Type ID:
     //   4
@@ -51,7 +48,7 @@ public class DataAssetType {
     //   Number of social ratings or “likes” of the product being offered to the user.
     // Format:
     //   number formatted as string
-    public static Integer dataAssetTypeLikes = 4;
+    DATA_ASSET_TYPE_LIKES(4),
 
     // Type ID:
     //   5
@@ -61,7 +58,7 @@ public class DataAssetType {
     //   Number downloads/installs of this product
     // Format:
     //   number formatted as string
-    public static Integer dataAssetTypeDownloads = 5;
+    DATA_ASSET_TYPE_DOWNLOADS(5),
 
     // Type ID:
     //   6
@@ -72,7 +69,7 @@ public class DataAssetType {
     //   Value should include currency symbol in localised format.
     // Format:
     //   number formatted as string
-    public static Integer dataAssetTypePrice = 6;
+    DATA_ASSET_TYPE_PRICE(6),
 
     // Type ID:
     //   7
@@ -83,7 +80,7 @@ public class DataAssetType {
     //   Value should include currency symbol in localised format.
     // Format:
     //   number formatted as string
-    public static Integer dataAssetTypeSalePrice = 7;
+    DATA_ASSET_TYPE_SALE_PRICE(7),
 
     // Type ID:
     //   8
@@ -93,7 +90,7 @@ public class DataAssetType {
     //   Phone number formatted
     // Format:
     //   string
-    public static Integer dataAssetTypePhone = 8;
+    DATA_ASSET_TYPE_PHONE(8),
 
     // Type ID:
     //   9
@@ -103,7 +100,7 @@ public class DataAssetType {
     //   Address
     // Format:
     //   text
-    public static Integer dataAssetTypeAddress = 9;
+    DATA_ASSET_TYPE_ADDRESS(9),
 
     // Type ID:
     //   10
@@ -113,7 +110,7 @@ public class DataAssetType {
     //   Additional descriptive text associated with the product or service being advertised
     // Format:
     //   text
-    public static Integer dataAssetTypeDesc2 = 10;
+    DATA_ASSET_TYPE_DESC_2(10),
 
     // Type ID:
     //   11
@@ -125,7 +122,7 @@ public class DataAssetType {
     //   IE sponsored by BRAND on SITE (where SITE is transmitted in this field).
     // Format:
     //   text
-    public static Integer dataAssetTypeDispayURL = 11;
+    DATA_ASSET_TYPE_DISPAY_URL(11),
 
     // Type ID:
     //   12
@@ -137,7 +134,17 @@ public class DataAssetType {
     //   text
     // Recommendations:
     //   Optional. Max 15 or longer.
-    public static Integer dataAssetTypeCTAText = 12;
+    DATA_ASSET_TYPE_CTA_TEXT(12);
+
+    private final Integer value;
+
+    DataAssetType(Integer value) {
+        this.value = value;
+    }
+
+    public Integer getValue() {
+        return this.value;
+    }
 
     // Type ID:
     //   500+

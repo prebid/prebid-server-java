@@ -5,16 +5,24 @@ import lombok.Builder;
 import lombok.Value;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class XnativeAsset {
 
     Integer id;
+
     Integer required;
+
     XnativeTitle title;
+
     XnativeImage image;
+
     XnativeVideo video;
+
     XnativeData data;
+
     XnativeLink link;
+
     ObjectNode ext;
 }
+
 

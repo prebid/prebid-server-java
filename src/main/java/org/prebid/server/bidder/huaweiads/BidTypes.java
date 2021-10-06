@@ -14,7 +14,7 @@ public enum BidTypes {
 
     INTERSTITIAL_CODE(12);
 
-    private Integer value;
+    private final Integer value;
 
     BidTypes(Integer value) {
         this.value = value;
