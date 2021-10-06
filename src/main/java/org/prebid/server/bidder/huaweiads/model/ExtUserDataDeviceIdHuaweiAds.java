@@ -6,7 +6,7 @@ import lombok.Value;
 import java.util.List;
 
 @Builder
-@Value
+@Value(staticConstructor = "of")
 public class ExtUserDataDeviceIdHuaweiAds {
 
     List<String> imei;
