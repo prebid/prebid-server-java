@@ -264,11 +264,7 @@ public class YieldlabBidderTest extends VertxTest {
                                 .adSize("728x90")
                                 .extId("abc")
                                 .build())))
-                        .video(Video.builder()
-                                .mimes(singletonList("video/mp4"))
-                                .w(1)
-                                .h(2)
-                                .build())
+                        .video(Video.builder().build())
                         .build()))
                 .build();
 
@@ -281,20 +277,20 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String expectedAdmStartsWith = "<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper><AdSystem>Yieldlab"
-                + "</AdSystem><VASTAdTagURI><![CDATA[";
-        final String expectedAdmEndsWith = "]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
-                + "</Wrapper></Ad></VAST>";
+        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
+        final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
+                + "<AdSystem>Yieldlab</AdSystem>"
+                + "<VASTAdTagURI>"
+                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
+                + "1e1e-4cfd-8edc-7d32dc1a21e5 ]]>"
+                + "</VASTAdTagURI>"
+                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
 
         assertThat(result.getErrors()).isEmpty();
-
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .allSatisfy(adm -> {
-                    assertThat(adm).startsWith(expectedAdmStartsWith);
-                    assertThat(adm).endsWith(expectedAdmEndsWith);
-                });
+                .satisfies(adm -> adm.equals(expectedAdm));
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {
