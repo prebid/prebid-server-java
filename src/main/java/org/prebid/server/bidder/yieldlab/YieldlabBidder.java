@@ -286,7 +286,7 @@ public class YieldlabBidder implements Bidder<Void> {
         if (currentImp.getVideo() != null) {
             bidType = BidType.video;
             updatedBid.nurl(makeNurl(bidRequest, matchedExtImp, yieldlabResponse));
-            updatedBid.adm(makeVast(bidRequest, matchedExtImp, yieldlabResponse));
+            updatedBid.adm(resolveAdm(bidRequest, matchedExtImp, yieldlabResponse));
         } else if (currentImp.getBanner() != null) {
             bidType = BidType.banner;
             updatedBid.adm(makeAdm(bidRequest, matchedExtImp, yieldlabResponse));
@@ -364,7 +364,8 @@ public class YieldlabBidder implements Bidder<Void> {
         return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private String makeVast(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
+    private static String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
+                                     YieldlabResponse yieldlabResponse) {
         return String.format(VAST_MARKUP, extImpYieldlab.getAdslotId(),
                 makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }

@@ -253,31 +253,23 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidderBidWithVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnCorrectAdm() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("test-imp-id")
-                        .banner(Banner.builder().w(728).h(90).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
                                 .adslotId("12345")
                                 .supplyId("123456789")
                                 .adSize("728x90")
-                                .targeting(singletonMap("key", "value"))
                                 .extId("abc")
                                 .build())))
                         .video(Video.builder()
                                 .mimes(singletonList("video/mp4"))
                                 .w(1)
                                 .h(2)
-                                .minduration(1)
-                                .maxduration(2)
                                 .build())
                         .build()))
-                .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.of(1, ExtRegs.of(1, "usPrivacy")))
-                .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
-                .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
@@ -289,33 +281,20 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
-        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
-        final String adm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
-                + "<AdSystem>Yieldlab</AdSystem>"
-                + "<VASTAdTagURI>"
-                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-1e1e"
-                + "-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent ]]>"
-                + "</VASTAdTagURI>"
-                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("12345")
-                        .impid("test-imp-id")
-                        .price(BigDecimal.valueOf(2.01))
-                        .crid(String.format("123451234%s", weekNumber))
-                        .dealid("1234")
-                        .w(728)
-                        .h(90)
-                        .nurl(String.format("https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
-                                + "1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent", timestamp))
-                        .adm(adm)
-                        .build(),
-                BidType.video, "EUR");
+        final String expectedAdmStartsWith = "<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper><AdSystem>Yieldlab"
+                + "</AdSystem><VASTAdTagURI><![CDATA[";
+        final String expectedAdmEndsWith = "]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
+                + "</Wrapper></Ad></VAST>";
 
         assertThat(result.getErrors()).isEmpty();
-        List<BidderBid> value = result.getValue();
-        assertThat(result.getValue()).containsExactly(expected);
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .allSatisfy(adm -> {
+                    assertThat(adm).startsWith(expectedAdmStartsWith);
+                    assertThat(adm).endsWith(expectedAdmEndsWith);
+                });
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {
