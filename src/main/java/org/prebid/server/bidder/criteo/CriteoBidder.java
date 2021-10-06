@@ -42,9 +42,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Criteo {@link Bidder} implementation.
- */
 public class CriteoBidder implements Bidder<CriteoRequest> {
 
     private final String endpointUrl;

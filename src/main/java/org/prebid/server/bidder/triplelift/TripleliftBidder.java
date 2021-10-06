@@ -32,9 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Triplelift {@link Bidder} implementation.
- */
 public class TripleliftBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
@@ -71,13 +68,13 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                 .build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encode(updatedRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(updatedRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encode(updatedRequest))
+                                .headers(HttpUtil.headers())
+                                .payload(updatedRequest)
+                                .build()),
                 errors);
     }
 

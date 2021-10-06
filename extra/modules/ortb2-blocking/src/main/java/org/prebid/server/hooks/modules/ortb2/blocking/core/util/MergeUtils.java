@@ -22,11 +22,11 @@ public interface MergeUtils {
 
     static <T> List<String> mergeMessages(Stream<? extends Result<?>> results) {
         final List<String> warnings = results
-            .map(Result::getMessages)
-            .filter(Objects::nonNull)
-            .flatMap(Collection::stream)
-            .distinct()
-            .collect(Collectors.toList());
+                .map(Result::getMessages)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .distinct()
+                .collect(Collectors.toList());
 
         return !warnings.isEmpty() ? warnings : null;
     }

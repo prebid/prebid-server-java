@@ -20,7 +20,7 @@ import org.prebid.server.settings.CachingApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.proto.request.InvalidateSettingsCacheRequest;
 import org.prebid.server.settings.proto.request.UpdateSettingsCacheRequest;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Map;
@@ -120,7 +120,7 @@ public class AdminCentralService implements AdminEventProcessor {
             return;
         }
 
-        final List<String> accounts = ObjectUtils.getIfNotNull(adminAccounts, AdminAccounts::getAccounts);
+        final List<String> accounts = ObjectUtil.getIfNotNull(adminAccounts, AdminAccounts::getAccounts);
         if (CollectionUtils.isNotEmpty(accounts)) {
             accounts.forEach(cachingApplicationSettings::invalidateAccountCache);
         } else {
@@ -151,7 +151,7 @@ public class AdminCentralService implements AdminEventProcessor {
             return;
         }
 
-        final List<String> lineItemIds = ObjectUtils.getIfNotNull(adminLineItems, AdminLineItems::getIds);
+        final List<String> lineItemIds = ObjectUtil.getIfNotNull(adminLineItems, AdminLineItems::getIds);
 
         if (CollectionUtils.isNotEmpty(lineItemIds)) {
             lineItemService.invalidateLineItemsByIds(lineItemIds);

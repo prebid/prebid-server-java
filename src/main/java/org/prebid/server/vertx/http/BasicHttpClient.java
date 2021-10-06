@@ -47,7 +47,13 @@ public class BasicHttpClient implements HttpClient {
         if (timeoutMs <= 0) {
             failResponse(new TimeoutException("Timeout has been exceeded"), promise);
         } else {
-            final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url);
+            final HttpClientRequest httpClientRequest;
+            try {
+                httpClientRequest = httpClient.requestAbs(method, url);
+            } catch (Exception e) {
+                failResponse(e, promise);
+                return promise.future();
+            }
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
             // but remaining part is delayed. So, overall request/response timeout is involved to fix it.

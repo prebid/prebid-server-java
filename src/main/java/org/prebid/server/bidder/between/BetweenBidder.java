@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Between {@link Bidder} implementation.
- */
 public class BetweenBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =

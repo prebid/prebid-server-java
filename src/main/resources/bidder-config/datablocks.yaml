@@ -1,12 +1,6 @@
 adapters:
   datablocks:
-    enabled: false
     endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@datablocks.net
       app-media-types:

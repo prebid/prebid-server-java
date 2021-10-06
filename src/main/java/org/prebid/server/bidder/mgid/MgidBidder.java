@@ -22,6 +22,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.mgid.ExtImpMgid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -32,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Mgid {@link Bidder} implementation.
- */
 public class MgidBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -119,11 +117,11 @@ public class MgidBidder implements Bidder<BidRequest> {
 
     private static BigDecimal getBidFloor(ExtImpMgid impMgid) {
         return ObjectUtils.defaultIfNull(
-                bidFloorValueOrNull(impMgid.getBidfloor()), bidFloorValueOrNull(impMgid.getBidFloorSecond()));
+                validBidFloorOrNull(impMgid.getBidfloor()), validBidFloorOrNull(impMgid.getBidFloorSecond()));
     }
 
-    private static BigDecimal bidFloorValueOrNull(BigDecimal value) {
-        return value != null && value.compareTo(BigDecimal.ZERO) > 0 ? value : null;
+    private static BigDecimal validBidFloorOrNull(BigDecimal bidFloor) {
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
     }
 
     private static String getTagid(Imp imp, ExtImpMgid impMgid) {
