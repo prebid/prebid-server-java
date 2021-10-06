@@ -105,7 +105,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .priceGranularity("testPriceGranularity")
                         .build())
-                .privacy(AccountPrivacyConfig.of(true, null, null))
+                .privacy(AccountPrivacyConfig.of(null, null))
                 .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
@@ -116,7 +116,6 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getId()).isEqualTo("someId");
-        assertThat(future.result().getPrivacy().getEnforceCcpa()).isEqualTo(true);
         assertThat(future.result().getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
 
         verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
