@@ -44,7 +44,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class NotificationEventHandlerTest extends VertxTest {
 
@@ -100,7 +100,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -116,7 +116,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -132,7 +132,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -150,7 +150,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -167,7 +167,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
     }
@@ -185,7 +185,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -204,7 +204,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -224,7 +224,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(400);
     }
@@ -244,7 +244,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
         assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
@@ -270,7 +270,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
 
         assertThat(captureResponseStatusCode()).isEqualTo(401);
         assertThat(captureResponseBody()).isEqualTo("Account 'accountId' doesn't support events");
@@ -419,8 +419,8 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationEventService);
-        verifyZeroInteractions(userService);
+        verifyNoInteractions(applicationEventService);
+        verifyNoInteractions(userService);
     }
 
     @Test
@@ -443,7 +443,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(analyticsReporterDelegator);
+        verifyNoInteractions(analyticsReporterDelegator);
     }
 
     @Test

@@ -64,7 +64,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UserServiceTest extends VertxTest {
 
@@ -131,7 +131,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
 
         assertEquals(UserDetails.empty(), result);
     }
@@ -157,7 +157,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
 
         assertEquals(UserDetails.empty(), result);
     }
@@ -476,7 +476,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateWinRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -498,7 +498,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateWinRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

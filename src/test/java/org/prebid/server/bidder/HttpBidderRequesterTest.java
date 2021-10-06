@@ -63,7 +63,7 @@ import static org.mockito.Mockito.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class HttpBidderRequesterTest extends VertxTest {
@@ -170,12 +170,12 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .result();
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
         final ArgumentCaptor<HttpCall<BidRequest>> httpCallArgumentCaptor = ArgumentCaptor.forClass(HttpCall.class);
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
-                .containsOnly("storedResponse");
+                .isEqualTo("storedResponse");
         assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
     }
 
@@ -612,7 +612,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(bidderSeatBid.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsOnly("Timeout has been exceeded");
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

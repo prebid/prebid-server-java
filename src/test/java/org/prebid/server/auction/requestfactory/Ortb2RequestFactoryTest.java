@@ -84,7 +84,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class Ortb2RequestFactoryTest extends VertxTest {
@@ -482,7 +482,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.result()).isEqualTo(Account.empty(""));
     }
@@ -540,7 +540,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
@@ -579,7 +579,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("error");
@@ -601,7 +601,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("error");
@@ -617,7 +617,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verifyZeroInteractions(storedRequestProcessor);
+        verifyNoInteractions(storedRequestProcessor);
     }
 
     @Test
@@ -809,7 +809,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(auctionBidRequest -> auctionBidRequest.getExt().getPrebid().getIntegration())
-                .containsOnly(integration);
+                .isEqualTo(integration);
     }
 
     @Test
