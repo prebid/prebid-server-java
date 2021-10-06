@@ -1,40 +1,58 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Value;
 
 import java.math.BigDecimal;
 
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
+@Value(staticConstructor = "of")
 public class HuaweiDevice {
 
     Integer type;
+
     String useragent;
+
     String os;
+
     String version;
+
     String maker;
+
     String model;
+
     Integer width;
+
     Integer height;
+
     String language;
+
     String buildVersion;
+
     Integer dpi;
+
     BigDecimal pxratio;
+
     String imei;
+
     String oaid;
+
     String isTrackingEnabled;
+
     String emuiVer;
+
     String localeCountry;
+
     String belongCountry;
-    String gaidTrackingEnabled;
+
+    @JsonProperty("gaidTrackingEnabled")
+    String isGaidTrackingEnabled;
+
     String gaid;
+
     String clientTime;
+
     String ip;
 }
+

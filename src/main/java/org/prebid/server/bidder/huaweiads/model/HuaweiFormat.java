@@ -6,5 +6,7 @@ import lombok.Value;
 public class HuaweiFormat {
 
     Integer w;
+
     Integer h;
 }
+

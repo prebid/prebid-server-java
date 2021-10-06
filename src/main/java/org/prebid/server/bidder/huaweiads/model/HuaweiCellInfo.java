@@ -6,5 +6,7 @@ import lombok.Value;
 public class HuaweiCellInfo {
 
     String mcc;
+
     String mnc;
 }
+

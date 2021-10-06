@@ -8,9 +8,15 @@ import lombok.Value;
 public class HuaweiIcon {
 
     String url;
+
     Integer height;
+
     Integer fileSize;
+
     String sha256;
+
     String imageType;
+
     Integer width;
 }
+

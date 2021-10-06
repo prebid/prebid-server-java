@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.huaweiads.model;
 
 import com.iab.openrtb.request.Asset;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.huaweiads.model.xnative.request.EventTracker;
@@ -9,34 +8,34 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 
 import java.util.List;
 
-@AllArgsConstructor(staticName = "of")
 @Builder
-@Value
+@Value(staticConstructor = "of")
 public class HuaweiNativeRequest {
 
-    int ver;
+    Integer ver;
 
-    int plcmtCnt;
+    Integer plcmtCnt;
 
-    int seq;
+    Integer seq;
 
     List<Asset> assets;
 
-    int aurlSupport;
+    Integer aurlSupport;
 
-    int durlSupport;
+    Integer durlSupport;
 
     List<EventTracker> eventTrackers;
 
-    int privacy;
+    Integer privacy;
 
     ExtImp rawMessage;
 
-    int layoutCode;
+    Integer layoutCode;
 
-    int adUnit;
+    Integer adUnit;
 
-    int contextSubType;
+    Integer contextSubType;
 
-    int placementType;
+    Integer placementType;
 }
+

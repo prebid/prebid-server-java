@@ -6,15 +6,15 @@ import lombok.Value;
 import java.math.BigDecimal;
 import java.util.List;
 
-@Value
 @Builder
+@Value
 public class HuaweiContent {
 
     String contentid;
 
-    int interactiontype;
+    Integer interactiontype;
 
-    int creativetype;
+    Integer creativetype;
 
     HuaweiMetadata metaData;
 
@@ -24,3 +24,4 @@ public class HuaweiContent {
 
     BigDecimal price;
 }
+

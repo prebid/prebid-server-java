@@ -9,7 +9,10 @@ import java.util.List;
 @Value
 public class HuaweiResponse {
 
-    private Integer retcode;
-    private String reason;
-    private List<HuaweiAd> multiad;
+    Integer retcode;
+
+    String reason;
+
+    List<HuaweiAd> multiad;
 }
+

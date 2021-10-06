@@ -1,25 +1,30 @@
 package org.prebid.server.bidder.huaweiads.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Setter;
-import lombok.Getter;
+import lombok.Value;
 
 import java.util.List;
 
-@AllArgsConstructor(staticName = "of")
 @Builder
-@Setter
-@Getter
+@Value(staticConstructor = "of")
 public class HuaweiAdSlot {
 
-    private String slotId;
-    private Integer adType;
-    private Integer test;
-    private Integer totalDuration;
-    private Integer orientation;
-    private Integer w;
-    private Integer h;
-    private List<HuaweiFormat> format;
-    private List<String> detailedCreativeTypeList;
+    String slotId;
+
+    Integer adType;
+
+    Integer test;
+
+    Integer totalDuration;
+
+    Integer orientation;
+
+    Integer w;
+
+    Integer h;
+
+    List<HuaweiFormat> format;
+
+    List<String> detailedCreativeTypeList;
 }
+

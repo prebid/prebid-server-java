@@ -8,12 +8,21 @@ import lombok.Value;
 public class HuaweiApkInfo {
 
     String url;
+
     Integer fileSize;
+
     String sha256;
+
     String packageName;
+
     String secondUrl;
+
     String appName;
+
     String versionName;
+
     String appDesc;
+
     String appIcon;
 }
+

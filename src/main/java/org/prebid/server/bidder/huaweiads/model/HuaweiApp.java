@@ -1,15 +1,20 @@
 package org.prebid.server.bidder.huaweiads.model;
 
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 @Builder
-@Getter
+@Value
 public class HuaweiApp {
 
-    private String version;
-    private String name;
-    private String pkgname;
-    private String lang;
-    private String country;
+    String version;
+
+    String name;
+
+    String pkgname;
+
+    String lang;
+
+    String country;
 }
+

@@ -8,9 +8,15 @@ import lombok.Value;
 public class HuaweiMediaFile {
 
     String mime;
+
     Integer width;
+
     Integer height;
+
     Integer fileSize;
+
     String url;
+
     String sha256;
 }
+

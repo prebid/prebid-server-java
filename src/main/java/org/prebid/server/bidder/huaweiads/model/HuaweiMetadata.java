@@ -5,18 +5,28 @@ import lombok.Value;
 
 import java.util.List;
 
-@Value(staticConstructor = "of")
 @Builder
+@Value(staticConstructor = "of")
 public class HuaweiMetadata {
 
     String title;
+
     String description;
+
     List<HuaweiImageInfo> imageInfo;
+
     List<HuaweiIcon> icon;
+
     String clickUrl;
+
     String intent;
+
     HuaweiVideoInfo videoInfo;
+
     HuaweiApkInfo apkInfo;
-    int duration;
+
+    Integer duration;
+
     HuaweiMediaFile mediaFile;
 }
+

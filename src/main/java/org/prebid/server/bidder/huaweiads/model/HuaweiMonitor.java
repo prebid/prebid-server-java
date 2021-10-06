@@ -10,5 +10,7 @@ import java.util.List;
 public class HuaweiMonitor {
 
     String eventType;
+
     List<String> url;
 }
+
