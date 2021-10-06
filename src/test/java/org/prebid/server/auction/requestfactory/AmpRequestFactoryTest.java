@@ -1249,10 +1249,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithProvidersSettingsContainsAttlConsentIfParamIsPresent() {
+    public void shouldReturnBidRequestWithProvidersSettingsContainsAddtlConsentIfParamIsPresent() {
         // given
         routingContext.queryParams()
-                .add("attl_consent", "someConsent");
+                .add("addtl_consent", "someConsent");
 
         givenBidRequest();
 

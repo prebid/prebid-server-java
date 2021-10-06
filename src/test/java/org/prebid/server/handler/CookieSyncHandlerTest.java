@@ -295,7 +295,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, accountGdprConfig, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null))
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -1040,8 +1040,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
         assertThat(cookieSyncResponse.getBidderStatus())
                 .extracting(BidderUsersyncStatus::getUsersync)
-                .containsOnly(
-                        UsersyncInfo.of("http://rubiconexample.com", "redirect", false));
+                .containsOnly(UsersyncInfo.of("http://rubiconexample.com", "redirect", false));
     }
 
     @Test
