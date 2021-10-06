@@ -58,6 +58,15 @@
     "primaryadserver": 1,
     "publisher": ""
   },
+  "pricegranularity": {
+    "precision": 1,
+    "ranges": [
+      {
+        "increment": 0.5,
+        "max": 10
+      }
+    ]
+  },
   "video": {
     "w": 640,
     "h": 480,
