@@ -50,7 +50,7 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                 name, vertx, openingThreshold, openingIntervalMs, closingIntervalMs, clock, metrics);
 
         circuitBreakerByName = Caffeine.newBuilder()
-                .expireAfterAccess(idleExpireHours, TimeUnit.HOURS) // remove unused CBs
+                .expireAfterAccess(idleExpireHours, TimeUnit.HOURS)
                 .<String, CircuitBreaker>removalListener((name, cb, cause) -> removeCircuitBreakerGauge(name, metrics))
                 .build()
                 .asMap();
