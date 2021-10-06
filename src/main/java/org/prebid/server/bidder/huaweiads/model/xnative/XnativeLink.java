@@ -7,7 +7,7 @@ import lombok.Value;
 import java.util.List;
 
 @Builder
-@Value()
+@Value
 public class XnativeLink {
 
     String url;

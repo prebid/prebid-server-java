@@ -9,11 +9,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
  * and which types of tracking are available for each event type, and is included as an array in the request.
  */
 
-@Value(staticConstructor = "of")
 @Builder
+@Value
 public class EventTracker {
 
-    int eventType;
-    int eventTrackingMethods;
+    Integer eventType;
+
+    Integer eventTrackingMethods;
+
     ExtImp rawMessage;
 }
+
