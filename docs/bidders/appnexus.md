@@ -20,7 +20,7 @@ the empty `displaymanagerver` before sending the request to AppNexus.
 
 ## Test Request
 
-The following test parameters can be used to verify that Prebid Server is working properly with the 
+The following test parameters can be used to verify that Prebid Server is working properly with the
 Appnexus adapter. This example includes an `imp` object with an Appnexus test placement ID and sizes
 that would match with the test creative.
 
@@ -47,4 +47,3 @@ that would match with the test creative.
         }
 	}]
 ```
-
