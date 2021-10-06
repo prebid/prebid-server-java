@@ -6,18 +6,16 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 3.33,
+          "price": 1.25,
           "adm": "adm001",
           "adid": "adid001",
           "cid": "cid001",
           "crid": "crid001",
-          "w": 300,
-          "h": 250,
           "ext": {
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 3.33
+            "origbidcpm": 1.25
           }
         }
       ],

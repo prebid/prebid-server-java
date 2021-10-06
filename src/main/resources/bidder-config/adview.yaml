@@ -1,0 +1,18 @@
+adapters:
+  adview:
+    endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
+    meta-info:
+      maintainer-email: partner@adview.com
+      site-media-types:
+      app-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1022
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adview
+      type: redirect
+      support-cors: false

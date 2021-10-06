@@ -1,12 +1,6 @@
 adapters:
   smaato:
-    enabled: false
     endpoint: https://prebid.ad.smaato.net/oapi/prebid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@smaato.com
       app-media-types:

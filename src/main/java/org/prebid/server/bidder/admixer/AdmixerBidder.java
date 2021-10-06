@@ -9,6 +9,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -33,9 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Admixer {@link Bidder} implementation.
- */
 public class AdmixerBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdmixer>> ADMIXER_EXT_TYPE_REFERENCE =
@@ -68,13 +66,13 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(body)
+                                .build()),
                 errors);
     }
 
@@ -85,7 +83,9 @@ public class AdmixerBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Wrong Admixer bidder ext in imp with id : %s", imp.getId()));
         }
-        if (StringUtils.length(extImpAdmixer.getZone()) != 36) {
+        final String zoneId = extImpAdmixer.getZone();
+
+        if (StringUtils.length(zoneId) < 32 || StringUtils.length(zoneId) > 36) {
             throw new PreBidException("ZoneId must be UUID/GUID");
         }
 
@@ -93,13 +93,22 @@ public class AdmixerBidder implements Bidder<BidRequest> {
     }
 
     private Imp processImp(Imp imp, ExtImpAdmixer extImpAdmixer) {
-        final Double extImpFloor = extImpAdmixer.getCustomFloor();
-        final BigDecimal customFloor = extImpFloor != null ? BigDecimal.valueOf(extImpFloor) : BigDecimal.ZERO;
         return imp.toBuilder()
                 .tagid(extImpAdmixer.getZone())
-                .bidfloor(customFloor)
+                .bidfloor(resolveBidFloor(extImpAdmixer.getCustomFloor(), imp.getBidfloor()))
                 .ext(makeImpExt(extImpAdmixer.getCustomParams()))
                 .build();
+    }
+
+    private static BigDecimal resolveBidFloor(BigDecimal customBidFloor, BigDecimal bidFloor) {
+        final BigDecimal resolvedCustomBidFloor = isValidBidFloor(customBidFloor) ? customBidFloor : null;
+        final BigDecimal resolvedBidFloor = isValidBidFloor(bidFloor) ? bidFloor : null;
+
+        return ObjectUtils.defaultIfNull(resolvedBidFloor, resolvedCustomBidFloor);
+    }
+
+    private static boolean isValidBidFloor(BigDecimal bidFloor) {
+        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ObjectNode makeImpExt(Map<String, JsonNode> customParams) {

@@ -379,7 +379,7 @@ public class TcfDefinerService {
     private TCString decodeTcString(String consentString, RequestLogInfo requestLogInfo) {
         try {
             return TCString.decode(consentString);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             logWarn(consentString, e.getMessage(), requestLogInfo);
             return null;
         }

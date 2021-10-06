@@ -29,9 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adyoulike {@link Bidder} implementation.
- */
 public class AdyoulikeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdyoulike>> ADYOULIKE_EXT_TYPE_REFERENCE =

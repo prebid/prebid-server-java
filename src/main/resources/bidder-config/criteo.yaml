@@ -1,13 +1,6 @@
 adapters:
   criteo:
-    enabled: false
     endpoint: https://bidder.criteo.com/cdb?profileId=230
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    generate-slot-id: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: prebid@criteo.com
       app-media-types:
@@ -22,3 +15,4 @@ adapters:
       cookie-family-name: criteo
       type: redirect
       support-cors: false
+    generate-slot-id: true

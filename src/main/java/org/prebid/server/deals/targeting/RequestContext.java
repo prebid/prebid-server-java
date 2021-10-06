@@ -25,7 +25,7 @@ import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.beans.BeanInfo;
@@ -240,7 +240,7 @@ public class RequestContext {
     }
 
     private <T> T getSiteFirstPartyData(TargetingCategory category, Function<JsonNode, T> valueExtractor) {
-        return ObjectUtils.firstNonNull(
+        return ObjectUtil.firstNonNull(
                 () -> impContextDataAttributeReader.readFromExt(imp, category, valueExtractor),
                 () -> siteAttributeReader.readFromExt(bidRequest.getSite(), category, valueExtractor),
                 () -> appAttributeReader.readFromExt(bidRequest.getApp(), category, valueExtractor));
@@ -319,27 +319,25 @@ public class RequestContext {
         public static AttributeReader<Imp> forImpContextData() {
             return new AttributeReader<>(
                     Imp.class,
-                    imp -> getIfNotNull(getIfNotNull(getIfNotNull(
-                            imp,
-                            Imp::getExt),
-                            node -> node.get(EXT_CONTEXT)),
+                    imp -> getIfNotNull(
+                            getIfNotNull(
+                                    getIfNotNull(imp, Imp::getExt), node -> node.get(EXT_CONTEXT)),
                             node -> node.get(EXT_DATA)));
         }
 
         public static AttributeReader<Imp> forImpBidder() {
             return new AttributeReader<>(
                     Imp.class,
-                    imp -> getIfNotNull(getIfNotNull(getIfNotNull(
-                            imp,
-                            Imp::getExt),
-                            node -> node.get(EXT_PREBID)),
+                    imp -> getIfNotNull(
+                            getIfNotNull(
+                                    getIfNotNull(imp, Imp::getExt), node -> node.get(EXT_PREBID)),
                             node -> node.get(EXT_BIDDER)));
         }
 
         public <A> A read(
                 T target, TargetingCategory category, Function<JsonNode, A> valueExtractor, Class<A> attributeType) {
 
-            return ObjectUtils.firstNonNull(
+            return ObjectUtil.firstNonNull(
                     // look in the object itself
                     () -> readFromObject(target, category, attributeType),
                     // then examine ext if value not found on top level or if it is nested attribute
@@ -354,10 +352,9 @@ public class RequestContext {
         }
 
         public <A> A readFromExt(T target, TargetingCategory category, Function<JsonNode, A> valueExtractor) {
-            return getIfNotNull(getIfNotNull(getIfNotNull(
-                    target,
-                    extPathExtractor),
-                    node -> node.at(toJsonPointer(category.path()))),
+            return getIfNotNull(
+                    getIfNotNull(
+                            getIfNotNull(target, extPathExtractor), node -> node.at(toJsonPointer(category.path()))),
                     valueExtractor);
         }
 

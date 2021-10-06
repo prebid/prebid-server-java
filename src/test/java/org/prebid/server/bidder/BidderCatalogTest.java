@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -94,7 +93,6 @@ public class BidderCatalogTest {
                 null,
                 99,
                 true,
-                true,
                 false);
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
@@ -168,7 +166,6 @@ public class BidderCatalogTest {
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 

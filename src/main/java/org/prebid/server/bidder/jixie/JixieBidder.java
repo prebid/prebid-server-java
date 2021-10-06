@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Jixie {@link Bidder} implementation.
- */
 public class JixieBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
