@@ -42,11 +42,13 @@ public class BrightrollConfiguration {
     BidderDeps brightrollBidderDeps(BrightrollConfigurationProperties brightrollConfigurationProperties,
                                     @NotBlank @Value("${external-url}") String externalUrl,
                                     JacksonMapper mapper) {
+
         final Map<String, PublisherOverride> publisherIdToOverride =
                 brightrollConfigurationProperties.getAccounts() == null
                         ? Collections.emptyMap()
                         : brightrollConfigurationProperties.getAccounts().stream()
                         .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(brightrollConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
