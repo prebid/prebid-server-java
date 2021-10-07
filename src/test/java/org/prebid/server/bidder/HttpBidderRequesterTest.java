@@ -175,7 +175,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
-                .containsOnly("storedResponse");
+                .isEqualTo("storedResponse");
         assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
     }
 
