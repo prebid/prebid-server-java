@@ -831,7 +831,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(auctionBidRequest -> auctionBidRequest.getExt().getPrebid().getIntegration())
-                .containsOnly(integration);
+                .isEqualTo(integration);
     }
 
     @Test

@@ -1324,7 +1324,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(fpdResolver).resolveBidRequestExt(any(), any());
         assertThat(request)
                 .extracting(BidRequest::getExt)
-                .containsOnly(ExtRequest.of(ExtRequestPrebid.builder()
+                .isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
     }
 

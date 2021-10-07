@@ -659,7 +659,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(prebid1).isNotNull();
         final JsonNode bidders1 = prebid1.getBidders();
         assertThat(bidders1).isNotNull();
-        assertThat(bidders1.fields()).hasSize(1)
+        assertThat(bidders1.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -669,7 +669,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(prebid2).isNotNull();
         final JsonNode bidders2 = prebid2.getBidders();
         assertThat(bidders2).isNotNull();
-        assertThat(bidders2.fields()).hasSize(1)
+        assertThat(bidders2.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
@@ -1643,7 +1643,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequest extRequest = captureBidRequest().getExt();
         assertThat(extRequest)
                 .extracting(ExtRequest::getPrebid)
-                .flatExtracting("multibid")
+                .extracting(ExtRequestPrebid::getMultibid).asList()
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix"));
     }
 
@@ -1663,7 +1663,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequest extRequest = captureBidRequest().getExt();
         assertThat(extRequest)
                 .extracting(ExtRequest::getPrebid)
-                .flatExtracting("multibid")
+                .extracting(ExtRequestPrebid::getMultibid).asList()
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, null));
     }
 
@@ -2337,10 +2337,10 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest captureBidRequest = captureBidRequest();
         assertThat(captureBidRequest)
                 .extracting(BidRequest::getSite)
-                .containsNull();
+                .isNull();
         assertThat(captureBidRequest)
                 .extracting(BidRequest::getApp)
-                .doesNotContainNull();
+                .isNotNull();
     }
 
     @Test
