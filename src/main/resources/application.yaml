@@ -165,11 +165,6 @@ settings:
   enforce-valid-account: false
   database:
     pool-size: 20
-  in-memory-cache:
-    cache-size: 10000
-    ttl-seconds: 360
-    notification-endpoints-enabled: false
-    account-invalidation-enabled: true
   targeting:
     truncate-attr-chars: 20
   default-account-config:
