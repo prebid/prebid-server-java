@@ -290,7 +290,7 @@ public class YieldlabBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
-                .satisfies(adm -> adm.equals(expectedAdm));
+                .containsExactly(expectedAdm);
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {
