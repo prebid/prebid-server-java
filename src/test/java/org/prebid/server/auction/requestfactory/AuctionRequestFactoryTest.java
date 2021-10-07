@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -29,6 +30,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -83,6 +85,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     @Mock
     private AuctionRequestFactory target;
@@ -110,6 +114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
                 .privacyContext(defaultPrivacyContext)
+                .debugContext(DebugContext.of(true, null))
                 .build();
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -119,6 +124,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
+
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
 
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -157,6 +164,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -188,6 +196,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
@@ -266,6 +275,20 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future).succeededWith(auctionContext);
+    }
+
+    @Test
+    public void shouldEnrichAuctionContextWithDebugContext() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).debugContextFrom(any());
+        assertThat(result.result().getDebugContext()).isEqualTo(
+                DebugContext.of(true, null));
     }
 
     @Test

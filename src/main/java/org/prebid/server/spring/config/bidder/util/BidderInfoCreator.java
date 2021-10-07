@@ -18,6 +18,7 @@ public class BidderInfoCreator {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
+                configurationProperties.getDebug().getAllowed(),
                 configurationProperties.getEndpoint(),
                 aliasOf,
                 metaInfo.getMaintainerEmail(),

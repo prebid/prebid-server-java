@@ -138,6 +138,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"status\": \"active\","
                 + "\"auction\": {"
                 + "\"price-granularity\": \"med\","
+                + "\"debug-allow\": true,"
                 + "\"banner-cache-ttl\": 100,"
                 + "\"video-cache-ttl\": 100,"
                 + "\"truncate-target-attr\": 0,"
@@ -230,6 +231,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .videoCacheTtl(100)
                             .truncateTargetAttr(0)
                             .defaultIntegration("web")
+                            .debugAllow(true)
                             .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                             .events(AccountEventsConfig.of(true))
                             .build())

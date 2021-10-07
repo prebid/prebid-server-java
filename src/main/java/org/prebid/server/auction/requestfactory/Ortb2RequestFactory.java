@@ -132,7 +132,6 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugContext(debugContext(bidRequest))
                 .deepDebugLog(createDeepDebugLog(bidRequest))
                 .build();
     }
@@ -245,17 +244,6 @@ public class Ortb2RequestFactory {
         }
 
         return stageResult.getPayload().bidRequest();
-    }
-
-    private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
-
-        final TraceLevel traceLevel = ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
-
-        return DebugContext.of(debugEnabled, traceLevel);
     }
 
     public Future<AuctionContext> populateDealsInfo(AuctionContext auctionContext) {
