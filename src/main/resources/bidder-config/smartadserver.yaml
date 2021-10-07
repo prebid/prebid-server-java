@@ -1,12 +1,6 @@
 adapters:
   smartadserver:
-    enabled: false
     endpoint: https://ssb-global.smartadserver.com
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@smartadserver.com
       app-media-types:

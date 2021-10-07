@@ -111,6 +111,19 @@ public class BasicHttpClientTest {
     }
 
     @Test
+    public void requestShouldFailIfInvalidUrlPassed() {
+        // given
+        given(wrappedHttpClient.requestAbs(any(), any())).willThrow(new RuntimeException("error"));
+
+        // when
+        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).hasMessage("error");
+    }
+
+    @Test
     public void requestShouldFailIfHttpRequestFails() {
         // given
         given(httpClientRequest.exceptionHandler(any()))

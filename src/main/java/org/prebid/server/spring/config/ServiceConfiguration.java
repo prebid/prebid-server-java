@@ -9,6 +9,7 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -38,6 +39,8 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -46,6 +49,8 @@ import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
@@ -54,8 +59,8 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
-import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
+import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
@@ -182,6 +187,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    DebugResolver debugResolver(@Value("${debug.override-token:#{null}") String debugOverrideToken,
+                                BidderCatalog bidderCatalog) {
+        return new DebugResolver(bidderCatalog, debugOverrideToken);
+    }
+
+    @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
@@ -189,6 +200,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
+            JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
@@ -200,6 +212,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
+                jsonMerger,
                 mapper);
     }
 
@@ -214,7 +227,9 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
-            HookStageExecutor hookStageExecutor) {
+            HookStageExecutor hookStageExecutor,
+            @Autowired(required = false) DealsProcessor dealsProcessor,
+            Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -228,7 +243,9 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 applicationSettings,
                 ipAddressHelper,
-                hookStageExecutor);
+                hookStageExecutor,
+                dealsProcessor,
+                clock);
     }
 
     @Bean
@@ -241,6 +258,7 @@ public class ServiceConfiguration {
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new AuctionRequestFactory(
@@ -253,6 +271,7 @@ public class ServiceConfiguration {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 
@@ -279,6 +298,7 @@ public class ServiceConfiguration {
                                         FpdResolver fpdResolver,
                                         PrivacyEnforcementService privacyEnforcementService,
                                         TimeoutResolver timeoutResolver,
+                                        DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
@@ -290,6 +310,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 
@@ -302,6 +323,7 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver timeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new VideoRequestFactory(
@@ -312,6 +334,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 mapper);
     }
 
@@ -384,8 +407,8 @@ public class ServiceConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "http-client.circuit-breaker")
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "true")
-    CircuitBreakerProperties httpClientCircuitBreakerProperties() {
-        return new CircuitBreakerProperties();
+    HttpClientCircuitBreakerProperties httpClientCircuitBreakerProperties() {
+        return new HttpClientCircuitBreakerProperties();
     }
 
     @Bean
@@ -395,14 +418,21 @@ public class ServiceConfiguration {
             Vertx vertx,
             Metrics metrics,
             HttpClientProperties httpClientProperties,
-            @Qualifier("httpClientCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
+            @Qualifier("httpClientCircuitBreakerProperties")
+                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
-        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
-                circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(), clock);
+        return new CircuitBreakerSecuredHttpClient(
+                vertx,
+                httpClient,
+                metrics,
+                circuitBreakerProperties.getOpeningThreshold(),
+                circuitBreakerProperties.getOpeningIntervalMs(),
+                circuitBreakerProperties.getClosingIntervalMs(),
+                circuitBreakerProperties.getIdleExpireHours(),
+                clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
@@ -535,15 +565,19 @@ public class ServiceConfiguration {
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
+            DebugResolver debugResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             HookStageExecutor hookStageExecutor,
+            @Autowired(required = false) ApplicationEventService applicationEventService,
+            HttpInteractionLogger httpInteractionLogger,
             Metrics metrics,
             Clock clock,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
                 expectedCacheTimeMs,
@@ -552,15 +586,19 @@ public class ServiceConfiguration {
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
+                debugResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
                 hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
-                mapper);
+                mapper,
+                criteriaLogManager);
     }
 
     @Bean
@@ -649,9 +687,22 @@ public class ServiceConfiguration {
     ResponseBidValidator responseValidator(
             @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
-            Metrics metrics) {
+            Metrics metrics,
+            JacksonMapper mapper,
+            @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics);
+        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
+                dealsEnabled);
+    }
+
+    @Bean
+    CriteriaLogManager criteriaLogManager(JacksonMapper mapper) {
+        return new CriteriaLogManager(mapper);
+    }
+
+    @Bean
+    CriteriaManager criteriaManager(CriteriaLogManager criteriaLogManager, Vertx vertx) {
+        return new CriteriaManager(criteriaLogManager, vertx);
     }
 
     @Bean

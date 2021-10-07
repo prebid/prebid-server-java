@@ -137,11 +137,11 @@ public class VideoStoredRequestProcessor {
                                                                  BidRequestVideo videoRequest) {
 
         final Set<String> storedRequestIds = StringUtils.isNotBlank(storedBidRequestId)
-                ? Collections.singleton(storedBidRequestId)
-                : Collections.emptySet();
+                                             ? Collections.singleton(storedBidRequestId)
+                                             : Collections.emptySet();
 
         return applicationSettings.getVideoStoredData(accountId, storedRequestIds, podIds,
-                timeoutFactory.create(defaultTimeout))
+                        timeoutFactory.create(defaultTimeout))
                 .compose(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
                 .map(storedData -> mergeToBidRequest(storedData, videoRequest, storedBidRequestId))
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
@@ -152,8 +152,8 @@ public class VideoStoredRequestProcessor {
                                              JacksonMapper mapper) {
 
         return StringUtils.isNotBlank(defaultBidRequestPath)
-                ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
-                : null;
+               ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
+               : null;
     }
 
     private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult,
@@ -194,8 +194,8 @@ public class VideoStoredRequestProcessor {
         }
 
         return StringUtils.isNotBlank(storedRequest)
-                ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
-                : originalRequest;
+               ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
+               : originalRequest;
     }
 
     private WithPodErrors<List<Imp>> mergeStoredImps(Podconfig podconfig,
@@ -306,8 +306,8 @@ public class VideoStoredRequestProcessor {
 
     private BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest != null
-                ? defaultBidRequest.toBuilder()
-                : BidRequest.builder();
+                                                               ? defaultBidRequest.toBuilder()
+                                                               : BidRequest.builder();
 
         final Site site = videoRequest.getSite();
         if (site != null) {
@@ -387,14 +387,14 @@ public class VideoStoredRequestProcessor {
             durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
         }
 
-        PriceGranularity updatedPriceGranularity = PriceGranularity.createFromString("med");
-        final PriceGranularity priceGranularity = videoRequest.getPriceGranularity();
-        if (priceGranularity != null) {
-            final Integer precision = priceGranularity.getPrecision();
-            if (precision != null && precision != 0) {
-                updatedPriceGranularity = priceGranularity;
-            }
-        }
+        final PriceGranularity priceGranularity = videoRequest.getPricegranularity();
+        final Integer precision = priceGranularity != null
+                                  ? priceGranularity.getPrecision()
+                                  : null;
+
+        PriceGranularity updatedPriceGranularity = precision != null && precision != 0
+                                                   ? priceGranularity
+                                                   : PriceGranularity.createFromString("med");
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.mapper().valueToTree(updatedPriceGranularity))

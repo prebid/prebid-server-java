@@ -21,6 +21,9 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.model.DeepDebugLog;
+import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -46,15 +49,18 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
+import java.time.Clock;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class Ortb2RequestFactory {
 
@@ -71,8 +77,10 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
+    private final DealsProcessor dealsProcessor;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
+    private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
                                List<String> blacklistedAccounts,
@@ -83,7 +91,9 @@ public class Ortb2RequestFactory {
                                StoredRequestProcessor storedRequestProcessor,
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
-                               HookStageExecutor hookStageExecutor) {
+                               HookStageExecutor hookStageExecutor,
+                               DealsProcessor dealsProcessor,
+                               Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
@@ -95,6 +105,8 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
+        this.dealsProcessor = dealsProcessor;
+        this.clock = Objects.requireNonNull(clock);
     }
 
     public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
@@ -105,6 +117,8 @@ public class Ortb2RequestFactory {
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
+                .txnLog(TxnLog.create())
+                .debugHttpCalls(new HashMap<>())
                 .build();
     }
 
@@ -118,7 +132,7 @@ public class Ortb2RequestFactory {
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
                 .timeout(timeout(bidRequest, startTime))
-                .debugContext(debugContext(bidRequest))
+                .deepDebugLog(createDeepDebugLog(bidRequest))
                 .build();
     }
 
@@ -177,10 +191,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                body,
-                auctionContext.getHookExecutionContext())
+                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                        body,
+                        auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -232,15 +246,10 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    private static DebugContext debugContext(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid = getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final boolean debugEnabled = Objects.equals(bidRequest.getTest(), 1)
-                || Objects.equals(getIfNotNull(extRequestPrebid, ExtRequestPrebid::getDebug), 1);
-
-        final TraceLevel traceLevel = getIfNotNull(extRequestPrebid, ExtRequestPrebid::getTrace);
-
-        return DebugContext.of(debugEnabled, traceLevel);
+    public Future<AuctionContext> populateDealsInfo(AuctionContext auctionContext) {
+        return dealsProcessor != null
+                ? dealsProcessor.populateDealsInfo(auctionContext)
+                : Future.succeededFuture(auctionContext);
     }
 
     /**
@@ -359,9 +368,9 @@ public class Ortb2RequestFactory {
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
-        final ExtRequestPrebid prebidExt = getIfNotNull(ext, ExtRequest::getPrebid);
-        final String integration = getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
-        final String accountDefaultIntegration = account.getDefaultIntegration();
+        final ExtRequestPrebid prebidExt = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
+        final String integration = ObjectUtil.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
+        final String accountDefaultIntegration = accountDefaultIntegration(account);
 
         if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidExtBuilder =
@@ -384,17 +393,18 @@ public class Ortb2RequestFactory {
         final String ipAddress = privacyContext.getIpAddress();
         final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
 
-        final String ipV4InRequest = getIfNotNull(device, Device::getIp);
+        final String ipV4InRequest = ObjectUtil.getIfNotNull(device, Device::getIp);
         final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.v4 ? ipAddress : null;
         final boolean shouldUpdateIpV4 = ipV4 != null && !Objects.equals(ipV4InRequest, ipV4);
 
-        final String ipV6InRequest = getIfNotNull(device, Device::getIpv6);
+        final String ipV6InRequest = ObjectUtil.getIfNotNull(device, Device::getIpv6);
         final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.v6 ? ipAddress : null;
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
-        final Geo geo = getIfNotNull(device, Device::getGeo);
-        final String countryInRequest = getIfNotNull(geo, Geo::getCountry);
-        final String country = getIfNotNull(privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
+        final String country = ObjectUtil.getIfNotNull(privacyContext.getTcfContext().getGeoInfo(),
+                GeoInfo::getCountry);
         final boolean shouldUpdateCountry = country != null && !Objects.equals(countryInRequest, country);
 
         if (shouldUpdateIpV4 || shouldUpdateIpV6 || shouldUpdateCountry) {
@@ -420,6 +430,12 @@ public class Ortb2RequestFactory {
         return null;
     }
 
+    private static String accountDefaultIntegration(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+
+        return accountAuctionConfig != null ? accountAuctionConfig.getDefaultIntegration() : null;
+    }
+
     private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
         final CaseInsensitiveMultiMap.Builder mapBuilder = CaseInsensitiveMultiMap.builder();
         originalMap.entries().forEach(entry -> mapBuilder.add(entry.getKey(), entry.getValue()));
@@ -427,8 +443,17 @@ public class Ortb2RequestFactory {
         return mapBuilder.build();
     }
 
-    private static <T, R> R getIfNotNull(T target, Function<T, R> getter) {
-        return target != null ? getter.apply(target) : null;
+    private DeepDebugLog createDeepDebugLog(BidRequest bidRequest) {
+        final ExtRequest ext = bidRequest.getExt();
+        return DeepDebugLog.create(ext != null && isDeepDebugEnabled(ext), clock);
+    }
+
+    /**
+     * Determines deep debug flag from {@link ExtRequest}.
+     */
+    private static boolean isDeepDebugEnabled(ExtRequest extRequest) {
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.verbose;
     }
 
     static class RejectedRequestException extends RuntimeException {

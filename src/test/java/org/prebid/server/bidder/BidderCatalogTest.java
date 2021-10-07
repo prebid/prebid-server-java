@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.proto.response.BidderInfo;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -86,6 +85,7 @@ public class BidderCatalogTest {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
+                true,
                 null,
                 null,
                 "test@email.com",
@@ -93,7 +93,6 @@ public class BidderCatalogTest {
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 
@@ -161,6 +160,7 @@ public class BidderCatalogTest {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
+                true,
                 null,
                 null,
                 "test@email.com",
@@ -168,7 +168,6 @@ public class BidderCatalogTest {
                 singletonList("video"),
                 null,
                 99,
-                true,
                 true,
                 false);
 

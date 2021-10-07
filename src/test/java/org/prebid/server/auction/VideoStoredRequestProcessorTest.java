@@ -28,6 +28,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
+import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -37,6 +39,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.validation.VideoRequestValidator;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.function.UnaryOperator;
 
@@ -318,17 +321,62 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .isEqualTo(Arrays.asList(expectedImp1, expectedImp2, expectedImp3));
     }
 
+    @Test
+    public void shouldReturnFutureWithCorrectPriceGranularityInRequest() {
+        // given
+        final BidRequestVideo storedVideo = givenValidDataResult(builder -> builder
+                        .cacheconfig(CacheConfig.of(42))
+                        .bcat(singletonList("bcat"))
+                        .badv(singletonList("badv")),
+                UnaryOperator.identity());
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(1,
+                        singletonList(ExtGranularityRange.of(new BigDecimal(10), new BigDecimal("0.5"))))
+        );
+
+        final BidRequestVideo requestVideo = givenValidDataResult(
+                bidRequestVideoBuilder -> bidRequestVideoBuilder.pricegranularity(priceGranularity),
+                builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
+
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_POD_ID, "{}"),
+                emptyList());
+
+        given(applicationSettings.getVideoStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+        given(validator.validPods(any(), any()))
+                .willReturn(WithPodErrors.of(singletonList(Pod.of(123, 20, STORED_POD_ID)), emptyList()));
+
+        // when
+        final Future<WithPodErrors<BidRequest>> result = target.processVideoRequest(null, STORED_REQUEST_ID,
+                singleton(STORED_POD_ID), requestVideo);
+
+        // then
+        verify(applicationSettings).getVideoStoredData(any(), eq(singleton(STORED_REQUEST_ID)),
+                eq(singleton(STORED_POD_ID)), any());
+
+        verify(metrics).updateStoredRequestMetric(true);
+        verify(metrics).updateStoredImpsMetric(true);
+
+        verify(validator).validateStoredBidRequest(any(), anyBoolean(), any());
+        verify(validator).validPods(any(), eq(singleton(STORED_POD_ID)));
+
+        assertThat(result.result().getData().getExt().getPrebid().getTargeting().getPricegranularity())
+                .isEqualTo(mapper.valueToTree(priceGranularity));
+    }
+
     private BidRequestVideo givenValidDataResult(
             UnaryOperator<BidRequestVideo.BidRequestVideoBuilder> requestCustomizer,
             UnaryOperator<Podconfig.PodconfigBuilder> podconfigCustomizer) {
 
         return requestCustomizer.apply(BidRequestVideo.builder()
-                .storedrequestid("storedrequestid")
-                .podconfig(podconfigCustomizer.apply(Podconfig.builder()
-                        .durationRangeSec(asList(200, 100)))
-                        .build())
-                .site(Site.builder().id("siteId").build())
-                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                        .storedrequestid("storedrequestid")
+                        .podconfig(podconfigCustomizer.apply(Podconfig.builder()
+                                        .durationRangeSec(asList(200, 100)))
+                                .build())
+                        .site(Site.builder().id("siteId").build())
+                        .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
 }

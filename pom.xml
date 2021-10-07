@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.71.0-SNAPSHOT</version>
+    <version>1.77.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -13,16 +13,12 @@
         <url>http://prebid.org/</url>
     </organization>
 
-    <scm>
-        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
-        <tag>HEAD</tag>
-    </scm>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <java.version>11</java.version>
 
         <!-- dependencies versions -->
         <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
@@ -38,7 +34,7 @@
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
-        <jsonpatch.version>1.9</jsonpatch.version>
+        <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
@@ -55,6 +51,7 @@
         <mockito.version>2.23.4</mockito.version>
         <assertj.version>3.8.0</assertj.version>
         <wiremock.version>2.26.3</wiremock.version>
+        <awaitility.version>4.0.1</awaitility.version>
         <jetty.version>9.4.43.v20210629</jetty.version>
         <restassured.version>3.0.6</restassured.version>
         <h2.version>1.4.196</h2.version>
@@ -67,7 +64,6 @@
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
-        <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -86,6 +82,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
             <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
@@ -200,7 +201,7 @@
             <version>${json.schema.validator.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.fge</groupId>
+            <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
             <version>${jsonpatch.version}</version>
         </dependency>
@@ -302,6 +303,12 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -569,15 +576,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>${maven-release-plugin.version}</version>
-                <configuration>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <scmCommentPrefix xml:space="preserve">Prebid Server </scmCommentPrefix>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <reporting>
@@ -606,44 +604,4 @@
             </plugin>
         </plugins>
     </reporting>
-    <profiles>
-        <profile>
-            <id>java11</id>
-            <activation>
-                <jdk>[11,)</jdk>
-            </activation>
-            <properties>
-                <maven.compiler.source>11</maven.compiler.source>
-                <maven.compiler.target>11</maven.compiler.target>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <!--
-                             These are needed to silence warnings caused by:
-                                * 1 - jackson-afterburner
-                                * the rest - groovy
-                             Keep an eye on those dependencies and update their version as soon as they properly support
-                             Java 11. After this following arguments could be safely removed.
-                             -->
-                            <argLine>
-                                --add-opens java.base/java.lang=ALL-UNNAMED
-                                --add-opens java.base/java.lang.invoke=ALL-UNNAMED
-                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
-                                --add-opens java.base/java.util=ALL-UNNAMED
-                                --add-opens java.base/java.util.regex=ALL-UNNAMED
-                                --add-opens java.base/java.net=ALL-UNNAMED
-                                --add-opens java.base/java.io=ALL-UNNAMED
-                                --add-opens java.base/java.math=ALL-UNNAMED
-                                --add-opens java.base/sun.net.spi=ALL-UNNAMED
-                            </argLine>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

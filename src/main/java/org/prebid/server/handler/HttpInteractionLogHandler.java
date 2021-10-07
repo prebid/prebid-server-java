@@ -18,6 +18,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
     private static final String ENDPOINT_PARAMETER = "endpoint";
     private static final String STATUS_CODE_PARAMETER = "statusCode";
     private static final String ACCOUNT_PARAMETER = "account";
+    private static final String BIDDER_PARAMETER = "bidder";
     private static final String LIMIT_PARAMETER = "limit";
 
     private final int maxLimit;
@@ -39,6 +40,7 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
                     readEndpoint(parameters),
                     readStatusCode(parameters),
                     readAccount(parameters),
+                    readBidder(parameters),
                     readLimit(parameters)));
 
             HttpUtil.executeSafely(routingContext, endpoint,
@@ -76,6 +78,10 @@ public class HttpInteractionLogHandler implements Handler<RoutingContext> {
 
     private String readAccount(MultiMap parameters) {
         return parameters.get(ACCOUNT_PARAMETER);
+    }
+
+    private String readBidder(MultiMap parameters) {
+        return parameters.get(BIDDER_PARAMETER);
     }
 
     private int readLimit(MultiMap parameters) {

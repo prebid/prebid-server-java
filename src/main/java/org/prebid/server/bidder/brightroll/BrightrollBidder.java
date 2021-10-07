@@ -38,9 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Brightroll {@link Bidder} implementation.
- */
 public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.5";

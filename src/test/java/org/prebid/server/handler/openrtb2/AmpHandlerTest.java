@@ -406,7 +406,7 @@ public class AmpHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(givenBidResponseWithExt(
                         ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest()))
+                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
                                 .prebid(ExtBidResponsePrebid.of(1000L, null))
                                 .build()));
 
@@ -593,7 +593,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
     }
 
     @Test
@@ -742,13 +742,14 @@ public class AmpHandlerTest extends VertxTest {
                 .httpContext(givenHttpContext(singletonMap("Origin", "http://example.com")))
                 .auctionContext(expectedAuctionContext)
                 .bidResponse(BidResponse.builder().seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(
-                                        ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
-                                                .build(),
-                                        null)))
+                                .bid(singletonList(Bid.builder()
+                                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                                ExtBidPrebid.builder()
+                                                        .targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                                                        .build(),
+                                                null)))
+                                        .build()))
                                 .build()))
-                        .build()))
                         .build())
                 .targeting(singletonMap("hb_cache_id_bidder1", TextNode.valueOf("value1")))
                 .origin("http://example.com")

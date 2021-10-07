@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Yieldone {@link Bidder} implementation.
- */
 public class YieldoneBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYieldone>> YIELDONE_EXT_TYPE_REFERENCE =
@@ -66,13 +63,13 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .body(mapper.encode(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

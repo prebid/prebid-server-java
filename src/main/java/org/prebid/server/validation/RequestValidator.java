@@ -173,7 +173,12 @@ public class RequestValidator {
             if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
                 throw new ValidationException("request.site or request.app must be defined");
             }
-            validateSite(bidRequest.getSite());
+
+            // if site and app present site will be removed
+            if (bidRequest.getApp() == null) {
+                validateSite(bidRequest.getSite());
+            }
+
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
