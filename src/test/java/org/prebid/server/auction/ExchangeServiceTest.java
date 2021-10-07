@@ -78,6 +78,7 @@ import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.v1.analytics.ResultImpl;
 import org.prebid.server.hooks.v1.analytics.TagsImpl;
 import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -214,6 +215,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private ApplicationEventService applicationEventService;
     @Mock
+    private HttpInteractionLogger httpInteractionLogger;
+    @Mock
     private Metrics metrics;
     @Mock
     private UidsCookie uidsCookie;
@@ -300,6 +303,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -323,6 +327,7 @@ public class ExchangeServiceTest extends VertxTest {
                         bidResponsePostProcessor,
                         hookStageExecutor,
                         applicationEventService,
+                        httpInteractionLogger,
                         metrics,
                         clock,
                         jacksonMapper,
@@ -589,6 +594,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -1626,7 +1632,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .multibid(Collections.singletonList(
+                        .multibid(singletonList(
                                 ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix")))
                         .build())));
 
@@ -1659,6 +1665,31 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .flatExtracting("multibid")
                 .containsExactly(ExtRequestPrebidMultiBid.of("someBidder", null, 3, null));
+    }
+
+    @Test
+    public void shouldRemoveBidderParametersWithBiddersOtherThanBidderRequestBidder() {
+        // given
+        final ObjectNode requestBidderParams = mapper.createObjectNode()
+                .set("someBidder", mapper.createObjectNode().put("key1", "value1"));
+        requestBidderParams.set("anotherBidder", mapper.createObjectNode().put("key2", "value2"));
+
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidderparams(requestBidderParams)
+                        .auctiontimestamp(1000L)
+                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ExtRequest capturedRequest = captureBidRequest().getExt();
+        assertThat(capturedRequest).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
+                .auctiontimestamp(1000L)
+                .bidderparams(mapper.createObjectNode()
+                        .set("someBidder", mapper.createObjectNode().put("key1", "value1")))
+                .build()));
     }
 
     @Test
@@ -2361,6 +2392,7 @@ public class ExchangeServiceTest extends VertxTest {
                 bidResponsePostProcessor,
                 hookStageExecutor,
                 applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -2433,6 +2465,35 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidResponse.getSeatbid())
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getPrice).containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void shouldDropBidsWithInvalidPriceAndAddDebugWarnings() {
+        // given
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder("bidder", bidder, givenSeatBid(asList(
+                givenBid(Bid.builder().id("valid_bid").impid("impId").price(BigDecimal.valueOf(2.0)).build()),
+                givenBid(Bid.builder().id("invalid_bid_1").impid("impId").price(null).build()),
+                givenBid(Bid.builder().id("invalid_bid_2").impid("impId").price(BigDecimal.ZERO).build()),
+                givenBid(Bid.builder().id("invalid_bid_3").impid("impId").price(BigDecimal.valueOf(-0.01)).build()))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
+                identity());
+        final AuctionContext givenContext = givenRequestContext(bidRequest);
+
+        // when
+        final BidResponse bidResponse = exchangeService.holdAuction(givenContext).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1);
+        assertThat(givenContext.getDebugWarnings())
+                .containsExactlyInAnyOrder(
+                        "Dropped bid 'invalid_bid_1'. Does not contain a positive (or zero if there is a deal) 'price'",
+                        "Dropped bid 'invalid_bid_2'. Does not contain a positive (or zero if there is a deal) 'price'",
+                        "Dropped bid 'invalid_bid_3'. Does not contain a positive (or zero if there is a deal) 'price'"
+                );
+        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
     @SuppressWarnings("unchecked")
@@ -3473,7 +3534,8 @@ public class ExchangeServiceTest extends VertxTest {
         willReturn(ValidationResult.error("validation error")).given(responseBidValidator)
                 .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId2")), any(), any(), any());
 
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("someBidder", 1),
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("someBidder", 1),
                         builder -> builder
                                 .id("impId")
                                 .pmp(Pmp.builder()
@@ -3481,12 +3543,14 @@ public class ExchangeServiceTest extends VertxTest {
                                                 Deal.builder()
                                                         .id("dealId1")
                                                         .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of("lineItemId1", null, null, "someBidder"))))
+                                                                ExtDealLine.of("lineItemId1", null,
+                                                                        null, "someBidder"))))
                                                         .build(),
                                                 Deal.builder()
                                                         .id("dealId2")
                                                         .ext(mapper.valueToTree(ExtDeal.of(
-                                                                ExtDealLine.of("lineItemId2", null, null, "someBidder"))))
+                                                                ExtDealLine.of("lineItemId2", null,
+                                                                        null, "someBidder"))))
                                                         .build()))
                                         .build()))),
                 identity());
@@ -3510,7 +3574,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldSendOnlyRelevantDealsToBiddersPresentInImp() {
         // given
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("someBidder", 1),
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("someBidder", 1),
                         builder -> builder
                                 .pmp(Pmp.builder()
                                         .deals(asList(
@@ -3571,7 +3636,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBidWithTopDeal() {
         // given
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder1", 1),
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("bidder1", 1),
                         builder -> builder
                                 .id("impId1")
                                 .pmp(Pmp.builder()
@@ -3605,7 +3671,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReduceBidsHavingDealIdWithSameImpIdByBidderWithToleratingNotObtainedBids() {
         // given
-        final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder1", 1),
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(givenImp(singletonMap("bidder1", 1),
                         builder -> builder
                                 .id("impId1")
                                 .pmp(Pmp.builder()

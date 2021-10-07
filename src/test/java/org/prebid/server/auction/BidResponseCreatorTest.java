@@ -1448,6 +1448,56 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotPopulateTargetingKeywordsForExtraBidsWhenCodePrefixIsDefinedAndBidderKeysFlagIsFalse() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(ExtRequestTargeting.builder()
+                        .pricegranularity(mapper.valueToTree(
+                                ExtPriceGranularity.of(2, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))))
+                        .includewinners(true)
+                        .includebidderkeys(false)
+                        .includeformat(false)
+                        .build()),
+                givenImp("i1")));
+
+        final String bidder1 = "bidder1";
+        final Map<String, MultiBidConfig> multiBidMap = singletonMap(bidder1, MultiBidConfig.of(bidder1, 3, "pref"));
+
+        final Bid bidder1Bid1 = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final Bid bidder1Bid2 = Bid.builder().id("bidder1Bid2").price(BigDecimal.valueOf(4.98)).impid("i1").build();
+        final Bid bidder1Bid3 = Bid.builder().id("bidder1Bid3").price(BigDecimal.valueOf(1.08)).impid("i1").build();
+
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of(bidder1,
+                        givenSeatBid(
+                                BidderBid.of(bidder1Bid1, banner, null),  // extra bid
+                                BidderBid.of(bidder1Bid2, banner, null),  // extra bid
+                                BidderBid.of(bidder1Bid3, banner, null)),
+                        100));
+
+        // when
+        final BidResponse result =
+                bidResponseCreator.create(bidderResponses, auctionContext, CACHE_INFO, multiBidMap).result();
+
+        final Map<String, String> expectedWinningBidTargetingMap = new HashMap<>();
+        expectedWinningBidTargetingMap.put("hb_pb", "4.50");
+        expectedWinningBidTargetingMap.put("hb_bidder", bidder1);
+
+        // then
+        assertThat(result.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(3)
+                .extracting(
+                        Bid::getId,
+                        bid -> toExtBidPrebid(bid.getExt()).getTargeting())
+                .containsOnly(
+                        tuple("bidder1Bid2", expectedWinningBidTargetingMap),
+                        tuple("bidder1Bid1", null),
+                        tuple("bidder1Bid3", null));
+    }
+
+    @Test
     public void shouldReduceAndPopulateTargetingKeywordsForExtraBidsWhenCodePrefixIsDefined() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
@@ -2179,8 +2229,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 identity(),
                 extBuilder -> extBuilder.targeting(ExtRequestTargeting.builder()
                         .pricegranularity(mapper.valueToTree(
-                                ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
-                                        BigDecimal.valueOf(0.5))))))
+                                ExtPriceGranularity.of(2, singletonList(
+                                        ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))))
                         .includewinners(true)
                         .includebidderkeys(false)
                         .includeformat(false)
@@ -2188,8 +2238,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenImp()));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
-                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
 
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
                 .doCaching(true)
@@ -2330,14 +2380,14 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldTolerateWhenStoredVideoFetchIsFailed() {
         // given
         final Imp imp = Imp.builder().id(IMP_ID).ext(
-                mapper.valueToTree(
-                        ExtImp.of(
-                                ExtImpPrebid.builder()
-                                        .storedrequest(ExtStoredRequest.of("st1"))
-                                        .options(ExtOptions.of(true))
-                                        .build(),
-                                null
-                        )))
+                        mapper.valueToTree(
+                                ExtImp.of(
+                                        ExtImpPrebid.builder()
+                                                .storedrequest(ExtStoredRequest.of("st1"))
+                                                .options(ExtOptions.of(true))
+                                                .build(),
+                                        null
+                                )))
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(imp));
 
@@ -2363,25 +2413,25 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldInjectStoredVideoWhenExtOptionsIsTrueAndVideoNotEmpty() {
         // given
         final Imp imp1 = Imp.builder().id("impId1").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st1"))
-                                .options(ExtOptions.of(true))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st1"))
+                                        .options(ExtOptions.of(true))
+                                        .build(), null)))
                 .build();
         final Imp imp2 = Imp.builder().id("impId2").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st2"))
-                                .options(ExtOptions.of(false))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st2"))
+                                        .options(ExtOptions.of(false))
+                                        .build(), null)))
                 .build();
         final Imp imp3 = Imp.builder().id("impId3").ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                .storedrequest(ExtStoredRequest.of("st3"))
-                                .options(ExtOptions.of(true))
-                                .build(), null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                        .storedrequest(ExtStoredRequest.of("st3"))
+                                        .options(ExtOptions.of(true))
+                                        .build(), null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1, imp2, imp3);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);
@@ -2428,12 +2478,12 @@ public class BidResponseCreatorTest extends VertxTest {
     public void impToStoredVideoJsonShouldAddErrorsWithPrebidBidderWhenStoredVideoRequestFailed() {
         // given
         final Imp imp1 = Imp.builder().id(IMP_ID).ext(
-                mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder()
-                                        .storedrequest(ExtStoredRequest.of("st1"))
-                                        .options(ExtOptions.of(true))
-                                        .build(),
-                                null)))
+                        mapper.valueToTree(
+                                ExtImp.of(ExtImpPrebid.builder()
+                                                .storedrequest(ExtStoredRequest.of("st1"))
+                                                .options(ExtOptions.of(true))
+                                                .build(),
+                                        null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(imp1);
         final AuctionContext auctionContext = givenAuctionContext(bidRequest);

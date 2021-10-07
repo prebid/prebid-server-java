@@ -4,7 +4,7 @@
       "podid": 2,
       "targeting": [
         {
-          "hb_pb": "2.00",
+          "hb_pb": "2.0",
           "hb_cache_id": "2202329f-f30b-424a-a82d-d8cfbf15eed6"
         }
       ]
@@ -13,11 +13,11 @@
       "podid": 1,
       "targeting": [
         {
-          "hb_pb": "5.50",
+          "hb_pb": "5.5",
           "hb_cache_id": "f2f0a7d4-fa87-478f-8797-e57bd5c4b067"
         },
         {
-          "hb_pb": "2.70",
+          "hb_pb": "2.5",
           "hb_cache_id": "65fdb393-7344-4873-b825-1515aee4df40"
         }
       ]

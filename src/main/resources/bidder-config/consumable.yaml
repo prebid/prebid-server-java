@@ -1,12 +1,6 @@
 adapters:
   consumable:
-    enabled: false
     endpoint: https://e.serverbid.com/api/v2
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: naffis@consumable.com
       app-media-types:
