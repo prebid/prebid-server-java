@@ -1756,6 +1756,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return BidderInfo.of(
                 true,
                 true,
+                true,
                 null,
                 null,
                 null,

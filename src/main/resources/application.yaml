@@ -102,6 +102,8 @@ adapter-defaults:
   enabled: false
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
+  debug:
+    allowed: true
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
