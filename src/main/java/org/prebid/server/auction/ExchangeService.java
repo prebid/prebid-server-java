@@ -791,12 +791,12 @@ public class ExchangeService {
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-        final App bidRequestApp = bidRequest.getApp();
-        final Site bidRequestSite = bidRequestApp == null ? bidRequest.getSite() : null;
-
-        if (bidRequestApp != null && bidRequest.getSite() != null) {
+        final App app = bidRequest.getApp();
+        final Site site = bidRequest.getSite();
+        if (app != null && site != null) {
             debugWarnings.add("BidRequest contains app and site. Removed site object");
         }
+        final Site resolvedSite = app == null ? site : null;
 
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
@@ -811,8 +811,8 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData, bidderAliases))
-                .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
-                .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
+                .app(prepareApp(app, fpdApp, useFirstPartyData))
+                .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
