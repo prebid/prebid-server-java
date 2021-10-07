@@ -9,5 +9,5 @@ public class YieldmoImpExt {
 
     String placementId;
 
-    String pbadslot;
+    String gpid;
 }

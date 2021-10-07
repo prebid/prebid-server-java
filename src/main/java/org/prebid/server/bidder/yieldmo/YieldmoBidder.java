@@ -24,12 +24,12 @@ public class YieldmoBidder extends OpenrtbBidder<ExtImpYieldmo> {
         final Imp.ImpBuilder modifiedImp = imp.toBuilder();
 
         final JsonNode pbadslotNode = imp.getExt().at("/data/pbadslot");
-        final String pbadslot = !pbadslotNode.isMissingNode()
+        final String gpid = !pbadslotNode.isMissingNode()
                 ? StringUtils.defaultIfEmpty(pbadslotNode.asText(), null)
                 : null;
 
         try {
-            modifiedImp.ext(mapper.mapper().valueToTree(YieldmoImpExt.of(impExt.getPlacementId(), pbadslot)));
+            modifiedImp.ext(mapper.mapper().valueToTree(YieldmoImpExt.of(impExt.getPlacementId(), gpid)));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
