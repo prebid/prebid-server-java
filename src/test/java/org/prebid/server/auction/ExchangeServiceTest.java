@@ -2488,6 +2488,24 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddDebugWarningIfBothSiteAndAppPresent() {
+        // given
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(App.builder().build()));
+        final AuctionContext givenContext = givenRequestContext(bidRequest);
+
+        // when
+        exchangeService.holdAuction(givenContext);
+        // then
+        assertThat(givenContext)
+                .extracting(AuctionContext::getDebugWarnings)
+                .containsExactly(singletonList("BidRequest contains app and site. Removed site object"));
+    }
+
+    @Test
     public void shouldPassGlobalTimeoutToConnectorUnchangedIfCachingIsNotRequested() {
         // given
         givenBidder(givenEmptySeatBid());

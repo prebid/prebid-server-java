@@ -305,7 +305,8 @@ public class ExchangeService {
             final boolean shouldCacheBids = cache.getBids() != null;
             final boolean shouldCacheVideoBids = cache.getVastxml() != null;
             final boolean shouldCacheWinningBidsOnly = targeting.getIncludebidderkeys()
-                    ? false // ext.prebid.targeting.includebidderkeys takes precedence
+                    ? false
+                    // ext.prebid.targeting.includebidderkeys takes precedence
                     : ObjectUtils.defaultIfNull(cache.getWinningonly(), false);
 
             if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
@@ -316,7 +317,8 @@ public class ExchangeService {
                         ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
                         : false;
                 final boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
+                        ? ObjectUtils.defaultIfNull(cache.getVastxml()
+                        .getReturnCreative(), true)
                         : false;
 
                 return BidRequestCacheInfo.builder()
@@ -514,7 +516,7 @@ public class ExchangeService {
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getBidderRequests(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs, aliases));
+                                bidderToMultiBid, biddersToConfigs, aliases, context.getDebugWarnings()));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -721,7 +723,8 @@ public class ExchangeService {
                                                   List<Imp> imps,
                                                   Map<String, MultiBidConfig> bidderToMultiBid,
                                                   Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-                                                  BidderAliases aliases) {
+                                                  BidderAliases aliases,
+                                                  List<String> debugWarnings) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
 
@@ -737,7 +740,8 @@ public class ExchangeService {
                         bidderToMultiBid,
                         biddersToConfigs,
                         bidderToPrebidBidders,
-                        aliases))
+                        aliases,
+                        debugWarnings))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -776,7 +780,8 @@ public class ExchangeService {
                                               Map<String, MultiBidConfig> bidderToMultiBid,
                                               Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                               Map<String, JsonNode> bidderToPrebidBidders,
-                                              BidderAliases bidderAliases) {
+                                              BidderAliases bidderAliases,
+                                              List<String> debugWarnings) {
 
         final String bidder = bidderPrivacyResult.getRequestBidder();
         if (bidderPrivacyResult.isBlockedRequestByTcf()) {
@@ -789,8 +794,13 @@ public class ExchangeService {
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                 biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-        final App bidRequestApp = bidRequest.getApp();
-        final Site bidRequestSite = bidRequestApp == null ? bidRequest.getSite() : null;
+        final App app = bidRequest.getApp();
+        final Site site = bidRequest.getSite();
+        if (app != null && site != null) {
+            debugWarnings.add("BidRequest contains app and site. Removed site object");
+        }
+        final Site resolvedSite = app == null ? site : null;
+
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
 
@@ -804,8 +814,8 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, useFirstPartyData, bidderAliases))
-                .app(prepareApp(bidRequestApp, fpdApp, useFirstPartyData))
-                .site(prepareSite(bidRequestSite, fpdSite, useFirstPartyData))
+                .app(prepareApp(app, fpdApp, useFirstPartyData))
+                .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build());
@@ -864,7 +874,10 @@ public class ExchangeService {
     private Deal prepareDeal(Deal deal, ExtDeal extDeal) {
         final ExtDealLine line = extDeal != null ? extDeal.getLine() : null;
         final ExtDealLine updatedLine = line != null
-                ? ExtDealLine.of(line.getLineItemId(), line.getExtLineItemId(), line.getSizes(), null)
+                ? ExtDealLine.of(line.getLineItemId(),
+                line.getExtLineItemId(),
+                line.getSizes(),
+                null)
                 : null;
 
         return updatedLine != null
@@ -1692,8 +1705,12 @@ public class ExchangeService {
                 ? ExtModulesTraceAnalyticsAppliedTo.builder()
                 .impIds(appliedTo.impIds())
                 .bidders(appliedTo.bidders())
-                .request(appliedTo.request() ? Boolean.TRUE : null)
-                .response(appliedTo.response() ? Boolean.TRUE : null)
+                .request(appliedTo.request()
+                        ? Boolean.TRUE
+                        : null)
+                .response(appliedTo.response()
+                        ? Boolean.TRUE
+                        : null)
                 .bidIds(appliedTo.bidIds())
                 .build()
                 : null;
