@@ -640,13 +640,11 @@ public class BidResponseCreator {
 
         final int multiBidSize = bidderImpIdBidInfos.size();
         for (int i = 0; i < multiBidSize; i++) {
-            // first bid have highest value and can't be extra bid.
+            // first bid have the highest value and can't be extra bid
             final boolean isFirstBid = i == 0;
             final String targetingBidderCode = isFirstBid
                     ? bidder
-                    : bidderCodePrefix == null
-                    ? null
-                    : String.format("%s%s", bidderCodePrefix, i + 1);
+                    : bidderCodePrefix == null ? null : String.format("%s%s", bidderCodePrefix, i + 1);
 
             final BidInfo bidInfo = bidderImpIdBidInfos.get(i);
             final TargetingInfo targetingInfo = TargetingInfo.builder()
