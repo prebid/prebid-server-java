@@ -30,12 +30,12 @@ public class MedianetConfiguration {
     }
 
     @Bean
-    BidderDeps medianetBidderDeps(BidderConfigurationProperties ixConfigurationProperties,
+    BidderDeps medianetBidderDeps(BidderConfigurationProperties medianetConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(ixConfigurationProperties)
+                .withConfig(medianetConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new MedianetBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
                 .assemble();
