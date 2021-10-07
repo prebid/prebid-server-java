@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
-import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -21,10 +21,9 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/brightroll.yaml", factory = YamlPropertySourceFactory.class)
@@ -43,11 +42,11 @@ public class BrightrollConfiguration {
                                     @NotBlank @Value("${external-url}") String externalUrl,
                                     JacksonMapper mapper) {
 
-        final Map<String, PublisherOverride> publisherIdToOverride =
-                brightrollConfigurationProperties.getAccounts() == null
-                        ? Collections.emptyMap()
-                        : brightrollConfigurationProperties.getAccounts().stream()
-                        .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
+        final List<BidderAccount> accounts = brightrollConfigurationProperties.getAccounts();
+        final Map<String, BigDecimal> publisherIdToBidFloor = CollectionUtils.emptyIfNull(accounts).stream()
+                .collect(HashMap::new,
+                        (map, account) -> map.put(account.getId(), account.getBidFloor()),
+                        HashMap::putAll);
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(brightrollConfigurationProperties)
@@ -56,13 +55,8 @@ public class BrightrollConfiguration {
                         new BrightrollBidder(
                                 config.getEndpoint(),
                                 mapper,
-                                publisherIdToOverride))
+                                publisherIdToBidFloor))
                 .assemble();
-    }
-
-    private PublisherOverride toPublisherOverride(BidderAccount bidderAccount) {
-        return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr(),
-                bidderAccount.getBidFloor());
     }
 
     @Validated
@@ -80,26 +74,9 @@ public class BrightrollConfiguration {
     @AllArgsConstructor
     public static class BidderAccount {
 
+        @NotBlank
         private String id;
 
-        /**
-         * Blocked advertisers.
-         */
-        private List<String> badv;
-
-        /**
-         * Blocked advertisers.
-         */
-        private List<String> bcat;
-
-        /**
-         * Blocked IAB categories.
-         */
-        private List<Integer> impBattr;
-
-        /**
-         * Request Bid floor.
-         */
         private BigDecimal bidFloor;
     }
 }

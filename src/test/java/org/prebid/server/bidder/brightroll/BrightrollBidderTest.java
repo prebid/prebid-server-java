@@ -17,7 +17,6 @@ import io.vertx.core.http.HttpMethod;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -40,30 +39,22 @@ import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
 public class BrightrollBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://brightroll.com";
-    private static final List<Integer> BLOCKED_CREATIVETYPES = Arrays.asList(1, 2, 3, 6, 9, 10);
-    private static final List<String> BLOCKED_CATEGORIES = Arrays.asList("IAB8-5", "IAB8-18", "IAB15-1", "IAB7-30");
-    private static final List<String> BLOCKED_ADVERTISERS = Arrays.asList("adv1", "adv2", "adv3");
     private static final BigDecimal BID_FLOOR = new BigDecimal("0.30");
 
     private BrightrollBidder brightrollBidder;
 
     @Before
     public void setUp() {
-        Map<String, PublisherOverride> testPublisher = singletonMap("testPublisher",
-                PublisherOverride.of(BLOCKED_ADVERTISERS, BLOCKED_CATEGORIES, BLOCKED_CREATIVETYPES, BID_FLOOR));
-        Map<String, PublisherOverride> publisher = singletonMap("publisher",
-                PublisherOverride.of(null, null, null, null));
-        Map<String, PublisherOverride> publisherIdToOverride = new HashMap<>();
-        publisherIdToOverride.putAll(testPublisher);
-        publisherIdToOverride.putAll(publisher);
-        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToOverride);
+        final Map<String, BigDecimal> publisherIdToBidFloor = new HashMap<>();
+        publisherIdToBidFloor.put("testPublisher", BID_FLOOR);
+        publisherIdToBidFloor.put("publisher", null);
+        brightrollBidder = new BrightrollBidder(ENDPOINT_URL, jacksonMapper, publisherIdToBidFloor);
     }
 
     @Test
@@ -101,15 +92,13 @@ public class BrightrollBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .bidfloor(BID_FLOOR)
-                                .banner(Banner.builder().battr(BLOCKED_CREATIVETYPES).build())
+                                .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("testPublisher"))))
                                 .build()))
                         .device(Device.builder().ua("ua").ip("192.168.0.1").language("en").dnt(1).build())
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build())
-                        .bcat(BLOCKED_CATEGORIES)
-                        .badv(BLOCKED_ADVERTISERS)
                         .regs(Regs.of(0, ExtRegs.of(1, null)))
                         .at(1)
                         .build()));
