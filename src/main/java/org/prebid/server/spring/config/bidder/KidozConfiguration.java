@@ -31,6 +31,7 @@ public class KidozConfiguration {
     BidderDeps kidozBidderDeps(BidderConfigurationProperties kidozConfigurationProperties,
                                @NotBlank @Value("${external-url}") String externalUrl,
                                JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(kidozConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
