@@ -97,6 +97,20 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithContentTypeHeader() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "yes"));
+
+        // when
+        handler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
+        verify(httpResponse).end(eq("Invalid value for 'enabledonly' query param, must be of boolean type"));
+    }
+
+    @Test
     public void shouldTolerateWithEnabledOnlyFlagInCaseInsensitiveMode() {
         // given
         given(routingContext.queryParams())
