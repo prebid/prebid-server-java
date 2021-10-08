@@ -3,6 +3,7 @@ package org.prebid.server.bidder.vrtcal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -18,6 +19,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -150,8 +152,26 @@ public class VrtcalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getType, BidderError::getMessage)
-                .containsOnly(tuple(BidderError.Type.bad_server_response, "Bid type is not valid"));
+                .containsExactly(tuple(BidderError.Type.bad_server_response, "Bid type is not valid"));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoIfBidTypeVideo() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().imp(singletonList(Imp.builder()
+                        .video(Video.builder().build())
+                        .id("someImpId").build())).build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someImpId"))));
+
+        // when
+        final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, givenBidRequest(identity()));
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(
