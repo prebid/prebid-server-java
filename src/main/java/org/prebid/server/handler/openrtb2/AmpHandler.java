@@ -223,7 +223,6 @@ public class AmpHandler implements Handler<RoutingContext> {
     private Map<String, String> enrichWithCustomTargeting(
             Map<String, String> targeting, ObjectNode bidExt, String bidder) {
 
-
         final Map<String, String> customTargeting = customTargetingFrom(bidExt, bidder);
         if (!customTargeting.isEmpty()) {
             final Map<String, String> enrichedTargeting = new HashMap<>(targeting);
