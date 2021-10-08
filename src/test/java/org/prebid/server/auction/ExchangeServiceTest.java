@@ -2502,7 +2502,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(givenContext)
                 .extracting(AuctionContext::getDebugWarnings)
-                .containsExactly(singletonList("BidRequest contains app and site. Removed site object"));
+                .isEqualTo(singletonList("BidRequest contains app and site. Removed site object"));
     }
 
     @Test
