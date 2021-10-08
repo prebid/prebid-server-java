@@ -150,7 +150,7 @@ public class VrtcalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors())
                 .extracting(BidderError::getType, BidderError::getMessage)
                 .containsExactly(tuple(BidderError.Type.bad_server_response, "Bid type is not valid"));
         assertThat(result.getValue()).isEmpty();
@@ -168,7 +168,7 @@ public class VrtcalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
         assertThat(result.getErrors()).isEmpty();
