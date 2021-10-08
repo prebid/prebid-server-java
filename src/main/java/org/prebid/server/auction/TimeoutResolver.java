@@ -10,7 +10,7 @@ public class TimeoutResolver {
     private final long timeoutAdjustment;
 
     public TimeoutResolver(long defaultTimeout, long maxTimeout, long timeoutAdjustment) {
-        if (defaultTimeout < 0 || maxTimeout < defaultTimeout) {
+        if (defaultTimeout <= 0 || maxTimeout < defaultTimeout) {
             throw new IllegalArgumentException(
                     String.format("Max timeout cannot be less than default timeout: max=%d, default=%d", maxTimeout,
                             defaultTimeout));
