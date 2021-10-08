@@ -85,7 +85,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AmpRequestFactoryTest extends VertxTest {
@@ -184,7 +184,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
-        verifyZeroInteractions(storedRequestProcessor);
+        verifyNoInteractions(storedRequestProcessor);
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())

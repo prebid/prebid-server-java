@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class BidderErrorNotifierTest {
 
@@ -60,7 +60,7 @@ public class BidderErrorNotifierTest {
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

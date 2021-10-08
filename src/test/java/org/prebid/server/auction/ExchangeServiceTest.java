@@ -183,7 +183,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -351,8 +351,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
-        verifyZeroInteractions(bidderCatalog);
-        verifyZeroInteractions(httpBidderRequester);
+        verifyNoInteractions(bidderCatalog);
+        verifyNoInteractions(httpBidderRequester);
         assertThat(bidResponse).isNotNull();
     }
 
@@ -368,7 +368,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(bidderCatalog).isValidName(eq("invalid"));
-        verifyZeroInteractions(httpBidderRequester);
+        verifyNoInteractions(httpBidderRequester);
         assertThat(bidResponse).isNotNull();
     }
 
@@ -507,7 +507,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verifyZeroInteractions(httpBidderRequester);
+        verifyNoInteractions(httpBidderRequester);
     }
 
     @Test
@@ -796,7 +796,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verifyZeroInteractions(httpBidderRequester);
+        verifyNoInteractions(httpBidderRequester);
     }
 
     @Test
@@ -3253,7 +3253,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Future<BidResponse> result = exchangeService.holdAuction(auctionContext);
 
         // then
-        verifyZeroInteractions(storedResponseProcessor, httpBidderRequester, hookStageExecutor, bidResponseCreator);
+        verifyNoInteractions(storedResponseProcessor, httpBidderRequester, hookStageExecutor, bidResponseCreator);
         assertThat(result).succeededWith(BidResponse.builder()
                 .seatbid(emptyList())
                 .build());
