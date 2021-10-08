@@ -45,7 +45,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class RegisterServiceTest extends VertxTest {
 
@@ -155,7 +155,7 @@ public class RegisterServiceTest extends VertxTest {
         registerService.register(MultiMap.caseInsensitiveMultiMap());
 
         // then
-        verifyZeroInteractions(adminEventService);
+        verifyNoInteractions(adminEventService);
     }
 
     @Test
@@ -185,7 +185,7 @@ public class RegisterServiceTest extends VertxTest {
         registerService.register(MultiMap.caseInsensitiveMultiMap());
 
         // then
-        verifyZeroInteractions(adminEventService);
+        verifyNoInteractions(adminEventService);
     }
 
     @Test
@@ -229,7 +229,7 @@ public class RegisterServiceTest extends VertxTest {
         registerService.register(MultiMap.caseInsensitiveMultiMap());
 
         // then
-        verifyZeroInteractions(adminEventService);
+        verifyNoInteractions(adminEventService);
     }
 
     @Test

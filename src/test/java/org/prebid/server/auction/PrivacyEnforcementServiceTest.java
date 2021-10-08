@@ -84,7 +84,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class PrivacyEnforcementServiceTest extends VertxTest {
 
@@ -407,7 +407,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
         assertThat(result).isEqualTo(singletonList(expected));
 
-        verifyZeroInteractions(tcfDefinerService);
+        verifyNoInteractions(tcfDefinerService);
     }
 
     @Test

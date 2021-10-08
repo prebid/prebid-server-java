@@ -47,7 +47,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class StoredResponseProcessorTest extends VertxTest {
 
@@ -110,7 +110,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 singletonList(imp),
                 emptyList(),
                 emptyMap()));
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                         .build()),
                 emptyList(),
                 emptyMap()));
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
     }
 
     @Test

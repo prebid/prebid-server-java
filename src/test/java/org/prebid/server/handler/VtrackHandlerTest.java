@@ -47,7 +47,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class VtrackHandlerTest extends VertxTest {
 
@@ -95,7 +95,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Account 'a' is required query parameter and can't be empty"));
@@ -119,7 +119,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Incoming request has no body"));
@@ -134,7 +134,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Failed to parse request body"));
@@ -150,7 +150,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("'bidid' is required field and can't be empty"));
@@ -166,7 +166,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("'bidder' is required field and can't be empty"));
@@ -182,7 +182,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("vtrack only accepts type xml"));
@@ -201,7 +201,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(applicationSettings, cacheService);
+        verifyNoInteractions(applicationSettings, cacheService);
 
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("vtrack content must be vast"));
@@ -224,7 +224,7 @@ public class VtrackHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(cacheService);
+        verifyNoInteractions(cacheService);
 
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Error occurred while fetching account: error"));
