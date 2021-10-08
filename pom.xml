@@ -55,6 +55,7 @@
         <jetty.version>9.4.43.v20210629</jetty.version>
         <restassured.version>3.0.7</restassured.version>
         <h2.version>1.4.200</h2.version>
+        <bytebuddy.version>1.11.19</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
@@ -403,7 +404,7 @@
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-            <version>1.11.19</version>
+            <version>${bytebuddy.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- for Mockito to be able to mock Vert.x-specific classes -->
