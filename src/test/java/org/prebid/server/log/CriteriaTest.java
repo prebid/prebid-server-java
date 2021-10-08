@@ -10,7 +10,7 @@ import org.mockito.junit.MockitoRule;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class CriteriaTest {
 
@@ -92,7 +92,7 @@ public class CriteriaTest {
         criteria.logResponse("Response has account", logger);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
@@ -116,6 +116,6 @@ public class CriteriaTest {
         criteria.logResponseAndRequest("Response has account", "Request", logger);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 }
