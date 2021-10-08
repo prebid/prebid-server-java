@@ -11,7 +11,17 @@
     "token": {
       "type": "string",
       "description": "Your Token"
+    },
+    "placementId": {
+      "type": "string",
+      "description": "An ID which identifies this placement of the impression",
+      "minLength": 1
+    },
+    "appId": {
+      "type": "string",
+      "description": "An ID which identifies this app of the impression",
+      "minLength": 1
     }
   },
-  "required": ["sid", "token"]
+  "required": ["sid", "token", "placementId", "appId"]
 }
