@@ -12,7 +12,7 @@ import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.ReflectionMemberAccessor;
+import org.mockito.internal.util.reflection.FieldSetter;
 import org.prebid.server.geolocation.model.GeoInfo;
 
 import java.io.IOException;
@@ -96,20 +96,13 @@ public class MaxMindGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException,
-            IllegalAccessException {
+    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException {
         // given
         final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
         given(databaseReader.city(any())).willReturn(null);
 
-        new ReflectionMemberAccessor().set(maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"),
-                maxMindGeoLocationService, databaseReader);
-
-        //new FieldInitializer(maxMindGeoLocationService,
-        //maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), FieldInitializer.ConstructorArgumentResolver.);
-        //
-        //FieldSetter.setField(maxMindGeoLocationService,
-        //maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+        FieldSetter.setField(maxMindGeoLocationService,
+                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
 
         // when
         final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
