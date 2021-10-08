@@ -10,7 +10,7 @@ import org.prebid.server.bidder.huaweiads.model.xnative.request.EventTracker;
 import java.util.List;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class HuaweiNativeResponse {
 
     String ver;

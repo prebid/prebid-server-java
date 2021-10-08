@@ -8,7 +8,7 @@ import lombok.Value;
 import java.util.List;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class HuaweiRequest {
 
     String version;

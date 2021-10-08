@@ -14,6 +14,7 @@ import com.iab.openrtb.response.Bid;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
 import lombok.Value;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.huaweiads.model.HuaweiAd;
@@ -41,6 +42,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuawei;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.net.URLDecoder;
@@ -69,13 +71,9 @@ public class HuaweiUtilResponse {
                                                                   BidRequest bidRequest, JacksonMapper mapper,
                                                                   TypeReference<ExtPrebid<?, ExtImpHuawei>> tr) {
         final List<HuaweiAd> multiad = huaweiAdsResponse.getMultiad();
-        if (multiad == null) {
-            throw new PreBidException("convertHuaweiAdsResp2BidderResp: multiad is null");
-        }
 
-        final int multiAdLength = multiad.size();
-        if (multiAdLength == 0) {
-            throw new PreBidException("convertHuaweiAdsResp2BidderResp: multiad length is 0");
+        if (multiad == null || multiad.isEmpty()) {
+            throw new PreBidException("convertHuaweiAdsResp2BidderResp: multiad is null or length is 0");
         }
 
         final List<BidderBid> bids = new ArrayList<>();
@@ -91,30 +89,25 @@ public class HuaweiUtilResponse {
 
         for (HuaweiAd huaweiAd : multiad) {
             final String slotId = huaweiAd.getSlotId();
-            if (slotId == null) {
-                throw new PreBidException("convertHuaweiAdsResp2BidderResp: slotId is null");
-            }
 
-            final String newBidIdFromImp = slotIdToImp.get(slotId) != null ? slotIdToImp.get(slotId).getId() : null;
-            if (StringUtils.isBlank(newBidIdFromImp)) {
-                continue; //if imp id is blank
+            if (StringUtils.isBlank(slotId)) {
+                continue;
             }
-            Integer retcode = huaweiAd.getRetcode();
+            final Integer retcode = huaweiAd.getRetcode();
             if (retcode == null || retcode != 200) {
                 continue;
             }
 
+            final String newBidId = slotIdToImp.get(slotId) != null ? slotIdToImp.get(slotId).getId() : null;
+
             final List<HuaweiContent> contentList = huaweiAd.getContent();
             if (contentList == null) {
-                throw new PreBidException("convertHuaweiAdsResp2BidderResp: multiad length is 0");
+                continue;
             }
 
             for (HuaweiContent content : contentList) {
-                if (content == null) {
-                    throw new PreBidException("convertHuaweiAdsResp2BidderResp: content is null");
-                }
                 final Bid bid = createBid(huaweiAd.getAdType(), content, slotIdToMediaType.get(slotId),
-                        slotIdToImp.get(slotId), newBidIdFromImp, mapper);
+                        slotIdToImp.get(slotId), newBidId, mapper);
                 bids.add(BidderBid.of(bid, slotIdToMediaType.get(slotId), "CNY"));
             }
         }
@@ -137,7 +130,7 @@ public class HuaweiUtilResponse {
                                            TypeReference<ExtPrebid<?, ExtImpHuawei>> typeReference) {
         ExtImpHuawei extImpHuawei;
         try {
-            extImpHuawei = mapper.mapper().convertValue(imp.getExt(), typeReference).getBidder();
+            extImpHuawei = mapper.mapper().convertValue(imp.getExt(), typeReference).getBidder(); //Todo can it return null ?
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ExtImpHuaweiAds: missing bidder ext");
         }
@@ -165,26 +158,11 @@ public class HuaweiUtilResponse {
 
     private static Bid createBid(Integer adType, HuaweiContent content, BidType bidType, Imp imp,
                                  String newBidIdFromImp, JacksonMapper mapper) {
-        if (adType == null) {
-            throw new PreBidException("createBid: Ad.adType is null");
-        }
 
-        final HuaweiMetadata metadata = content.getMetaData();
-        if (metadata == null) {
-            throw new PreBidException("createBid: Content.MetaData is null");
-        }
-        final List<HuaweiMonitor> monitorList = content.getMonitor();
-        if (monitorList == null) {
-            throw new PreBidException("createBid: Content.Monitor is null");
-        }
-        final BigDecimal bidPrice = content.getPrice();
-        if (bidPrice == null) {
-            throw new PreBidException("createBid: Content.Price is null");
-        }
-        final String bidCrid = content.getContentid();
-        if (bidCrid == null) {
-            throw new PreBidException("createBid: Content.ContentId is null");
-        }
+        final HuaweiMetadata metadata = content.getMetaData(); //Todo
+        final List<HuaweiMonitor> monitorList =  ObjectUtils.defaultIfNull(content.getMonitor(), new ArrayList<HuaweiMonitor>());
+        final BigDecimal bidPrice = ObjectUtils.defaultIfNull(content.getPrice(), BigDecimal.ZERO);
+        final String bidCrid = ObjectUtils.defaultIfNull(content.getContentid(), "");
         switch (bidType) {
             case banner:
                 return resolveBannerBid(adType, content, metadata, bidType, imp, newBidIdFromImp,
@@ -203,7 +181,7 @@ public class HuaweiUtilResponse {
     private static Bid resolveBannerBid(Integer adType, HuaweiContent content, HuaweiMetadata metadata, BidType bidType,
                                         Imp imp, String newBidIdFromImp, List<HuaweiMonitor> monitorList,
                                         BigDecimal bidPrice, String bidCrid) {
-        if (adType != BidTypes.BANNER_CODE.getValue()) {
+        if (!Objects.equals(adType, BidTypes.BANNER_CODE.getValue())) {
             throw new PreBidException("resolveBannerBid: huaweiads response is not a banner ad");
         }
         Integer creativeType = content.getCreativetype();
@@ -248,11 +226,8 @@ public class HuaweiUtilResponse {
 
     private static HuaweiImageInfo getFirstImageInfo(HuaweiMetadata metadata) {
         final List<HuaweiImageInfo> imageInfo = metadata.getImageInfo();
-        if (imageInfo == null) {
-            throw new PreBidException("getFirstImageInfo: Metadata.ImageInfo is null");
-        }
-        if (imageInfo.isEmpty()) {
-            throw new PreBidException("getFirstImageInfo: Metadata.ImageInfo is empty");
+        if (imageInfo == null || imageInfo.isEmpty()) {
+            throw new PreBidException("getFirstImageInfo: Metadata.ImageInfo is null or empty");
         }
         return imageInfo.get(0);
     }
@@ -347,7 +322,7 @@ public class HuaweiUtilResponse {
     private static Bid resolveNativeBid(Integer adType, HuaweiContent content, HuaweiMetadata metadata, BidType bidType,
                                         Imp imp, String newBidIdFromImp, List<HuaweiMonitor> monitorList,
                                         BigDecimal bidPrice, String bidCrid, JacksonMapper mapper) {
-        if (adType != BidTypes.NATIVE_CODE.getValue()) {
+        if (!Objects.equals(adType, BidTypes.NATIVE_CODE.getValue())) {
             throw new PreBidException("resolveNativeBid: response is not a native ad");
         }
         final Native xnative = imp.getXNative();
@@ -495,8 +470,8 @@ public class HuaweiUtilResponse {
             }
             if (imageType.equals(ImageAssetType.IMAGE_ASSET_TYPE_ICON.getValue()) && iconIterator.hasNext()) {
                 final HuaweiIcon icon = iconIterator.next();
-                @NonNull final Integer width = icon.getWidth();
-                @NonNull final Integer height = icon.getHeight();
+                final Integer width = ObjectUtils.defaultIfNull(icon.getWidth(), 0);
+                final Integer height = ObjectUtils.defaultIfNull(icon.getHeight(), 0);
                 return XnativeImage.of(imageType, icon.getUrl(), width, height);
             } else if (imageInfoIterator.hasNext()) {
                 HuaweiImageInfo imageInfo = imageInfoIterator.next();
@@ -586,17 +561,11 @@ public class HuaweiUtilResponse {
     }
 
     private static Bid resolveVideoBid(Integer adType, HuaweiContent content, HuaweiMetadata metadata, BidType bidType,
-                                       Imp imp, String newBidIdFromImp, List<HuaweiMonitor> monitorList,
+                                       Imp imp, String newBidId, List<HuaweiMonitor> monitorList,
                                        BigDecimal bidPrice, String bidCrid) {
         final HuaweiMediaFile mediaFile = metadata.getMediaFile();
-        if (mediaFile == null) {
-            throw new PreBidException("resolveVideoBid: Content.MetaData.MediaFile is null");
-        }
         final HuaweiVideoInfo videoInfo = metadata.getVideoInfo();
-        if (videoInfo == null) {
-            throw new PreBidException("resolveVideoBid: Content.MetaData.VideoInfo is null");
-        }
-        final boolean adTypeIsRollCode = adType == BidTypes.ROLL_CODE.getValue();
+        final boolean adTypeIsRollCode = Objects.equals(adType, BidTypes.ROLL_CODE.getValue());
 
         final int width = resolveVideoWidth(adTypeIsRollCode, mediaFile, videoInfo, bidType, imp);
         final int height = resolveVideoHeight(adTypeIsRollCode, mediaFile, videoInfo, bidType, imp);
@@ -604,8 +573,8 @@ public class HuaweiUtilResponse {
                 monitorList, width, height);
 
         return Bid.builder()
-                .id(newBidIdFromImp)
-                .impid(newBidIdFromImp)
+                .id(newBidId)
+                .impid(newBidId)
                 .price(bidPrice)
                 .crid(bidCrid)
                 .adm(adm)
@@ -632,10 +601,7 @@ public class HuaweiUtilResponse {
     private static String resolveVideoAdm(boolean adTypeIsRollCode, HuaweiContent content, HuaweiMetadata metadata,
                                           HuaweiMediaFile mediaFile, HuaweiVideoInfo videoInfo,
                                           List<HuaweiMonitor> monitorList, int width, int height) {
-        final String contentId = content.getContentid();
-        if (StringUtils.isBlank(contentId)) {
-            throw new PreBidException("resolveVideoAdm: Content.ContentId is null");
-        }
+        final String contentId = ObjectUtils.defaultIfNull(content.getContentid(), "");
         final String adId = contentId; //TODO inline or not ?
         final String adTitle = getDecodedValue(metadata.getTitle());
         final String creativeId = contentId;
@@ -795,11 +761,13 @@ public class HuaweiUtilResponse {
         return event;
     }
 
-    private static int resolveVideoHeight(boolean adTypeIsRollCode, HuaweiMediaFile mediaFile,
+    private static Integer resolveVideoHeight(boolean adTypeIsRollCode, HuaweiMediaFile mediaFile,
                                           HuaweiVideoInfo videoInfo, BidType bidType, Imp imp) {
         if (adTypeIsRollCode) {
+            checkOnNull(mediaFile, "resolveVideoHeight: cannot get height");
             return mediaFile.getHeight();
         } else {
+            checkOnNull(videoInfo, "resolveVideoHeight: cannot get height");
             int heightFromVideoInfo = videoInfo.getHeight();
             if (heightFromVideoInfo != 0) {
                 return heightFromVideoInfo;
@@ -816,12 +784,14 @@ public class HuaweiUtilResponse {
         throw new PreBidException("resolveVideoHeight: cannot get height");
     }
 
-    private static int resolveVideoWidth(boolean adTypeIsRollCode, HuaweiMediaFile mediaFile,
+    private static Integer resolveVideoWidth(boolean adTypeIsRollCode, HuaweiMediaFile mediaFile,
                                          HuaweiVideoInfo videoInfo, BidType bidType, Imp imp) {
         if (adTypeIsRollCode) {
+            checkOnNull(mediaFile, "resolveVideoWidth: cannot get width height");
             return mediaFile.getWidth();
         } else {
-            int widthFromVideoInfo = videoInfo.getWidth();
+           checkOnNull(videoInfo, "resolveVideoWidth: cannot get width height");
+            Integer widthFromVideoInfo = videoInfo.getWidth();
             if (widthFromVideoInfo != 0) {
                 return widthFromVideoInfo;
             } else if (bidType == BidType.video) {
@@ -903,12 +873,10 @@ public class HuaweiUtilResponse {
         return encodedString != null ? URLDecoder.decode(encodedString) : "";
     }
 
-    @Value
-    @AllArgsConstructor(staticName = "of")
-    static class AssetImageResult {
-        int iconIndex;
-        int imgIndex;
-        XnativeImage xnativeImage;
+    private static void checkOnNull (Object object, String errorMessage) {
+        if(object == null) {
+            throw new PreBidException(errorMessage);
+        }
     }
 }
 

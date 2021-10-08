@@ -67,10 +67,7 @@ public class HuaweiAdsBidder implements Bidder<HuaweiRequest> {
         } catch (JsonProcessingException e) {
             return Result.withErrors(Collections.singletonList(BidderError.badInput(e.getMessage())));
         }
-        boolean isTestAuthorization = false;
-        if (extImpHuawei != null && extImpHuawei.getIsTestAuthorization().equals("true")) {
-            isTestAuthorization = true;
-        }
+        boolean isTestAuthorization = extImpHuawei != null && extImpHuawei.getIsTestAuthorization().equals("true");
         return Result.withValue(HttpRequest.<HuaweiRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)

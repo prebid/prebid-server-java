@@ -9,7 +9,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import java.util.List;
 
 @Builder
-@Value(staticConstructor = "of")
+@Value
 public class HuaweiNativeRequest {
 
     Integer ver;
