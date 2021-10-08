@@ -59,11 +59,6 @@ Removes and downloads file again if depending service cant process probably corr
 - `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
 - `admin.port` - the port to listen on administration requests.
 
-## Auction (Legacy)
-- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
-- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
-- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
-
 ## Default bid request
 - `default-request.file.path` - path to a JSON file containing the default request
 
@@ -84,11 +79,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 
-## Amp (OpenRTB)
-- `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
-- `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
-- `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
-- `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+## Event
+- `event.default-timeout-ms` - timeout for event notifications
 
 ## Timeout notification
 - `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
