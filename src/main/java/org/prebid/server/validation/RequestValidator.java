@@ -152,7 +152,7 @@ public class RequestValidator {
             final List<String> errors = new ArrayList<>();
             final Map<String, Integer> uniqueImps = new HashMap<>();
             for (int i = 0; i < imps.size(); i++) {
-                String impId = imps.get(i).getId();
+                final String impId = imps.get(i).getId();
                 if (uniqueImps.get(impId) != null) {
                     errors.add(String.format(
                             "request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique.",
@@ -620,7 +620,8 @@ public class RequestValidator {
                     index);
         }
 
-        validateBanner(imp.getBanner(), index);
+        final boolean isInterstitialImp = Objects.equals(imp.getInstl(), 1);
+        validateBanner(imp.getBanner(), isInterstitialImp, index);
         validateVideoMimes(imp.getVideo(), index);
         validateAudioMimes(imp.getAudio(), index);
         fillAndValidateNative(imp.getXNative(), index);
@@ -1036,7 +1037,7 @@ public class RequestValidator {
         }
     }
 
-    private void validateBanner(Banner banner, int impIndex) throws ValidationException {
+    private void validateBanner(Banner banner, boolean isInterstitial, int impIndex) throws ValidationException {
         if (banner != null) {
             final Integer width = banner.getW();
             final Integer height = banner.getH();
@@ -1045,12 +1046,12 @@ public class RequestValidator {
             final boolean hasSize = hasWidth && hasHeight;
 
             final List<Format> format = banner.getFormat();
-            if (CollectionUtils.isEmpty(format) && !hasSize) {
+            if (CollectionUtils.isEmpty(format) && !hasSize && !isInterstitial) {
                 throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", "
                         + "or include \"format\" elements", impIndex);
             }
 
-            if (width != null && height != null && !hasSize) {
+            if (width != null && height != null && !hasSize && !isInterstitial) {
                 throw new ValidationException("Request imp[%d].banner must define a valid"
                         + " \"h\" and \"w\" properties", impIndex);
             }
@@ -1126,10 +1127,6 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
-    }
-
-    private static boolean isObjectNode(JsonNode node) {
-        return node != null && node.isObject();
     }
 
     private static boolean hasPositiveValue(Integer value) {
