@@ -16,6 +16,10 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.grid.model.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.GridExtImp;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -25,9 +29,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
@@ -84,7 +85,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(org.prebid.server.bidder.grid.model.ExtImp.builder()
+                        .ext(mapper.valueToTree(GridExtImp.builder()
                                 .data(ExtImpGridData.of("pbadslot",
                                         ExtImpGridDataAdServer.of("name", "adslot")))
                                 .bidder(ExtImpGrid.of(1, null))
@@ -99,7 +100,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final org.prebid.server.bidder.grid.model.ExtImp expectedExtImp = org.prebid.server.bidder.grid.model.ExtImp.builder()
+        final GridExtImp expectedGridExtImp = GridExtImp.builder()
                 .data(ExtImpGridData.of("pbadslot",
                         ExtImpGridDataAdServer.of("name", "adslot")))
                 .bidder(ExtImpGrid.of(1, null))
@@ -110,7 +111,7 @@ public class GridBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(expectedExtImp));
+                .containsExactly(mapper.valueToTree(expectedGridExtImp));
     }
 
     @Test
@@ -118,7 +119,7 @@ public class GridBidderTest extends VertxTest {
         // given
         final Keywords impExtKeywords = mapper.convertValue(jsonNodeFrom("imp-ext-keywords.json"), Keywords.class);
 
-        final org.prebid.server.bidder.grid.model.ExtImp impExt = org.prebid.server.bidder.grid.model.ExtImp.builder()
+        final GridExtImp impExt = GridExtImp.builder()
                 .data(ExtImpGridData.of("pbadslot", ExtImpGridDataAdServer.of("name", "adslot")))
                 .bidder(ExtImpGrid.of(1, impExtKeywords))
                 .build();

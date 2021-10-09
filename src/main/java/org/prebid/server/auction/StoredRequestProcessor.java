@@ -141,7 +141,10 @@ public class StoredRequestProcessor {
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
                 applicationSettings.getAmpStoredData(
-                                accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                                accountId,
+                                Collections.singleton(ampRequestId),
+                                Collections.emptySet(),
+                                timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 

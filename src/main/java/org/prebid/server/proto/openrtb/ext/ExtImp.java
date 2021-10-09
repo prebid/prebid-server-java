@@ -9,9 +9,9 @@ import org.prebid.server.bidder.Bidder;
  * <p>
  * Can be used by {@link Bidder}s to unmarshal any request.imp[i].ext.
  */
-@AllArgsConstructor(staticName = "of")
-@Value
-public class ExtImp<P, B> extends FlexibleExtension {
+
+@Value(staticConstructor = "of")
+public class ExtImp<P, B> {
 
     P prebid;
 

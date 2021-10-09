@@ -540,7 +540,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(builder -> builder.imp(singletonList(imp)));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture =
+                storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         verifyZeroInteractions(applicationSettings, metrics);

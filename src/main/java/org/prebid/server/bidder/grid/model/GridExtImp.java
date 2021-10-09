@@ -7,7 +7,7 @@ import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 
 @Value
 @Builder(toBuilder = true)
-public class ExtImp {
+public class GridExtImp {
 
     ExtImpPrebid prebid;
 
