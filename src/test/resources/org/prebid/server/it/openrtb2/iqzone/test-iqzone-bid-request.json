@@ -9,7 +9,8 @@
       },
       "ext": {
         "bidder": {
-          "placementId": "somePlacementId"
+          "placementId": "somePlacementId",
+          "type": "publisher"
         }
       }
     }

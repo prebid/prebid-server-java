@@ -12,8 +12,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -34,17 +32,6 @@ public class BrightrollConfiguration {
 
     private static final String BIDDER_NAME = "brightroll";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("brightrollConfigurationProperties")
-    private BrightrollConfigurationProperties configProperties;
-
     @Bean("brightrollConfigurationProperties")
     @ConfigurationProperties("adapters.brightroll")
     BrightrollConfigurationProperties configurationProperties() {
@@ -52,18 +39,24 @@ public class BrightrollConfiguration {
     }
 
     @Bean
-    BidderDeps brightrollBidderDeps() {
-        final Map<String, PublisherOverride> publisherIdToOverride = configProperties.getAccounts() == null
-                ? Collections.emptyMap()
-                : configProperties.getAccounts().stream()
-                .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
+    BidderDeps brightrollBidderDeps(BrightrollConfigurationProperties brightrollConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
+
+        final Map<String, PublisherOverride> publisherIdToOverride =
+                brightrollConfigurationProperties.getAccounts() == null
+                        ? Collections.emptyMap()
+                        : brightrollConfigurationProperties.getAccounts().stream()
+                        .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(brightrollConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new BrightrollBidder(
-                        config.getEndpoint(),
-                        mapper,
-                        publisherIdToOverride))
+                .bidderCreator(config ->
+                        new BrightrollBidder(
+                                config.getEndpoint(),
+                                mapper,
+                                publisherIdToOverride))
                 .assemble();
     }
 
