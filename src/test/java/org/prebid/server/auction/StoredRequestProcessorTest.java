@@ -524,7 +524,8 @@ public class StoredRequestProcessorTest extends VertxTest {
                         StoredDataResult.of(emptyMap(), emptyMap(), singletonList("No config found for id: 123"))));
 
         // when
-        final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
+        final Future<BidRequest> bidRequestFuture =
+                storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
         assertThat(bidRequestFuture.failed()).isTrue();

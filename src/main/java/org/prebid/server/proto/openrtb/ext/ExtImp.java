@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 

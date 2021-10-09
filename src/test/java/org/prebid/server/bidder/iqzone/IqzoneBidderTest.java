@@ -76,7 +76,7 @@ public class IqzoneBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpIqzone.of("placementId", null)))));
+                        ExtImp.of(null, ExtImpIqzone.of("placementId", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
@@ -102,7 +102,7 @@ public class IqzoneBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpIqzone.of(null, "endpointId")))));
+                        ExtImp.of(null, ExtImpIqzone.of(null, "endpointId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
@@ -261,7 +261,7 @@ public class IqzoneBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("someId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(
+                                ExtImp.of(
                                         null,
                                         ExtImpIqzone.of("somePlacementId", "someEndpointId")))))
                 .build();
