@@ -7,7 +7,7 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "123",
+      "tagid": "testPlacementId",
       "ext": {
         "bidder": {
           "sid": "testSid",
