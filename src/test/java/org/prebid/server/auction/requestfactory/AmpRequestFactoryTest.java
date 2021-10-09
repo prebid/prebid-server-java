@@ -23,6 +23,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -30,6 +31,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -107,6 +109,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     private AmpRequestFactory target;
 
@@ -151,6 +155,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.populateDealsInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                 TcfContext.empty());
@@ -166,6 +171,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 fpdResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -279,6 +285,20 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(future).succeededWith(auctionContext);
+    }
+
+    @Test
+    public void shouldEnrichAuctionContextWithDebugContext() throws JsonProcessingException {
+        // given
+        givenBidRequest();
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).debugContextFrom(any());
+        assertThat(result.result().getDebugContext())
+                .isEqualTo(DebugContext.of(true, null));
     }
 
     @Test
@@ -1229,10 +1249,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithProvidersSettingsContainsAttlConsentIfParamIsPresent() {
+    public void shouldReturnBidRequestWithProvidersSettingsContainsAddtlConsentIfParamIsPresent() {
         // given
         routingContext.queryParams()
-                .add("attl_consent", "someConsent");
+                .add("addtl_consent", "someConsent");
 
         givenBidRequest();
 

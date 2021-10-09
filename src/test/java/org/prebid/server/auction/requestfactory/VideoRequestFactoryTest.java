@@ -23,11 +23,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -50,6 +52,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -84,6 +87,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     private HttpServerRequest httpServerRequest;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     @Before
     public void setUp() {
@@ -93,6 +98,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+
+        given(debugResolver.debugContextFrom(any()))
+                .willReturn(DebugContext.of(true, null));
 
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
@@ -116,6 +124,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -149,6 +158,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         // when
@@ -172,6 +182,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
@@ -233,6 +244,23 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .ua("user-agent-456")
                         .build())
                 .build()));
+    }
+
+    @Test
+    public void shouldEnrichAuctionContextWithDebugContext() throws JsonProcessingException {
+        // given
+        final BidRequestVideo requestVideo = BidRequestVideo.builder().device(
+                Device.builder().ua("123").build()).build();
+        given(routingContext.getBodyAsString()).willReturn(mapper.writeValueAsString(requestVideo));
+        givenBidRequest(BidRequest.builder().build(), emptyList());
+
+        // when
+        final Future<WithPodErrors<AuctionContext>> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).debugContextFrom(any());
+        assertThat(result.result().getData().getDebugContext())
+                .isEqualTo(DebugContext.of(true, null));
     }
 
     @Test

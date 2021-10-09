@@ -106,6 +106,13 @@ public class BidderCatalog {
     }
 
     /**
+     * Tells if given bidder allows debug.
+     */
+    public boolean isDebugAllowed(String name) {
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isDebugAllowed();
+    }
+
+    /**
      * Returns an {@link BidderInfo} registered by the given name or null if there is none.
      * <p>
      * Therefore this method should be called only for names that previously passed validity check

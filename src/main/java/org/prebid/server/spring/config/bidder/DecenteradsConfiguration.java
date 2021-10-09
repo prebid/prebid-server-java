@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class DecenteradsConfiguration {
 
     private static final String BIDDER_NAME = "decenterads";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("decenteradsConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("decenteradsConfigurationProperties")
     @ConfigurationProperties("adapters.decenterads")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class DecenteradsConfiguration {
     }
 
     @Bean
-    BidderDeps decenteradsBidderDeps() {
+    BidderDeps decenteradsBidderDeps(BidderConfigurationProperties decenteradsConfigurationProperties,
+                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                     JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(decenteradsConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new DecenteradsBidder(config.getEndpoint(), mapper))
                 .assemble();

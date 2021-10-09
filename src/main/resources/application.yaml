@@ -102,6 +102,8 @@ adapter-defaults:
   enabled: false
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
+  debug:
+    allowed: true
 auction:
   ad-server-currency: USD
   blacklisted-accounts:
@@ -163,11 +165,6 @@ settings:
   enforce-valid-account: false
   database:
     pool-size: 20
-  in-memory-cache:
-    cache-size: 10000
-    ttl-seconds: 360
-    notification-endpoints-enabled: false
-    account-invalidation-enabled: true
   targeting:
     truncate-attr-chars: 20
   default-account-config:

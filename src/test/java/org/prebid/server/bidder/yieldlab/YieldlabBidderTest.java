@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Test;
@@ -249,6 +250,47 @@ public class YieldlabBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectAdm() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("test-imp-id")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                                .adslotId("12345")
+                                .supplyId("123456789")
+                                .adSize("728x90")
+                                .extId("abc")
+                                .build())))
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
+                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+
+        // when
+        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
+        final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
+                + "<AdSystem>Yieldlab</AdSystem>"
+                + "<VASTAdTagURI>"
+                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
+                + "1e1e-4cfd-8edc-7d32dc1a21e5 ]]>"
+                + "</VASTAdTagURI>"
+                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(expectedAdm);
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {
