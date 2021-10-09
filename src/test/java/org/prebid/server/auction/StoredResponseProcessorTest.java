@@ -541,20 +541,17 @@ public class StoredResponseProcessorTest extends VertxTest {
         assertThat(result).contains(BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
-                        asList(BidderBid.of(
+                        asList(
+                                BidderBid.of(
                                         Bid.builder()
                                                 .id("bid2")
                                                 .impid("storedImp")
-                                                .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
+                                                .ext(mapper.createObjectNode()
+                                                        .set("prebid", mapper.valueToTree(extBidPrebid)))
                                                 .build(),
                                         BidType.video,
                                         "USD"),
-                                BidderBid.of(
-                                        Bid.builder()
-                                                .id("bid1")
-                                                .build(),
-                                        BidType.banner,
-                                        "USD")),
+                                BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
                         emptyList()),
                 100));
