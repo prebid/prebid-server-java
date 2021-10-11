@@ -258,7 +258,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("test-imp-id")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYieldlab.builder()
                                 .adslotId("12345")
                                 .supplyId("123456789")
                                 .adSize("728x90")
