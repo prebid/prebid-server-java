@@ -11,8 +11,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +19,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Configuration
@@ -28,16 +28,6 @@ public class RubiconConfiguration {
 
     private static final String BIDDER_NAME = "rubicon";
 
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    private CurrencyConversionService currencyConversionService;
-
-    @Autowired
-    @Qualifier("rubiconConfigurationProperties")
-    private RubiconConfigurationProperties configProperties;
-
     @Bean("rubiconConfigurationProperties")
     @ConfigurationProperties("adapters.rubicon")
     RubiconConfigurationProperties configurationProperties() {
@@ -45,18 +35,23 @@ public class RubiconConfiguration {
     }
 
     @Bean
-    BidderDeps rubiconBidderDeps() {
+    BidderDeps rubiconBidderDeps(RubiconConfigurationProperties rubiconConfigurationProperties,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 CurrencyConversionService currencyConversionService,
+                                 JacksonMapper mapper) {
+
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(rubiconConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
-                .bidderCreator(config -> new RubiconBidder(
-                        config.getEndpoint(),
-                        config.getXapi().getUsername(),
-                        config.getXapi().getPassword(),
-                        config.getMetaInfo().getSupportedVendors(),
-                        config.getGenerateBidId(),
-                        currencyConversionService,
-                        mapper))
+                .bidderCreator(config ->
+                        new RubiconBidder(
+                                config.getEndpoint(),
+                                config.getXapi().getUsername(),
+                                config.getXapi().getPassword(),
+                                config.getMetaInfo().getSupportedVendors(),
+                                config.getGenerateBidId(),
+                                currencyConversionService,
+                                mapper))
                 .assemble();
     }
 

@@ -1,10 +1,12 @@
 package org.prebid.server.bidder.interactiveoffers;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -35,29 +37,30 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final ObjectNode impExt = request.getImp().get(0).getExt();
+        final String resolvedPartnerId = StringUtils.defaultString(resolvePartnerId(impExt));
+        final String resolvedEndpointUrl = endpointUrl.replace("{{PartnerId}}", resolvedPartnerId);
 
-        try {
-            String partnerId = request.getImp().get(0).getExt().get("bidder").get("partnerId") + "";
-            if (partnerId.length() > 2) {
-                partnerId = partnerId.substring(1, partnerId.length() - 1);
-            }
-            return Result.withValue(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .uri(endpointUrl.replace("{{PartnerId}}", partnerId))
-                    .headers(HttpUtil.headers())
-                    .payload(request)
-                    .body(mapper.encode(request))
-                    .build());
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
-        }
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolvedEndpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .body(mapper.encode(request))
+                .build());
+    }
+
+    private static String resolvePartnerId(ObjectNode impExt) {
+        final String partnerId = impExt.at("/bidder/partnerId").asText();
+        final int partnerIdLength = StringUtils.length(partnerId);
+        return partnerIdLength > 2 ? partnerId.substring(1, partnerIdLength - 1) : partnerId;
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }

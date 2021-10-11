@@ -448,6 +448,30 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldNotReturnValidationMessageForSizesIfImpIsInterstitial() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .w(0)
+                                .h(300)
+                                .format(singletonList(Format.builder().w(1).h(1).build()))
+                                .build())
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroWidth() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
