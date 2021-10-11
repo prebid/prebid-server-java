@@ -187,7 +187,7 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DebugResolver debugResolver(@Value("${debug.override-token:#{null}") String debugOverrideToken,
+    DebugResolver debugResolver(@Value("${debug.override-token:#{null}}") String debugOverrideToken,
                                 BidderCatalog bidderCatalog) {
         return new DebugResolver(bidderCatalog, debugOverrideToken);
     }
