@@ -48,14 +48,14 @@
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
-        <mockito.version>3.12.4</mockito.version>
+        <mockito.version>4.0.0</mockito.version>
         <assertj.version>3.21.0</assertj.version>
         <wiremock.version>2.27.2</wiremock.version>
         <awaitility.version>4.1.0</awaitility.version>
         <jetty.version>9.4.43.v20210629</jetty.version>
         <restassured.version>3.3.0</restassured.version>
         <h2.version>1.4.200</h2.version>
-        <bytebuddy.version>1.11.13</bytebuddy.version>
+        <bytebuddy.version>1.11.19</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
