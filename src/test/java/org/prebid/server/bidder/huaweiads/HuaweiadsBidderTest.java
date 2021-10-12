@@ -94,7 +94,7 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(
-                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "someUa"));
         assertThat(result.getErrors()).isEmpty();
@@ -223,7 +223,7 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(error.getMessage())
-                            .startsWith("GetHuaweiAdsReqAdslot: Video maxDuration is empty when adtype is roll");
+                            .startsWith("resolveTotalDuration: Video maxDuration is empty when adtype is roll");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -242,7 +242,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("getNativeFormat: imp.xNative.request is empty");
+                    assertThat(error.getMessage()).startsWith("getAssets: imp.xNative.request is empty");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -259,7 +259,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("getDeviceID: BidRequest.user is null");
+                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -277,7 +277,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("getDeviceID: BidRequest.user.ext is null");
+                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -288,7 +288,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .user(User.builder()
                                 .ext(ExtUser.builder()
-                                        .data(mapper.valueToTree(ExtImpAdocean.of("", "", "")))
+                                        .data(mapper.createObjectNode().put("incorrectField", "incorrectValue"))
                                         .build())
                                 .build()),
                 identity());
@@ -301,7 +301,7 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(error.getMessage())
-                            .startsWith("Unmarshal: BidRequest.user.ext -> extUserDataHuaweiAds failed");
+                            .startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -326,7 +326,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("getDeviceID: Imei ,Oaid, Gaid are all empty");
+                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -384,7 +384,7 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage())
-                            .startsWith("convertHuaweiAdsResp2BidderResp: multiad length is 0");
+                            .startsWith("convertHuaweiAdsRespToBidderResp: multiad is null or length is 0");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -431,52 +431,6 @@ public class HuaweiadsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfImpBannerAdContentEmpty() throws JsonProcessingException {
-        // given
-        final ArrayList<HuaweiContent> content = new ArrayList<>();
-        content.add(null);
-        final HttpCall<HuaweiRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
-                mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
-                        .multiad(givenAds(adBuilder -> adBuilder
-                                .content(content))))));
-
-        // when
-        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("convertHuaweiAdsResp2BidderResp: content is null");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfImpVideoAdContentEmpty() throws JsonProcessingException {
-        // given
-        final ArrayList<HuaweiContent> content = new ArrayList<>();
-        content.add(null);
-        final HttpCall<HuaweiRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
-                        .banner(null)
-                        .video(Video.builder().build())),
-                mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
-                        .multiad(givenAds(adBuilder -> adBuilder
-                                .content(content))))));
-
-        // when
-        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall, givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("convertHuaweiAdsResp2BidderResp: content is null");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfNoCreativeTypeFound() throws JsonProcessingException {
         // given
         final HttpCall<HuaweiRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), identity()),
@@ -492,7 +446,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("no banner support creativetype");
+                    assertThat(error.getMessage()).startsWith("No banner support for this creativetype: " + 100);
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -538,31 +492,6 @@ public class HuaweiadsBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).startsWith("resolveNativeBid: imp.Native.Request is empty");
-                });
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfNativeRequestUnparseable() throws JsonProcessingException {
-        // given
-        final HttpCall<HuaweiRequest> httpCall = givenHttpCall(givenHuaweiRequest(identity(), impBuilder -> impBuilder
-                        .banner(null)
-                        .xNative(Native.builder()
-                                .request("somethingUnparseable").build())),
-                mapper.writeValueAsString(givenHuaweiAdsResponse(huaweiAdsResponseBuilder -> huaweiAdsResponseBuilder
-                        .multiad(givenAds(adBuilder -> adBuilder
-                                .adType(3))))));
-
-        // when
-        final Result<List<BidderBid>> result = huaweiAdsBidder.makeBids(httpCall,
-                givenBidRequest(impBuilder -> impBuilder
-                        .xNative(Native.builder().request(givenNativeRequest(identity())).build())));
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("resolveAssets: Metadata.Icon is null");
                 });
         assertThat(result.getValue()).isEmpty();
     }

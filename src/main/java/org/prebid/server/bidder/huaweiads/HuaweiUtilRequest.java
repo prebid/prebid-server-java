@@ -66,7 +66,6 @@ public class HuaweiUtilRequest<T> {
                                                        Imp imp, JacksonMapper mapper) {
         final String lowerAdType = StringUtils.lowerCase(extImpHuawei.getAdType());
         final Banner banner = imp.getBanner();
-        final Native xnative = imp.getXNative();
 
         final boolean ifBanner = banner != null;
         List<Asset> nativeAssets = !ifBanner ? getAssets(imp, mapper) : null;
@@ -176,7 +175,7 @@ public class HuaweiUtilRequest<T> {
             case "roll":
                 return BidTypes.ROLL_CODE.getValue();
             default:
-                return BidTypes.BANNER_CODE.getValue(); //TODO
+                return BidTypes.BANNER_CODE.getValue();
         }
     }
 
@@ -258,7 +257,7 @@ public class HuaweiUtilRequest<T> {
             final String clientTime = dataNotNull ? resolveClientTime(data.getClientTime()) : null;
 
             if (oaid == null && gaid == null && imei == null) {
-                throw new PreBidException("resolveHuaweiReqDevice: Imei, Oaid, Gaid are all empty or null");
+                throw new PreBidException("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
             }
 
             final Integer dnt = device.getDnt();
@@ -313,9 +312,6 @@ public class HuaweiUtilRequest<T> {
                     ExtUserDataHuaweiAds.class);
         } catch (JsonProcessingException e) {
             throw new PreBidException("Unmarshal: BidRequest.user.ext -> extUserDataHuaweiAds failed");
-        }
-        if (extUserDataHuaweiAds.getData() == null) {
-            return null;
         }
         return extUserDataHuaweiAds.getData();
     }
@@ -468,7 +464,7 @@ public class HuaweiUtilRequest<T> {
     }
 
     private static <T> T checkOnNull(T object, String errorMessage) {
-        if(object == null) {
+        if (object == null) {
             throw new PreBidException(errorMessage);
         }
         return object;
