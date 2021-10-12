@@ -63,7 +63,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 extImpAlgorix = extImpAlgorix == null ? parseImpExt(imp) : extImpAlgorix;
-                updatedImps.add(updateImp(imp, extImpAlgorix));
+                updatedImps.add(updateImp(imp));
             } catch (PreBidException error) {
                 errors.add(BidderError.badInput(error.getMessage()));
             }
@@ -106,7 +106,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
      * @param imp imp
      * @return new imp
      */
-    private static Imp updateImp(Imp imp, ExtImpAlgorix extImpAlgorix) {
+    private static Imp updateImp(Imp imp) {
         if (imp.getBanner() != null) {
             final Banner banner = imp.getBanner();
             if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
@@ -120,9 +120,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                         .build();
             }
         }
-        return imp.toBuilder()
-                .tagid(extImpAlgorix.getPlacementId())
-                .build();
+        return imp;
     }
 
     /**
