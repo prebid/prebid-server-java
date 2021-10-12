@@ -19,6 +19,11 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
+- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `privacy.ccpa.integration-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
+- `privacy.ccpa.integration-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
+- `privacy.ccpa.integration-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
+- `privacy.ccpa.integration-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
 - `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
@@ -449,6 +454,9 @@ SELECT
             )
         ), 
         'privacy', JSON_OBJECT(
+            'ccpa', JSON_OBJECT(
+                'enabled', NOT NOT(enforce_ccpa)
+            ),
             'gdpr', tcf_config
         ), 
         'analytics', analytics_config
