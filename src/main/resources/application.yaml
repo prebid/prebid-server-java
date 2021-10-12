@@ -90,9 +90,6 @@ external-url: http://localhost:8080
 host-id: localhost
 datacenter-region: local
 vendor: local
-default-timeout-ms: 900
-max-timeout-ms: 5000
-timeout-adjustment-ms: 30
 system: system
 sub-system: subSystem
 infra: infra
@@ -130,10 +127,8 @@ auction:
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
-amp:
-  default-timeout-ms: 900
-  max-timeout-ms: 5000
-  timeout-adjustment-ms: 30
+event:
+  default-timeout-ms: 1000
 setuid:
   default-timeout-ms: 2000
 vtrack:
