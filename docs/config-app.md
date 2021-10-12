@@ -311,7 +311,6 @@ settings:
         }
       },
       "privacy": {
-        "enforce-ccpa": true,
         "gdpr": {
           "enabled": true
         }
