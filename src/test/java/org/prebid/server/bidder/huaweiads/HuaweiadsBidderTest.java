@@ -46,7 +46,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuawei;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -259,7 +258,8 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
+                    assertThat(error.getMessage())
+                            .startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -277,7 +277,8 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
+                    assertThat(error.getMessage())
+                            .startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -326,7 +327,8 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
+                    assertThat(error.getMessage())
+                            .startsWith("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
                 });
         assertThat(result.getValue()).isEmpty();
     }

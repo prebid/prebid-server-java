@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
