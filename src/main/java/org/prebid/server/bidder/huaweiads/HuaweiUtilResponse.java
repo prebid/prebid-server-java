@@ -127,7 +127,7 @@ public class HuaweiUtilResponse {
                                            TypeReference<ExtPrebid<?, ExtImpHuawei>> typeReference) {
         ExtImpHuawei extImpHuawei;
         try {
-            extImpHuawei = mapper.mapper().convertValue(imp.getExt(), typeReference).getBidder(); //Todo can it return null ?
+            extImpHuawei = mapper.mapper().convertValue(imp.getExt(), typeReference).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("ExtImpHuaweiAds: missing bidder ext");
         }
