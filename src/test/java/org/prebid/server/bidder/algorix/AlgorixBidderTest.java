@@ -261,7 +261,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAlgorix.of("testSid", "testToken")))))
+                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId")))))
                 .build();
     }
 
