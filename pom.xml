@@ -33,6 +33,7 @@
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
         <jackson.version>2.10.0</jackson.version>
+        <jackson.blackbird.version>2.12.5</jackson.blackbird.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
@@ -192,8 +193,8 @@
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-afterburner</artifactId>
-            <version>${jackson.version}</version>
+            <artifactId>jackson-module-blackbird</artifactId>
+            <version>${jackson.blackbird.version}</version>
         </dependency>
         <dependency>
             <groupId>com.networknt</groupId>
