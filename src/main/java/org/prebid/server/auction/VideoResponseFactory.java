@@ -55,19 +55,7 @@ public class VideoResponseFactory {
 
         adPods.addAll(adPodsWithErrors(podErrors));
 
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (auctionContext.getDebugContext().isDebugEnabled()) {
-            final ExtBidResponse extBidResponse = bidResponse.getExt();
-
-            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
-            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-        return VideoResponse.of(adPods, extResponseDebug, errors, extResponseFrom(bidResponse));
+        return VideoResponse.of(adPods, extResponseFrom(bidResponse));
     }
 
     private static List<Bid> bidsFrom(BidResponse bidResponse) {
@@ -151,7 +139,11 @@ public class VideoResponseFactory {
         final ExtBidResponse ext = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtResponseDebug extResponseDebug = ext != null ? ext.getDebug() : null;
+        final Map<String, List<ExtBidderError>> extBidderErrors = ext != null ? ext.getErrors() : null;
 
-        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+        return extModules != null
+                ? ExtAmpVideoResponse.of(extResponseDebug, extBidderErrors, ExtAmpVideoPrebid.of(extModules))
+                : null;
     }
 }

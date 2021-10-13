@@ -178,20 +178,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
                 .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
 
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (auctionContext.getDebugContext().isDebugEnabled()) {
-            final ExtBidResponse extBidResponse = bidResponse.getExt();
-
-            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
-            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-
-        return AmpResponse.of(targeting, extResponseDebug, errors, extResponseFrom(bidResponse));
+        return AmpResponse.of(targeting, extResponseFrom(bidResponse));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -246,8 +233,12 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtBidResponse ext = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtResponseDebug extResponseDebug = ext != null ? ext.getDebug() : null;
+        final Map<String, List<ExtBidderError>> extBidderErrors = ext != null ? ext.getErrors() : null;
 
-        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+        return extModules != null
+                ? ExtAmpVideoResponse.of(extResponseDebug, extBidderErrors, ExtAmpVideoPrebid.of(extModules))
+                : null;
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
