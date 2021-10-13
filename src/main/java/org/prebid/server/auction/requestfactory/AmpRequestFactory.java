@@ -169,14 +169,14 @@ public class AmpRequestFactory {
 
         final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
         final String consentString = consentStringFromQueryStringParams(httpRequest);
-        final String attlConsent = attlConsentFromQueryStringParams(httpRequest);
+        final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
-                .user(createUser(consentType, consentString, attlConsent))
+                .user(createUser(consentType, consentString, addtlConsent))
                 .regs(createRegs(consentString, consentType, gdpr))
                 .test(debug)
                 .tmax(timeout)
@@ -202,18 +202,18 @@ public class AmpRequestFactory {
                 : null;
     }
 
-    private static User createUser(ConsentType consentType, String consentString, String attlConsent) {
+    private static User createUser(ConsentType consentType, String consentString, String addtlConsent) {
         final boolean tcfV2ConsentProvided = (StringUtils.isNotBlank(consentString)
                 && TcfDefinerService.isConsentStringValid(consentString))
                 && (consentType == null || consentType == ConsentType.tcfV2);
 
-        if (StringUtils.isNotBlank(attlConsent) || tcfV2ConsentProvided) {
+        if (StringUtils.isNotBlank(addtlConsent) || tcfV2ConsentProvided) {
             final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
             if (tcfV2ConsentProvided) {
                 userExtBuilder.consent(consentString);
             }
-            if (StringUtils.isNotBlank(attlConsent)) {
-                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(attlConsent));
+            if (StringUtils.isNotBlank(addtlConsent)) {
+                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
             }
             return User.builder().ext(userExtBuilder.build()).build();
         }
@@ -279,7 +279,7 @@ public class AmpRequestFactory {
         return ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
     }
 
-    private static String attlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
+    private static String addtlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
         return httpRequest.getQueryParams().get(ADDTL_CONSENT_PARAM);
     }
 
