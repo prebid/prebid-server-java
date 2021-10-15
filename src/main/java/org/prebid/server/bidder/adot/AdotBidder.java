@@ -52,7 +52,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                                 .uri(endpointUrl)
                                 .headers(HttpUtil.headers())
                                 .payload(bidRequest)
-                                .body(mapper.encode(bidRequest))
+                                .body(mapper.encodeToBytes(bidRequest))
                                 .build()),
                 errors);
     }

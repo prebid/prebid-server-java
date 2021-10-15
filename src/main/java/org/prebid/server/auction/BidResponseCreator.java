@@ -1259,7 +1259,7 @@ public class BidResponseCreator {
             }
 
             responseAssets.forEach(asset -> setAssetTypes(asset, nativeRequest.getAssets()));
-            return mapper.encode(nativeMarkup);
+            return mapper.encodeToString(nativeMarkup);
         }
 
         return bidAdm;

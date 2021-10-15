@@ -76,7 +76,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(
                                 Imp.builder()

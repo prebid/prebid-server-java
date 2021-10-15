@@ -72,7 +72,7 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 
-        final String body = mapper.encode(outgoingRequest);
+        final byte[] body = mapper.encodeToBytes(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()

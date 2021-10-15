@@ -100,9 +100,9 @@ public class AjaBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(imp))
                 .build();
 
-        final String body;
+        final byte[] body;
         try {
-            body = mapper.encode(outgoingRequest);
+            body = mapper.encodeToBytes(outgoingRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(
                     String.format("Failed to unmarshal bidrequest ID: %s err: %s", request.getId(), e.getMessage())));

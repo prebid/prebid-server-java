@@ -16,7 +16,7 @@ public class HttpRequest<T> {
 
     String uri;
 
-    String body;
+    byte[] body;
 
     MultiMap headers;
 

@@ -277,7 +277,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK;
             routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-            body = mapper.encode(responseResult.result().getRight());
+            body = mapper.encodeToString(responseResult.result().getRight());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {

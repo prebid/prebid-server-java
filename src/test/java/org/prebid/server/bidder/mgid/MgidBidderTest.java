@@ -180,7 +180,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test
@@ -257,7 +257,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test

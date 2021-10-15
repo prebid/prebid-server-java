@@ -60,12 +60,10 @@ public class FacebookBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnBlankArguments() {
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
                         ENDPOINT_URL, " ", APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
                         ENDPOINT_URL, PLATFORM_ID, " ", TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
@@ -411,7 +409,8 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpNativeByAddingWidthAndHeightAndRemovingRequestAndVerFields() {
+    public void makeHttpRequestsShouldModifyImpNativeByAddingWidthAndHeightAndRemovingRequestAndVerFields()
+            throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
@@ -433,8 +432,10 @@ public class FacebookBidderTest extends VertxTest {
                 .containsOnly(FacebookNative.builder().w(-1).h(-1).api(singletonList(1)).build());
 
         // extra check to assure that data in body is displayed correctly
-        assertThat(result.getValue().get(0).getBody())
-                .contains("\"native\":{\"api\":[1],\"w\":-1,\"h\":-1},\"tagid\":\"pubId_placementId\"}");
+        assertThat(result.getValue())
+                .extracting(value -> new String(value.getBody()))
+                .allSatisfy(s -> assertThat(s)
+                        .contains("\"native\":{\"api\":[1],\"w\":-1,\"h\":-1},\"tagid\":\"pubId_placementId\"}"));
     }
 
     @Test
@@ -699,7 +700,7 @@ public class FacebookBidderTest extends VertxTest {
                 .app(App.builder().publisher(Publisher.builder().id("test").build()).build())
                 .build();
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .body(mapper.writeValueAsString(bidRequest))
+                .body(mapper.writeValueAsBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
 
@@ -715,9 +716,9 @@ public class FacebookBidderTest extends VertxTest {
             Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .id("req1")
-                .user(User.builder().buyeruid("bUid").build())
-                .imp(singletonList(givenImp(impCustomizer, impExtCustomizer))))
+                        .id("req1")
+                        .user(User.builder().buyeruid("bUid").build())
+                        .imp(singletonList(givenImp(impCustomizer, impExtCustomizer))))
                 .build();
     }
 
@@ -729,10 +730,10 @@ public class FacebookBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("imp1")
-                .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(
-                        null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
+                        .id("imp1")
+                        .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
                 .build();
     }
 

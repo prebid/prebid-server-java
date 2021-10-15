@@ -479,12 +479,14 @@ public class ServiceConfiguration {
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
             BidderErrorNotifier bidderErrorNotifier,
-            HttpBidderRequestEnricher requestEnricher) {
+            HttpBidderRequestEnricher requestEnricher,
+            JacksonMapper mapper) {
 
         return new HttpBidderRequester(httpClient,
                 bidderRequestCompletionTrackerFactory,
                 bidderErrorNotifier,
-                requestEnricher);
+                requestEnricher,
+                mapper);
     }
 
     @Bean

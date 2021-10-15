@@ -97,7 +97,7 @@ public class BidderParamValidator {
 
     private static String toSchemas(Map<String, JsonNode> bidderRawSchemas, JacksonMapper mapper) {
         try {
-            return mapper.encode(bidderRawSchemas);
+            return mapper.encodeToString(bidderRawSchemas);
         } catch (EncodeException e) {
             throw new IllegalArgumentException("Couldn't combine json schemas into single json string");
         }

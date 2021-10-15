@@ -67,7 +67,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(url)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());
     }

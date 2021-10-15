@@ -95,13 +95,12 @@ public class ZeroclickfraudBidder implements Bidder<BidRequest> {
                 .replace(SOURCE_ID, extImpZeroclickfraud.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(uri)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

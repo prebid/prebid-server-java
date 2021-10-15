@@ -129,7 +129,7 @@ public class CacheService {
         }
 
         final long startTime = clock.millis();
-        return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encode(bidCacheRequest),
+        return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)
                 .map(response -> toBidCacheResponse(
                         response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
@@ -312,7 +312,7 @@ public class CacheService {
         updateCreativeMetrics(accountId, cachedCreatives);
 
         final String url = endpointUrl.toString();
-        final String body = mapper.encode(bidCacheRequest);
+        final String body = mapper.encodeToString(bidCacheRequest);
         final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
 
         final long startTime = clock.millis();

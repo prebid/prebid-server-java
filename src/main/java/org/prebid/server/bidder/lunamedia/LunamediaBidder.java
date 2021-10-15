@@ -155,7 +155,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(updatedBidRequest))
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers())
                     .payload(updatedBidRequest)
                     .build();

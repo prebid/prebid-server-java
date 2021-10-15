@@ -74,7 +74,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
-        final String body = mapper.encode(outgoingRequest);
+        final byte[] body = mapper.encodeToBytes(outgoingRequest);
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)

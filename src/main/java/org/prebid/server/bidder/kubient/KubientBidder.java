@@ -55,9 +55,9 @@ public class KubientBidder implements Bidder<BidRequest> {
             }
         }
 
-        String body;
+        final byte[] body;
         try {
-            body = mapper.encode(request);
+            body = mapper.encodeToBytes(request);
         } catch (EncodeException e) {
             return Result.withError(
                     BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));

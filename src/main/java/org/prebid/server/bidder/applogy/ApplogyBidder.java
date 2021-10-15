@@ -68,7 +68,7 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        final String body = mapper.encode(outgoingRequest);
+        final byte[] body = mapper.encodeToBytes(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

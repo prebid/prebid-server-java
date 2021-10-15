@@ -103,7 +103,7 @@ public class PubstackEventHandler {
     private <T> void buffer(T event) {
         final ObjectNode eventNode = jacksonMapper.mapper().valueToTree(event);
         eventNode.put(SCOPE_FIELD_NAME, scopeId);
-        final String jsonEvent = jacksonMapper.encode(eventNode);
+        final String jsonEvent = jacksonMapper.encodeToString(eventNode);
         events.get().add(jsonEvent);
         byteSize.getAndAdd(jsonEvent.getBytes().length);
     }

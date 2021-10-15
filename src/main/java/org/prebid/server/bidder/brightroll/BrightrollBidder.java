@@ -78,9 +78,9 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final String bidRequestBody;
+        final byte[] bidRequestBody;
         try {
-            bidRequestBody = mapper.encode(updateBidRequest);
+            bidRequestBody = mapper.encodeToBytes(updateBidRequest);
         } catch (EncodeException e) {
             errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
             return Result.withErrors(errors);

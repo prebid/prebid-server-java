@@ -74,7 +74,7 @@ public class MgidBidder implements Bidder<BidRequest> {
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl + accountId)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build());
