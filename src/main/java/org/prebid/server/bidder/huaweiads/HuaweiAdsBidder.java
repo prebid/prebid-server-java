@@ -131,16 +131,14 @@ public class HuaweiAdsBidder implements Bidder<HuaweiRequest> {
     }
 
     private String computeHmacSha256(String data, String apiKey) {
-        String output;
         try {
-            Mac sha256Hmac = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secretKey = new SecretKeySpec(apiKey.getBytes("UTF-8"), "HmacSHA256");
+            final Mac sha256Hmac = Mac.getInstance("HmacSHA256");
+            final SecretKeySpec secretKey = new SecretKeySpec(apiKey.getBytes("UTF-8"), "HmacSHA256");
             sha256Hmac.init(secretKey);
-            output = Hex.encodeHexString(sha256Hmac.doFinal(data.getBytes("UTF-8")));
+            return Hex.encodeHexString(sha256Hmac.doFinal(data.getBytes("UTF-8")));
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException | InvalidKeyException e) {
             throw new PreBidException(e.getMessage());
         }
-        return output;
     }
 
     private static String generateNonce() {

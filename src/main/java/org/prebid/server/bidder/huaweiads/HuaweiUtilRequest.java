@@ -12,6 +12,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.huaweiads.model.ExtUserDataDeviceIdHuaweiAds;
 import org.prebid.server.bidder.huaweiads.model.ExtUserDataHuaweiAds;
@@ -32,9 +35,9 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class HuaweiUtilRequest<T> {
@@ -66,18 +69,18 @@ public class HuaweiUtilRequest<T> {
         final String lowerAdType = StringUtils.lowerCase(extImpHuawei.getAdType());
         final Banner banner = imp.getBanner();
 
-        final boolean ifBanner = banner != null;
-        List<Asset> nativeAssets = !ifBanner ? getAssets(imp, mapper) : null;
+        final boolean bannerPresent = banner != null;
+        List<Asset> nativeAssets = !bannerPresent ? getAssets(imp, mapper) : null;
 
         return HuaweiAdSlot.builder()
                 .slotId(extImpHuawei.getSlotId())
-                .adType(convertAdtypeString2Integer(lowerAdType))
+                .adType(convertAdtypeStringToInteger(lowerAdType))
                 .test(bidRequest.getTest())
-                .format(ifBanner ? resolveFormat(banner) : null)
-                .w(ifBanner ? resolveBannerWidth(banner) : resolveNativeWidth(nativeAssets))
-                .h(ifBanner ? resolveBannerHeight(banner) : resolveNativeHeight(nativeAssets))
+                .format(bannerPresent ? resolveFormat(banner) : null)
+                .w(bannerPresent ? resolveBannerWidth(banner) : resolveNativeWidth(nativeAssets))
+                .h(bannerPresent ? resolveBannerHeight(banner) : resolveNativeHeight(nativeAssets))
                 .totalDuration(resolveTotalDuration(imp, lowerAdType))
-                .detailedCreativeTypeList(ifBanner ? null : resolveDetailedCreativeList(nativeAssets))
+                .detailedCreativeTypeList(bannerPresent ? null : resolveDetailedCreativeList(nativeAssets))
                 .build();
     }
 
@@ -95,8 +98,7 @@ public class HuaweiUtilRequest<T> {
             if (asset.getVideo() != null) {
                 numVideo++;
             }
-            ImageObject image = asset.getImg();
-            if (image != null) {
+            if (asset.getImg() != null) {
                 numImage++;
             }
         }
@@ -121,10 +123,10 @@ public class HuaweiUtilRequest<T> {
         for (Asset asset : assets) {
             ImageObject image = asset.getImg();
             if (image != null) {
-                int h = image.getH() != null ? image.getH() : 0;
-                int w = image.getW() != null ? image.getW() : 0;
-                int wMin = image.getWmin() != null ? image.getWmin() : 0;
-                int hMin = image.getHmin() != null ? image.getHmin() : 0;
+                int h = ObjectUtils.defaultIfNull(image.getH(), 0);
+                int w = ObjectUtils.defaultIfNull(image.getW(), 0);
+                int wMin = ObjectUtils.defaultIfNull(image.getWmin(), 0);
+                int hMin = ObjectUtils.defaultIfNull(image.getHmin(), 0);
 
                 if (h != 0 && w != 0) {
                     width = w;
@@ -159,7 +161,7 @@ public class HuaweiUtilRequest<T> {
         return height;
     }
 
-    private static int convertAdtypeString2Integer(String adType) {
+    private static int convertAdtypeStringToInteger(String adType) {
         switch (adType) {
             case "banner":
                 return BidTypes.BANNER_CODE.getValue();
@@ -181,8 +183,11 @@ public class HuaweiUtilRequest<T> {
     private static Integer resolveTotalDuration(Imp imp, String lowerAdType) {
         if (lowerAdType.equals("roll")) {
             final Video video = imp.getVideo();
-            if (video != null && video.getMaxduration() != null && video.getMaxduration() >= 0) {
-                return video.getMaxduration();
+            if (video != null) {
+                final Integer maxDuration = video.getMaxduration();
+                if (maxDuration != null && maxDuration >= 0) {
+                    return maxDuration;
+                }
             } else {
                 throw new PreBidException("resolveTotalDuration: Video maxDuration is empty when adtype is roll");
             }
@@ -191,10 +196,8 @@ public class HuaweiUtilRequest<T> {
     }
 
     private static Integer resolveBannerWidth(Banner banner) {
-        if (banner.getW() != null && banner.getH() != null) {
-            return banner.getW();
-        }
-        return 0;
+        final Integer w = banner.getW();
+        return ObjectUtils.anyNotNull(w, banner.getH()) ? w : 0;
     }
 
     private static Integer resolveBannerHeight(Banner banner) {
@@ -205,27 +208,22 @@ public class HuaweiUtilRequest<T> {
     }
 
     private static List<HuaweiFormat> resolveFormat(Banner banner) {
-        if (banner.getFormat().size() != 0) {
-            return banner.getFormat().stream()
-                    .filter(oldFormat -> oldFormat.getH() != 0 && oldFormat.getW() != 0)
-                    .map(oldFormat -> HuaweiFormat.of(oldFormat.getW(), oldFormat.getH()))
-                    .collect(Collectors.toList());
-        }
-        return null;
+        return ListUtils.emptyIfNull(banner.getFormat().stream()
+                .filter(oldFormat -> oldFormat.getH() != 0 && oldFormat.getW() != 0)
+                .map(oldFormat -> HuaweiFormat.of(oldFormat.getW(), oldFormat.getH()))
+                .collect(Collectors.toList()));
     }
 
     private static List<Asset> getAssets(Imp imp, JacksonMapper mapper) {
-        final String request = checkOnNull(imp.getXNative(), "getAssets: imp.xnative is null").getRequest();
+        final String request = throwIfNull(imp.getXNative(), "getAssets: imp.xnative is null").getRequest();
         if (StringUtils.isBlank(request)) {
             throw new PreBidException("getAssets: imp.xNative.request is empty");
         }
-        HuaweiNativeRequest nativePayload;
         try {
-            nativePayload = mapper.mapper().readValue(request, HuaweiNativeRequest.class);
+            return mapper.mapper().readValue(request, HuaweiNativeRequest.class).getAssets();
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
-        return nativePayload.getAssets();
     }
 
     private static HuaweiApp resolveHuaweiApp(BidRequest bidRequest) {
@@ -233,9 +231,9 @@ public class HuaweiUtilRequest<T> {
 
         if (appFromBidReq != null) {
             return HuaweiApp.builder()
-                    .version(StringUtils.isBlank(appFromBidReq.getVer()) ? null : appFromBidReq.getVer())
-                    .name(StringUtils.isBlank(appFromBidReq.getName()) ? null : appFromBidReq.getName())
-                    .pkgname(resolvePkgName(appFromBidReq))
+                    .version(ObjectUtils.defaultIfNull(appFromBidReq.getVer(), ""))
+                    .name(ObjectUtils.defaultIfNull(appFromBidReq.getName(), ""))
+                    .pkgname(extractAndValidatePkgName(appFromBidReq))
                     .lang(resolveLang(appFromBidReq))
                     .country(resolveCountry(bidRequest))
                     .build();
@@ -245,15 +243,16 @@ public class HuaweiUtilRequest<T> {
 
     private static HuaweiDevice resolveHuaweiDevice(BidRequest bidRequest, JacksonMapper mapper) {
         final Device device = bidRequest.getDevice();
+        final HuaweiDevice.HuaweiDeviceBuilder builder = HuaweiDevice.builder();
         if (device != null) {
 
             final ExtUserDataDeviceIdHuaweiAds data = resolveDeviceData(bidRequest, mapper);
-            final boolean dataNotNull = data != null;
+            final boolean dataPresent = data != null;
 
-            final String oaid = dataNotNull ? resolveId(data.getOaid()) : null;
-            final String gaid = dataNotNull ? resolveId(data.getGaid()) : null;
-            final String imei = dataNotNull ? resolveId(data.getImei()) : null;
-            final String clientTime = dataNotNull ? resolveClientTime(data.getClientTime()) : null;
+            final String oaid = dataPresent ? resolveId(data.getOaid()) : null;
+            final String gaid = dataPresent ? resolveId(data.getGaid()) : null;
+            final String imei = dataPresent ? resolveId(data.getImei()) : null;
+            final String clientTime = dataPresent ? resolveClientTime(data.getClientTime()) : null;
 
             if (oaid == null && gaid == null && imei == null) {
                 throw new PreBidException("resolveHuaweiDevice: Imei, Oaid, Gaid are all empty or null");
@@ -261,8 +260,7 @@ public class HuaweiUtilRequest<T> {
 
             final Integer dnt = device.getDnt();
             final String country = resolveCountry(bidRequest);
-
-            return HuaweiDevice.builder()
+            return builder
                     .type(device.getDevicetype())
                     .useragent(device.getUa())
                     .os(device.getOs())
@@ -283,21 +281,21 @@ public class HuaweiUtilRequest<T> {
                     .imei(imei)
                     .clientTime(clientTime)
                     .isTrackingEnabled(resolveIsTrackingEnabled(dnt, oaid))
-                    .isGaidTrackingEnabled(resolveIsTrackingEnabled(dnt, gaid)).build();
+                    .isGaidTrackingEnabled(resolveIsTrackingEnabled(dnt, gaid))
+                    .build();
         }
-        return HuaweiDevice.builder().build();
+        return builder.build();
     }
 
-    private static String resolveId(List<String> listId) {
-        if (listId == null) {
+    private static String resolveId(List<String> ids) {
+        if (ids == null) {
             return null;
         }
-        return !listId.isEmpty() ? listId.get(0) : null;
+        return CollectionUtils.isNotEmpty(ids) ? ids.get(0) : null;
     }
 
     private static ExtUserDataDeviceIdHuaweiAds resolveDeviceData(BidRequest request, JacksonMapper mapper) {
         final User user = request.getUser();
-        final ExtUserDataHuaweiAds extUserDataHuaweiAds;
         if (user == null) {
             return null;
         }
@@ -307,12 +305,10 @@ public class HuaweiUtilRequest<T> {
         }
 
         try {
-            extUserDataHuaweiAds = mapper.mapper().readValue(userExt.getData().toString(),
-                    ExtUserDataHuaweiAds.class);
+            return mapper.mapper().readValue(userExt.getData().toString(), ExtUserDataHuaweiAds.class).getData();
         } catch (JsonProcessingException e) {
             throw new PreBidException("Unmarshal: BidRequest.user.ext -> extUserDataHuaweiAds failed");
         }
-        return extUserDataHuaweiAds.getData();
     }
 
     private static String resolveCountry(BidRequest bidRequest) {
@@ -322,40 +318,27 @@ public class HuaweiUtilRequest<T> {
         Device device = bidRequest.getDevice();
         geo = device != null ? device.getGeo() : null;
         country = geo != null ? geo.getCountry() : null;
-        if (!StringUtils.isBlank(country)) {
+        if (StringUtils.isNotBlank(country)) {
             return convertCountryCode(country);
         }
 
         User user = bidRequest.getUser();
         geo = user != null ? user.getGeo() : null;
         country = geo != null ? geo.getCountry() : null;
-        if (!StringUtils.isBlank(country)) {
-            return convertCountryCode(country);
-        }
 
-        return DEFAULT_COUNTRY_NAME;
+        return StringUtils.isNotBlank(country) ? convertCountryCode(country) : DEFAULT_COUNTRY_NAME;
     }
 
     private static String convertCountryCode(String country) {
-        Map<String, String> mapCountryCodeAlpha3ToAlpha2 = new HashMap<>();
-        mapCountryCodeAlpha3ToAlpha2.put("CHL", "CL");
-        mapCountryCodeAlpha3ToAlpha2.put("CHN", "CN");
-        mapCountryCodeAlpha3ToAlpha2.put("ARE", "AE");
-        String countryPresentInMap = mapCountryCodeAlpha3ToAlpha2.keySet().stream()
-                .filter(element -> element.equals(country))
-                .findFirst()
-                .orElse(null);
-
-        if (countryPresentInMap != null) {
-            return mapCountryCodeAlpha3ToAlpha2.get(countryPresentInMap);
-        }
-        if (country.length() > 2) {
-            return country.substring(0, 2);
-        }
-        return DEFAULT_COUNTRY_NAME;
+        Map<String, String> mapCountryCodeAlpha3ToAlpha2 = Map.of(
+                "CHL", "CL",
+                "CHN", "CN",
+                "ARE", "AE");
+        return Objects.requireNonNullElseGet(mapCountryCodeAlpha3ToAlpha2.get(country),
+                () -> country.length() > 2 ? country.substring(0, 2) : DEFAULT_COUNTRY_NAME);
     }
 
-    private static String resolvePkgName(App appFromBidReq) {
+    private static String extractAndValidatePkgName(App appFromBidReq) {
         String bundle = appFromBidReq.getBundle();
         if (StringUtils.isBlank(bundle)) {
             throw new PreBidException("resolvePkgName: app.bundle is empty");
@@ -365,38 +348,36 @@ public class HuaweiUtilRequest<T> {
 
     private static String resolveLang(App appFromBidReq) {
         String lang = appFromBidReq.getContent() != null ? appFromBidReq.getContent().getLanguage() : null;
-        if (StringUtils.isBlank(lang)) {
-            return "en";
-        }
-        return lang;
+        return StringUtils.isBlank(lang) ? "en" : lang;
     }
 
     private static HuaweiNetwork resolveHuaweiNetwork(BidRequest bidRequest) {
         Device device = bidRequest.getDevice();
-        if (device != null) {
-            return HuaweiNetwork.builder()
-                    .type(device.getConnectiontype() != null
-                            ? device.getConnectiontype()
-                            : DEFAULT_UNKNOWN_NETWORK_TYPE)
-                    .carrier(resolveCarrier(device))
-                    .cellInfoList(resolveCellInfoList(device))
-                    .build();
+        if (device == null) {
+            return HuaweiNetwork.builder().build();
         }
-        return null;
+        return HuaweiNetwork.builder()
+                .type(device.getConnectiontype() != null
+                        ? device.getConnectiontype()
+                        : DEFAULT_UNKNOWN_NETWORK_TYPE)
+                .carrier(resolveCarrier(device))
+                .cellInfoList(resolveCellInfoList(device))
+                .build();
     }
 
     private static Integer resolveCarrier(Device device) {
         String[] arrMccmnc = device.getMccmnc().split("-");
-        String str = arrMccmnc[0] + arrMccmnc[1];
-        if (str.equals("46000") || str.equals("46002") || str.equals("46007")) {
-            return 2;
-        } else if (str.equals("46001") || str.equals("46006")) {
-            return 1;
-        } else if (str.equals("46003") || str.equals("46005") || str.equals("46011")) {
-            return 3;
-        } else {
-            return 99;
+        if (arrMccmnc.length >= 2) {
+            String str = arrMccmnc[0] + arrMccmnc[1];
+            if (str.equals("46000") || str.equals("46002") || str.equals("46007")) {
+                return 2;
+            } else if (str.equals("46001") || str.equals("46006")) {
+                return 1;
+            } else if (str.equals("46003") || str.equals("46005") || str.equals("46011")) {
+                return 3;
+            }
         }
+        return 99;
     }
 
     private static List<HuaweiCellInfo> resolveCellInfoList(Device device) {
@@ -409,27 +390,25 @@ public class HuaweiUtilRequest<T> {
 
     private static Regs resolveRegs(BidRequest bidRequest) {
         Regs regs = bidRequest.getRegs();
-        if (regs != null && regs.getCoppa() >= 0) {
-            return Regs.of(regs.getCoppa(), null);
-        }
-        return null;
+        Integer coppa = regs != null ? regs.getCoppa() : null;
+        return coppa != null && coppa >= 0 ? Regs.of(coppa, null) : null;
     }
 
     private static Geo resolveGeo(BidRequest bidRequest) {
         Device device = bidRequest.getDevice();
         Geo geo = device != null ? device.getGeo() : null;
-        if (geo != null) {
-            return Geo.builder()
-                    .lon(geo.getLon())
-                    .lat(geo.getLat())
-                    .accuracy(geo.getAccuracy())
-                    .build();
+        if (geo == null) {
+            return Geo.builder().build();
         }
-        return null;
+        return Geo.builder()
+                .lon(geo.getLon())
+                .lat(geo.getLat())
+                .accuracy(geo.getAccuracy())
+                .build();
     }
 
     private static String resolveClientTime(List<String> clientTimeList) {
-        if (clientTimeList == null || clientTimeList.isEmpty()) {
+        if (CollectionUtils.isEmpty(clientTimeList)) {
             return null;
         }
         String clientTime = clientTimeList.get(0);
@@ -462,7 +441,7 @@ public class HuaweiUtilRequest<T> {
         return null;
     }
 
-    private static <T> T checkOnNull(T object, String errorMessage) {
+    private static <T> T throwIfNull(T object, String errorMessage) {
         if (object == null) {
             throw new PreBidException(errorMessage);
         }

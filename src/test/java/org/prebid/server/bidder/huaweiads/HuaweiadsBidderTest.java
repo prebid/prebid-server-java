@@ -92,7 +92,7 @@ public class HuaweiadsBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(res -> res.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(
+                .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "someUa"));
