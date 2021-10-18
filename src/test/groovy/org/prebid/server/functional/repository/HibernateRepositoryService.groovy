@@ -41,7 +41,7 @@ class HibernateRepositoryService {
     private static SessionFactory configureHibernate(String jdbcUrl, String user, String pass, String driver) {
         def properties = new Properties()
         properties.setProperty("hibernate.connection.url", jdbcUrl)
-        properties.setProperty("dialect", "org.hibernate.dialect.MySQLDialect")
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect")
         properties.setProperty("hibernate.connection.username", user)
         properties.setProperty("hibernate.connection.password", pass)
         properties.setProperty("hibernate.connection.driver_class", driver)
