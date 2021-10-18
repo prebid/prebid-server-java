@@ -30,6 +30,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
+import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -68,8 +70,6 @@ public class VideoHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private Clock clock;
-
-    private VideoHandler videoHandler;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -78,6 +78,10 @@ public class VideoHandlerTest extends VertxTest {
     private HttpServerResponse httpResponse;
     @Mock
     private UidsCookie uidsCookie;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
+
+    private VideoHandler videoHandler;
 
     private Timeout timeout;
 
@@ -94,12 +98,22 @@ public class VideoHandlerTest extends VertxTest {
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
         given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService,
-                analyticsReporterDelegator, metrics, clock, jacksonMapper);
+        videoHandler = new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService,
+                analyticsReporterDelegator,
+                metrics,
+                clock,
+                prebidVersionProvider,
+                jacksonMapper);
     }
 
     @Test
@@ -116,6 +130,26 @@ public class VideoHandlerTest extends VertxTest {
 
         // then
         assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+    }
+
+    @Test
+    public void shouldAddPrebidVersionResponseHeader() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple(HttpUtil.X_PREBID_HEADER.toString(), "pbs-java/1.00"));
     }
 
     @Test
@@ -217,9 +251,11 @@ public class VideoHandlerTest extends VertxTest {
         verify(exchangeService).holdAuction(any());
         verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
-        assertThat(httpResponse.headers()).hasSize(1)
+        assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("Content-Type", "application/json"));
+                .containsExactlyInAnyOrder(
+                        tuple("Content-Type", "application/json"),
+                        tuple(HttpUtil.X_PREBID_HEADER.toString(), "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 

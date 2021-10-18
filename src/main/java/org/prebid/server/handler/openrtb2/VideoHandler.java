@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -25,6 +26,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -45,17 +47,25 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
-    public VideoHandler(VideoRequestFactory videoRequestFactory, VideoResponseFactory videoResponseFactory,
-                        ExchangeService exchangeService, AnalyticsReporterDelegator analyticsDelegator, Metrics metrics,
-                        Clock clock, JacksonMapper mapper) {
+    public VideoHandler(VideoRequestFactory videoRequestFactory,
+                        VideoResponseFactory videoResponseFactory,
+                        ExchangeService exchangeService,
+                        AnalyticsReporterDelegator analyticsDelegator,
+                        Metrics metrics,
+                        Clock clock,
+                        PrebidVersionProvider prebidVersionProvider,
+                        JacksonMapper mapper) {
+
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -90,8 +100,11 @@ public class VideoHandler implements Handler<RoutingContext> {
         return result;
     }
 
-    private void handleResult(AsyncResult<VideoResponse> responseResult, VideoEvent.VideoEventBuilder videoEventBuilder,
-                              RoutingContext routingContext, long startTime) {
+    private void handleResult(AsyncResult<VideoResponse> responseResult,
+                              VideoEvent.VideoEventBuilder videoEventBuilder,
+                              RoutingContext routingContext,
+                              long startTime) {
+
         final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -103,7 +116,7 @@ public class VideoHandler implements Handler<RoutingContext> {
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            enrichWithHeaders(routingContext);
             body = mapper.encode(responseResult.result());
         } else {
             final Throwable exception = responseResult.cause();
@@ -169,5 +182,11 @@ public class VideoHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send video response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private void enrichWithHeaders(RoutingContext routingContext) {
+        final MultiMap headers = routingContext.response().headers();
+        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        headers.add(HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
     }
 }

@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -31,6 +32,7 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -50,6 +52,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private final Metrics metrics;
     private final Clock clock;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public AuctionHandler(AuctionRequestFactory auctionRequestFactory,
@@ -58,6 +61,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                           Metrics metrics,
                           Clock clock,
                           HttpInteractionLogger httpInteractionLogger,
+                          PrebidVersionProvider prebidVersionProvider,
                           JacksonMapper mapper) {
 
         this.auctionRequestFactory = Objects.requireNonNull(auctionRequestFactory);
@@ -66,6 +70,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -133,8 +138,9 @@ public class AuctionHandler implements Handler<RoutingContext> {
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            routingContext.response().headers();
             body = mapper.encode(responseResult.result().getLeft());
+            enrichWithHeaders(routingContext);
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -213,5 +219,11 @@ public class AuctionHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+    }
+
+    private void enrichWithHeaders(RoutingContext routingContext) {
+        final MultiMap headers = routingContext.response().headers();
+        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        headers.add(HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
     }
 }
