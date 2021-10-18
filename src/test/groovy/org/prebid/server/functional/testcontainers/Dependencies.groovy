@@ -12,7 +12,7 @@ class Dependencies {
 
     static final Network network = Network.newNetwork()
 
-    static final MySQLContainer mysqlContainer = new MySQLContainer<>("mysql:5")
+    static final MySQLContainer mysqlContainer = new MySQLContainer<>("mysql:8.0.26")
             .withDatabaseName("prebid")
             .withUsername("prebid")
             .withPassword("prebid")
