@@ -49,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Clock;
@@ -391,6 +392,30 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Content-Type", "application/json"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
+    }
+
+    @Test
+    public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
+                .debugContext(DebugContext.of(true, null))
+                .build();
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(auctionContext));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(givenBidResponseWithExt(
+                        ExtBidResponse.builder()
+                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                                .prebid(ExtBidResponsePrebid.of(1000L, null))
+                                .build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq(
+                "{\"targeting\":{}}"));
     }
 
     @Test
