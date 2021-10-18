@@ -139,11 +139,11 @@ public class VideoResponseFactory {
         final ExtBidResponse ext = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
-        final ExtResponseDebug extResponseDebug = ext != null ? ext.getDebug() : null;
-        final Map<String, List<ExtBidderError>> extBidderErrors = ext != null ? ext.getErrors() : null;
+        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
 
         return extModules != null
-                ? ExtAmpVideoResponse.of(extResponseDebug, extBidderErrors, ExtAmpVideoPrebid.of(extModules))
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, ExtAmpVideoPrebid.of(extModules))
                 : null;
     }
 }
