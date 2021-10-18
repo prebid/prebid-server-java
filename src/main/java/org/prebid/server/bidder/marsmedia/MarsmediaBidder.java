@@ -82,7 +82,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
 
         final String zoneId = extImpMarsmedia.getZone();
         if (StringUtils.isBlank(zoneId)) {
-            throw new PreBidException("Zone is empty");
+            throw new PreBidException("ZoneId is empty");
         }
 
         return zoneId;
