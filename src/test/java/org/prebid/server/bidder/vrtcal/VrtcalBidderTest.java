@@ -19,7 +19,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -31,6 +30,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class VrtcalBidderTest extends VertxTest {
 
@@ -46,21 +46,6 @@ public class VrtcalBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new VrtcalBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -140,38 +125,60 @@ public class VrtcalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidTypeNotValid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfImpNotFoundForId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("someImpId").build())).build(),
-                mapper.writeValueAsString(givenBidResponse(identity())));
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
 
         // when
         final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
-                .extracting(BidderError::getType, BidderError::getMessage)
-                .containsExactly(tuple(BidderError.Type.bad_server_response, "Bid type is not valid"));
+                .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: \"456\""));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnVideoIfBidTypeVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfBannerOrVideoNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().imp(singletonList(Imp.builder()
-                        .video(Video.builder().build())
-                        .id("someImpId").build())).build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someImpId"))));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, givenBidRequest(identity()));
+        final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unknown impression type for ID: \"123\""));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = vrtcalBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -179,7 +186,7 @@ public class VrtcalBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -189,7 +196,7 @@ public class VrtcalBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
                 .build();
     }
 
