@@ -1,11 +1,15 @@
 package org.prebid.server.bidder.iqzone;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -15,9 +19,12 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.iqzone.ExtImpIqzone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -25,6 +32,10 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class IqzoneBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpIqzone>> IQZONE_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpIqzone>>() {
+            };
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -36,13 +47,53 @@ public class IqzoneBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        return Result.withValue(HttpRequest.<BidRequest>builder()
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+
+        for (Imp imp : request.getImp()) {
+            try {
+                final ExtImpIqzone extImpIqzone = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp, extImpIqzone);
+
+                httpRequests.add(makeHttpRequest(request, modifiedImp));
+            } catch (IllegalArgumentException e) {
+                return Result.withError(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        return Result.withValues(httpRequests);
+    }
+
+    private ExtImpIqzone parseImpExt(Imp imp) {
+        return mapper.mapper().convertValue(imp.getExt(), IQZONE_EXT_TYPE_REFERENCE).getBidder();
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpIqzone impExt) {
+        final String placementId = impExt.getPlacementId();
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+
+        if (StringUtils.isNotEmpty(placementId)) {
+            modifiedImpExtBidder.set("placementId", TextNode.valueOf(placementId));
+            modifiedImpExtBidder.set("type", TextNode.valueOf("publisher"));
+        } else {
+            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(impExt.getEndpointId()));
+            modifiedImpExtBidder.set("type", TextNode.valueOf("network"));
+        }
+
+        return imp.toBuilder()
+                .ext(mapper.mapper().createObjectNode().set("bidder", modifiedImpExtBidder))
+                .build();
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+
+        return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .payload(request)
-                .body(mapper.encode(request))
                 .headers(HttpUtil.headers())
-                .build());
+                .payload(outgoingRequest)
+                .body(mapper.encode(outgoingRequest))
+                .build();
     }
 
     @Override

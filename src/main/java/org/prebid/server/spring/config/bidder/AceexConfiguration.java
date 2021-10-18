@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class AceexConfiguration {
 
     private static final String BIDDER_NAME = "aceex";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("aceexConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("aceexConfigurationProperties")
     @ConfigurationProperties("adapters.aceex")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class AceexConfiguration {
     }
 
     @Bean
-    BidderDeps aceexBidderDeps() {
+    BidderDeps aceexBidderDeps(BidderConfigurationProperties aceexConfigurationProperties,
+                               @NotBlank @Value("${external-url}") String externalUrl,
+                               JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(aceexConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new AceexBidder(config.getEndpoint(), mapper))
                 .assemble();

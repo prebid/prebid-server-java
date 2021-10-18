@@ -36,6 +36,8 @@ public class BidderConfigurationProperties {
 
     private Map<String, Object> aliases;
 
+    private Debug debug;
+
     @NotNull
     private MetaInfo metaInfo;
 
@@ -56,6 +58,7 @@ public class BidderConfigurationProperties {
         pbsEnforcesCcpa = ObjectUtils.defaultIfNull(pbsEnforcesCcpa, defaultProperties.getPbsEnforcesCcpa());
         modifyingVastXmlAllowed = ObjectUtils.defaultIfNull(modifyingVastXmlAllowed,
                 defaultProperties.getModifyingVastXmlAllowed());
+        debug = ObjectUtils.defaultIfNull(debug, defaultProperties.getDebug());
         aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
         extraInfo = ObjectUtils.defaultIfNull(extraInfo, defaultProperties.getExtraInfo());

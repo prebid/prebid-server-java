@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.iqzone;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -25,12 +27,13 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -51,18 +54,73 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+    public void makeHttpRequestsShouldConvertSingleRequestToPerImpRequests() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("123"),
+                impBuilder -> impBuilder.id("345"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getPayload)
-                .containsOnly(bidRequest);
+                .extracting(BidRequest::getImp)
+                .allSatisfy(imps -> assertThat(imps).hasSize(1));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpExtWithPlacementIdAndTypeIfPlacementIdPresentInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpIqzone.of("placementId", null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final Map<String, JsonNode> expectedImpExtBidder = Map.of(
+                "placementId", TextNode.valueOf("placementId"),
+                "type", TextNode.valueOf("publisher"));
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .set("bidder", mapper.valueToTree(expectedImpExtBidder)));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyImpExtWithEndpointIdAndTypeIfEndpointIdPresentInImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpIqzone.of(null, "endpointId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = iqZoneBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final Map<String, JsonNode> expectedImpExtBidder = Map.of(
+                "endpointId", TextNode.valueOf("endpointId"),
+                "type", TextNode.valueOf("network"));
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .set("bidder", mapper.valueToTree(expectedImpExtBidder)));
     }
 
     @Test
@@ -203,7 +261,9 @@ public class IqzoneBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("someId")
                         .ext(mapper.valueToTree(
-                                ExtPrebid.of(null, ExtImpIqzone.of("somePlacementId")))))
+                                ExtPrebid.of(
+                                        null,
+                                        ExtImpIqzone.of("somePlacementId", "someEndpointId")))))
                 .build();
     }
 
@@ -226,16 +286,19 @@ public class IqzoneBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        return givenBidRequest(identity(), List.of(impCustomizers));
     }
 
     private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            List<UnaryOperator<Imp.ImpBuilder>> impCustomizers) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
+        return bidRequestCustomizer.apply(
+                        BidRequest.builder()
+                                .imp(impCustomizers.stream()
+                                        .map(IqzoneBidderTest::givenImp)
+                                        .collect(Collectors.toList())))
                 .build();
     }
 }

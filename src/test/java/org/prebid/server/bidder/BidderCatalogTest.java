@@ -85,6 +85,7 @@ public class BidderCatalogTest {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
                 true,
+                true,
                 null,
                 null,
                 "test@email.com",
@@ -158,6 +159,7 @@ public class BidderCatalogTest {
     public void nameByVendorIdShouldReturnBidderNameForVendorId() {
         // given
         final BidderInfo bidderInfo = BidderInfo.create(
+                true,
                 true,
                 null,
                 null,

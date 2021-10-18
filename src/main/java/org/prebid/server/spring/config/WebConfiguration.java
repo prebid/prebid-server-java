@@ -391,6 +391,7 @@ public class WebConfiguration {
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
         return new NotificationEventHandler(
@@ -400,6 +401,7 @@ public class WebConfiguration {
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
+                defaultTimeoutMillis,
                 dealsEnabled);
     }
 
