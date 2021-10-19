@@ -9,5 +9,5 @@
       "description": "Zone ID to use."
     }
   },
-  "required": ["zone"]
+  "required": ["zoneId"]
 }

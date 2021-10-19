@@ -12,5 +12,5 @@ import lombok.Value;
 public class ExtImpMarsmedia {
 
     @JsonAlias("zoneId")
-    String zone;
+    String zoneId;
 }

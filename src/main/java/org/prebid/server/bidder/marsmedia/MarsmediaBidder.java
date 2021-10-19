@@ -80,7 +80,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("ext.bidder not provided");
         }
 
-        final String zoneId = extImpMarsmedia.getZone();
+        final String zoneId = extImpMarsmedia.getZoneId();
         if (StringUtils.isBlank(zoneId)) {
             throw new PreBidException("ZoneId is empty");
         }
