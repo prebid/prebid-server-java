@@ -5,28 +5,33 @@ import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyIterable;
+import static org.mockito.ArgumentMatchers.anyIterableOf;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mockingDetails;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public class ParamHandlerTest extends VertxTest {
+public class BidderParamHandlerTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RoutingContext routingContext;
-
     @Mock
-    private BidderCatalog bidderCatalog;
-
+    private BidderParamValidator bidderParamValidator;
     @Mock
     private HttpServerResponse httpResponse;
 
@@ -34,17 +39,19 @@ public class ParamHandlerTest extends VertxTest {
 
     @Before
     public void setUp() {
-        handler = new BidderParamHandler(
-                BidderParamValidator.create(bidderCatalog, "static/bidder-params", jacksonMapper));
+        handler = new BidderParamHandler(bidderParamValidator);
+
         given(routingContext.response()).willReturn(httpResponse);
+
+        given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
     }
 
     @Test
-    public void shouldReturnCorrectHeaders() {
-        //given
+    public void shouldRespondWithCorrectHeaders() {
+        // when
         handler.handle(routingContext);
 
-        //then
+        // then
         verify(httpResponse).putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
     }
 }
