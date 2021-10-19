@@ -157,6 +157,7 @@ LIMIT 1
 
     private static String normalizeProperty(String property) {
         property.replace(".", "_")
+                .replace("-", "")
     }
 
     @Override

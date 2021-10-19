@@ -1,4 +1,4 @@
-FROM amazoncorretto:11-alpine
+FROM openjdk:11-jdk-slim
 
 WORKDIR /app/prebid-server
 
