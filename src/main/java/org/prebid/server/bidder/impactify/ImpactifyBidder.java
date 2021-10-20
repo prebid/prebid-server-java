@@ -3,7 +3,11 @@ package org.prebid.server.bidder.impactify;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
+import com.iab.openrtb.response.BidResponse;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -15,6 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.impactify.ExtImpImpactify;
@@ -44,63 +49,16 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(conversionService);
     }
 
-    @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-        final List<Imp> updatedImps = new ArrayList<>();
-        final BidRequest updatedBidRequest;
-
-        for (Imp imp : imps) {
-            if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
-                    && !imp.getBidfloorcur().isEmpty()
-                    && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
-                final ExtImpImpactify extImpImpactify;
-                try {
-                    extImpImpactify = mapper.mapper().convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE).getBidder();
-                } catch (IllegalArgumentException e) {
-                    return Result.withError(BidderError.badInput("Ext.bidder not provided"));
-                }
-
-                updatedImps.add(imp.toBuilder()
-                        .bidfloor(resolveBidFloor(imp, request))
-                        .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
-                        .build());
-            }
-        }
-        if (updatedImps.size() == 0) {
-            return Result
-                    .withError(BidderError.badInput("No valid impressions in the bid request"));
-        }
-
-        updatedBidRequest = request.toBuilder()
-                .cur(List.of(BIDDER_CURRENCY))
-                .imp(updatedImps)
-                .build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint())
-                .headers(constructHeaders(updatedBidRequest))
-                .body(mapper.encode(updatedBidRequest))
-                .payload(updatedBidRequest)
-                .build());
-    }
-
-    private static BigDecimal resolveBidFloorPrice(Imp imp) {
-        final BigDecimal bidFloor = imp.getBidfloor();
-        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
-    }
-
     private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final var device = bidRequest.getDevice();
-        final var deviceUa = device != null ? device.getUa() : null;
-        final var deviceIp = device != null ? device.getIp() : null;
-        final var deviceIpv6 = device != null ? device.getIpv6() : null;
-        final var site = bidRequest.getSite();
-        final var sitePage = site != null ? site.getPage() : null;
-        final var user = bidRequest.getUser();
-        final var userUid = user != null ? user.getBuyeruid() : null;
-        final var headers = HttpUtil.headers();
+        final Device device = bidRequest.getDevice();
+        final String deviceUa = device != null ? device.getUa() : null;
+        final String deviceIp = device != null ? device.getIp() : null;
+        final String deviceIpv6 = device != null ? device.getIpv6() : null;
+        final Site site = bidRequest.getSite();
+        final String sitePage = site != null ? site.getPage() : null;
+        final User user = bidRequest.getUser();
+        final String userUid = user != null ? user.getBuyeruid() : null;
+        final MultiMap headers = HttpUtil.headers();
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
         headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
@@ -124,6 +82,57 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
 
         return headers;
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
+        final List<Imp> updatedImps = new ArrayList<>();
+        final BidRequest updatedBidRequest;
+
+        for (Imp imp : imps) {
+            if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
+                    && !imp.getBidfloorcur().isEmpty()
+                    && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
+                final ExtImpImpactify extImpImpactify;
+                try {
+                    extImpImpactify = mapper.mapper()
+                            .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
+                            .getBidder();
+                } catch (IllegalArgumentException e) {
+                    return Result.withError(
+                            BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
+                }
+
+                updatedImps.add(imp.toBuilder()
+                        .bidfloorcur(BIDDER_CURRENCY)
+                        .bidfloor(resolveBidFloor(imp, request))
+                        .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
+                        .build());
+            }
+        }
+
+        if (updatedImps.size() == 0) {
+            return Result
+                    .withError(BidderError.badInput("No valid impressions in the bid request"));
+        }
+
+        updatedBidRequest = request.toBuilder()
+                .imp(updatedImps)
+                .build();
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolveEndpoint())
+                .headers(constructHeaders(updatedBidRequest))
+                .body(mapper.encode(updatedBidRequest))
+                .payload(updatedBidRequest)
+                .build());
+    }
+
+    private static BigDecimal resolveBidFloorPrice(Imp imp) {
+        final BigDecimal bidFloor = imp.getBidfloor();
+        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
     }
 
     private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest) {
@@ -150,7 +159,13 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+        } catch (DecodeException e) {
+
+        }
+
         return null;
     }
 }
