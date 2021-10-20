@@ -70,8 +70,11 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldTolerateMissingEnabledOnlyFlag() {
+    public void shouldDefaultMissingEnabledOnlyFlagToFalse() {
         // given
+        given(bidderCatalog.isActive("bidder3")).willReturn(true);
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
@@ -79,6 +82,7 @@ public class BiddersHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end("[\"bidder1\",\"bidder2\",\"bidder3\"]");
     }
 
     @Test
