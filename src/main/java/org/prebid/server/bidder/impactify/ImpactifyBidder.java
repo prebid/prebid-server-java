@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -8,6 +9,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +32,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpImpactify>>() {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
-    private static final String DEFAULT_CURRENCY = "USD";
+    private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -40,6 +42,48 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(conversionService);
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
+        final List<Imp> updatedImps = new ArrayList<>();
+        final BidRequest updatedBidRequest;
+
+        for (Imp imp : imps) {
+            if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
+                    && !imp.getBidfloorcur().isEmpty()
+                    && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
+                final ExtImpImpactify extImpImpactify;
+                try {
+                    extImpImpactify = mapper.mapper().convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE).getBidder();
+                } catch (IllegalArgumentException e) {
+                    return Result.withError(BidderError.badInput("Ext.bidder not provided"));
+                }
+
+                updatedImps.add(imp.toBuilder()
+                        .bidfloor(resolveBidFloor(imp, request))
+                        .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
+                        .build());
+            }
+        }
+        if (updatedImps.size() == 0) {
+            return Result
+                    .withError(BidderError.badInput("No valid impressions in the bid request"));
+        }
+
+        updatedBidRequest = request.toBuilder()
+                .cur(List.of(BIDDER_CURRENCY))
+                .imp(updatedImps)
+                .build();
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolveEndpoint())
+                .headers(constructHeaders(updatedBidRequest))
+                .body(mapper.encode(updatedBidRequest))
+                .payload(updatedBidRequest)
+                .build());
     }
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
@@ -82,34 +126,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return headers;
     }
 
-    @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-        final List<Imp> updatedImps = new ArrayList<>();
-        final BidRequest updatedBidRequest;
-
-        for (Imp imp : imps) {
-            if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
-                    && !imp.getBidfloorcur().isEmpty()
-                    && !imp.getBidfloorcur().equalsIgnoreCase(DEFAULT_CURRENCY)) {
-                updatedImps.add(imp.toBuilder().bidfloor(resolveBidFloor(imp, request)).build());
-            }
-        }
-
-        updatedBidRequest = request.toBuilder()
-                .cur(List.of(DEFAULT_CURRENCY))
-                .imp(updatedImps)
-                .build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint())
-                .headers(constructHeaders(updatedBidRequest))
-                .body(mapper.encode(updatedBidRequest))
-                .payload(updatedBidRequest)
-                .build());
-    }
-
     private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final BigDecimal validBidFloorPrice = resolveBidFloorPrice(imp);
         if (validBidFloorPrice == null) {
@@ -119,15 +135,13 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return convertBidFloorCurrency(validBidFloorPrice, bidRequest, imp);
     }
 
-    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
-                                               BidRequest bidRequest,
-                                               Imp imp) {
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest, Imp imp) {
         try {
-            return currencyConversionService.convertCurrency(bidFloor, bidRequest, imp.getBidfloorcur(), DEFAULT_CURRENCY);
+            return currencyConversionService.convertCurrency(bidFloor, bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
         } catch (PreBidException e) {
             throw new PreBidException(String.format(
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
-                    imp.getBidfloorcur(), DEFAULT_CURRENCY, imp.getId(), e.getMessage()));
+                    imp.getBidfloorcur(), BIDDER_CURRENCY, imp.getId(), e.getMessage()));
         }
     }
 
