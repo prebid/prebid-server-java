@@ -73,6 +73,8 @@
         <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
         <gmavenplus-plugin.version>1.12.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
+        <skipFunctionalTests>false</skipFunctionalTests>
+        <skipUnitTests>false</skipUnitTests>
     </properties>
 
     <dependencyManagement>
@@ -495,6 +497,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <skipTests>${skipUnitTests}</skipTests>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -682,6 +687,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
+                    <skipITs>${skipFunctionalTests}</skipITs>
                     <argLine>
                         -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
                     </argLine>
