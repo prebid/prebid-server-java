@@ -70,7 +70,7 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithExpectedMessageAndStatusBadRequestWhenEnabledOnlyNotProvided() {
+    public void shouldTolerateMissingEnabledOnlyFlag() {
         // given
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
@@ -78,8 +78,7 @@ public class BiddersHandlerTest extends VertxTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
-        verify(httpResponse).end(eq("Invalid value for 'enabledonly' query param, must be of boolean type"));
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
     }
 
     @Test
