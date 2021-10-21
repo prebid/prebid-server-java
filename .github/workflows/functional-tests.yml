@@ -1,4 +1,4 @@
-name: Autotests
+name: Functional tests
 
 on:
   pull_request:
