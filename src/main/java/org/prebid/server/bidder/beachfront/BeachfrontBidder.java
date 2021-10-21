@@ -20,7 +20,6 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -527,11 +526,11 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private List<BidderBid> postProcessBidderBids(List<BidderBid> bidderBids) {
         return bidderBids.stream()
-                .map(this::resolveBidderBid)
+                .map(this::postProcessBidderBid)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid resolveBidderBid(BidderBid bidderBid) {
+    private BidderBid postProcessBidderBid(BidderBid bidderBid) {
         final Bid bid = bidderBid.getBid();
         final Integer duration = resolveDuration(bid.getExt());
         if (duration == null || duration <= 0) {

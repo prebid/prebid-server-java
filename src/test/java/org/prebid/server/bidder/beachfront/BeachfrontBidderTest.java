@@ -778,10 +778,10 @@ public class BeachfrontBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
 
         return bidRequestCustomizer.apply(
-                BidRequest.builder()
-                        .id("153")
-                        .app(App.builder().build())
-                        .imp(List.of(givenImp(impCustomizer))))
+                        BidRequest.builder()
+                                .id("153")
+                                .app(App.builder().build())
+                                .imp(List.of(givenImp(impCustomizer))))
                 .build();
     }
 
