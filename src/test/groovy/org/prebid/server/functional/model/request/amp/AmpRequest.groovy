@@ -15,7 +15,7 @@ class AmpRequest {
     Integer oh
     Integer w
     Integer h
-    Long ms
+    String ms
     Long timeout
     String slot
     String curl
