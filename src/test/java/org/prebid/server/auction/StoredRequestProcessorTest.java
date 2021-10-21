@@ -440,7 +440,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Can't parse Json for stored request with id 123");
     }
 
     @Test

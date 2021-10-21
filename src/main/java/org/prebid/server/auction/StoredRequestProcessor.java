@@ -7,11 +7,13 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
@@ -136,10 +138,8 @@ public class StoredRequestProcessor {
      */
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
-                applicationSettings.getAmpStoredData(
-                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
-                        .compose(storedDataResult -> updateMetrics(
-                                storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
+                applicationSettings.getAmpStoredData(accountId, Set.of(ampRequestId), Set.of(), timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(storedDataResult, Set.of(ampRequestId), Set.of()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
                 .map(this::generateBidRequestId);
@@ -218,50 +218,77 @@ public class StoredRequestProcessor {
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
-                                                          BidRequest bidRequest,
+                                                          BidRequest originalBidRequest,
                                                           String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
 
         return storedDataFuture
-                .recover(exception -> Future.failedFuture(new InvalidRequestException(
-                        String.format("Stored request fetching failed: %s", exception.getMessage()))))
-                .compose(result -> !result.getErrors().isEmpty()
-                        ? Future.failedFuture(new InvalidRequestException(result.getErrors()))
-                        : Future.succeededFuture(result))
-                .map(result -> mergeBidRequestAndImps(bidRequest, storedBidRequestId,
-                        impsToStoredRequestId, result));
+                .recover(exception ->
+                        Future.failedFuture(new InvalidRequestException(
+                                "Stored request fetching failed: " + exception.getMessage())))
+
+                .compose(storedDataResult -> !storedDataResult.getErrors().isEmpty()
+                        ? Future.failedFuture(new InvalidRequestException(storedDataResult.getErrors()))
+                        : Future.succeededFuture(storedDataResult))
+
+                .map(storedDataResult -> mergeBidRequestAndImps(
+                        originalBidRequest, storedBidRequestId, impsToStoredRequestId, storedDataResult));
     }
 
     /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
-    private BidRequest mergeBidRequestAndImps(BidRequest bidRequest,
+    private BidRequest mergeBidRequestAndImps(BidRequest originalBidRequest,
                                               String storedRequestId,
                                               Map<Imp, String> impToStoredId,
                                               StoredDataResult storedDataResult) {
 
-        return mergeBidRequestImps(
-                mergeBidRequest(mergeDefaultRequest(bidRequest), storedRequestId, storedDataResult),
-                impToStoredId,
-                storedDataResult);
+        final BidRequest mergedWithDefault = mergeDefaultRequest(originalBidRequest);
+        if (StringUtils.isBlank(storedRequestId)) {
+            return mergeBidRequestImps(mergedWithDefault, impToStoredId, storedDataResult);
+        }
+
+        final String storedRequestBody = storedDataResult.getStoredIdToRequest().get(storedRequestId);
+        final BidRequest storedBidRequest = parseStoredBidRequest(storedRequestBody, storedRequestId);
+        final BidRequest mergedWithStored = jsonMerger.merge(
+                mergedWithDefault, storedRequestBody, storedRequestId, BidRequest.class);
+
+        return overrideBidRequest(
+                mergeBidRequestImps(mergedWithStored, impToStoredId, storedDataResult),
+                storedBidRequest);
+    }
+
+    private BidRequest parseStoredBidRequest(String storedRequestBody, String storedRequestId) {
+        try {
+            return mapper.decodeValue(storedRequestBody, BidRequest.class);
+        } catch (DecodeException e) {
+            throw new InvalidRequestException("Can't parse Json for stored request with id " + storedRequestId);
+        }
+    }
+
+    private BidRequest overrideBidRequest(BidRequest toBeOverridden, BidRequest source) {
+        final Long tmaxOverride = source.getTmax();
+        final Integer debugOverride = source.getTest();
+
+        if (ObjectUtils.anyNotNull(tmaxOverride, debugOverride)) {
+            return toBeOverridden.toBuilder()
+                    .tmax(ObjectUtils.defaultIfNull(tmaxOverride, toBeOverridden.getTmax()))
+                    .test(ObjectUtils.defaultIfNull(debugOverride, toBeOverridden.getTest()))
+                    .ext(resolveExtRequest(toBeOverridden.getExt(), debugOverride))
+                    .build();
+        }
+
+        return toBeOverridden;
+    }
+
+    private ExtRequest resolveExtRequest(ExtRequest extRequest, Integer debug) {
+        return debug != null
+                ? extRequest.withPrebid(extRequest.getPrebid().toBuilder().debug(debug).build())
+                : extRequest;
     }
 
     private BidRequest mergeDefaultRequest(BidRequest bidRequest) {
         return jsonMerger.merge(bidRequest, defaultBidRequest, BidRequest.class);
-    }
-
-    /**
-     * Merges original request with request from stored request source. Values from original request
-     * has higher priority than stored request values.
-     */
-    private BidRequest mergeBidRequest(BidRequest originalRequest,
-                                       String storedRequestId,
-                                       StoredDataResult storedDataResult) {
-
-        final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
-        return StringUtils.isNotBlank(storedRequestId)
-                ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequest.class)
-                : originalRequest;
     }
 
     /**

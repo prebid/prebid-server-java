@@ -144,9 +144,8 @@ public class Ortb2ImplicitParametersResolver {
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
 
-        if (populatedDevice != null || populatedSite != null || populatedSource != null
-                || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
-                || populatedExt != null) {
+        if (ObjectUtils.anyNotNull(populatedDevice, populatedSite, populatedSource, populatedImps,
+                resolvedAt, resolvedCurrencies, resolvedTmax, populatedExt)) {
 
             result = bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)

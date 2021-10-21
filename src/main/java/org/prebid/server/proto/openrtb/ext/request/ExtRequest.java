@@ -21,4 +21,10 @@ public class ExtRequest extends FlexibleExtension {
     public static ExtRequest empty() {
         return of(null);
     }
+
+    public ExtRequest withPrebid(ExtRequestPrebid extRequestPrebid) {
+        final ExtRequest extRequest = new ExtRequest(extRequestPrebid);
+        extRequest.addProperties(getProperties());
+        return extRequest;
+    }
 }
