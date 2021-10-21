@@ -5,7 +5,6 @@ import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
-import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
@@ -47,17 +46,20 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
-    boolean checkRequestCount(int expectedCount, int pollTime = 1000) {
-        def frequencyPolling = 10
+    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollingFrequency = 100) {
         def isRequestReceived = false
+        def initTime = System.currentTimeMillis()
+        def maxTime = pollTime + initTime
 
-        for (int i = 0; i < pollTime; i += frequencyPolling) {
-            Thread.sleep(frequencyPolling)
+        for (long elapseTime = initTime; elapseTime < maxTime; elapseTime = System.currentTimeMillis() ) {
             def requestCount = getRequestCount()
             if (requestCount == expectedCount) {
                 isRequestReceived = true
                 break
+            } else if (requestCount > expectedCount) {
+                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
             }
+            Thread.sleep(pollingFrequency)
         }
         isRequestReceived
     }
