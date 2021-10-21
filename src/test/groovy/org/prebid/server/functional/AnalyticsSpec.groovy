@@ -5,10 +5,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
-import spock.lang.Retry
 import spock.lang.Shared
 
-@Retry
 @PBSTest
 class AnalyticsSpec extends BaseSpec {
 
@@ -32,7 +30,7 @@ class AnalyticsSpec extends BaseSpec {
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
 
-        then: "Analytics request body should be not empty"
-        assert analytics.requestCount == analyticsRequestCount + 1
+        then: "PBS should call pubstack analytics"
+        assert analytics.checkRequestCount(analyticsRequestCount + 1, 3000)
     }
 }

@@ -5,6 +5,7 @@ import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
@@ -44,6 +45,21 @@ abstract class NetworkScaffolding {
     int getRequestCount() {
         mockServerClient.retrieveRecordedRequests(request)
                         .size()
+    }
+
+    boolean checkRequestCount(int expectedCount, int pollTime = 1000) {
+        def frequencyPolling = 10
+        def isRequestReceived = false
+
+        for (int i = 0; i < pollTime; i += frequencyPolling) {
+            Thread.sleep(frequencyPolling)
+            def requestCount = getRequestCount()
+            if (requestCount == expectedCount) {
+                isRequestReceived = true
+                break
+            }
+        }
+        isRequestReceived
     }
 
     void setResponse(HttpRequest httpRequest, ResponseModel responseModel) {
