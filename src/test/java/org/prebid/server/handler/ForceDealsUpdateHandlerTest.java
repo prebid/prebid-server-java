@@ -108,7 +108,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallLineItemsUpdateMethodWhenUpdateLineItemsParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.UPDATE_LINE_ITEMS.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.UPDATE_LINE_ITEMS.name());
 
         // when
         handler.handle(routingContext);
@@ -125,7 +125,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallReportSendingMethodWhenSendReportParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.SEND_REPORT.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.SEND_REPORT.name());
 
         // when
         handler.handle(routingContext);
@@ -142,7 +142,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallRegisterInstanceMethodWhenRegisterInstanceParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.REGISTER_INSTANCE.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.REGISTER_INSTANCE.name());
 
         // when
         handler.handle(routingContext);
@@ -159,7 +159,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallResetAlertCountMethodWhenResetAlertCounterParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.RESET_ALERT_COUNT.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.RESET_ALERT_COUNT.name());
 
         // when
         handler.handle(routingContext);
@@ -179,7 +179,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallCreateReportMethodWhenCreateReportParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.CREATE_REPORT.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.CREATE_REPORT.name());
 
         // when
         handler.handle(routingContext);
@@ -196,7 +196,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldCallInvalidateLineItemsMethodWhenInvalidateLineItemsParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.INVALIDATE_LINE_ITEMS.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.INVALIDATE_LINE_ITEMS.name());
 
         // when
         handler.handle(routingContext);
@@ -213,7 +213,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldReturnInternalServerExceptionWhenUpdatingLineItemActionFailed() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.UPDATE_LINE_ITEMS.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.UPDATE_LINE_ITEMS.name());
         final String exceptionMessage = "Failed to fetch data from Planner";
         doThrow(new PreBidException(exceptionMessage)).when(plannerService).updateLineItemMetaData();
 
@@ -228,7 +228,7 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldReturnInternalServerExceptionWhenSendingReportActionFailed() {
         // given
-        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.Action.SEND_REPORT.name());
+        given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.SEND_REPORT.name());
         final String exceptionMessage = "Sending report failed";
         doThrow(new PreBidException(exceptionMessage)).when(deliveryStatsService).sendDeliveryProgressReports();
 

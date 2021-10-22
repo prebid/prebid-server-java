@@ -10,7 +10,6 @@ import org.prebid.server.deals.DeliveryStatsService;
 import org.prebid.server.deals.LineItemService;
 import org.prebid.server.deals.PlannerService;
 import org.prebid.server.deals.RegisterService;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.ZonedDateTime;
@@ -21,6 +20,8 @@ import java.util.function.Predicate;
 public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
 
     private static final String ACTION_NAME_PARAM = "action_name";
+    private static final String[] DEALS_ACTIONS =
+            Arrays.stream(DealsAction.values()).map(DealsAction::name).toArray(String[]::new);
 
     private final DeliveryStatsService deliveryStatsService;
     private final PlannerService plannerService;
@@ -37,6 +38,7 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
                                    DeliveryProgressService deliveryProgressService,
                                    LineItemService lineItemService,
                                    String endpoint) {
+
         this.deliveryStatsService = Objects.requireNonNull(deliveryStatsService);
         this.plannerService = Objects.requireNonNull(plannerService);
         this.registerService = Objects.requireNonNull(registerService);
@@ -48,64 +50,61 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        Action dealsAction;
         try {
-            dealsAction = dealsActionFrom(routingContext);
-        } catch (IllegalArgumentException e) {
-            respondWithError(routingContext, HttpResponseStatus.BAD_REQUEST, e);
-            return;
-        }
-
-        try {
-            switch (dealsAction) {
-                case UPDATE_LINE_ITEMS:
-                    plannerService.updateLineItemMetaData();
-                    break;
-                case SEND_REPORT:
-                    deliveryStatsService.sendDeliveryProgressReports();
-                    break;
-                case REGISTER_INSTANCE:
-                    registerService.performRegistration();
-                    break;
-                case RESET_ALERT_COUNT:
-                    alertHttpService.resetAlertCount("pbs-register-client-error");
-                    alertHttpService.resetAlertCount("pbs-planner-client-error");
-                    alertHttpService.resetAlertCount("pbs-planner-empty-response-error");
-                    alertHttpService.resetAlertCount("pbs-delivery-stats-client-error");
-                    break;
-                case CREATE_REPORT:
-                    deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
-                    break;
-                case INVALIDATE_LINE_ITEMS:
-                    lineItemService.invalidateLineItems();
-                    break;
-                default:
-                    throw new IllegalStateException("Unexpected action value");
-            }
+            handleDealsAction(dealsActionFrom(routingContext));
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
                             .end());
-        } catch (PreBidException e) {
+        } catch (IllegalArgumentException e) {
+            respondWithError(routingContext, HttpResponseStatus.BAD_REQUEST, e);
+        } catch (Exception e) {
             respondWithError(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
 
-    private Action dealsActionFrom(RoutingContext routingContext) {
+    private void handleDealsAction(DealsAction dealsAction) {
+        switch (dealsAction) {
+            case UPDATE_LINE_ITEMS:
+                plannerService.updateLineItemMetaData();
+                break;
+            case SEND_REPORT:
+                deliveryStatsService.sendDeliveryProgressReports();
+                break;
+            case REGISTER_INSTANCE:
+                registerService.performRegistration();
+                break;
+            case RESET_ALERT_COUNT:
+                alertHttpService.resetAlertCount("pbs-register-client-error");
+                alertHttpService.resetAlertCount("pbs-planner-client-error");
+                alertHttpService.resetAlertCount("pbs-planner-empty-response-error");
+                alertHttpService.resetAlertCount("pbs-delivery-stats-client-error");
+                break;
+            case CREATE_REPORT:
+                deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
+                break;
+            case INVALIDATE_LINE_ITEMS:
+                lineItemService.invalidateLineItems();
+                break;
+            default:
+                throw new IllegalStateException("Unexpected action value");
+        }
+    }
+
+    private DealsAction dealsActionFrom(RoutingContext routingContext) {
         final String givenActionValue = routingContext.request().getParam(ACTION_NAME_PARAM);
         if (StringUtils.isEmpty(givenActionValue)) {
             throw new IllegalArgumentException(
                     String.format("Parameter '%s' is required and can't be empty", ACTION_NAME_PARAM));
         }
 
-        final String[] possibleActions = Arrays.stream(Action.values()).map(Action::name).toArray(String[]::new);
-        if (Arrays.stream(possibleActions).noneMatch(Predicate.isEqual(givenActionValue.toUpperCase()))) {
+        if (Arrays.stream(DEALS_ACTIONS).noneMatch(Predicate.isEqual(givenActionValue.toUpperCase()))) {
             throw new IllegalArgumentException(
                     String.format("Given '%s' parameter value is not among possible actions '%s'",
-                            ACTION_NAME_PARAM, Arrays.toString(possibleActions)));
+                            ACTION_NAME_PARAM, Arrays.toString(DEALS_ACTIONS)));
         }
 
-        return Action.valueOf(givenActionValue.toUpperCase());
+        return DealsAction.valueOf(givenActionValue.toUpperCase());
     }
 
     private void respondWithError(RoutingContext routingContext, HttpResponseStatus statusCode, Exception exception) {
@@ -115,7 +114,7 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
                         .end(exception.getMessage()));
     }
 
-    enum Action {
+    enum DealsAction {
         UPDATE_LINE_ITEMS, SEND_REPORT, REGISTER_INSTANCE, RESET_ALERT_COUNT, CREATE_REPORT, INVALIDATE_LINE_ITEMS
     }
 }

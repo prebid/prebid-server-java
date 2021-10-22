@@ -240,8 +240,8 @@ public class AdminEndpointsConfiguration {
             @Value("${admin-endpoints.force-deals-update.path}") String path,
             @Value("${admin-endpoints.force-deals-update.on-application-port}") boolean isOnApplicationPort,
             @Value("${admin-endpoints.force-deals-update.protected}") boolean isProtected,
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials
-    ) {
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
         return new CustomizedAdminEndpoint(
                 path,
                 new ForceDealsUpdateHandler(
