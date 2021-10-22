@@ -282,8 +282,9 @@ public class StoredRequestProcessor {
     }
 
     private ExtRequest resolveExtRequest(ExtRequest extRequest, Integer debug) {
-        return debug != null
-                ? extRequest.withPrebid(extRequest.getPrebid().toBuilder().debug(debug).build())
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        return ObjectUtils.allNotNull(extRequestPrebid, debug)
+                ? extRequest.withPrebid(extRequestPrebid.toBuilder().debug(debug).build())
                 : extRequest;
     }
 

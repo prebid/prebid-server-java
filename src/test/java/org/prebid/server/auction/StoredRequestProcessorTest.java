@@ -691,7 +691,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseTimeoutFromRequest() {
+    public void shouldUseTimeoutFromRequestIfStoredRequestIsAbsent() {
         // given
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.failedFuture((String) null));
@@ -705,6 +705,65 @@ public class StoredRequestProcessorTest extends VertxTest {
         final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
         verify(applicationSettings).getStoredData(any(), anySet(), anySet(), timeoutCaptor.capture());
         assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(1000L);
+    }
+
+    @Test
+    public void processAmpRequestShouldSetTimeoutFromStoredRequestIfPresent() throws JsonProcessingException {
+        // given
+        final String storedRequest = mapper.writeValueAsString(givenBidRequest(builder -> builder.tmax(1234L)));
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+                Map.of("123", storedRequest), emptyMap(), emptyList());
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+
+        // when
+        final BidRequest result = storedRequestProcessor.processAmpRequest(
+                null, "123", givenBidRequest(builder -> builder.tmax(1000L))).result();
+
+        // then
+        assertThat(result.getTmax()).isEqualTo(1234L);
+    }
+
+    @Test
+    public void processAmpRequestShouldSetTestFromStoredRequestIfPresent() throws JsonProcessingException {
+        // given
+        final String storedRequest = mapper.writeValueAsString(givenBidRequest(builder -> builder.test(1234)));
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+                Map.of("123", storedRequest), emptyMap(), emptyList());
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+
+        // when
+        final BidRequest result = storedRequestProcessor.processAmpRequest(
+                null, "123", givenBidRequest(builder -> builder.test(0))).result();
+
+        // then
+        assertThat(result.getTest()).isEqualTo(1234);
+    }
+
+    @Test
+    public void processAmpRequestShouldModifyRequestExtWithTestFromStoredRequest() throws JsonProcessingException {
+        // given
+        final BidRequest storedRequest = givenBidRequest(
+                builder -> builder
+                        .test(1234)
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
+
+        final StoredDataResult storedDataResult = StoredDataResult.of(
+                Map.of("123", mapper.writeValueAsString(storedRequest)), emptyMap(), emptyList());
+
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(storedDataResult));
+
+        // when
+        final BidRequest result = storedRequestProcessor.processAmpRequest(
+                null, "123", givenBidRequest(builder -> builder.test(0))).result();
+
+        // then
+        assertThat(result.getExt())
+                .isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1234).build()));
     }
 
     @Test
@@ -761,7 +820,9 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .storedrequest(ExtStoredRequest.of("123"))
                         .build()))
                 .imp(asList(givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("321")).build(), null)))),
+                                ExtImp.of(
+                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("321")).build(),
+                                        null)))),
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
                                 ExtImp.of(
                                         ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("not_found")).build(),
