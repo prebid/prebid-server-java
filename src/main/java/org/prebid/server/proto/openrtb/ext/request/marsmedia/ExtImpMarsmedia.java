@@ -1,16 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.marsmedia;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
-/**
- * Defines the contract for bidRequest.imp[i].ext.marsmedia
- */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpMarsmedia {
 
-    @JsonAlias("zoneId")
+    @JsonProperty("zoneId")
     String zoneId;
 }
