@@ -46,7 +46,7 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
-    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 100) {
+    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
         def expectedCountReached = false
         def startTime = System.currentTimeMillis()
         def elapsedTime = 0
