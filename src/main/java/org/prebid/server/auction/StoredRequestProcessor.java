@@ -138,8 +138,10 @@ public class StoredRequestProcessor {
      */
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
-                applicationSettings.getAmpStoredData(accountId, Set.of(ampRequestId), Set.of(), timeout(bidRequest))
-                        .compose(storedDataResult -> updateMetrics(storedDataResult, Set.of(ampRequestId), Set.of()));
+                applicationSettings.getAmpStoredData(
+                                accountId, Set.of(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                        .compose(storedDataResult -> updateMetrics(
+                                storedDataResult, Set.of(ampRequestId), Collections.emptySet()));
 
         return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
                 .map(this::generateBidRequestId);
@@ -218,7 +220,7 @@ public class StoredRequestProcessor {
     }
 
     private Future<BidRequest> storedRequestsToBidRequest(Future<StoredDataResult> storedDataFuture,
-                                                          BidRequest originalBidRequest,
+                                                          BidRequest bidRequest,
                                                           String storedBidRequestId,
                                                           Map<Imp, String> impsToStoredRequestId) {
 
@@ -232,18 +234,18 @@ public class StoredRequestProcessor {
                         : Future.succeededFuture(storedDataResult))
 
                 .map(storedDataResult -> mergeBidRequestAndImps(
-                        originalBidRequest, storedBidRequestId, impsToStoredRequestId, storedDataResult));
+                        bidRequest, storedBidRequestId, impsToStoredRequestId, storedDataResult));
     }
 
     /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
      */
-    private BidRequest mergeBidRequestAndImps(BidRequest originalBidRequest,
+    private BidRequest mergeBidRequestAndImps(BidRequest bidRequest,
                                               String storedRequestId,
                                               Map<Imp, String> impToStoredId,
                                               StoredDataResult storedDataResult) {
 
-        final BidRequest mergedWithDefault = mergeDefaultRequest(originalBidRequest);
+        final BidRequest mergedWithDefault = mergeDefaultRequest(bidRequest);
         if (StringUtils.isBlank(storedRequestId)) {
             return mergeBidRequestImps(mergedWithDefault, impToStoredId, storedDataResult);
         }
@@ -266,19 +268,19 @@ public class StoredRequestProcessor {
         }
     }
 
-    private BidRequest overrideBidRequest(BidRequest toBeOverridden, BidRequest source) {
+    private BidRequest overrideBidRequest(BidRequest toOverride, BidRequest source) {
         final Long tmaxOverride = source.getTmax();
         final Integer debugOverride = source.getTest();
 
         if (ObjectUtils.anyNotNull(tmaxOverride, debugOverride)) {
-            return toBeOverridden.toBuilder()
-                    .tmax(ObjectUtils.defaultIfNull(tmaxOverride, toBeOverridden.getTmax()))
-                    .test(ObjectUtils.defaultIfNull(debugOverride, toBeOverridden.getTest()))
-                    .ext(resolveExtRequest(toBeOverridden.getExt(), debugOverride))
+            return toOverride.toBuilder()
+                    .tmax(ObjectUtils.defaultIfNull(tmaxOverride, toOverride.getTmax()))
+                    .test(ObjectUtils.defaultIfNull(debugOverride, toOverride.getTest()))
+                    .ext(resolveExtRequest(toOverride.getExt(), debugOverride))
                     .build();
         }
 
-        return toBeOverridden;
+        return toOverride;
     }
 
     private ExtRequest resolveExtRequest(ExtRequest extRequest, Integer debug) {
