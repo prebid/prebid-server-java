@@ -46,22 +46,25 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
-    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollingFrequency = 100) {
-        def isRequestReceived = false
-        def initTime = System.currentTimeMillis()
-        def maxTime = pollTime + initTime
+    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 100) {
+        def expectedCountReached = false
+        def startTime = System.currentTimeMillis()
+        def elapsedTime = 0
 
-        for (long elapseTime = initTime; elapseTime < maxTime; elapseTime = System.currentTimeMillis() ) {
+        while (elapsedTime < pollTime) {
             def requestCount = getRequestCount()
             if (requestCount == expectedCount) {
-                isRequestReceived = true
+                expectedCountReached = true
                 break
             } else if (requestCount > expectedCount) {
                 throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
+            } else {
+                elapsedTime += System.currentTimeMillis() - startTime
+                Thread.sleep(pollFrequency)
             }
-            Thread.sleep(pollingFrequency)
         }
-        isRequestReceived
+
+        expectedCountReached
     }
 
     void setResponse(HttpRequest httpRequest, ResponseModel responseModel) {
