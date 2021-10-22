@@ -14,7 +14,7 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.model.response.amp.RawAmpResponse
@@ -147,8 +147,9 @@ class PrebidServerService {
         checkResponseStatusCode(response)
 
         def setuidResponse = new SetuidResponse()
-        setuidResponse.uidsCookie = response.detailedCookie("uids")
-        setuidResponse.responseBody = response.asString()
+        def uids = response.detailedCookie("uids").value
+        setuidResponse.uidsCookie = mapper.decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
+        setuidResponse.responseBody = response.asByteArray()
         setuidResponse
     }
 

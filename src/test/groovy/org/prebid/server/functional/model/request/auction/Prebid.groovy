@@ -12,7 +12,7 @@ class Prebid {
     Integer debug
     Targeting targeting
     PrebidCache cache
-    StoredRequest storedRequest
+    StoredRequestExt storedRequest
     Amp amp
     Channel channel
     List<PrebidSchain> schains

@@ -30,7 +30,12 @@ class StoredRequest {
     @Convert(converter = StoredRequestConfigTypeConverter)
     BidRequest requestData
 
-    static StoredRequest getDbStoredRequest(AmpRequest ampRequest, BidRequest bidRequest) {
+    static StoredRequest getAmpDbStoredRequest(AmpRequest ampRequest, BidRequest bidRequest) {
         new StoredRequest(reqid: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
+    }
+
+    static StoredRequest getAuctionDbStoredRequest(BidRequest bidRequest, BidRequest storedRequest) {
+        new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: bidRequest.site.publisher.id,
+                requestData: storedRequest)
     }
 }

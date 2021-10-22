@@ -1,11 +1,11 @@
 package org.prebid.server.functional.model.response.setuid
 
 import groovy.transform.ToString
-import io.restassured.http.Cookie
+import org.prebid.server.functional.model.UidsCookie
 
 @ToString(includeNames = true, ignoreNulls = true)
 class SetuidResponse {
 
-    Cookie uidsCookie
-    String responseBody
+    UidsCookie uidsCookie
+    Byte[] responseBody
 }

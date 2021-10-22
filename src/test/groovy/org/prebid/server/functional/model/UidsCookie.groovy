@@ -1,7 +1,10 @@
-package org.prebid.server.functional.model.request.setuid
+package org.prebid.server.functional.model
 
 import com.fasterxml.jackson.annotation.JsonFormat
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import groovy.transform.ToString
+import org.prebid.server.functional.model.request.setuid.UidWithExpiry
+import org.prebid.server.functional.model.response.setuid.ZonedDateTimeDeserializer
 
 import java.time.Clock
 import java.time.ZonedDateTime
@@ -13,6 +16,7 @@ class UidsCookie {
     Map<String, UidWithExpiry> tempUIDs
     Boolean optout
     @JsonFormat(pattern = "yyyy-MM-dd'T'hh:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonDeserialize(using = ZonedDateTimeDeserializer)
     ZonedDateTime bday
 
     static UidsCookie getDefaultUidsCookie() {

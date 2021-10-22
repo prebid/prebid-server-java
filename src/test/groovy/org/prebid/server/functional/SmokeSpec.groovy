@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
@@ -52,7 +52,7 @@ class SmokeSpec extends BaseSpec {
         ampStoredRequest.site.publisher.id = ampRequest.account
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getAmpDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -107,8 +107,11 @@ class SmokeSpec extends BaseSpec {
         def response = defaultPbsService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie
-        assert !response.responseBody?.isEmpty()
+        assert response.uidsCookie.bday
+        assert !response.uidsCookie.tempUIDs
+        assert !response.uidsCookie.uids
+        assert response.responseBody ==
+                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
     }
 
     def "PBS should get uids cookie"() {
