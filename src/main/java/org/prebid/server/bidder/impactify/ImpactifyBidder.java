@@ -3,7 +3,6 @@ package org.prebid.server.bidder.impactify;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -57,10 +56,10 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
-        final String deviceUa = device != null ? device.getUa() : null;
-        final String deviceIp = device != null ? device.getIp() : null;
-        final String deviceIpv6 = device != null ? device.getIpv6() : null;
+        final var device = bidRequest.getDevice();
+        final var deviceUa = device != null ? device.getUa() : null;
+        final var deviceIp = device != null ? device.getIp() : null;
+        final var deviceIpv6 = device != null ? device.getIpv6() : null;
         final Site site = bidRequest.getSite();
         final String sitePage = site != null ? site.getPage() : null;
         final User user = bidRequest.getUser();
@@ -153,7 +152,8 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
 
     private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest, Imp imp) {
         try {
-            return currencyConversionService.convertCurrency(bidFloor, bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
+            return currencyConversionService
+                    .convertCurrency(bidFloor, bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
         } catch (PreBidException e) {
             throw new PreBidException(String.format(
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
