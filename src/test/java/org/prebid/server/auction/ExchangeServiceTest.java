@@ -668,7 +668,7 @@ public class ExchangeServiceTest extends VertxTest {
         final JsonNode bidders1 = prebid1.getBidders();
         assertThat(bidders1).isNotNull();
         assertThat(bidders1.fields()).toIterable().hasSize(1)
-                .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
+                .containsExactlyInAnyOrder(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester).requestBids(same(bidder2), bidRequest2Captor.capture(), any(), any(), anyBoolean());
@@ -678,7 +678,7 @@ public class ExchangeServiceTest extends VertxTest {
         final JsonNode bidders2 = prebid2.getBidders();
         assertThat(bidders2).isNotNull();
         assertThat(bidders2.fields()).toIterable().hasSize(1)
-                .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
+                .containsExactlyInAnyOrder(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
     @Test
