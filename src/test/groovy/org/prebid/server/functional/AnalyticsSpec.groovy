@@ -30,6 +30,6 @@ class AnalyticsSpec extends BaseSpec {
         pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should call pubstack analytics"
-        assert analytics.checkRequestCount(analyticsRequestCount + 1)
+        assert analytics.checkRequestCount(analyticsRequestCount + 1, 5000)
     }
 }
