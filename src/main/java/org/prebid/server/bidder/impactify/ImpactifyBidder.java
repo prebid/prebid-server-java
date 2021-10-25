@@ -63,25 +63,28 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         final BidRequest updatedBidRequest;
 
         for (Imp imp : imps) {
+            BigDecimal bidFloor = imp.getBidfloor();
             if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
                     && !imp.getBidfloorcur().isEmpty()
                     && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
-                final ExtImpImpactify extImpImpactify;
-                try {
-                    extImpImpactify = mapper.mapper()
-                            .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
-                            .getBidder();
-                } catch (IllegalArgumentException e) {
-                    return Result.withError(
-                            BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
-                }
-
-                updatedImps.add(imp.toBuilder()
-                        .bidfloorcur(BIDDER_CURRENCY)
-                        .bidfloor(resolveBidFloor(imp, request))
-                        .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
-                        .build());
+                bidFloor = resolveBidFloor(imp, request);
             }
+
+            final ExtImpImpactify extImpImpactify;
+            try {
+                extImpImpactify = mapper.mapper()
+                        .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
+                        .getBidder();
+            } catch (IllegalArgumentException e) {
+                return Result.withError(
+                        BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
+            }
+
+            updatedImps.add(imp.toBuilder()
+                    .bidfloorcur(BIDDER_CURRENCY)
+                    .bidfloor(bidFloor)
+                    .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
+                    .build());
         }
 
         if (updatedImps.size() == 0) {

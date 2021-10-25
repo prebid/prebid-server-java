@@ -48,9 +48,9 @@ public class ImpactifyBidderTest extends VertxTest {
                 jacksonMapper, currencyConversionService));
     }
 
-    private static Imp givenImpressionWithData() {
+    private static Imp givenImpressionWithValidData() {
         return Imp.builder()
-                .bidfloorcur("US")
+                .bidfloorcur("USD")
                 .bidfloor(BigDecimal.ONE)
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
@@ -60,10 +60,10 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     @Test
-    public void one() {
+    public void makeHttpRequestsShouldCheckIfImpressionHasCorrectBidFloorAndBidFloorCur() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(List.of(givenImpressionWithData()))
+                .imp(List.of(givenImpressionWithValidData()))
                 .build();
 
         //when
@@ -75,6 +75,6 @@ public class ImpactifyBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsExactly(tuple(BigDecimal.ONE, "US"));
+                .containsExactly(tuple(BigDecimal.ONE, "USD"));
     }
 }
