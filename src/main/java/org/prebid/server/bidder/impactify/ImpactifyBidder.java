@@ -3,6 +3,7 @@ package org.prebid.server.bidder.impactify;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -53,41 +54,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(conversionService);
-    }
-
-    private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final var device = bidRequest.getDevice();
-        final var deviceUa = device != null ? device.getUa() : null;
-        final var deviceIp = device != null ? device.getIp() : null;
-        final var deviceIpv6 = device != null ? device.getIpv6() : null;
-        final Site site = bidRequest.getSite();
-        final String sitePage = site != null ? site.getPage() : null;
-        final User user = bidRequest.getUser();
-        final String userUid = user != null ? user.getBuyeruid() : null;
-        final MultiMap headers = HttpUtil.headers();
-
-        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
-        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
-        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
-        if (Objects.nonNull(device)) {
-            if (Objects.nonNull(deviceUa)) {
-                headers.set(HttpUtil.USER_AGENT_HEADER, deviceUa);
-            }
-            if (Objects.nonNull(deviceIp)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
-            }
-            if (Objects.nonNull(deviceIpv6)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
-            }
-        }
-        if (Objects.nonNull(site)) {
-            headers.set(HttpUtil.REFERER_HEADER, sitePage);
-        }
-        if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
-            headers.set(HttpUtil.REFERER_HEADER, sitePage);
-        }
-
-        return headers;
     }
 
     @Override
@@ -165,30 +131,39 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return endpointUrl;
     }
 
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
-        final BidType bidType;
-        try {
-            bidType = getBidType(bid.getImpid(), imps);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return null;
-        }
-        return BidderBid.of(bid, bidType, currency);
-    }
+    private static MultiMap constructHeaders(BidRequest bidRequest) {
+        final Device device = bidRequest.getDevice();
+        final String deviceUa = device != null ? device.getUa() : null;
+        final String deviceIpv4 = device != null ? device.getIp() : null;
+        final String deviceIpv6 = device != null ? device.getIpv6() : null;
+        final Site site = bidRequest.getSite();
+        final String sitePage = site != null ? site.getPage() : null;
+        final User user = bidRequest.getUser();
+        final String userUid = user != null ? user.getBuyeruid() : null;
+        final MultiMap headers = HttpUtil.headers();
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
+        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        if (Objects.nonNull(device)) {
+            if (Objects.nonNull(deviceUa)) {
+                headers.set(HttpUtil.USER_AGENT_HEADER, deviceUa);
+            }
+            if (Objects.nonNull(deviceIpv4)) {
+                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv4);
+            }
+            if (Objects.nonNull(deviceIpv6)) {
+                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
+        if (Objects.nonNull(site)) {
+            headers.set(HttpUtil.REFERER_HEADER, sitePage);
+        }
+        if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
+            headers.set(HttpUtil.REFERER_HEADER, sitePage);
+        }
+
+        return headers;
     }
 
     @Override
@@ -217,5 +192,31 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidType(bid.getImpid(), imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+        return BidderBid.of(bid, bidType, currency);
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
+            }
+        }
+        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
     }
 }

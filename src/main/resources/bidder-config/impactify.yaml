@@ -2,7 +2,7 @@ adapters:
   impactify:
     endpoint: https://sonic.impactify.media/bidder
     meta-info:
-      maintainer-email: contact@impactify.io
+      maintainer-email: support@impactify.io
       site-media-types:
         - banner
         - video
