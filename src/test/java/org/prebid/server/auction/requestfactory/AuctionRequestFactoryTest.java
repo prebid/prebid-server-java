@@ -357,7 +357,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
 
         // then
-
         final BidRequest resultBidRequest = result.result().getBidRequest();
         assertThat(resultBidRequest.getSite()).isNull();
         assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());

@@ -12,5 +12,5 @@ import javax.validation.constraints.NotNull;
 public class Debug {
 
     @NotNull
-    Boolean allowed;
+    Boolean allow;
 }

@@ -870,7 +870,6 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-
         final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "value1,value2");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)

@@ -688,11 +688,10 @@ public class BidResponseCreator {
 
         final ExtResponseDebug extResponseDebug = toExtResponseDebug(
                 bidderResponseInfos, auctionContext, cacheResult, debugEnabled);
-        final Map<String, List<ExtBidderError>> errors =
-                toExtBidderErrors(bidderResponseInfos, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
-        final Map<String, List<ExtBidderError>> warnings = debugEnabled
-                ? toExtBidderWarnings(auctionContext)
-                : null;
+        final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(
+                bidderResponseInfos, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
+        final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(auctionContext);
+
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
         return ExtBidResponse.builder()
@@ -722,9 +721,9 @@ public class BidResponseCreator {
                 auctionContext.getTxnLog()) : null;
         final ExtDebugTrace extDebugTrace = deepDebugLog.isDeepDebugEnabled() ? toExtDebugTrace(deepDebugLog) : null;
 
-        return httpCalls == null && bidRequest == null && extDebugPgmetrics == null && extDebugTrace == null
-                ? null
-                : ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace);
+        return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
+                ? ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
+                : null;
     }
 
     /**

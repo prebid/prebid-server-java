@@ -1269,7 +1269,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsMissed() {
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsMissed() {
         // given
         givenBidRequest();
 
@@ -1281,10 +1281,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsBlank() {
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsBlank() {
         // given
         routingContext.queryParams()
-                .add("attl_consent", "  ");
+                .add("addtl_consent", "  ");
 
         givenBidRequest();
 
@@ -1633,7 +1633,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
 
         // then
-
         final BidRequest resultBidRequest = result.result().getBidRequest();
         assertThat(resultBidRequest.getSite()).isNull();
         assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
