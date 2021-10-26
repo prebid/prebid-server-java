@@ -65,7 +65,7 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error ->
-                        error.getMessage().startsWith("error unmarshalling imp.ext.bidder: Cannot deserialize instance")
+                        error.getMessage().startsWith("error unmarshalling imp.ext.bidder: Cannot deserialize value")
                                 && error.getType() == BidderError.Type.bad_input);
     }
 

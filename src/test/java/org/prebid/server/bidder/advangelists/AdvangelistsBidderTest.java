@@ -74,7 +74,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allSatisfy(error -> {
             assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value");
         });
         assertThat(result.getValue()).isEmpty();
     }

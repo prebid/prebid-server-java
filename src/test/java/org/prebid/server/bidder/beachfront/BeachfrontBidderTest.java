@@ -101,7 +101,7 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith(
-                "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize instance");
+                "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize value");
     }
 
     @Test

@@ -173,7 +173,7 @@ public class OpenWebBidderTest extends VertxTest {
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(bidderError.getMessage()).startsWith(
-                            "ignoring imp id=123, error while encoding impExt, err: Cannot deserialize instance");
+                            "ignoring imp id=123, error while encoding impExt, err: Cannot deserialize value");
                 });
     }
 
