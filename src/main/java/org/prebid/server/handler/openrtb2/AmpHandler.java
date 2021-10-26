@@ -231,13 +231,18 @@ public class AmpHandler implements Handler<RoutingContext> {
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
         final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponse extBidResponse = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+
         final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
 
-        return extModules != null
-                ? ExtAmpVideoResponse.of(extDebug, extErrors, ExtAmpVideoPrebid.of(extModules))
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
                 : null;
     }
 
