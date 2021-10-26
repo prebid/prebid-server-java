@@ -9,7 +9,7 @@ adapters:
       supported-vendors:
       vendor-id: 606
     usersync:
-      url: https://sonic.impactify.media/static/cookie_sync.html?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect_url={{.RedirectURL}}
+      url: https://sonic.impactify.media/static/cookie_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect_url={{.RedirectURL}}
       redirect-url: /setuid?bidder=impactify&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={IMPACTIFY_UID}
       cookie-family-name: impactify
       type: iframe

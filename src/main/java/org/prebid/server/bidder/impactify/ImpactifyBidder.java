@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -14,6 +13,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -27,7 +27,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.impactify.ExtImpImpactify;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -56,85 +55,11 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(conversionService);
     }
 
-    @Override
-    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
-        final List<Imp> updatedImps = new ArrayList<>();
-        final BidRequest updatedBidRequest;
-
-        for (Imp imp : imps) {
-            BigDecimal bidFloor = imp.getBidfloor();
-            if (imp.getBidfloor().compareTo(BigDecimal.ZERO) > 0
-                    && !imp.getBidfloorcur().isEmpty()
-                    && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
-                bidFloor = resolveBidFloor(imp, request);
-            } else {
-                return Result.withError(
-                        BidderError.badInput("Unable to convert currency for the impression ext for id: " + imp.getId()));
-            }
-
-            final ExtImpImpactify extImpImpactify;
-            try {
-                extImpImpactify = mapper.mapper()
-                        .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
-                        .getBidder();
-            } catch (IllegalArgumentException e) {
-                return Result.withError(
-                        BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
-            }
-
-            updatedImps.add(imp.toBuilder()
-                    .bidfloorcur(BIDDER_CURRENCY)
-                    .bidfloor(bidFloor)
-                    .ext(mapper.mapper().convertValue(extImpImpactify, ObjectNode.class))
-                    .build());
-        }
-
-        if (updatedImps.size() == 0) {
-            return Result
-                    .withError(BidderError.badInput("No valid impressions in the bid request"));
-        }
-
-        updatedBidRequest = request.toBuilder()
-                .imp(updatedImps)
-                .build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint())
-                .headers(constructHeaders(updatedBidRequest))
-                .body(mapper.encode(updatedBidRequest))
-                .payload(updatedBidRequest)
-                .build());
-    }
-
-    private static BigDecimal resolveBidFloorPrice(Imp imp) {
-        final BigDecimal bidFloor = imp.getBidfloor();
-        return BidderUtil.isValidPrice(bidFloor) ? bidFloor : null;
-    }
-
-    private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest) {
-        final BigDecimal validBidFloorPrice = resolveBidFloorPrice(imp);
-        if (validBidFloorPrice == null) {
-            return null;
-        }
-
-        return convertBidFloorCurrency(validBidFloorPrice, bidRequest, imp);
-    }
-
-    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest, Imp imp) {
-        try {
-            return currencyConversionService
-                    .convertCurrency(bidFloor, bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
-        } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s` with a reason: %s",
-                    imp.getBidfloorcur(), BIDDER_CURRENCY, imp.getId(), e.getMessage()));
-        }
-    }
-
-    private String resolveEndpoint() {
-        return endpointUrl;
+    private static boolean isBidFloorValid(BigDecimal bidFloor, String bidFloorCur) {
+        return Objects.nonNull(bidFloor)
+                && StringUtils.isNotEmpty(bidFloorCur)
+                && BigDecimal.ZERO.compareTo(bidFloor) <= 0
+                && !bidFloorCur.equalsIgnoreCase(BIDDER_CURRENCY);
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
@@ -157,8 +82,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             }
             if (Objects.nonNull(deviceIpv4)) {
                 headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv4);
-            }
-            if (Objects.nonNull(deviceIpv6)) {
+            } else if (Objects.nonNull(deviceIpv6)) {
                 headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
             }
         }
@@ -166,10 +90,76 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             headers.set(HttpUtil.REFERER_HEADER, sitePage);
         }
         if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
-            headers.set(HttpUtil.REFERER_HEADER, sitePage);
+            headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
         }
 
         return headers;
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                throw new PreBidException(String.format("Unknown impression type for ID: \'%s\'", impId));
+            }
+        }
+        throw new PreBidException(String.format("Failed to find impression for ID: \'%s\'", impId));
+    }
+
+    private String resolveEndpoint() {
+        return endpointUrl;
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
+        final List<Imp> updatedImps = new ArrayList<>();
+        final BidRequest updatedBidRequest;
+
+        for (Imp imp : imps) {
+            BigDecimal bidFloor = imp.getBidfloor();
+            if (isBidFloorValid(bidFloor, imp.getBidfloorcur())) {
+                try {
+                    bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
+                } catch (PreBidException e) {
+                    return Result.withError(BidderError.badInput(e.getMessage()));
+                }
+            }
+
+            final ExtImpImpactify extImpImpactify;
+            try {
+                extImpImpactify = mapper.mapper()
+                        .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
+                        .getBidder();
+            } catch (IllegalArgumentException e) {
+                return Result.withError(
+                        BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
+            }
+
+            updatedImps.add(imp.toBuilder()
+                    .bidfloorcur(BIDDER_CURRENCY)
+                    .bidfloor(bidFloor)
+                    .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, extImpImpactify)))
+                    .build());
+        }
+
+        updatedBidRequest = request.toBuilder()
+                .imp(updatedImps)
+                .cur(List.of("USD"))
+                .build();
+
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(resolveEndpoint())
+                .headers(constructHeaders(updatedBidRequest))
+                .body(mapper.encode(updatedBidRequest))
+                .payload(updatedBidRequest)
+                .build());
     }
 
     @Override
@@ -211,18 +201,15 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return BidderBid.of(bid, bidType, currency);
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
-            }
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest,
+                                               String impId, String bidFloorCur) {
+        try {
+            return currencyConversionService
+                    .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
+        } catch (PreBidException e) {
+            throw new PreBidException(String.format(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
+                    bidFloorCur, BIDDER_CURRENCY, impId));
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
     }
 }
