@@ -68,6 +68,9 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                     && !imp.getBidfloorcur().isEmpty()
                     && !imp.getBidfloorcur().equalsIgnoreCase(BIDDER_CURRENCY)) {
                 bidFloor = resolveBidFloor(imp, request);
+            } else {
+                return Result.withError(
+                        BidderError.badInput("Unable to convert currency for the impression ext for id: " + imp.getId()));
             }
 
             final ExtImpImpactify extImpImpactify;

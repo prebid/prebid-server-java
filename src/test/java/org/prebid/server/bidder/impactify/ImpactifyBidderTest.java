@@ -16,6 +16,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
@@ -56,7 +57,6 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     //TODO: ADD ZERO PRICE TO CHECK IF PRICE IS VALID
-    //TODO:
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
         assertThatIllegalArgumentException().isThrownBy(() -> new ImpactifyBidder(INCORRECT_TEST_ENDPOINT,
@@ -68,6 +68,18 @@ public class ImpactifyBidderTest extends VertxTest {
                 .id("123")
                 .bidfloorcur("USD")
                 .bidfloor(BigDecimal.ONE)
+                .banner(Banner.builder().build())
+                .video(Video.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(
+                        ExtImpImpactify.of("appId", "format", "style"), null)))
+                .build();
+    }
+
+    private static Imp givenImpressionWithZeroPrice() {
+        return Imp.builder()
+                .id("123")
+                .bidfloorcur("USD")
+                .bidfloor(BigDecimal.ZERO)
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(
@@ -121,6 +133,23 @@ public class ImpactifyBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsExactly(tuple(BigDecimal.ONE, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsWithOneImpressionWithZeroPriceAddsNoValidImpressionsError() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(givenImpressionWithZeroPrice()))
+                .build();
+
+        //when
+        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+
+        //then
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .isEqualTo("Unable to decode the impression ext for id: 123");
+
     }
 
     @Test
