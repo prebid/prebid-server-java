@@ -28,6 +28,7 @@ public class ImpactifyTest extends IntegrationTest {
         final Response response = responseFor("openrtb2/impactify/test-auction-impactify-request.json",
                 Endpoint.openrtb2_auction);
         //then
-        assertJsonEquals("openrtb2/impactify/test-auction-impactify-response.json", response, singletonList("impactify"));
+        assertJsonEquals("openrtb2/impactify/test-auction-impactify-response.json",
+                response, singletonList("impactify"));
     }
 }
