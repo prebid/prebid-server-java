@@ -6,8 +6,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
@@ -41,7 +41,6 @@ public class VideoResponseFactory {
     }
 
     public VideoResponse toVideoResponse(
-            AuctionContext auctionContext,
             BidResponse bidResponse,
             List<PodError> podErrors) {
 
@@ -138,12 +137,16 @@ public class VideoResponseFactory {
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
         final ExtBidResponse ext = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+
         final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
 
-        return extModules != null
-                ? ExtAmpVideoResponse.of(extDebug, extErrors, ExtAmpVideoPrebid.of(extModules))
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
                 : null;
     }
 }

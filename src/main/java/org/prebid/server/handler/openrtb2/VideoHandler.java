@@ -77,8 +77,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(),
-                        result.getLeft(), result.getRight().getPodErrors()))
+                .map(result -> videoResponseFactory.toVideoResponse(result.getLeft(), result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,

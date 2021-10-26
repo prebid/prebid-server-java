@@ -7,8 +7,6 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -89,12 +87,7 @@ public class VideoResponseFactoryTest extends VertxTest {
         final PodError podError = PodError.of(3, 1, singletonList("Error"));
 
         // when
-        final VideoResponse result = target.toVideoResponse(
-                AuctionContext.builder()
-                        .debugContext(DebugContext.empty())
-                        .build(),
-                bidResponse,
-                singletonList(podError));
+        final VideoResponse result = target.toVideoResponse(bidResponse, singletonList(podError));
 
         // then
         final ExtAdPod expectedExtAdPod0 = ExtAdPod.of(0,

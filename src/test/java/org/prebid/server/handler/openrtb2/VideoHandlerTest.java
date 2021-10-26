@@ -207,7 +207,7 @@ public class VideoHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
-        given(videoResponseFactory.toVideoResponse(any(), any(), any()))
+        given(videoResponseFactory.toVideoResponse(any(), any()))
                 .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
@@ -215,7 +215,7 @@ public class VideoHandlerTest extends VertxTest {
 
         // then
         verify(exchangeService).holdAuction(any());
-        verify(videoResponseFactory).toVideoResponse(any(), any(), any());
+        verify(videoResponseFactory).toVideoResponse(any(), any());
 
         assertThat(httpResponse.headers()).hasSize(1)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
