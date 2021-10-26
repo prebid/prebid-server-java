@@ -86,6 +86,12 @@ public class AuctionContext {
                 .build();
     }
 
+    public AuctionContext with(DebugContext debugContext) {
+        return this.toBuilder()
+                .debugContext(debugContext)
+                .build();
+    }
+
     public AuctionContext withRequestRejected() {
         return this.toBuilder()
                 .requestRejected(true)

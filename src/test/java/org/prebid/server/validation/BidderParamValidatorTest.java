@@ -20,7 +20,7 @@ import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -441,6 +441,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
+                true,
                 true,
                 "https://endpoint.com",
                 aliasOf,

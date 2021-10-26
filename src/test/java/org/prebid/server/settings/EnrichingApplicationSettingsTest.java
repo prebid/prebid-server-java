@@ -91,7 +91,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .videoCacheTtl(200)
                         .build())
                 .privacy(AccountPrivacyConfig.of(
-                        true,
                         AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
                                 .build(),
@@ -109,7 +108,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .videoCacheTtl(200)
                         .build())
                 .privacy(AccountPrivacyConfig.of(
-                        true,
                         AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))

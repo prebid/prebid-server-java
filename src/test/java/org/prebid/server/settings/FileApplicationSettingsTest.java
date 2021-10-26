@@ -104,7 +104,6 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "}"
                         + "},"
                         + "privacy: {"
-                        + "enforce-ccpa: true,"
                         + "gdpr: {"
                         + "enabled: true,"
                         + "integration-enabled: {"
@@ -154,7 +153,6 @@ public class FileApplicationSettingsTest extends VertxTest {
                         .events(AccountEventsConfig.of(true))
                         .build())
                 .privacy(AccountPrivacyConfig.of(
-                        true,
                         AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))

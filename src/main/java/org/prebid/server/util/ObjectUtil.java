@@ -22,4 +22,8 @@ public final class ObjectUtil {
     public static <S, T> T getIfNotNull(S source, Function<S, T> getter) {
         return source != null ? getter.apply(source) : null;
     }
+
+    public static <S, T> T getIfNotNullOrDefault(S source, Function<S, T> getter, Supplier<T> defaultSupplier) {
+        return source != null ? getter.apply(source) : defaultSupplier.get();
+    }
 }

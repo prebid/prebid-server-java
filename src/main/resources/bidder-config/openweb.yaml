@@ -1,0 +1,19 @@
+adapters:
+  openweb:
+    endpoint: http://ghb.spotim.market/pbs/ortb
+    meta-info:
+      maintainer-email: monetization@openweb.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 280
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: openweb
+      type: redirect
+      support-cors: false

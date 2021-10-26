@@ -1,12 +1,6 @@
 adapters:
   operaads:
-    enabled: false
     endpoint: https://s.adx.opera.com/ortb/v2/{{PublisherID}}?ep={{AccountID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: adtech-prebid-group@opera.com
       app-media-types:
