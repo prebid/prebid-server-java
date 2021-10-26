@@ -90,7 +90,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
-                && error.getMessage().startsWith("Cannot deserialize instance"));
+                && error.getMessage().startsWith("Cannot deserialize value"));
         assertThat(result.getValue()).isEmpty();
     }
 

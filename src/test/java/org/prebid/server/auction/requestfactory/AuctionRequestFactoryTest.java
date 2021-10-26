@@ -409,7 +409,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(result.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) result.cause()).getMessages()).hasSize(1)
                 .allSatisfy(message ->
-                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize value"));
     }
 
     @Test
@@ -445,7 +445,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(result.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) result.cause()).getMessages()).hasSize(1)
                 .allSatisfy(message ->
-                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot construct instance"));
     }
 
     @Test
