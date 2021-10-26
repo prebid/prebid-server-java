@@ -70,7 +70,7 @@ public class BiddersHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldDefaultMissingEnabledOnlyFlagToFalse() {
+    public void shouldReturnAllBiddersIfEnabledOnlyFlagIsNotPresent() {
         // given
         given(bidderCatalog.isActive("bidder3")).willReturn(true);
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
