@@ -123,7 +123,7 @@ This endpoint supports the following query parameters:
 12. `slot` - tagId parameter for Imp object.
 13. `gdpr_applies` - GDPR param for Regs Ext object.
 14. `consent_type` - param to define what type of consent_string passed.
-15. `attl_consent` - consentedProviders param for User Ext ConsentedProvidersSettings object.
+15. `addtl_consent` - consentedProviders param for User Ext ConsentedProvidersSettings object.
 
  
 For information on how these get from AMP into this endpoint, see [this pull request adding the query params to the Prebid callout](https://github.com/ampproject/amphtml/pull/14155) and [this issue adding support for network-level RTC macros](https://github.com/ampproject/amphtml/issues/12374).
@@ -138,12 +138,11 @@ If present, these will override parts of your Stored Request.
 6. `slot` - will be used to set `tagId` parameter to overwrite Imp object.
 7. `gdpr_applies` will be used to set `request.regs.ext.gdpr`
 8. `consent_type` will be used to check what should be done with consent string
-9. `attl_consent` will be used to set `user.ext.ConsentedProvidersSettings.consented_providers`.
+9. `addtl_consent` will be used to set `user.ext.ConsentedProvidersSettings.consented_providers`.
 10. `gdpr_consent` will be used to set `request.regs.ext.us_privacy` or `user.ext.consent`
 11. `consent_string` will be used to set `request.regs.ext.us_privacy` or `user.ext.consent`. This param has bigger priority then `gdpr_consent`.
-  
 
- 
+
 ### Resolving Sizes
  
 We strive to return ads with sizes which are valid for the `amp-ad` on your page. This logic intends to
