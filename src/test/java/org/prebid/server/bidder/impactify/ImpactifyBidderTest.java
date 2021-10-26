@@ -55,6 +55,8 @@ public class ImpactifyBidderTest extends VertxTest {
         impactifyBidder = new ImpactifyBidder(TEST_ENDPOINT, jacksonMapper, currencyConversionService);
     }
 
+    //TODO: ADD ZERO PRICE TO CHECK IF PRICE IS VALID
+    //TODO:
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
         assertThatIllegalArgumentException().isThrownBy(() -> new ImpactifyBidder(INCORRECT_TEST_ENDPOINT,
