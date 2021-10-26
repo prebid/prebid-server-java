@@ -215,22 +215,6 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsWithNoImpressionsWillReturnWithError() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        //when
-        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("No valid impressions in the bid request");
-    }
-
-    @Test
     public void makeHttpRequestsWithValidDataWillThrowExceptionOnCurrencyConversion() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
