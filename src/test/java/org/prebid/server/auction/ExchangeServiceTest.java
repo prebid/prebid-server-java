@@ -666,8 +666,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestPrebid prebid1 = capturedBidRequest1.getBidRequest().getExt().getPrebid();
         assertThat(prebid1).isNotNull();
         final JsonNode bidders1 = prebid1.getBidders();
-        assertThat(bidders1).isNotNull()
-                .extracting(JsonNode::fields).asList()
+        assertThat(bidders1).isNotNull();
+        assertThat(bidders1.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -676,8 +676,8 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtRequestPrebid prebid2 = capturedBidRequest2.getExt().getPrebid();
         assertThat(prebid2).isNotNull();
         final JsonNode bidders2 = prebid2.getBidders();
-        assertThat(bidders2).isNotNull()
-                .extracting(JsonNode::fields).asList()
+        assertThat(bidders2).isNotNull();
+        assertThat(bidders2.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
