@@ -2,10 +2,12 @@ package org.prebid.server.functional.model.request.amp
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
+@EqualsAndHashCode
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class AmpRequest {
 
@@ -15,7 +17,7 @@ class AmpRequest {
     Integer oh
     Integer w
     Integer h
-    Long ms
+    String ms
     Long timeout
     String slot
     String curl

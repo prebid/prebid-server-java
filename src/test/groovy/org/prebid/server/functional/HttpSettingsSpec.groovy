@@ -58,8 +58,7 @@ class HttpSettingsSpec extends BaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Get basic stored request and set gdpr = 1"
-        def ampStoredRequest = BidRequest.defaultBidRequest
-        ampStoredRequest.site.publisher.id = ampRequest.account
+        def ampStoredRequest = BidRequest.defaultStoredRequest
         ampStoredRequest.regs.ext.gdpr = 1
 
         and: "Save storedRequest into DB"

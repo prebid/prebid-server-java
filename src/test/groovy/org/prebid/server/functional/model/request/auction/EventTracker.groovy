@@ -5,12 +5,8 @@ import groovy.transform.ToString
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-class AssetImage {
+class EventTracker {
 
-    Integer type
-    Integer w
-    Integer wmin
-    Integer h
-    Integer hmin
-    List<String> mimes
+    Integer event
+    List<Integer> methods
 }

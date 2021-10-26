@@ -19,4 +19,6 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Map<BidderName, Map<String, Integer>> bidderParams
+    List<AdServerTargeting> adServerTargeting
+    Map<String, BidderName> aliases
 }

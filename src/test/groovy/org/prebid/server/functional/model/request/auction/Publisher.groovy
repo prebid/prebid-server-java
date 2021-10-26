@@ -13,7 +13,7 @@ class Publisher {
 
     static Publisher getDefaultPublisher() {
         new Publisher().tap {
-            id = PBSUtils.randomNumber.toString()
+            id = PBSUtils.randomNumber
         }
     }
 }

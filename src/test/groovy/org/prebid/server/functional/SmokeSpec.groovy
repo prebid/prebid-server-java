@@ -48,8 +48,7 @@ class SmokeSpec extends BaseSpec {
     def "PBS should return AMP response"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
-        def ampStoredRequest = BidRequest.defaultBidRequest
-        ampStoredRequest.site.publisher.id = ampRequest.account
+        def ampStoredRequest = BidRequest.defaultStoredRequest
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
@@ -178,7 +177,7 @@ class SmokeSpec extends BaseSpec {
         def response = defaultPbsService.sendBiddersParamsRequest()
 
         then: "Response should contain bidders params"
-        assert response.parameters.size() > 0
+        assert response.parameters
     }
 
     def "PBS should return currency rates"() {
@@ -186,7 +185,7 @@ class SmokeSpec extends BaseSpec {
         def response = defaultPbsService.sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
-        assert response.rates?.size() > 0
+        assert response.rates
     }
 
     def "PBS should return empty body on httpinteraction request"() {

@@ -21,7 +21,6 @@ class AuctionSpec extends BaseSpec {
 
     @Unroll
     def "PBS should return version in response header for auction request for #description"() {
-
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequestRaw(bidRequest)
 
@@ -141,5 +140,28 @@ class AuctionSpec extends BaseSpec {
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+    }
+
+    @Unroll
+    def "PBS should apply domain field by priority for auction request"() {
+        given: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site.domain = domain
+            site.page = page
+            site.id = PBSUtils.randomString
+        }
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAuctionRequestRaw(bidRequest, ["Referer": referer])
+
+        then: "Bidder request should contain correct domain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.site?.domain == "priority"
+
+        where:
+        domain     | page                  | referer
+        "priority" | PBSUtils.randomString | PBSUtils.randomString
+        null       | "https://priority/"   | PBSUtils.randomString
+        null       | null                  | "https://priority/"
     }
 }
