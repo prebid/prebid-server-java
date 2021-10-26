@@ -184,14 +184,21 @@ class PrebidServerService {
         def response = given(requestSpecification).get(STATUS_ENDPOINT)
 
         checkResponseStatusCode(response)
-
         response.as(StatusResponse)
     }
 
     @Step("[GET] /info/bidders")
-    String sendInfoBiddersRequest(boolean enabledOnly = true) {
+    List<String> sendInfoBiddersRequest(String enabledOnly) {
         def response = given(requestSpecification).queryParam("enabledonly", enabledOnly)
                                                   .get(INFO_BIDDERS_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        mapper.decode(response.asString(), new TypeReference<List<String>>() {})
+    }
+
+    @Step("[GET] /info/bidders")
+    String sendInfoBiddersRequest() {
+        def response = given(requestSpecification).get(INFO_BIDDERS_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body().asString()
