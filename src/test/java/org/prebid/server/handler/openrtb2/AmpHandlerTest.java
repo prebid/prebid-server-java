@@ -415,7 +415,7 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{}}"));
+                "{\"targeting\":{},\"ext\":{\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}}"));
     }
 
     @Test
