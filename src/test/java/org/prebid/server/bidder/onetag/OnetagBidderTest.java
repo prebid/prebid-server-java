@@ -104,7 +104,7 @@ public class OnetagBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
     }

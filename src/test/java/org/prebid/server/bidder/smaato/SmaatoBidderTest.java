@@ -193,7 +193,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
 
@@ -365,7 +365,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
 

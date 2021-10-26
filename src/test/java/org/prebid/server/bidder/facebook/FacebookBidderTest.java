@@ -122,7 +122,7 @@ public class FacebookBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance of");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value of");
     }
 
     @Test
