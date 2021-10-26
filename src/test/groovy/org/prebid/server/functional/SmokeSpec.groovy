@@ -160,14 +160,6 @@ class SmokeSpec extends BaseSpec {
         assert response.application?.status == OK
     }
 
-    def "PBS should get info about active bidders"() {
-        when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest()
-
-        then: "Response should contain bidders info"
-        assert !response.isEmpty()
-    }
-
     def "PBS should get info about requested bidder"() {
         when: "PBS processes bidders info request"
         def response = defaultPbsService.sendBidderInfoRequest(GENERIC)
