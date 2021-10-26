@@ -20,8 +20,7 @@ class AnalyticsSpec extends BaseSpec {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 
-    @Ignore
-    // It is currently impossible to stabilize the test
+    @Ignore("Currently impossible to make this test pass 100% of the time")
     def "PBS should send PubStack analytics when analytics.pubstack.enabled=true"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
