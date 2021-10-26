@@ -474,13 +474,13 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .build();
     }
 
-    private List<BidderBid> processVideoResponse(String responseBody, HttpRequest httpRequest) {
+    private List<BidderBid> processVideoResponse(String responseBody, HttpRequest<Void> httpRequest) {
         final BidResponse bidResponse = mapper.decodeValue(responseBody, BidResponse.class);
         final BeachfrontVideoRequest videoRequest = mapper.decodeValue(
                 httpRequest.getBody(), BeachfrontVideoRequest.class);
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return List.of();
+            return Collections.emptyList();
         }
 
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
@@ -496,19 +496,17 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static List<Bid> updateNurlVideoBids(List<Bid> bids, List<Imp> imps) {
         final List<Bid> result = new ArrayList<>();
         for (int i = 0; i < bids.size(); i++) {
-            Bid bid = bids.get(i);
+            final Bid bid = bids.get(i);
             final Imp imp = imps.get(i);
-
             final String impId = imp.getId();
 
-            bid = bid.toBuilder()
+            result.add(bid.toBuilder()
                     .crid(getCrId(bid.getNurl()))
                     .impid(impId)
                     .h(imp.getVideo().getH())
                     .w(imp.getVideo().getW())
                     .id(impId + "NurlVideo")
-                    .build();
-            result.add(bid);
+                    .build());
         }
         return result;
     }
@@ -526,11 +524,11 @@ public class BeachfrontBidder implements Bidder<Void> {
 
     private List<BidderBid> postProcessBidderBids(List<BidderBid> bidderBids) {
         return bidderBids.stream()
-                .map(this::postProcessBidderBid)
+                .map(this::updateBidderBid)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid postProcessBidderBid(BidderBid bidderBid) {
+    private BidderBid updateBidderBid(BidderBid bidderBid) {
         final Bid bid = bidderBid.getBid();
         final Integer duration = resolveDuration(bid.getExt());
         if (duration == null || duration <= 0) {
@@ -540,7 +538,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<String> cat = bid.getCat();
         final String primaryCategory = CollectionUtils.isNotEmpty(cat) ? cat.get(0) : null;
 
-        final Bid resolvedBid = bid.toBuilder().ext(buildBidExt(duration, primaryCategory)).build();
+        final Bid resolvedBid = bid.toBuilder().ext(resolveBidExt(duration, primaryCategory)).build();
         return BidderBid.of(resolvedBid, bidderBid.getType(), bidderBid.getBidCurrency());
     }
 
@@ -549,7 +547,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         return durationNode != null && durationNode.isInt() ? durationNode.asInt() : null;
     }
 
-    private ObjectNode buildBidExt(Integer duration, String primaryCategory) {
+    private ObjectNode resolveBidExt(Integer duration, String primaryCategory) {
         final ExtBidPrebidVideo extBidPrebidVideo = ExtBidPrebidVideo.of(duration, primaryCategory);
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(extBidPrebidVideo).build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
