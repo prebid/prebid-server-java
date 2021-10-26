@@ -60,11 +60,11 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain targeting and httpcalls"
         assert response.targeting
-        assert response.debug.httpcalls
+        assert response.ext.debug.httpcalls
 
         and: "httpcalls should send request for bidders from storedRequest"
         def storedRequestBidders = ampStoredRequest.requestBidders
-        def responseBidders = response.debug?.bidders
+        def responseBidders = response?.ext?.debug?.bidders
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 
