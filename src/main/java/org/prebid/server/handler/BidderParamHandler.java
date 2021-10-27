@@ -20,6 +20,7 @@ public class BidderParamHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         HttpUtil.executeSafely(routingContext, Endpoint.bidder_params,
                 response -> response
+                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
                         .end(bidderParamValidator.schemas()));
     }
 }

@@ -21,6 +21,9 @@ public class DefaultBidderConfigurationProperties {
     @NotNull
     private Boolean modifyingVastXmlAllowed;
 
+    @NotNull
+    private Debug debug;
+
     private final Map<String, Object> aliases = Collections.emptyMap();
 
     private final List<String> deprecatedNames = Collections.emptyList();

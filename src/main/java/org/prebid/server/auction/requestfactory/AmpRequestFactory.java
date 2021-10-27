@@ -18,6 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -80,7 +81,7 @@ public class AmpRequestFactory {
     private static final String CONSENT_PARAM = "consent_string";
     private static final String GDPR_APPLIES_PARAM = "gdpr_applies";
     private static final String CONSENT_TYPE_PARAM = "consent_type";
-    private static final String ATTL_CONSENT_PARAM = "attl_consent";
+    private static final String ADDTL_CONSENT_PARAM = "addtl_consent";
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
@@ -94,6 +95,7 @@ public class AmpRequestFactory {
     private final FpdResolver fpdResolver;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
+    private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
     public AmpRequestFactory(StoredRequestProcessor storedRequestProcessor,
@@ -104,6 +106,7 @@ public class AmpRequestFactory {
                              FpdResolver fpdResolver,
                              PrivacyEnforcementService privacyEnforcementService,
                              TimeoutResolver timeoutResolver,
+                             DebugResolver debugResolver,
                              JacksonMapper mapper) {
 
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -113,6 +116,7 @@ public class AmpRequestFactory {
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -133,6 +137,8 @@ public class AmpRequestFactory {
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> updateBidRequest(auctionContext)
                         .map(auctionContext::with))
@@ -163,14 +169,14 @@ public class AmpRequestFactory {
 
         final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
         final String consentString = consentStringFromQueryStringParams(httpRequest);
-        final String attlConsent = attlConsentFromQueryStringParams(httpRequest);
+        final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
-                .user(createUser(consentType, consentString, attlConsent))
+                .user(createUser(consentType, consentString, addtlConsent))
                 .regs(createRegs(consentString, consentType, gdpr))
                 .test(debug)
                 .tmax(timeout)
@@ -196,18 +202,18 @@ public class AmpRequestFactory {
                 : null;
     }
 
-    private static User createUser(ConsentType consentType, String consentString, String attlConsent) {
+    private static User createUser(ConsentType consentType, String consentString, String addtlConsent) {
         final boolean tcfV2ConsentProvided = (StringUtils.isNotBlank(consentString)
                 && TcfDefinerService.isConsentStringValid(consentString))
                 && (consentType == null || consentType == ConsentType.tcfV2);
 
-        if (StringUtils.isNotBlank(attlConsent) || tcfV2ConsentProvided) {
+        if (StringUtils.isNotBlank(addtlConsent) || tcfV2ConsentProvided) {
             final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
             if (tcfV2ConsentProvided) {
                 userExtBuilder.consent(consentString);
             }
-            if (StringUtils.isNotBlank(attlConsent)) {
-                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(attlConsent));
+            if (StringUtils.isNotBlank(addtlConsent)) {
+                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
             }
             return User.builder().ext(userExtBuilder.build()).build();
         }
@@ -273,8 +279,8 @@ public class AmpRequestFactory {
         return ObjectUtils.firstNonNull(requestConsentParam, requestGdprConsentParam);
     }
 
-    private static String attlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
-        return httpRequest.getQueryParams().get(ATTL_CONSENT_PARAM);
+    private static String addtlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
+        return httpRequest.getQueryParams().get(ADDTL_CONSENT_PARAM);
     }
 
     private static Integer gdprFromQueryStringParams(HttpRequestContext httpRequest) {
@@ -702,12 +708,14 @@ public class AmpRequestFactory {
 
         final JsonNode priceGranularityNode = isTargetingNull ? null : targeting.getPricegranularity();
         final boolean isPriceGranularityNull = priceGranularityNode == null || priceGranularityNode.isNull();
-        final JsonNode outgoingPriceGranularityNode = isPriceGranularityNull
+        final JsonNode outgoingPriceGranularityNode
+                = isPriceGranularityNull
                 ? mapper.mapper().valueToTree(ExtPriceGranularity.from(PriceGranularity.DEFAULT))
                 : priceGranularityNode;
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = isTargetingNull
-                ? null : targeting.getMediatypepricegranularity();
+                ? null
+                : targeting.getMediatypepricegranularity();
 
         final boolean includeWinners = isTargetingNull || targeting.getIncludewinners() == null
                 || targeting.getIncludewinners();

@@ -51,7 +51,7 @@ public class BiddersHandler implements Handler<RoutingContext> {
     private static boolean enabledOnlyFromQueryStringParams(RoutingContext routingContext) {
         final String enabledOnlyParam = routingContext.queryParams().get(ENABLED_ONLY_PARAM);
 
-        if (!StringUtils.equalsAnyIgnoreCase(enabledOnlyParam, "true", "false")) {
+        if (enabledOnlyParam != null && !StringUtils.equalsAnyIgnoreCase(enabledOnlyParam, "true", "false")) {
             throw new IllegalArgumentException("Invalid value for 'enabledonly' query param, must be of boolean type");
         }
 

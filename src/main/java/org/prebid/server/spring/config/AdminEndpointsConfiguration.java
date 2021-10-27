@@ -78,7 +78,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest.enabled} == true")
     CustomizedAdminEndpoint cacheNotificationEndpoint(
             SettingsCache settingsCache,
@@ -97,7 +97,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest-amp.enabled} == true")
     CustomizedAdminEndpoint ampCacheNotificationEndpoint(
             SettingsCache ampSettingsCache,
@@ -116,7 +116,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.cache-invalidation.enabled} == true")
     CustomizedAdminEndpoint cacheInvalidateNotificationEndpoint(
             CachingApplicationSettings cachingApplicationSettings,
