@@ -6,6 +6,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
+import spock.lang.Ignore
 import spock.lang.Shared
 
 @PBSTest
@@ -19,6 +20,7 @@ class AnalyticsSpec extends BaseSpec {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 
+    @Ignore("Currently impossible to make this test pass 100% of the time")
     def "PBS should send PubStack analytics when analytics.pubstack.enabled=true"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
