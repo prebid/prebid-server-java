@@ -20,6 +20,8 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.model.ImpWithExtProperties;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtCreative;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
@@ -44,6 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -503,7 +506,17 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final Bid modifiedBid = bid.toBuilder().cat(cat).build();
-        return BidderBid.of(modifiedBid, bidType(appnexus.getBidAdType()), currency);
+        return BidderBid.of(modifiedBid, bidType(appnexus.getBidAdType()), currency, appnexus.getDealPriority(),
+                makeExtBidVideo(appnexus));
+    }
+
+    private static ExtBidPrebidVideo makeExtBidVideo(AppnexusBidExtAppnexus extAppnexus) {
+        final AppnexusBidExtCreative appnexusBidExtCreative = extAppnexus.getCreativeInfo();
+        final AppnexusBidExtVideo appnexusBidExtVideo = appnexusBidExtCreative != null
+                ? appnexusBidExtCreative.getVideo()
+                : null;
+        final Integer duration = appnexusBidExtVideo != null ? appnexusBidExtVideo.getDuration() : null;
+        return duration != null ? ExtBidPrebidVideo.of(duration, null) : null;
     }
 
     private static String iabCategory(Integer brandId) {

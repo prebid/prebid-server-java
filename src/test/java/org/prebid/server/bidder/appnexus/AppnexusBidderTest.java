@@ -280,7 +280,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(1, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(1, null, null, null))
                         .build())
                 .build();
 
@@ -308,7 +308,7 @@ public class AppnexusBidderTest extends VertxTest {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
                         .build())
                 .build();
 
@@ -329,36 +329,6 @@ public class AppnexusBidderTest extends VertxTest {
                 .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
                 .extracting(AppnexusReqExt::getAppnexus)
                 .containsOnly(AppnexusReqExtAppnexus.of(true, true, null));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotUpdateRequestExtAppnexusWhenIncludeBrandCategoryIsNull() {
-        // given
-        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
-                .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(null)
-                        .build())
-                .build();
-
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .ext(jacksonMapper.fillExtension(
-                                ExtRequest.of(requestPrebid),
-                                AppnexusReqExt.of(AppnexusReqExtAppnexus.of(false, true, null)))),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus)
-                .containsOnly(AppnexusReqExtAppnexus.of(false, true, null));
     }
 
     @Test
@@ -951,7 +921,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
-                                .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null))
+                                .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
                                 .build())
                         .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
                         .build()))

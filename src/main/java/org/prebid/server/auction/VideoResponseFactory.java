@@ -8,7 +8,9 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -34,17 +36,18 @@ public class VideoResponseFactory {
 
     public static final String PREBID_EXT = "prebid";
 
+    private final IdGenerator idGenerator;
     private final JacksonMapper mapper;
 
-    public VideoResponseFactory(JacksonMapper mapper) {
+    public VideoResponseFactory(IdGenerator idGenerator, JacksonMapper mapper) {
+        this.idGenerator = idGenerator;
         this.mapper = mapper;
     }
 
-    public VideoResponse toVideoResponse(
-            AuctionContext auctionContext,
-            BidResponse bidResponse,
-            List<PodError> podErrors) {
-
+    public VideoResponse toVideoResponse(AuctionContext auctionContext,
+                                         BidResponse bidResponse,
+                                         List<PodError> podErrors) {
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
         final List<Bid> bids = bidsFrom(bidResponse);
         final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
         final List<ExtAdPod> adPods = adPodsWithTargetingFrom(bids);
@@ -66,6 +69,15 @@ public class VideoResponseFactory {
         } else {
             extResponseDebug = null;
             errors = null;
+        }
+        if (cachedDebugEnabled(cachedDebugLog)) {
+            if (CollectionUtils.isEmpty(adPods)) {
+                final String cacheId = idGenerator.generateId();
+                cachedDebugLog.setCacheKey(cacheId);
+                cachedDebugLog.setHasBids(false);
+                adPods.add(ExtAdPod.of(null,
+                        Collections.singletonList(ExtResponseVideoTargeting.of(null, null, cacheId)), null));
+            }
         }
         return VideoResponse.of(adPods, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
@@ -153,5 +165,9 @@ public class VideoResponseFactory {
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
 
         return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+    }
+
+    private static boolean cachedDebugEnabled(CachedDebugLog cachedDebugLog) {
+        return cachedDebugLog != null && cachedDebugLog.isEnabled();
     }
 }
