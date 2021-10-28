@@ -2365,9 +2365,10 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getErrors()).hasSize(2).containsOnly(
                 entry("bidder1", asList(
                         ExtBidderError.of(2, "bad_input"),
-                        ExtBidderError.of(3, "Failed to decode: Cannot deserialize instance of `com.iab."
-                                + "openrtb.response.Response` out of START_ARRAY token\n at [Source: (String)\"[]\"; "
-                                + "line: 1, column: 1]"))),
+                        ExtBidderError.of(3, "Failed to decode: Cannot deserialize value"
+                                + " of type `com.iab.openrtb.response.Response` from Array value "
+                                + "(token `JsonToken.START_ARRAY`)\n"
+                                + " at [Source: (String)\"[]\"; line: 1, column: 1]"))),
                 entry("cache", singletonList(ExtBidderError.of(999, "cacheError"))));
 
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
