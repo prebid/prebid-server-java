@@ -10,7 +10,7 @@ import spock.lang.Unroll
 
 class AmpSpec extends BaseSpec {
 
-    private static final int DEFAULT_TIMEOUT = getTimeout()
+    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
@@ -23,7 +23,7 @@ class AmpSpec extends BaseSpec {
         }
 
         and: "Default stored request with timeout"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             tmax = timeout
         }
@@ -43,7 +43,7 @@ class AmpSpec extends BaseSpec {
     @Unroll
     def "PBS should prefer timeout from the request when stored request timeout is #tmax"() {
         given: "Default AMP request with timeout"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.timeout = timeout
         }
@@ -65,7 +65,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
 
         where:
-        tmax << [null, PBSUtils.getRandomNumber(0, MAX_TIMEOUT)]
+        tmax << [null, getRandomTimeout()]
     }
 
     @Unroll
@@ -121,7 +121,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
-    private static int getTimeout() {
+    private static int getRandomTimeout() {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 }

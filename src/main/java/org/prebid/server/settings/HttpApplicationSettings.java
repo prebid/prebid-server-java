@@ -1,6 +1,7 @@
 package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Future;
@@ -8,11 +9,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.Category;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -63,20 +66,25 @@ import java.util.stream.Collectors;
 public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
+    private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
+            new TypeReference<Map<String, Category>>() {
+            };
 
     private String endpoint;
     private String ampEndpoint;
     private String videoEndpoint;
+    private String categoryEndpoint;
     private HttpClient httpClient;
     private final JacksonMapper mapper;
 
     public HttpApplicationSettings(HttpClient httpClient, JacksonMapper mapper, String endpoint, String ampEndpoint,
-                                   String videoEndpoint) {
+                                   String videoEndpoint, String categoryEndpoint) {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
         this.endpoint = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.ampEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(ampEndpoint));
         this.videoEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpoint));
+        this.categoryEndpoint = HttpUtil.validateUrl(Objects.requireNonNull(categoryEndpoint));
     }
 
     @Override
@@ -172,6 +180,49 @@ public class HttpApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return Future.failedFuture(new PreBidException("Not supported"));
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        final String url = StringUtils.isNotEmpty(publisher)
+                ? String.format("%s/%s/%s.json", categoryEndpoint, primaryAdServer, publisher)
+                : String.format("%s/%s.json", categoryEndpoint, primaryAdServer);
+        final long remainingTimeout = timeout.remaining();
+        if (remainingTimeout <= 0) {
+            return Future.failedFuture(new TimeoutException(String.format("Failed to fetch categories from url '%s'."
+                    + " Reason: Timeout exceeded", url)));
+        }
+        return httpClient.get(url, remainingTimeout)
+                .map(httpClientResponse -> processCategoryResponse(httpClientResponse, url));
+    }
+
+    private Map<String, String> processCategoryResponse(HttpClientResponse httpClientResponse, String url) {
+        final int statusCode = httpClientResponse.getStatusCode();
+        if (statusCode != 200) {
+            throw makeFailedCategoryFetchException(url, String.format("Response status code is '%s'",
+                    statusCode));
+        }
+
+        final String body = httpClientResponse.getBody();
+        if (StringUtils.isEmpty(body)) {
+            throw makeFailedCategoryFetchException(url, "Response body is null or empty");
+        }
+
+        final Map<String, Category> categories;
+        try {
+            categories = mapper.decodeValue(body, CATEGORY_RESPONSE_REFERENCE);
+        } catch (DecodeException e) {
+            throw makeFailedCategoryFetchException(url, String.format("Failed to decode response body with error %s",
+                    e.getMessage()));
+        }
+        return categories.entrySet().stream()
+                .filter(catToCategory -> catToCategory.getValue() != null)
+                .collect(Collectors.toMap(Map.Entry::getKey,
+                        catToCategory -> catToCategory.getValue().getId()));
+    }
+
+    private PreBidException makeFailedCategoryFetchException(String url, String reason) {
+        return new PreBidException(String.format("Failed to fetch categories from url '%s'. Reason: %s", url, reason));
     }
 
     private Future<StoredDataResult> fetchStoredData(String endpoint, Set<String> requestIds, Set<String> impIds,

@@ -48,9 +48,10 @@ class PbsServiceFactory {
     }
 
     Map<String, String> httpSettings() {
-        ["settings.http.endpoint"      : "$networkServiceContainer.rootUri/stored-requests".toString(),
-         "settings.http.amp-endpoint"  : "$networkServiceContainer.rootUri/amp-stored-requests".toString(),
-         "settings.http.video-endpoint": "$networkServiceContainer.rootUri/video-stored-requests".toString()]
+        ["settings.http.endpoint"         : "$networkServiceContainer.rootUri/stored-requests".toString(),
+         "settings.http.amp-endpoint"     : "$networkServiceContainer.rootUri/amp-stored-requests".toString(),
+         "settings.http.video-endpoint"   : "$networkServiceContainer.rootUri/video-stored-requests".toString(),
+         "settings.http.category-endpoint": "$networkServiceContainer.rootUri/video-categories".toString()]
     }
 
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
