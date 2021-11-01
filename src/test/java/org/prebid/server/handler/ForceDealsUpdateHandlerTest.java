@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -131,7 +130,7 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(deliveryStatsService, times(1)).sendDeliveryProgressReports();
+        verify(deliveryStatsService).sendDeliveryProgressReports();
         verifyZeroInteractions(plannerService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
@@ -148,7 +147,7 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(registerService, times(1)).performRegistration();
+        verify(registerService).performRegistration();
         verifyZeroInteractions(plannerService, deliveryStatsService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
@@ -165,10 +164,10 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(alertHttpService, times(1)).resetAlertCount("pbs-register-client-error");
-        verify(alertHttpService, times(1)).resetAlertCount("pbs-planner-client-error");
-        verify(alertHttpService, times(1)).resetAlertCount("pbs-planner-empty-response-error");
-        verify(alertHttpService, times(1)).resetAlertCount("pbs-delivery-stats-client-error");
+        verify(alertHttpService).resetAlertCount("pbs-register-client-error");
+        verify(alertHttpService).resetAlertCount("pbs-planner-client-error");
+        verify(alertHttpService).resetAlertCount("pbs-planner-empty-response-error");
+        verify(alertHttpService).resetAlertCount("pbs-delivery-stats-client-error");
         verifyZeroInteractions(plannerService, deliveryStatsService, registerService, deliveryProgressService,
                 lineItemService);
 
@@ -185,7 +184,7 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(deliveryProgressService, times(1)).createDeliveryProgressReports(any());
+        verify(deliveryProgressService).createDeliveryProgressReports(any());
         verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 lineItemService);
 
@@ -202,7 +201,7 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(lineItemService, times(1)).invalidateLineItems();
+        verify(lineItemService).invalidateLineItems();
         verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 deliveryProgressService);
 
