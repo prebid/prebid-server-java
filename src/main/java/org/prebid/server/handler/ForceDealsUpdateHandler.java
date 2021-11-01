@@ -60,6 +60,24 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
         }
     }
 
+    private static DealsAction dealsActionFrom(RoutingContext routingContext) {
+        final String givenActionValue = routingContext.request().getParam(ACTION_NAME_PARAM);
+        if (StringUtils.isEmpty(givenActionValue)) {
+            throw new InvalidRequestException(String.format(
+                    "Parameter '%s' is required and can't be empty",
+                    ACTION_NAME_PARAM));
+        }
+
+        try {
+            return DealsAction.valueOf(givenActionValue.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            throw new InvalidRequestException(String.format(
+                    "Given '%s' parameter value '%s' is not among possible actions",
+                    ACTION_NAME_PARAM,
+                    givenActionValue));
+        }
+    }
+
     private void handleDealsAction(DealsAction dealsAction) {
         switch (dealsAction) {
             case UPDATE_LINE_ITEMS:
@@ -85,24 +103,6 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
                 break;
             default:
                 throw new IllegalStateException("Unexpected action value");
-        }
-    }
-
-    private DealsAction dealsActionFrom(RoutingContext routingContext) {
-        final String givenActionValue = routingContext.request().getParam(ACTION_NAME_PARAM);
-        if (StringUtils.isEmpty(givenActionValue)) {
-            throw new InvalidRequestException(String.format(
-                    "Parameter '%s' is required and can't be empty",
-                    ACTION_NAME_PARAM));
-        }
-
-        try {
-            return DealsAction.valueOf(givenActionValue.toUpperCase());
-        } catch (IllegalArgumentException ignored) {
-            throw new InvalidRequestException(String.format(
-                    "Given '%s' parameter value '%s' is not among possible actions",
-                    ACTION_NAME_PARAM,
-                    givenActionValue));
         }
     }
 

@@ -114,7 +114,7 @@ public class ForceDealsUpdateHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(plannerService, times(1)).updateLineItemMetaData();
+        verify(plannerService).updateLineItemMetaData();
         verifyZeroInteractions(deliveryStatsService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
@@ -215,7 +215,8 @@ public class ForceDealsUpdateHandlerTest {
         // given
         given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.UPDATE_LINE_ITEMS.name());
         final String exceptionMessage = "Failed to fetch data from Planner";
-        doThrow(new PreBidException(exceptionMessage)).when(plannerService).updateLineItemMetaData();
+        doThrow(new PreBidException(exceptionMessage)).when(plannerService)
+                                                      .updateLineItemMetaData();
 
         // when
         handler.handle(routingContext);
@@ -230,7 +231,8 @@ public class ForceDealsUpdateHandlerTest {
         // given
         given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.SEND_REPORT.name());
         final String exceptionMessage = "Sending report failed";
-        doThrow(new PreBidException(exceptionMessage)).when(deliveryStatsService).sendDeliveryProgressReports();
+        doThrow(new PreBidException(exceptionMessage)).when(deliveryStatsService)
+                                                      .sendDeliveryProgressReports();
 
         // when
         handler.handle(routingContext);
