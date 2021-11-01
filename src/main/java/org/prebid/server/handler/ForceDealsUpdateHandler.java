@@ -10,18 +10,15 @@ import org.prebid.server.deals.DeliveryStatsService;
 import org.prebid.server.deals.LineItemService;
 import org.prebid.server.deals.PlannerService;
 import org.prebid.server.deals.RegisterService;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.ZonedDateTime;
-import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
 
     private static final String ACTION_NAME_PARAM = "action_name";
-    private static final String[] DEALS_ACTIONS =
-            Arrays.stream(DealsAction.values()).map(DealsAction::name).toArray(String[]::new);
 
     private final DeliveryStatsService deliveryStatsService;
     private final PlannerService plannerService;
@@ -56,7 +53,7 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
                     response -> response
                             .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
                             .end());
-        } catch (IllegalArgumentException e) {
+        } catch (InvalidRequestException e) {
             respondWithError(routingContext, HttpResponseStatus.BAD_REQUEST, e);
         } catch (Exception e) {
             respondWithError(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, e);
@@ -94,17 +91,19 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
     private DealsAction dealsActionFrom(RoutingContext routingContext) {
         final String givenActionValue = routingContext.request().getParam(ACTION_NAME_PARAM);
         if (StringUtils.isEmpty(givenActionValue)) {
-            throw new IllegalArgumentException(
-                    String.format("Parameter '%s' is required and can't be empty", ACTION_NAME_PARAM));
+            throw new InvalidRequestException(String.format(
+                    "Parameter '%s' is required and can't be empty",
+                    ACTION_NAME_PARAM));
         }
 
-        if (Arrays.stream(DEALS_ACTIONS).noneMatch(Predicate.isEqual(givenActionValue.toUpperCase()))) {
-            throw new IllegalArgumentException(
-                    String.format("Given '%s' parameter value is not among possible actions '%s'",
-                            ACTION_NAME_PARAM, Arrays.toString(DEALS_ACTIONS)));
+        try {
+            return DealsAction.valueOf(givenActionValue.toUpperCase());
+        } catch (IllegalArgumentException ignored) {
+            throw new InvalidRequestException(String.format(
+                    "Given '%s' parameter value '%s' is not among possible actions",
+                    ACTION_NAME_PARAM,
+                    givenActionValue));
         }
-
-        return DealsAction.valueOf(givenActionValue.toUpperCase());
     }
 
     private void respondWithError(RoutingContext routingContext, HttpResponseStatus statusCode, Exception exception) {

@@ -91,7 +91,8 @@ public class ForceDealsUpdateHandlerTest {
     @Test
     public void shouldReturnBadRequestWhenBadActionParamIsGiven() {
         // given
-        given(httpRequest.getParam(any())).willReturn("bad_param_name");
+        final String badParamName = "bad_param_name";
+        given(httpRequest.getParam(any())).willReturn(badParamName);
 
         // when
         handler.handle(routingContext);
@@ -100,9 +101,8 @@ public class ForceDealsUpdateHandlerTest {
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq(String.format("Given '%s' parameter value is not among possible actions "
-                + "'[UPDATE_LINE_ITEMS, SEND_REPORT, REGISTER_INSTANCE, RESET_ALERT_COUNT, CREATE_REPORT, "
-                + "INVALIDATE_LINE_ITEMS]'", ACTION_NAME_PARAM)));
+        verify(httpResponse).end(eq(String.format("Given '%s' parameter value '%s' is not among possible actions",
+                ACTION_NAME_PARAM, badParamName)));
     }
 
     @Test
