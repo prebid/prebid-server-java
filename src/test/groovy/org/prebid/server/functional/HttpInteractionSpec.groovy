@@ -36,7 +36,10 @@ class HttpInteractionSpec extends BaseSpec {
         and: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS log should contain request to allowed adapter"
+        then: "There should be only one call to bidder"
+        assert bidder.checkRequestCount(bidRequest.id, 1)
+
+        and: "PBS log should contain request to allowed adapter"
         def logs = defaultPbsService.getLogsByTime(startTime)
         def genericBidderLogs = getLogsByBidder(logs, GENERIC)
         def rubiconBidderLogs = getLogsByBidder(logs, RUBICON)
