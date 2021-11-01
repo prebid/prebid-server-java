@@ -121,6 +121,25 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
+    def "PBS should return version in response header for amp request"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest
+        ampStoredRequest.site.publisher.id = ampRequest.account
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response header should contain PBS version"
+        def bidderHeaders = bidder.getRecordedRequestsHeaders(ampStoredRequest.id)[0]
+        assert response.headers["x-prebid"]
+        assert response.headers["x-prebid"] == bidderHeaders["x-prebid"][0]
+    }
+
     private static int getRandomTimeout() {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }

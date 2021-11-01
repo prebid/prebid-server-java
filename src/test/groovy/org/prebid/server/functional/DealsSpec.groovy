@@ -35,9 +35,9 @@ class DealsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should choose bid with deal"
-        assert response.seatbid?.first()?.bid?.size() == 1
-        assert response.seatbid?.first()?.bid?.first()?.id == dealBidId
-        assert response.seatbid?.first()?.bid?.first()?.price == dealBidPrice
+        assert response.responseBody.seatbid?.first()?.bid?.size() == 1
+        assert response.responseBody.seatbid?.first()?.bid?.first()?.id == dealBidId
+        assert response.responseBody.seatbid?.first()?.bid?.first()?.price == dealBidPrice
 
         where:
         bidPrice | dealBidPrice
@@ -69,8 +69,8 @@ class DealsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should choose bid with higher deal price"
-        assert response.seatbid?.first()?.bid?.size() == 1
-        assert response.seatbid?.first()?.bid?.first()?.price == winningBidPrice
+        assert response.responseBody.seatbid?.first()?.bid?.size() == 1
+        assert response.responseBody.seatbid?.first()?.bid?.first()?.price == winningBidPrice
     }
 
     def "PBS should choose higher bid from two without deals"() {
@@ -93,8 +93,8 @@ class DealsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should choose bid with higher deal price"
-        assert response.seatbid?.first()?.bid?.size() == 1
-        assert response.seatbid?.first()?.bid?.first()?.price == winningBidPrice
+        assert response.responseBody.seatbid?.first()?.bid?.size() == 1
+        assert response.responseBody.seatbid?.first()?.bid?.first()?.price == winningBidPrice
     }
 
     def "PBS should prefer bids with dealid when multibid is enabled"() {
@@ -125,7 +125,7 @@ class DealsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain maxBids bids with deal"
-        def bidPrices = response.seatbid?.first()?.bid?.collect { it.price }
+        def bidPrices = response.responseBody.seatbid?.first()?.bid?.collect { it.price }
         assert bidPrices == bidResponse.seatbid.first().bid.collect { it.price }.sort().reverse()
     }
 
@@ -153,8 +153,8 @@ class DealsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should choose bid with bid with higher price"
-        assert response.seatbid?.first()?.bid?.size() == 1
-        assert response.seatbid?.first()?.bid?.first()?.price == winningBidPrice
+        assert response.responseBody.seatbid?.first()?.bid?.size() == 1
+        assert response.responseBody.seatbid?.first()?.bid?.first()?.price == winningBidPrice
 
         where:
         preferdeals << [false, null]

@@ -33,8 +33,8 @@ class BidValidationSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain basic fields"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [5]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+        assert response.responseBody.ext?.errors[ErrorType.GENERIC]*.code == [5]
+        assert response.responseBody.ext?.errors[ErrorType.GENERIC]*.message ==
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
@@ -55,7 +55,7 @@ class BidValidationSpec extends BaseSpec {
         assert !bidderRequest.site
 
         and: "Response should contain debug warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["BidRequest contains app and site. Removed site object"]
     }
 
@@ -76,7 +76,7 @@ class BidValidationSpec extends BaseSpec {
         assert !bidderRequest.site
 
         and: "Response should contain debug warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["BidRequest contains app and site. Removed site object"]
     }
 
@@ -111,11 +111,11 @@ class BidValidationSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Zero price bid should be present in the PBS response"
-        assert response.seatbid?.first()?.bid*.id == [bidResponse.seatbid.first().bid.first().id]
+        assert response.responseBody.seatbid?.first()?.bid*.id == [bidResponse.seatbid.first().bid.first().id]
 
         and: "No errors should be emitted in the debug"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
+        assert !response.responseBody.ext?.errors
+        assert !response.responseBody.ext?.warnings
     }
 
     @Unroll
@@ -138,11 +138,11 @@ class BidValidationSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Invalid bid should be deleted"
-        assert response.seatbid.size() == 0
+        assert response.responseBody.seatbid.size() == 0
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Dropped bid '$bidId'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
         where:
@@ -178,11 +178,11 @@ class BidValidationSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Invalid bids should be deleted"
-        assert response.seatbid?.first()?.bid*.id == [validBidId]
+        assert response.responseBody.seatbid?.first()?.bid*.id == [validBidId]
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.responseBody.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Dropped bid '$invalidBid.id'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
         where:

@@ -23,7 +23,7 @@ import static org.prebid.server.functional.model.response.status.Status.OK
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {
-        given: "Default basic  BidRequest with generic bidder"
+        given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"

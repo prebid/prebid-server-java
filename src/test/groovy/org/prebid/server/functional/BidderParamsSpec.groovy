@@ -32,10 +32,10 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain httpcalls"
-        assert response?.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+        assert response.responseBody?.ext?.debug?.httpcalls[BidderName.GENERIC.value]
 
         and: "Response should not contain error"
-        assert !response?.ext?.errors
+        assert !response.responseBody?.ext?.errors
 
         where:
         adapterDefault | generic | adapterConfig
@@ -59,7 +59,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert response?.ext?.errors[ErrorType.GENERIC]*.code == [2]
+        assert response.responseBody?.ext?.errors[ErrorType.GENERIC]*.code == [2]
 
         where:
         adapterDefault | generic | adapterConfig
@@ -270,7 +270,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
+        assert response.responseBody?.ext?.errors[ErrorType.GENERIC]*.code == [999]
+        assert response.responseBody?.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
     }
 }

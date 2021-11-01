@@ -33,7 +33,7 @@ class MultibidSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should not return targeting for non-winning bid"
-        assert !response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+        assert !response.responseBody.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
     }
 
     def "PBS should return seatbid[].bid[].ext.prebid.targeting for non-winning bid in multi-bid response when includeBidderKeys = true"() {
@@ -58,6 +58,6 @@ class MultibidSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should return targeting for non-winning bid"
-        assert response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+        assert response.responseBody.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
     }
 }

@@ -17,6 +17,8 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.amp.AmpResponseBody
+import org.prebid.server.functional.model.response.auction.AuctionResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
@@ -75,18 +77,22 @@ class PrebidServerService {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest) {
+    AuctionResponse sendAuctionRequest(BidRequest bidRequest) {
         def payload = mapper.encode(bidRequest)
 
         def response = given(requestSpecification).body(payload)
                                                   .post(AUCTION_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(BidResponse)
+        def bidResponse = new AuctionResponse().tap {
+            headers = getHeaders(response)
+            responseBody = response.as(BidResponse)
+        }
+        bidResponse
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
+    AuctionResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
         def payload = mapper.encode(bidRequest)
 
         def response = given(requestSpecification).headers(headers)
@@ -94,7 +100,11 @@ class PrebidServerService {
                                                   .post(AUCTION_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(BidResponse)
+        def bidResponse = new AuctionResponse().tap {
+            headers = getHeaders(response)
+            responseBody = response.as(BidResponse)
+        }
+        bidResponse
     }
 
     @Step("[GET] /openrtb2/amp")
@@ -103,7 +113,11 @@ class PrebidServerService {
                                                   .get(AMP_ENDPOINT)
 
         checkResponseStatusCode(response)
-        response.as(AmpResponse)
+        def ampResponse = new AmpResponse().tap {
+            headers = getHeaders(response)
+            responseBody = response.as(AmpResponseBody)
+        }
+        ampResponse
     }
 
     @Step("[POST] /cookie_sync without cookie")
@@ -251,6 +265,10 @@ class PrebidServerService {
             log.error(responseBody)
             throw new PrebidServerException(statusCode, responseBody)
         }
+    }
+
+    private Map<String, String> getHeaders(Response response) {
+        response.headers().asList().collectEntries { header -> [header.name, header.value] }
     }
 
     List<String> getLogsByTime(Instant testStart,
