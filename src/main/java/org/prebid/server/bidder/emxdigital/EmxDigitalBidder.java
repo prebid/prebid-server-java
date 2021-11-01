@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -265,16 +264,12 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), getBidType(bid.getAdm()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidType(String bidAdm) {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video : BidType.banner;
-    }
-
-    private static Bid modifyBid(Bid bid) {
-        return bid.toBuilder().impid(bid.getId()).build();
     }
 }

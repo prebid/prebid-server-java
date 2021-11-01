@@ -544,7 +544,7 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWithChangedBidImpId() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithCorrectImpId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -559,7 +559,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").impid("321").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().id("321").impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -578,7 +578,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("321").build(),
+                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("123").build(),
                         video, "USD"));
     }
 
@@ -598,7 +598,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("321").build(),
+                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("123").build(),
                         video, "USD"));
     }
 
