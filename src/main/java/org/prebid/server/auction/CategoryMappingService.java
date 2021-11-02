@@ -11,7 +11,6 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -37,8 +36,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -82,30 +83,35 @@ public class CategoryMappingService {
                                                                BidRequest bidRequest,
                                                                ExtRequestTargeting targeting,
                                                                Timeout timeout) {
-        if (targeting == null || targeting.getIncludebrandcategory() == null) {
-            return Future.succeededFuture(CategoryMappingResult.of(Collections.emptyMap(), Collections.emptyMap(),
-                    bidderResponses, Collections.emptyList()));
-        }
-        final ExtIncludeBrandCategory includeBrandCategory = targeting.getIncludebrandcategory();
-        final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getWithCategory(), false);
-        // translate category definition looks strange, but it follows GO PBS logic
-        final boolean translateCategories = !withCategory
-                || BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getTranslateCategories(), true);
 
-        final String primaryAdServer;
-        try {
-            primaryAdServer = translateCategories
-                    ? getPrimaryAdServer(includeBrandCategory.getPrimaryAdserver())
-                    : null;
-        } catch (InvalidRequestException e) {
-            return Future.failedFuture(e);
+        final ExtIncludeBrandCategory includeBrandCategory = ObjectUtil.getIfNotNull(
+                targeting, ExtRequestTargeting::getIncludebrandcategory);
+
+        if (includeBrandCategory == null) {
+            return Future.succeededFuture(
+                    CategoryMappingResult.of(
+                            Collections.emptyMap(),
+                            Collections.emptyMap(),
+                            bidderResponses,
+                            Collections.emptyList()));
         }
+
+        final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(
+                includeBrandCategory.getWithCategory(), false);
+        final boolean translateCategories = withCategory
+                && BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getTranslateCategories(), true);
+
+        final String primaryAdServer = translateCategories
+                ? getPrimaryAdServer(includeBrandCategory.getPrimaryAdserver())
+                : null;
+
         final String publisher = translateCategories ? includeBrandCategory.getPublisher() : null;
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
-        return makeBidderToBidCategory(bidderResponses, primaryAdServer, publisher, rejectedBids, timeout)
-                .map(categoryBidContexts -> resolveBidsCategoriesDurations(bidderResponses, categoryBidContexts,
-                        bidRequest, targeting, withCategory, rejectedBids));
+        return makeBidderToBidCategory(
+                bidderResponses, primaryAdServer, publisher, rejectedBids, timeout, withCategory, translateCategories)
+                .map(categoryBidContexts -> resolveBidsCategoriesDurations(
+                        bidderResponses, categoryBidContexts, bidRequest, targeting, withCategory, rejectedBids));
     }
 
     /**
@@ -139,14 +145,20 @@ public class CategoryMappingService {
                                                                      String primaryAdServer,
                                                                      String publisher,
                                                                      List<RejectedBid> rejectedBids,
-                                                                     Timeout timeout) {
+                                                                     Timeout timeout,
+                                                                     boolean withCategory,
+                                                                     boolean translateCategories) {
+
         final Promise<List<CategoryBidContext>> bidderToBidsCategoriesPromise = Promise.promise();
+
         final CompositeFuture compositeFuture = CompositeFuture.join(bidderResponses.stream()
-                .flatMap(bidderResponse -> makeFetchCategoryFutures(bidderResponse, primaryAdServer, publisher,
-                        timeout))
+                .flatMap(bidderResponse -> makeFetchCategoryFutures(
+                        bidderResponse, primaryAdServer, publisher, timeout, withCategory, translateCategories))
                 .collect(Collectors.toList()));
-        compositeFuture.setHandler(event -> collectCategoryFetchResults(compositeFuture, bidderToBidsCategoriesPromise,
-                rejectedBids));
+
+        compositeFuture.setHandler(event ->
+                collectCategoryFetchResults(compositeFuture, bidderToBidsCategoriesPromise, rejectedBids));
+
         return bidderToBidsCategoriesPromise.future();
     }
 
@@ -156,37 +168,61 @@ public class CategoryMappingService {
     private Stream<Future<CategoryBidContext>> makeFetchCategoryFutures(BidderResponse bidderResponse,
                                                                         String primaryAdServer,
                                                                         String publisher,
-                                                                        Timeout timeout) {
+                                                                        Timeout timeout,
+                                                                        boolean withCategory,
+                                                                        boolean translateCategories) {
+
         final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
         final String bidder = bidderResponse.getBidder();
         return bidderBids.stream()
-                .map(bidderBid -> resolveCategory(primaryAdServer, publisher, bidderBid, bidder, timeout));
+                .map(bidderBid -> resolveCategory(
+                        primaryAdServer, publisher, bidderBid, bidder, timeout, withCategory, translateCategories));
     }
 
     /**
      * Fetches category from external source or from bid.cat.
      */
-    private Future<CategoryBidContext> resolveCategory(String primaryAdServer, String publisher, BidderBid bidderBid,
-                                                       String bidder, Timeout timeout) {
+    private Future<CategoryBidContext> resolveCategory(String primaryAdServer,
+                                                       String publisher,
+                                                       BidderBid bidderBid,
+                                                       String bidder,
+                                                       Timeout timeout,
+                                                       boolean withCategory,
+                                                       boolean translateCategories) {
+
         final Bid bid = bidderBid.getBid();
-        final String bidId = bid.getId();
-        final List<String> cat = ListUtils.emptyIfNull(bid.getCat());
-        if (cat.size() > 1) {
+
+        final String videoPrimaryCategory = getVideoBidPrimaryCategory(bid.getExt());
+        if (StringUtils.isNotBlank(videoPrimaryCategory)) {
+            return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, videoPrimaryCategory));
+        }
+
+        final List<String> iabCategories = ListUtils.emptyIfNull(bid.getCat());
+        if (iabCategories.size() > 1) {
             return Future.failedFuture(new RejectedBidException(bid.getId(), bidder, "Bid has more than one category"));
         }
-        if (CollectionUtils.isEmpty(cat) || StringUtils.isBlank(cat.get(0))) {
+        final String firstCategory = CollectionUtils.isNotEmpty(iabCategories) ? iabCategories.get(0) : null;
+        if (StringUtils.isBlank(firstCategory)) {
             return Future.failedFuture(new RejectedBidException(bid.getId(), bidder, "Bid did not contain a category"));
         }
-        final String firstCat = cat.get(0);
-        return StringUtils.isNotBlank(primaryAdServer)
-                ? fetchCategory(primaryAdServer, publisher, bidderBid, bidder, firstCat, timeout)
-                : Future.succeededFuture(CategoryBidContext.builder()
-                .bidderBid(bidderBid)
-                .bidId(bidId)
-                .bidder(bidder)
-                .impId(bid.getImpid())
-                .category(firstCat)
-                .build());
+
+        return translateCategories
+                ? fetchCategory(primaryAdServer, publisher, bidderBid, bidder, firstCategory, timeout)
+                : Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, withCategory ? firstCategory : null));
+    }
+
+    private String getVideoBidPrimaryCategory(ObjectNode bidExt) {
+        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : null;
+        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
+        return extVideo != null ? extVideo.getPrimaryCategory() : null;
+    }
+
+    private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
+        try {
+            return jacksonMapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
     }
 
     /**
@@ -196,11 +232,12 @@ public class CategoryMappingService {
                                                      String bidder, String cat, Timeout timeout) {
         final String bidId = bidderBid.getBid().getId();
         return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
-                .map(fetchedCategories -> findAndValidateCategory(fetchedCategories, cat, bidId, bidder,
-                        primaryAdServer, publisher))
+                .map(fetchedCategories -> findAndValidateCategory(
+                        fetchedCategories, cat, bidId, bidder, primaryAdServer, publisher))
+
                 .recover(throwable -> wrapWithRejectedBidException(bidId, bidder, throwable))
-                .map(fetchedCategory -> CategoryBidContext.builder().bidderBid(bidderBid).bidId(bidId).bidder(bidder)
-                        .category(fetchedCategory).build());
+
+                .map(fetchedCategory -> CategoryBidContext.of(bidderBid, bidder, fetchedCategory));
     }
 
     /**
@@ -209,6 +246,7 @@ public class CategoryMappingService {
     private static String findAndValidateCategory(Map<String, String> fetchedCategories, String cat,
                                                   String bidId, String bidder,
                                                   String primaryAdServer, String publisher) {
+
         if (MapUtils.isEmpty(fetchedCategories)) {
             throw new RejectedBidException(bidId, bidder,
                     String.format("Category mapping data for primary ad server: '%s', publisher: '%s' not found",
@@ -261,10 +299,12 @@ public class CategoryMappingService {
                                                                  ExtRequestTargeting targeting,
                                                                  boolean withCategory,
                                                                  List<RejectedBid> rejectedBids) {
+
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec());
         final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         Collections.sort(durations);
+
         final List<String> errors = new ArrayList<>();
         final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = extractDealsSupported(bidRequest)
                 ? extractDealTierPerImpAndBidder(bidRequest.getImp(), errors)
@@ -291,7 +331,8 @@ public class CategoryMappingService {
             Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids) {
         return uniqueCatKeysToCategoryBids.values().stream()
                 .flatMap(Collection::stream)
-                .collect(Collectors.toMap(categoryBidContext -> categoryBidContext.getBidderBid().getBid(),
+                .collect(Collectors.toMap(
+                        categoryBidContext -> categoryBidContext.getBidderBid().getBid(),
                         CategoryBidContext::isSatisfiedPriority));
     }
 
@@ -425,21 +466,6 @@ public class CategoryMappingService {
     }
 
     /**
-     * Creates {@link Stream} {@link CategoryBidContext} to fill it with
-     * initial data for further enriching and processing.
-     */
-    private Stream<CategoryBidContext> initiateCategoryBidsStream(BidderResponse bidderResponse,
-                                                                  List<CategoryBidContext> categoryBidContexts,
-                                                                  List<RejectedBid> rejectedBids) {
-        final String bidder = bidderResponse.getBidder();
-        final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
-        return bidderBids.stream()
-                .filter(bidderBid -> isNotRejected(bidderBid.getBid().getId(), bidder, rejectedBids))
-                .map(bidderBid -> CategoryBidContext.builder().bidderBid(bidderBid)
-                        .bidId(bidderBid.getBid().getId()).bidder(bidder).build());
-    }
-
-    /**
      * Returns true if there is not bid with bidId and bidder in rejectedBids parameter.
      */
     private static boolean isNotRejected(String bidId, String bidder, List<RejectedBid> rejectedBids) {
@@ -459,6 +485,7 @@ public class CategoryMappingService {
                                              boolean appendBidderName,
                                              Map<String, Map<String, ExtDealTier>> impToBiddersDealTier,
                                              List<RejectedBid> rejectedBids) {
+
         final BidderBid bidderBid = categoryBidContext.getBidderBid();
         final Bid bid = bidderBid.getBid();
         final int duration;
@@ -550,7 +577,9 @@ public class CategoryMappingService {
         return categoryToDuplicatedCategoryBids.values().stream()
                 .filter(categoryBids -> categoryBids.size() > 1)
                 .flatMap(CategoryMappingService::getDuplicatedForCategory)
-                .map(categoryBidContext -> RejectedBid.of(categoryBidContext.getBidId(), categoryBidContext.getBidder(),
+                .map(categoryBidContext -> RejectedBid.of(
+                        extractBidId(categoryBidContext),
+                        categoryBidContext.getBidder(),
                         "Bid was deduplicated"))
                 .collect(Collectors.toSet());
     }
@@ -564,9 +593,12 @@ public class CategoryMappingService {
 
         return categoryToBidsWithBidder.values().stream()
                 .flatMap(Collection::stream)
-                .filter(categoryBidContext -> isNotRejected(categoryBidContext.getBidId(),
-                        categoryBidContext.getBidder(), rejectedBids))
-                .collect(Collectors.toMap(categoryBidContext -> categoryBidContext.getBidderBid().getBid(),
+                .filter(categoryBidContext -> isNotRejected(
+                        extractBidId(categoryBidContext),
+                        categoryBidContext.getBidder(),
+                        rejectedBids))
+                .collect(Collectors.toMap(
+                        categoryBidContext -> categoryBidContext.getBidderBid().getBid(),
                         CategoryBidContext::getCategoryDuration));
     }
 
@@ -638,6 +670,10 @@ public class CategoryMappingService {
         }
     }
 
+    private String extractBidId(CategoryBidContext categoryBidContext) {
+        return categoryBidContext.getBidderBid().getBid().getId();
+    }
+
     /**
      * Holder of information about rejected bid.
      */
@@ -658,20 +694,33 @@ public class CategoryMappingService {
     @Value
     @Builder(toBuilder = true)
     private static class CategoryBidContext {
+
+        public static CategoryBidContext of(BidderBid bidderBid, String bidder, String category) {
+            return CategoryBidContext.builder()
+                    .bidderBid(bidderBid)
+                    .bidder(bidder)
+                    .category(category)
+                    .build();
+        }
+
         String bidder;
-        String bidId;
-        String impId;
+
         BidderBid bidderBid;
+
         String category;
+
         String categoryDuration;
+
         String categoryUniqueKey;
+
         BigDecimal price;
+
         boolean satisfiedPriority;
     }
 
-    @Value
-    @AllArgsConstructor(staticName = "of")
+    @Value(staticConstructor = "of")
     private static class DealTierContainer {
+
         @JsonProperty("dealTier")
         ExtDealTier dealTier;
     }
