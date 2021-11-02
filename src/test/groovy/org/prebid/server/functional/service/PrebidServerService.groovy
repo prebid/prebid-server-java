@@ -2,7 +2,6 @@ package org.prebid.server.functional.service
 
 import com.fasterxml.jackson.core.type.TypeReference
 import io.qameta.allure.Step
-import io.restassured.RestAssured
 import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
@@ -37,7 +36,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
-import static io.restassured.parsing.Parser.JSON
 import static java.time.ZoneOffset.UTC
 
 class PrebidServerService {
@@ -215,7 +213,6 @@ class PrebidServerService {
 
     @Step("[GET] /bidders/params")
     BiddersParamsResponse sendBiddersParamsRequest() {
-        RestAssured.defaultParser = JSON
         def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
 
         checkResponseStatusCode(response)
