@@ -82,14 +82,14 @@ public class CategoryMappingServiceTest extends VertxTest {
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon",
                         givenBidderBid(givenBid("1", null, "9", singletonList("cat1")),
-                                BidType.video, 10, "prCategory1"),
+                                BidType.video, 10),
                         givenBidderBid(givenBid("2", null, "15", singletonList("cat2")),
-                                BidType.video, 15, "prCategory2")),
+                                BidType.video, 15)),
                 givenBidderResponse("otherBid",
                         givenBidderBid(givenBid("3", null, "10", singletonList("cat3")),
-                                BidType.video, 3, "prCategory3"),
+                                BidType.video, 3),
                         givenBidderBid(givenBid("4", null, "15", singletonList("cat4")),
-                                BidType.video, 1, "prCategory4")));
+                                BidType.video, 1)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -131,9 +131,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("1", null, "5", singletonList("cat2")),
-                        BidType.video, 3, "prCategory2")));
+                        BidType.video, 3)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -165,7 +165,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, false);
@@ -187,7 +187,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(null, "publisher", null, true, true);
 
@@ -203,7 +203,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(3, "publisher", null, true, true);
 
@@ -219,7 +219,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -240,7 +240,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(2, "publisher",
                 asList(10, 15, 5), true, true);
@@ -261,9 +261,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
-                        BidType.video, 3, "prCategory2")));
+                        BidType.video, 3)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -289,9 +289,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", asList("cat2-1", "cat2-2")),
-                        BidType.video, 3, "prCategory2")));
+                        BidType.video, 3)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -317,9 +317,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
-                givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", null), BidType.video, 3,
-                        "prCategory2")));
+                        BidType.video, 10)),
+                givenBidderResponse(
+                        "otherBid", givenBidderBid(givenBid("2", null, "5", null), BidType.video, 3)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -345,9 +345,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
-                        BidType.video, 3, "prCategory2")));
+                        BidType.video, 3)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -373,7 +373,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder()
                 .pricegranularity(mapper.valueToTree(ExtPriceGranularity.from(priceGranularity)))
@@ -401,9 +401,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
-                        BidType.video, 20, "prCategory2")));
+                        BidType.video, 20)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -429,7 +429,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, null, "prCategory1")));
+                        BidType.video, null)));
 
         final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder().build();
 
@@ -530,7 +530,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, null, "prCategory1")));
+                        BidType.video, null)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -553,9 +553,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat2")),
-                        BidType.video, 4, "prCategory2")));
+                        BidType.video, 4)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, true);
@@ -581,9 +581,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "5", singletonList("cat1")),
-                        BidType.video, 4, "prCategory2")));
+                        BidType.video, 4)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), true, false);
@@ -608,9 +608,9 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")),
+                        BidType.video, 10)),
                 givenBidderResponse("otherBid", givenBidderBid(givenBid("2", null, "10", singletonList("cat2")),
-                        BidType.video, 10, "prCategory2")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher",
                 asList(10, 15, 5), false, true);
@@ -636,7 +636,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -658,7 +658,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -680,7 +680,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, false)
                 .toBuilder().appendbiddernames(true).build();
@@ -703,7 +703,7 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -730,7 +730,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -764,7 +764,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -800,7 +800,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -832,7 +832,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -866,7 +866,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -898,7 +898,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -935,7 +935,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -967,7 +967,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1002,7 +1002,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1038,7 +1038,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1072,7 +1072,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
-                        BidType.video, 10, "prCategory1")));
+                        BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1100,12 +1100,10 @@ public class CategoryMappingServiceTest extends VertxTest {
         // given
         final List<BidderResponse> bidderResponses = asList(
                 givenBidderResponse("rubicon",
-                        givenBidderBid(givenBid("1", null, "10", singletonList("cat1")), BidType.video, 10,
-                                "prCategory1")),
+                        givenBidderBid(givenBid("1", null, "10", singletonList("cat1")), BidType.video, 10)),
                 givenBidderResponse("otherBidder",
-                        givenBidderBid(givenBid("2", null, "10", null), BidType.video, 10, "prCategory1"),
-                        givenBidderBid(givenBid("3", null, "10", singletonList("cat1")), BidType.video, 30,
-                                "prCategory1")));
+                        givenBidderBid(givenBid("2", null, "10", null), BidType.video, 10),
+                        givenBidderBid(givenBid("3", null, "10", singletonList("cat1")), BidType.video, 30)));
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
@@ -1137,9 +1135,12 @@ public class CategoryMappingServiceTest extends VertxTest {
         return BidderResponse.of(bidder, BidderSeatBid.of(asList(bidderBids), null, null), 100);
     }
 
+    private static BidderBid givenBidderBid(Bid bid, BidType bidType, Integer duration) {
+        return BidderBid.of(bid, bidType, null, 5, ExtBidPrebidVideo.of(duration, null));
+    }
+
     private static BidderBid givenBidderBid(Bid bid, BidType bidType, Integer duration, String primaryCategory) {
-        return BidderBid.of(bid,
-                bidType, null, 5, ExtBidPrebidVideo.of(duration, primaryCategory));
+        return BidderBid.of(bid, bidType, null, 5, ExtBidPrebidVideo.of(duration, primaryCategory));
     }
 
     private static Bid givenBid(String bidId, String impId, String price, List<String> cat) {

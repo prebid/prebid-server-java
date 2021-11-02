@@ -192,7 +192,7 @@ public class CategoryMappingService {
 
         final Bid bid = bidderBid.getBid();
 
-        final String videoPrimaryCategory = getVideoBidPrimaryCategory(bid.getExt());
+        final String videoPrimaryCategory = getVideoBidPrimaryCategory(bidderBid);
         if (StringUtils.isNotBlank(videoPrimaryCategory)) {
             return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, videoPrimaryCategory));
         }
@@ -211,7 +211,15 @@ public class CategoryMappingService {
                 : Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, withCategory ? firstCategory : null));
     }
 
-    private String getVideoBidPrimaryCategory(ObjectNode bidExt) {
+    private String getVideoBidPrimaryCategory(BidderBid bidderBid) {
+        // TODO: GET RID OF THIS ALONG WITH videoInfo FIELD IN BidderBid!!!!
+        final String wrapperVideoPrimaryCategory = ObjectUtil.getIfNotNull(
+                bidderBid.getVideoInfo(), ExtBidPrebidVideo::getPrimaryCategory);
+        if (wrapperVideoPrimaryCategory != null) {
+            return wrapperVideoPrimaryCategory;
+        }
+
+        final ObjectNode bidExt = bidderBid.getBid().getExt();
         final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : null;
         final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
         return extVideo != null ? extVideo.getPrimaryCategory() : null;
