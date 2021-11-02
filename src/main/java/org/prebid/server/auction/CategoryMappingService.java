@@ -313,14 +313,12 @@ public class CategoryMappingService {
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec()).stream()
                 .sorted().collect(Collectors.toList());
 
-        final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
-        Collections.sort(durations);
-
         final List<String> errors = new ArrayList<>();
         final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = extractDealsSupported(bidRequest)
                 ? extractDealTierPerImpAndBidder(bidRequest.getImp(), errors)
                 : Collections.emptyMap();
 
+        final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         final Map<String, Set<CategoryBidContext>> uniqueCatKeysToCategoryBids = categoryBidContexts.stream()
                 .map(categoryBidContext -> toCategoryBid(categoryBidContext, durations, priceGranularity, withCategory,
                         appendBidderNames, impIdToBiddersDealTear, rejectedBids))
