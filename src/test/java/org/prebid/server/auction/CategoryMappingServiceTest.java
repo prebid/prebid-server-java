@@ -46,6 +46,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -190,13 +191,8 @@ public class CategoryMappingServiceTest extends VertxTest {
         final ExtRequestTargeting extRequestTargeting = givenTargeting(null, "publisher", null, true, true);
 
         // when
-        final Future<CategoryMappingResult> categoryMappingResultFuture =
-                categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(),
-                        extRequestTargeting, timeout);
-
-        // then
-        assertThat(categoryMappingResultFuture.failed()).isTrue();
-        assertThat(categoryMappingResultFuture.cause())
+        assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
+                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server required but was not defined when translate category is enabled");
     }
@@ -210,13 +206,9 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         final ExtRequestTargeting extRequestTargeting = givenTargeting(3, "publisher", null, true, true);
 
-        // when
-        final Future<CategoryMappingResult> categoryMappingResultFuture = categoryMappingService.createCategoryMapping(
-                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
-
-        // then
-        assertThat(categoryMappingResultFuture.failed()).isTrue();
-        assertThat(categoryMappingResultFuture.cause())
+        // when and then
+        assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
+                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server `3` is not recognized");
     }
