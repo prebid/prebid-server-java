@@ -230,7 +230,7 @@ public class AdminEndpointsConfiguration {
 
     @Bean
     @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.force-deals-update.enabled} == true")
-    CustomizedAdminEndpoint forceDealsUpdate(
+    CustomizedAdminEndpoint forceDealsUpdateEndpoint(
             DeliveryStatsService deliveryStatsService,
             PlannerService plannerService,
             RegisterService registerService,

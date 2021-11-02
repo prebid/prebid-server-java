@@ -83,8 +83,8 @@ public class ForceDealsUpdateHandlerTest {
         //  then
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq(String.format("Parameter '%s' is required and can't be empty", ACTION_NAME_PARAM)));
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end(String.format("Parameter '%s' is required and can't be empty", ACTION_NAME_PARAM));
     }
 
     @Test
@@ -99,9 +99,9 @@ public class ForceDealsUpdateHandlerTest {
         //  then
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
-        verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq(String.format("Given '%s' parameter value '%s' is not among possible actions",
-                ACTION_NAME_PARAM, badParamName)));
+        verify(httpResponse).setStatusCode(400);
+        verify(httpResponse).end(String.format("Given '%s' parameter value '%s' is not among possible actions",
+                ACTION_NAME_PARAM, badParamName));
     }
 
     @Test
@@ -117,7 +117,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(deliveryStatsService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -134,7 +134,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(plannerService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -151,7 +151,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(plannerService, deliveryStatsService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -171,7 +171,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(plannerService, deliveryStatsService, registerService, deliveryProgressService,
                 lineItemService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -188,7 +188,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 lineItemService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -205,7 +205,7 @@ public class ForceDealsUpdateHandlerTest {
         verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 deliveryProgressService);
 
-        verify(httpResponse).setStatusCode(eq(204));
+        verify(httpResponse).setStatusCode(204);
         verify(httpResponse).end();
     }
 
@@ -214,15 +214,14 @@ public class ForceDealsUpdateHandlerTest {
         // given
         given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.UPDATE_LINE_ITEMS.name());
         final String exceptionMessage = "Failed to fetch data from Planner";
-        doThrow(new PreBidException(exceptionMessage)).when(plannerService)
-                                                      .updateLineItemMetaData();
+        doThrow(new PreBidException(exceptionMessage)).when(plannerService).updateLineItemMetaData();
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).end(eq(exceptionMessage));
+        verify(httpResponse).setStatusCode(500);
+        verify(httpResponse).end(exceptionMessage);
     }
 
     @Test
@@ -230,14 +229,13 @@ public class ForceDealsUpdateHandlerTest {
         // given
         given(httpRequest.getParam(any())).willReturn(ForceDealsUpdateHandler.DealsAction.SEND_REPORT.name());
         final String exceptionMessage = "Sending report failed";
-        doThrow(new PreBidException(exceptionMessage)).when(deliveryStatsService)
-                                                      .sendDeliveryProgressReports();
+        doThrow(new PreBidException(exceptionMessage)).when(deliveryStatsService).sendDeliveryProgressReports();
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpResponse).setStatusCode(eq(500));
-        verify(httpResponse).end(eq(exceptionMessage));
+        verify(httpResponse).setStatusCode(500);
+        verify(httpResponse).end(exceptionMessage);
     }
 }
