@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 
 import java.time.Instant
 
@@ -16,6 +17,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 @PBSTest
 class HttpInteractionSpec extends BaseSpec {
 
+    @Retry
     def "PBS should only log request to the specified adapter"() {
         given: "Test start time"
         def startTime = Instant.now()
