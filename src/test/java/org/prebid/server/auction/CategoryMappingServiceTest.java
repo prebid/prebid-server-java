@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.settings.ApplicationSettings;
 
@@ -421,6 +422,107 @@ public class CategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getErrors()).hasSize(1)
                 .containsOnly("Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid duration '20' "
                         + "exceeds maximum '15'");
+    }
+
+    @Test
+    public void applyCategoryMappingShouldReturnEmptyCategoryMappingResult() {
+        // given
+        final List<BidderResponse> bidderResponses = singletonList(
+                givenBidderResponse("rubicon", givenBidderBid(givenBid("1", null, "10", singletonList("cat1")),
+                        BidType.video, null, "prCategory1")));
+
+        final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder().build();
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
+                BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result()).isEqualTo(
+                CategoryMappingResult.of(
+                        Collections.emptyMap(),
+                        Collections.emptyMap(),
+                        bidderResponses,
+                        Collections.emptyList()));
+    }
+
+    @Test
+    public void applyCategoryMappingShouldReturnFirstVideoCategoryIfPresent() {
+        // given
+        final List<BidderResponse> bidderResponses = List.of(
+                givenBidderResponse(
+                        "rubicon",
+                        givenBidderBid(
+                                givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
+                                BidType.video,
+                                null,
+                                "videoCategory")));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(
+                1, "publisher", List.of(10, 15, 5), true, false);
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
+                BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
+                Map.of(givenBid("1", null, "10", List.of("cat1"), "videoCategory"), "10.00_videoCategory_5s"));
+    }
+
+    @Test
+    public void applyCategoryMappingShouldReturnFirstIabBidCategoryIfWithCategoryAndNotTranslateCategories() {
+        // given
+        final List<BidderResponse> bidderResponses = List.of(
+                givenBidderResponse(
+                        "rubicon",
+                        givenBidderBid(
+                                givenBid("1", null, "10", List.of("cat1")),
+                                BidType.video,
+                                null,
+                                null)));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(
+                1, "publisher", asList(10, 15, 5), true, false);
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(
+                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
+                Map.of(givenBid("1", null, "10", List.of("cat1")), "10.00_cat1_5s"));
+    }
+
+    @Test
+    public void applyCategoryMappingShouldReturnFetchedCategoryIfWithCategoryAndTranslateCategories() {
+        // given
+        final List<BidderResponse> bidderResponses = List.of(
+                givenBidderResponse(
+                        "rubicon",
+                        givenBidderBid(
+                                givenBid("1", null, "10", List.of("cat1")),
+                                BidType.video,
+                                null,
+                                null)));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(
+                1, "publisher", asList(10, 15, 5), true, true);
+
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
+                BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
+                Map.of(givenBid("1", null, "10", List.of("cat1")), "10.00_fetchedCat1_5s"));
     }
 
     @Test
@@ -1046,6 +1148,15 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .impid(impId)
                 .cat(cat)
                 .price(new BigDecimal(price))
+                .build();
+    }
+
+    private static Bid givenBid(String bidId, String impId, String price, List<String> cat, String videoCategory) {
+        return givenBid(bidId, impId, price, cat).toBuilder()
+                .ext(mapper.valueToTree(
+                        ExtBidPrebid.builder()
+                                .video(ExtBidPrebidVideo.of(null, videoCategory))
+                                .build()))
                 .build();
     }
 

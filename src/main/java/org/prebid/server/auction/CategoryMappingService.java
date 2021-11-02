@@ -269,6 +269,7 @@ public class CategoryMappingService {
     private static void collectCategoryFetchResults(CompositeFuture compositeFuture,
                                                     Promise<List<CategoryBidContext>> resultTrackerPromise,
                                                     List<RejectedBid> rejectedBids) {
+
         final List<CategoryBidContext> bidderToBidCategories = new ArrayList<>();
         for (int i = 0; i < compositeFuture.list().size(); i++) {
             final Object bidderToBidCategory = compositeFuture.resultAt(i);
@@ -301,7 +302,9 @@ public class CategoryMappingService {
                                                                  List<RejectedBid> rejectedBids) {
 
         final PriceGranularity priceGranularity = resolvePriceGranularity(targeting);
-        final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec());
+        final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec()).stream()
+                .sorted().collect(Collectors.toList());
+
         final boolean appendBidderNames = BooleanUtils.toBooleanDefaultIfNull(targeting.getAppendbiddernames(), false);
         Collections.sort(durations);
 
@@ -559,6 +562,7 @@ public class CategoryMappingService {
     private String makeCategoryDuration(String price, String category, int duration, boolean satisfiedPriority,
                                         ExtDealTier dealTier, boolean withCategory, boolean appendBidderName,
                                         String bidder) {
+
         final String categoryPrefix = dealTier != null && satisfiedPriority
                 ? String.format("%s%d", dealTier.getPrefix(), dealTier.getMinDealTier())
                 : price;
