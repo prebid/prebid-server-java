@@ -18,6 +18,8 @@ public class PutObject {
 
     String aid;
 
+    String key;
+
     String bidid; // this is "/vtrack" specific
 
     String bidder; // this is "/vtrack" specific

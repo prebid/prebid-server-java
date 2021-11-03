@@ -190,7 +190,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Cannot deserialize instance of");
+                .startsWith("Cannot deserialize value of");
     }
 
     @Test

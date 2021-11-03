@@ -5,6 +5,7 @@
       "targeting": [
         {
           "hb_pb": "2.0",
+          "hb_pb_cat_dur": "2.0_IAB10-1_0s",
           "hb_cache_id": "2202329f-f30b-424a-a82d-d8cfbf15eed6"
         }
       ]
@@ -14,10 +15,12 @@
       "targeting": [
         {
           "hb_pb": "5.5",
+          "hb_pb_cat_dur": "5.5_IAB20-3_0s",
           "hb_cache_id": "f2f0a7d4-fa87-478f-8797-e57bd5c4b067"
         },
         {
           "hb_pb": "2.5",
+          "hb_pb_cat_dur": "2.5_IAB18-5_0s",
           "hb_cache_id": "65fdb393-7344-4873-b825-1515aee4df40"
         }
       ]

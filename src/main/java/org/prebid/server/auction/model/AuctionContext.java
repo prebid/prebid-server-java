@@ -59,6 +59,8 @@ public class AuctionContext {
     @JsonIgnore
     DeepDebugLog deepDebugLog;
 
+    CachedDebugLog cachedDebugLog;
+
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();
     }

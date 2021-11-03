@@ -70,6 +70,10 @@ public class TargetingKeywordsCreator {
      * Stores http path for cache service endpoint.
      */
     private static final String HB_CACHE_PATH_KEY = "hb_cache_path";
+    /**
+     * Stores category duration for video bids
+     */
+    private static final String HB_CATEGORY_DURATION_KEY = "hb_pb_cat_dur";
 
     /**
      * Stores bid's format. For example "video" or "banner".
@@ -142,7 +146,8 @@ public class TargetingKeywordsCreator {
                                 boolean winningBid,
                                 String cacheId,
                                 String format,
-                                String vastCacheId) {
+                                String vastCacheId,
+                                String categoryDuration) {
 
         final Map<String, String> keywords = makeFor(
                 bidder,
@@ -152,6 +157,7 @@ public class TargetingKeywordsCreator {
                 bid.getH(),
                 cacheId,
                 vastCacheId,
+                categoryDuration,
                 format,
                 bid.getDealid());
 
@@ -175,6 +181,7 @@ public class TargetingKeywordsCreator {
                                         Integer height,
                                         String cacheId,
                                         String vastCacheId,
+                                        String categoryDuration,
                                         String format,
                                         String dealId) {
 
@@ -211,6 +218,9 @@ public class TargetingKeywordsCreator {
         }
         if (isApp) {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
+        }
+        if (StringUtils.isNotBlank(categoryDuration)) {
+            keywordMap.put(HB_CATEGORY_DURATION_KEY, categoryDuration);
         }
 
         return keywordMap.asMap();

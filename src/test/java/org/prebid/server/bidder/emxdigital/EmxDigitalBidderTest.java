@@ -73,7 +73,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Cannot deserialize instance");
+                .startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
