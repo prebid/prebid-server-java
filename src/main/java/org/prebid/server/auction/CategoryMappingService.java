@@ -98,8 +98,8 @@ public class CategoryMappingService {
 
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(
                 includeBrandCategory.getWithCategory(), false);
-        final boolean translateCategories = withCategory
-                && BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getTranslateCategories(), true);
+        final boolean translateCategories = BooleanUtils.toBooleanDefaultIfNull(
+                includeBrandCategory.getTranslateCategories(), true);
 
         final String primaryAdServer = translateCategories
                 ? getPrimaryAdServer(includeBrandCategory.getPrimaryAdserver())
@@ -196,6 +196,9 @@ public class CategoryMappingService {
         if (StringUtils.isNotBlank(videoPrimaryCategory)) {
             return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, videoPrimaryCategory));
         }
+        if (!withCategory) {
+            return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, null));
+        }
 
         final List<String> iabCategories = ListUtils.emptyIfNull(bid.getCat());
         if (iabCategories.size() > 1) {
@@ -208,7 +211,7 @@ public class CategoryMappingService {
 
         return translateCategories
                 ? fetchCategory(primaryAdServer, publisher, bidderBid, bidder, firstCategory, timeout)
-                : Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, withCategory ? firstCategory : null));
+                : Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, firstCategory));
     }
 
     private String getVideoBidPrimaryCategory(BidderBid bidderBid) {
