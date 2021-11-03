@@ -57,23 +57,22 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 public class CategoryMappingServiceTest extends VertxTest {
 
+    private static final PriceGranularity PRICE_GRANULARITY = PriceGranularity.DEFAULT;
+
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     ApplicationSettings applicationSettings;
 
-    private Timeout timeout;
-
     private CategoryMappingService categoryMappingService;
 
-    private static PriceGranularity priceGranularity;
+    private Timeout timeout;
 
     @Before
     public void setUp() {
         categoryMappingService = new CategoryMappingService(applicationSettings, jacksonMapper);
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
-        priceGranularity = PriceGranularity.DEFAULT;
     }
 
     @Test
@@ -376,7 +375,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                         BidType.video, 10)));
 
         final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder()
-                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.from(priceGranularity)))
+                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.from(PRICE_GRANULARITY)))
                 .mediatypepricegranularity(ExtMediaTypePriceGranularity.of(null,
                         mapper.valueToTree(ExtPriceGranularity.from(PriceGranularity.createFromString("low"))), null))
                 .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true, true))
@@ -1192,7 +1191,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                                                       Boolean withCategory,
                                                       Boolean translateCategories) {
         return ExtRequestTargeting.builder()
-                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.from(priceGranularity)))
+                .pricegranularity(mapper.valueToTree(ExtPriceGranularity.from(PRICE_GRANULARITY)))
                 .includebrandcategory(ExtIncludeBrandCategory.of(primaryAdServer, publisher, withCategory,
                         translateCategories))
                 .durationrangesec(durations)
