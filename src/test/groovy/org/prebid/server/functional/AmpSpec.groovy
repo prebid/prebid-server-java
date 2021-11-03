@@ -132,12 +132,10 @@ class AmpSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = defaultPbsService.sendAmpRequestRawData(ampRequest)
 
         then: "Response header should contain PBS version"
-        def bidderHeaders = bidder.getRecordedRequestsHeaders(ampStoredRequest.id)[0]
-        assert response.headers["x-prebid"]
-        assert response.headers["x-prebid"] == bidderHeaders["x-prebid"][0]
+        assert response.headers["x-prebid"] == "pbs-java/$PBSUtils.pbsVersion"
     }
 
     private static int getRandomTimeout() {

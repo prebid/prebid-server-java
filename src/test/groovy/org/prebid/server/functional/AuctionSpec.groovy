@@ -1,6 +1,7 @@
 package org.prebid.server.functional
 
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.util.PBSUtils
 
 class AuctionSpec extends BaseSpec {
 
@@ -9,11 +10,9 @@ class AuctionSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequestRawData(bidRequest)
 
         then: "Response header should contain PBS version"
-        def bidderHeaders = bidder.getRecordedRequestsHeaders(bidRequest.id)[0]
-        assert response.headers["x-prebid"]
-        assert response.headers["x-prebid"] == bidderHeaders["x-prebid"][0]
+        assert response.headers["x-prebid"] ==  "pbs-java/$PBSUtils.pbsVersion"
     }
 }

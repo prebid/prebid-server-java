@@ -17,8 +17,8 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
-import org.prebid.server.functional.model.response.amp.AmpResponseBody
-import org.prebid.server.functional.model.response.auction.AuctionResponse
+import org.prebid.server.functional.model.response.amp.RawAmpResponse
+import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
@@ -77,30 +77,27 @@ class PrebidServerService {
     }
 
     @Step("[POST] /openrtb2/auction")
-    AuctionResponse sendAuctionRequest(BidRequest bidRequest) {
-        def payload = mapper.encode(bidRequest)
-
-        def response = given(requestSpecification).body(payload)
-                                                  .post(AUCTION_ENDPOINT)
+    BidResponse sendAuctionRequest(BidRequest bidRequest) {
+        def response = getAuctionResponse(bidRequest)
 
         checkResponseStatusCode(response)
-        def bidResponse = new AuctionResponse().tap {
-            headers = getHeaders(response)
-            responseBody = response.as(BidResponse)
-        }
-        bidResponse
+        response.as(BidResponse)
     }
 
     @Step("[POST] /openrtb2/auction")
-    AuctionResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
-        def payload = mapper.encode(bidRequest)
-
-        def response = given(requestSpecification).headers(headers)
-                                                  .body(payload)
-                                                  .post(AUCTION_ENDPOINT)
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
+        def response = getAuctionResponse(bidRequest, headers)
 
         checkResponseStatusCode(response)
-        def bidResponse = new AuctionResponse().tap {
+        response.as(BidResponse)
+    }
+
+    @Step("[POST] /openrtb2/auction")
+    RawAuctionResponse sendAuctionRequestRawData(BidRequest bidRequest) {
+        def response = getAuctionResponse(bidRequest)
+
+        checkResponseStatusCode(response)
+        def bidResponse = new RawAuctionResponse().tap {
             headers = getHeaders(response)
             responseBody = response.as(BidResponse)
         }
@@ -109,13 +106,20 @@ class PrebidServerService {
 
     @Step("[GET] /openrtb2/amp")
     AmpResponse sendAmpRequest(AmpRequest ampRequest) {
-        def response = given(requestSpecification).queryParams(mapper.toMap(ampRequest))
-                                                  .get(AMP_ENDPOINT)
+        def response = getAmpResponse(ampRequest)
 
         checkResponseStatusCode(response)
-        def ampResponse = new AmpResponse().tap {
+        response.as(AmpResponse)
+    }
+
+    @Step("[GET] /openrtb2/amp")
+    RawAmpResponse sendAmpRequestRawData(AmpRequest ampRequest) {
+        def response = getAmpResponse(ampRequest)
+
+        checkResponseStatusCode(response)
+        def ampResponse = new RawAmpResponse().tap {
             headers = getHeaders(response)
-            responseBody = response.as(AmpResponseBody)
+            responseBody = response.as(AmpResponse)
         }
         ampResponse
     }
@@ -256,6 +260,19 @@ class PrebidServerService {
 
         checkResponseStatusCode(response)
         mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
+    }
+
+    private Response getAuctionResponse(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def payload = mapper.encode(bidRequest)
+
+        given(requestSpecification).headers(headers)
+                                   .body(payload)
+                                   .post(AUCTION_ENDPOINT)
+    }
+
+    private Response getAmpResponse(AmpRequest ampRequest) {
+        given(requestSpecification).queryParams(mapper.toMap(ampRequest))
+                                   .get(AMP_ENDPOINT)
     }
 
     private void checkResponseStatusCode(Response response) {

@@ -4,7 +4,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.ResponseModel
 
 @ToString(includeNames = true, ignoreNulls = true)
-class AuctionResponse implements ResponseModel {
+class RawAuctionResponse implements ResponseModel {
 
     BidResponse responseBody
     Map<String, String> headers
