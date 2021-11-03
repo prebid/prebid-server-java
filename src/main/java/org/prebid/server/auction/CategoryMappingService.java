@@ -97,13 +97,16 @@ public class CategoryMappingService {
 
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(
                 includeBrandCategory.getWithCategory(), false);
-        final boolean translateCategories = withCategory
-                && BooleanUtils.toBooleanDefaultIfNull(includeBrandCategory.getTranslateCategories(), true);
 
-        final String primaryAdServer = translateCategories
+        final boolean translateCategories = BooleanUtils.toBooleanDefaultIfNull(
+                includeBrandCategory.getTranslateCategories(), true);
+
+        final String primaryAdServer = withCategory && translateCategories
                 ? getPrimaryAdServer(includeBrandCategory.getPrimaryAdserver())
                 : null;
-        final String publisher = translateCategories ? includeBrandCategory.getPublisher() : null;
+        final String publisher = withCategory && translateCategories
+                ? includeBrandCategory.getPublisher()
+                : null;
 
         final List<RejectedBid> rejectedBids = new ArrayList<>();
 
@@ -191,20 +194,19 @@ public class CategoryMappingService {
             return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, videoPrimaryCategory));
         }
 
-        final String category;
-        if (withCategory || translateCategories) {
-            final List<String> iabCategories = ListUtils.emptyIfNull(bid.getCat());
-            if (iabCategories.size() > 1) {
-                return Future.failedFuture(
-                        new RejectedBidException(bid.getId(), bidder, "Bid has more than one category"));
-            }
-            category = CollectionUtils.isNotEmpty(iabCategories) ? iabCategories.get(0) : null;
-            if (StringUtils.isBlank(category)) {
-                return Future.failedFuture(
-                        new RejectedBidException(bid.getId(), bidder, "Bid did not contain a category"));
-            }
-        } else {
-            category = null;
+        if (!withCategory) {
+            return Future.succeededFuture(CategoryBidContext.of(bidderBid, bidder, null));
+        }
+
+        final List<String> iabCategories = ListUtils.emptyIfNull(bid.getCat());
+        if (iabCategories.size() > 1) {
+            return Future.failedFuture(
+                    new RejectedBidException(bid.getId(), bidder, "Bid has more than one category"));
+        }
+        final String category = CollectionUtils.isNotEmpty(iabCategories) ? iabCategories.get(0) : null;
+        if (StringUtils.isBlank(category)) {
+            return Future.failedFuture(
+                    new RejectedBidException(bid.getId(), bidder, "Bid did not contain a category"));
         }
 
         return translateCategories
@@ -241,14 +243,14 @@ public class CategoryMappingService {
                                                      String bidder,
                                                      String primaryAdServer,
                                                      String publisher,
-                                                     String cat,
+                                                     String category,
                                                      Timeout timeout) {
 
         final String bidId = bidderBid.getBid().getId();
 
         return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
                 .map(fetchedCategories -> findAndValidateCategory(
-                        fetchedCategories, cat, bidId, bidder, primaryAdServer, publisher))
+                        fetchedCategories, category, bidId, bidder, primaryAdServer, publisher))
 
                 .recover(throwable -> wrapWithRejectedBidException(bidId, bidder, throwable))
 
@@ -259,7 +261,7 @@ public class CategoryMappingService {
      * Throws {@link RejectedBidException} when fetched category is null or empty.
      */
     private static String findAndValidateCategory(Map<String, String> fetchedCategories,
-                                                  String cat,
+                                                  String category,
                                                   String bidId,
                                                   String bidder,
                                                   String primaryAdServer,
@@ -271,11 +273,11 @@ public class CategoryMappingService {
                             + "not found", primaryAdServer, publisher));
         }
 
-        final String categoryId = fetchedCategories.get(cat);
+        final String categoryId = fetchedCategories.get(category);
         if (StringUtils.isEmpty(categoryId)) {
             throw new RejectedBidException(bidId, bidder,
                     String.format("Category mapping data for primary ad server: '%s', publisher: '%s' "
-                            + "does not contain category for cat = '%s'", primaryAdServer, publisher, cat));
+                            + "does not contain category for cat = '%s'", primaryAdServer, publisher, category));
         }
         return categoryId;
     }
