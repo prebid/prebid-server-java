@@ -148,8 +148,9 @@ public class VideoResponseFactoryTest extends VertxTest {
 
         assertThat(result).isEqualTo(VideoResponse.of(
                 expectedAdPodResponse,
-                null,
-                null,
-                ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extResponse.getPrebid().getModules()))));
+                ExtAmpVideoResponse.of(
+                        bidResponse.getExt().getDebug(),
+                        bidResponse.getExt().getErrors(),
+                        ExtAmpVideoPrebid.of(extResponse.getPrebid().getModules()))));
     }
 }

@@ -215,7 +215,7 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
-                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+                .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
         videoHandler.handle(routingContext);
@@ -275,7 +275,7 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(BidResponse.builder().build()));
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
-                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+                .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
         videoHandler.handle(routingContext);

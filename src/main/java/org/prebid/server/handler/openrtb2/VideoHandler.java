@@ -62,6 +62,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                         Metrics metrics,
                         Clock clock,
                         JacksonMapper mapper) {
+
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -90,8 +91,8 @@ public class VideoHandler implements Handler<RoutingContext> {
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
                         .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
 
-                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(),
-                        result.getLeft(), result.getRight().getPodErrors()))
+                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(), result.getLeft(),
+                        result.getRight().getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
@@ -107,6 +108,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                               VideoEvent.VideoEventBuilder videoEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
+
         final boolean responseSucceeded = responseResult.succeeded();
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -164,6 +166,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         }
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
+
         respondWith(routingContext, status, body, startTime, metricRequestStatus, videoEvent, tcfContext);
     }
 
@@ -174,21 +177,20 @@ public class VideoHandler implements Handler<RoutingContext> {
     private String cacheDebugLog(AuctionContext auctionContext, List<String> errors) {
         final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
         cachedDebugLog.setErrors(errors);
-        final Account account = auctionContext.getAccount();
+
         final AccountAuctionConfig accountAuctionConfig =
                 ObjectUtil.getIfNotNull(auctionContext.getAccount(), Account::getAuction);
         final Integer videoCacheTtl =
                 ObjectUtil.getIfNotNull(accountAuctionConfig, AccountAuctionConfig::getVideoCacheTtl);
+
         return cacheService.cacheVideoDebugLog(cachedDebugLog, videoCacheTtl);
     }
 
     private VideoEvent updateEventWithDebugCacheMessage(VideoEvent videoEvent, String cacheKey) {
-        final String cacheDebugMessage = String.format("[Debug cache ID: %s]", cacheKey);
         final List<String> errors = new ArrayList<>();
-        errors.add(cacheDebugMessage);
+        errors.add(String.format("[Debug cache ID: %s]", cacheKey));
         errors.addAll(videoEvent.getErrors());
-        videoEvent = videoEvent.toBuilder().errors(errors).build();
-        return videoEvent;
+        return videoEvent.toBuilder().errors(errors).build();
     }
 
     private void respondWith(RoutingContext routingContext,
