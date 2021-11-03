@@ -2,11 +2,13 @@ package org.prebid.server.functional
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.StoredRequestExt
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 import spock.lang.Unroll
+
+import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
 
@@ -36,7 +38,7 @@ class AuctionSpec extends BaseSpec {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = null
-            ext.prebid.storedRequest = new StoredRequestExt(id: PBSUtils.randomNumber.toString())
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber.toString())
         }
 
         and: "Default stored request with timeout"
@@ -46,7 +48,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getAuctionDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -63,7 +65,7 @@ class AuctionSpec extends BaseSpec {
         def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
-            ext.prebid.storedRequest = new StoredRequestExt(id: PBSUtils.randomNumber.toString())
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber.toString())
         }
 
         and: "Default stored request"
@@ -72,7 +74,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getAuctionDbStoredRequest(bidRequest, storedRequestModel)
+        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
@@ -91,7 +93,7 @@ class AuctionSpec extends BaseSpec {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = autcionRequestTimeout
-            ext.prebid.storedRequest = new StoredRequestExt(id: PBSUtils.randomNumber.toString())
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber.toString())
         }
 
         and: "Default stored request"
@@ -100,7 +102,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getAuctionDbStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"
@@ -121,7 +123,7 @@ class AuctionSpec extends BaseSpec {
         given: "Default basic BidRequest without timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = null
-            ext.prebid.storedRequest = new StoredRequestExt(id: PBSUtils.randomNumber.toString())
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber.toString())
         }
 
         and: "Default stored request without timeout"
@@ -130,7 +132,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequestModel = StoredRequest.getAuctionDbStoredRequest(bidRequest, storedRequest)
+        def storedRequestModel = StoredRequest.getDbStoredRequest(bidRequest, storedRequest)
         storedRequestDao.save(storedRequestModel)
 
         when: "PBS processes auction request"

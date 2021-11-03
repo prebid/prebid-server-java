@@ -52,7 +52,7 @@ class SmokeSpec extends BaseSpec {
         ampStoredRequest.site.publisher.id = ampRequest.account
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getAmpDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

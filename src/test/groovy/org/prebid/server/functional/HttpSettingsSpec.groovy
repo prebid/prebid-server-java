@@ -63,7 +63,7 @@ class HttpSettingsSpec extends BaseSpec {
         ampStoredRequest.regs.ext.gdpr = 1
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getAmpDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         and: "Prepare default account response with gdpr = 0"

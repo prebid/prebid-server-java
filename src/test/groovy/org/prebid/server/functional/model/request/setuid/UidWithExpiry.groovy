@@ -1,9 +1,7 @@
 package org.prebid.server.functional.model.request.setuid
 
 import com.fasterxml.jackson.annotation.JsonFormat
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import groovy.transform.ToString
-import org.prebid.server.functional.model.response.setuid.ZonedDateTimeDeserializer
 
 import java.time.ZonedDateTime
 
@@ -11,7 +9,6 @@ import java.time.ZonedDateTime
 class UidWithExpiry {
 
     String uid
-    @JsonFormat(pattern = "yyyy-MM-dd'T'hh:mm:ss.SSS'Z'", timezone = "UTC")
-    @JsonDeserialize(using = ZonedDateTimeDeserializer)
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     ZonedDateTime expires
 }
