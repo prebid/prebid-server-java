@@ -473,6 +473,31 @@ public class CategoryMappingServiceTest extends VertxTest {
     }
 
     @Test
+    public void applyCategoryMappingShouldReturnEmptyCategoryIfNotWithCategory() {
+        // given
+        final List<BidderResponse> bidderResponses = List.of(
+                givenBidderResponse(
+                        "rubicon",
+                        givenBidderBid(
+                                givenBid("1", null, "10", singletonList("cat1"), "videoCategory"),
+                                BidType.video,
+                                null,
+                                "videoCategory")));
+
+        final ExtRequestTargeting extRequestTargeting = givenTargeting(
+                1, "publisher", List.of(10, 15, 5), false, false);
+
+        // when
+        final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
+                BidRequest.builder().build(), extRequestTargeting, timeout);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getBiddersToBidsCategories()).isEqualTo(
+                Map.of(givenBid("1", null, "10", List.of("cat1"), "videoCategory"), "10.00_5s"));
+    }
+
+    @Test
     public void applyCategoryMappingShouldReturnFirstIabBidCategoryIfWithCategoryAndNotTranslateCategories() {
         // given
         final List<BidderResponse> bidderResponses = List.of(
