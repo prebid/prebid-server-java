@@ -58,7 +58,7 @@ public class AdponeBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(errors.get(0).getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test

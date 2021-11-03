@@ -91,6 +91,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
+                1000,
                 true);
     }
 
@@ -399,6 +400,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
+                1000,
                 false);
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()

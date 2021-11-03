@@ -259,13 +259,21 @@ public class WebConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
+            CacheService cacheService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper) {
 
-        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
-                clock, mapper);
+        return new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService,
+                cacheService,
+                analyticsReporter,
+                metrics,
+                clock,
+                mapper);
     }
 
     @Bean
@@ -391,6 +399,7 @@ public class WebConfiguration {
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
         return new NotificationEventHandler(
@@ -400,6 +409,7 @@ public class WebConfiguration {
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
+                defaultTimeoutMillis,
                 dealsEnabled);
     }
 

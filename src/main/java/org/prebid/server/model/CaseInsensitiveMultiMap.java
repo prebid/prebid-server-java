@@ -1,6 +1,7 @@
 package org.prebid.server.model;
 
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -101,5 +102,10 @@ public class CaseInsensitiveMultiMap {
             delegate.addAll(map);
             return this;
         }
+    }
+
+    @Override
+    public String toString() {
+        return delegate != null ? delegate.toString() : StringUtils.EMPTY;
     }
 }

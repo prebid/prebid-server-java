@@ -48,5 +48,6 @@ public class BidRequestVideo {
     Device device;
 
     PriceGranularity pricegranularity;
-}
 
+    Boolean appendbiddernames;
+}
