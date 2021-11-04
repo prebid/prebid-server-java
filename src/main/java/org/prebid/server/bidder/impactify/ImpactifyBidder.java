@@ -55,65 +55,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(conversionService);
     }
 
-    private static boolean isBidFloorValid(BigDecimal bidFloor, String bidFloorCur) {
-        return Objects.nonNull(bidFloor)
-                && StringUtils.isNotEmpty(bidFloorCur)
-                && BigDecimal.ZERO.compareTo(bidFloor) <= 0
-                && !bidFloorCur.equalsIgnoreCase(BIDDER_CURRENCY);
-    }
-
-    private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
-        final String deviceUa = device != null ? device.getUa() : null;
-        final String deviceIpv4 = device != null ? device.getIp() : null;
-        final String deviceIpv6 = device != null ? device.getIpv6() : null;
-        final Site site = bidRequest.getSite();
-        final String sitePage = site != null ? site.getPage() : null;
-        final User user = bidRequest.getUser();
-        final String userUid = user != null ? user.getBuyeruid() : null;
-        final MultiMap headers = HttpUtil.headers();
-
-        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
-        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
-        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
-        if (Objects.nonNull(device)) {
-            if (Objects.nonNull(deviceUa)) {
-                headers.set(HttpUtil.USER_AGENT_HEADER, deviceUa);
-            }
-            if (Objects.nonNull(deviceIpv4)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv4);
-            } else if (Objects.nonNull(deviceIpv6)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
-            }
-        }
-        if (Objects.nonNull(site)) {
-            headers.set(HttpUtil.REFERER_HEADER, sitePage);
-        }
-        if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
-            headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
-        }
-
-        return headers;
-    }
-
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                throw new PreBidException(String.format("Unknown impression type for ID: \'%s\'", impId));
-            }
-        }
-        throw new PreBidException(String.format("Failed to find impression for ID: \'%s\'", impId));
-    }
-
-    private String resolveEndpoint() {
-        return endpointUrl;
-    }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
@@ -162,6 +103,63 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .build());
     }
 
+    private static boolean isBidFloorValid(BigDecimal bidFloor, String bidFloorCur) {
+        return Objects.nonNull(bidFloor)
+                && StringUtils.isNotEmpty(bidFloorCur)
+                && BigDecimal.ZERO.compareTo(bidFloor) <= 0
+                && !bidFloorCur.equalsIgnoreCase(BIDDER_CURRENCY);
+    }
+
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest,
+                                               String impId, String bidFloorCur) {
+        try {
+            return currencyConversionService
+                    .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
+        } catch (PreBidException e) {
+            throw new PreBidException(String.format(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
+                    bidFloorCur, BIDDER_CURRENCY, impId));
+        }
+    }
+
+    private String resolveEndpoint() {
+        return endpointUrl;
+    }
+
+    private static MultiMap constructHeaders(BidRequest bidRequest) {
+        final Device device = bidRequest.getDevice();
+        final String deviceUa = device != null ? device.getUa() : null;
+        final String deviceIpv4 = device != null ? device.getIp() : null;
+        final String deviceIpv6 = device != null ? device.getIpv6() : null;
+        final Site site = bidRequest.getSite();
+        final String sitePage = site != null ? site.getPage() : null;
+        final User user = bidRequest.getUser();
+        final String userUid = user != null ? user.getBuyeruid() : null;
+        final MultiMap headers = HttpUtil.headers();
+
+        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
+        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
+        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
+        if (Objects.nonNull(device)) {
+            if (Objects.nonNull(deviceUa)) {
+                headers.set(HttpUtil.USER_AGENT_HEADER, deviceUa);
+            }
+            if (Objects.nonNull(deviceIpv4)) {
+                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv4);
+            } else if (Objects.nonNull(deviceIpv6)) {
+                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
+            }
+        }
+        if (Objects.nonNull(site)) {
+            headers.set(HttpUtil.REFERER_HEADER, sitePage);
+        }
+        if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
+            headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
+        }
+
+        return headers;
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -201,15 +199,19 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return BidderBid.of(bid, bidType, currency);
     }
 
-    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest,
-                                               String impId, String bidFloorCur) {
-        try {
-            return currencyConversionService
-                    .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
-        } catch (PreBidException e) {
-            throw new PreBidException(String.format(
-                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
-                    bidFloorCur, BIDDER_CURRENCY, impId));
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                throw new PreBidException(String.format("Unknown impression type for ID: '%s'", impId));
+            }
         }
+        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
     }
 }
