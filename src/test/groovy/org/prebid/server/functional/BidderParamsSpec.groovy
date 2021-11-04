@@ -4,15 +4,19 @@ import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
@@ -272,5 +276,56 @@ class BidderParamsSpec extends BaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
         assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
+    }
+
+    @PendingFeature
+    def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema"() {
+        given: "BidRequest with bad bidder datatype"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
+        }
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain errors"
+        assert !response.ext?.errors
+
+        and: "Response should contain warnings"
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "seatbid should be empty"
+        assert response.seatbid.isEmpty()
+    }
+
+    @PendingFeature
+    def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
+        given: "BidRequest with bad bidder datatype and storedAuctionResponse"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
+            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
+        }
+
+        and: "Stored response in DB"
+        def responseData = BidResponse.getDefaultBidResponse(bidRequest)
+        def storedResponse = new StoredResponse(resid: storedResponseId, responseData: responseData)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
+
+        and: "Response should correspond to stored response"
+        assert response.seatbid == responseData.seatbid
     }
 }

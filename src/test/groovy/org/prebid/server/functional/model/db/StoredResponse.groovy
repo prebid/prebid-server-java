@@ -21,9 +21,9 @@ class StoredResponse {
     @GeneratedValue(strategy = IDENTITY)
     @Column(name = "id")
     Integer id
-    @Column(name = "uuid")
-    String uuid
-    @Column(name = "config")
+    @Column(name = "resid")
+    String resid
+    @Column(name = "responseData")
     @Convert(converter = StoredResponseConfigTypeConverter)
-    BidResponse config
+    BidResponse responseData
 }

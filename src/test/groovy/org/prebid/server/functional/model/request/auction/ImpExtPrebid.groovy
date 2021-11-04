@@ -6,6 +6,7 @@ import groovy.transform.ToString
 class ImpExtPrebid {
 
     Bidder bidder
+    StoredAuctionResponse storedAuctionResponse
 
     static ImpExtPrebid getDefaultImpExtPrebid() {
         new ImpExtPrebid().tap {
