@@ -55,7 +55,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         this.currencyConversionService = Objects.requireNonNull(conversionService);
     }
 
-
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
@@ -198,7 +197,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
         return BidderBid.of(bid, bidType, currency);
     }
-
 
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
