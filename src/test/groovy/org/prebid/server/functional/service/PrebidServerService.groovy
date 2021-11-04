@@ -280,7 +280,7 @@ class PrebidServerService {
         if (statusCode != 200) {
             def responseBody = response.body.asString()
             log.error(responseBody)
-            throw new PrebidServerException(statusCode, responseBody)
+            throw new PrebidServerException(statusCode, responseBody, getHeaders(response))
         }
     }
 

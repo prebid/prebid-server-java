@@ -3,6 +3,7 @@ package org.prebid.server.functional
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
@@ -136,6 +137,23 @@ class AmpSpec extends BaseSpec {
 
         then: "Response header should contain PBS version"
         assert response.headers["x-prebid"] == "pbs-java/$PBSUtils.pbsVersion"
+    }
+
+    def "PBS should return version in response header when amp request returns error"() {
+        given: "AmpRequest without curl"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomNumber)
+        def ampStoredRequest = BidRequest.defaultStoredRequest
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.headers["x-prebid"] == "pbs-java/$PBSUtils.pbsVersion"
     }
 
     private static int getRandomTimeout() {
