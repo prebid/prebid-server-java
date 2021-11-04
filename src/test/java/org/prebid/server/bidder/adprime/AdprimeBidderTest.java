@@ -1,9 +1,14 @@
 package org.prebid.server.bidder.adprime;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -30,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdprimeBidderTest extends VertxTest {
 
@@ -61,8 +67,111 @@ public class AdprimeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unable to decode the impression ext for id");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsWithNoKeywordsAndAudiencesReturnsNullSiteAndUser() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdprime.of("otherTagId",
+                                        null,
+                                        null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adprimeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getSite)
+                .containsNull();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getUser)
+                .containsNull();
+    }
+
+    @Test
+    public void makeHttpRequestsWithSiteUserAndAudiencesShouldReturnUserWithCustomData() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
+                .user(User.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdprime.of("otherTagId",
+                                        null,
+                                        List.of("audience1")))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adprimeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getCustomdata)
+                .containsOnly("audience1");
+    }
+
+    @Test
+    public void makeHttpRequestsWithNoUserShouldReturnNewUserWithAudiences() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdprime.of("otherTagId",
+                                        null,
+                                        List.of("audience1")))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adprimeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser)
+                .extracting(User::getCustomdata)
+                .containsOnly("audience1");
+    }
+
+    @Test
+    public void makeHttpRequestsWithSiteAndKeywordsShouldRetunSiteWithKeywords() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdprime.of("otherTagId",
+                                        List.of("keyword1"),
+                                        null))))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adprimeBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getKeywords)
+                .containsOnly("keyword1");
     }
 
     @Test
@@ -70,14 +179,26 @@ public class AdprimeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
+        final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
+        modifiedImpExtBidder.set("TagID", TextNode.valueOf("someTagId"));
+        modifiedImpExtBidder.set("placementId", TextNode.valueOf("someTagId"));
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adprimeBidder.makeHttpRequests(bidRequest);
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
+                .site(Site.builder()
+                        .keywords("keyword1,keyword2")
+                        .build())
                 .imp(singletonList(bidRequest.getImp().get(0).toBuilder()
-                        .tagid("tagidString").build()))
+                        .tagid("someTagId")
+                        .ext(mapper.createObjectNode().set("bidder", modifiedImpExtBidder)).build()))
+                .user(User.builder()
+                        .customdata("audience1,audience2")
+                        .build())
                 .build();
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -92,7 +213,10 @@ public class AdprimeBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdprime.of("otherTagId"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpAdprime.of("otherTagId",
+                                                List.of("keyword1", "keyword2"),
+                                                List.of("audience1", "audience2")))))
                                 .build())));
 
         // when
@@ -104,7 +228,7 @@ public class AdprimeBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(2)
                 .extracting(Imp::getTagid)
-                .containsOnly("tagidString", "otherTagId");
+                .containsOnly("someTagId", "otherTagId");
     }
 
     @Test
@@ -150,7 +274,7 @@ public class AdprimeBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfNoBidTypeIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
@@ -160,8 +284,9 @@ public class AdprimeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adprimeBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getType)
+                .containsExactly(BidderError.Type.bad_server_response);
     }
 
     @Test
@@ -182,6 +307,24 @@ public class AdprimeBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnNativeBidIfHasNativeInImpression() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = adprimeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(
+                BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldReturnBannerBidIfHasBothBannerAndVideo() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -195,28 +338,52 @@ public class AdprimeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).containsOnly(
+                BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+    @Test
+    public void makeBidsShould() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(givenImp(identity())))
+                        .build(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
+
+        // when
+        final Result<List<BidderBid>> result = adprimeBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to find impression");
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+                                              Function<BidRequest.BidRequestBuilder,
+                                                      BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .site(Site.builder().build())
+                        .user(User.builder().build())
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(impCustomizer, identity());
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdprime.of("tagidString"))))
+                .tagid("someTagId")
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpAdprime.of("someTagId",
+                                List.of("keyword1", "keyword2"),
+                                List.of("audience1", "audience2"))
+                )))
                 .build();
     }
 

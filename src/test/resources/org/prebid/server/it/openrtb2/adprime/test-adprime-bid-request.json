@@ -10,7 +10,8 @@
       "tagid": "tag_id",
       "ext": {
         "bidder": {
-          "TagID": "tag_id"
+          "TagID": "tag_id",
+          "placementId": "tag_id"
         }
       }
     }
@@ -21,6 +22,7 @@
     "publisher": {
       "domain": "example.com"
     },
+    "keywords": "keyword1",
     "ext": {
       "amp": 0
     }
@@ -28,6 +30,9 @@
   "device": {
     "ua": "userAgent",
     "ip": "193.168.244.1"
+  },
+  "user": {
+    "customdata": "audience1"
   },
   "at": 1,
   "tmax": 5000,
