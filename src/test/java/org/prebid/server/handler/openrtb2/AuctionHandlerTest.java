@@ -180,7 +180,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .contains(tuple(HttpUtil.X_PREBID_HEADER.toString(), "pbs-java/1.00"));
+                .contains(tuple("x-prebid", "pbs-java/1.00"));
     }
 
     @Test
@@ -317,7 +317,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
                         tuple("Content-Type", "application/json"),
-                        tuple(HttpUtil.X_PREBID_HEADER.toString(), "pbs-java/1.00"));
+                        tuple("x-prebid", "pbs-java/1.00"));
 
         verify(httpResponse).end(eq("{}"));
     }

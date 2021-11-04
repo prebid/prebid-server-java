@@ -7,7 +7,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -133,14 +133,16 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final HttpResponseStatus status;
         final String body;
 
+        final HttpServerResponse response = routingContext.response();
+        enrichWithCommonHeaders(response);
+
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers();
+            enrichWithSuccessfulHeaders(response);
             body = mapper.encode(responseResult.result().getLeft());
-            enrichWithHeaders(routingContext);
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -221,9 +223,13 @@ public class AuctionHandler implements Handler<RoutingContext> {
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 
-    private void enrichWithHeaders(RoutingContext routingContext) {
-        final MultiMap headers = routingContext.response().headers();
-        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-        headers.add(HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    private void enrichWithCommonHeaders(HttpServerResponse response) {
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    }
+
+    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
+        response.headers()
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 }

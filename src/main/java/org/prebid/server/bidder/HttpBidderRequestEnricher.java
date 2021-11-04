@@ -26,7 +26,7 @@ public class HttpBidderRequestEnricher {
     private final PrebidVersionProvider prebidVersionProvider;
 
     public HttpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
-        this.prebidVersionProvider = prebidVersionProvider;
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
     }
 
     MultiMap enrichHeaders(

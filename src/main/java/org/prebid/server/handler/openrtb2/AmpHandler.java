@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -271,17 +272,15 @@ public class AmpHandler implements Handler<RoutingContext> {
         final String origin = originFrom(routingContext);
         ampEventBuilder.origin(origin);
 
-        // Add AMP headers
-        routingContext.response().headers()
-                .add("AMP-Access-Control-Allow-Source-Origin", origin)
-                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        final HttpServerResponse response = routingContext.response();
+        enrichWithCommonHeaders(response, origin);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            enrichWithHeaders(routingContext);
+            enrichWithSuccessfulHeaders(response);
             body = mapper.encode(responseResult.result().getRight());
         } else {
             final Throwable exception = responseResult.cause();
@@ -378,9 +377,19 @@ public class AmpHandler implements Handler<RoutingContext> {
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
-    private void enrichWithHeaders(RoutingContext routingContext) {
-        final MultiMap headers = routingContext.response().headers();
+    private void enrichWithCommonHeaders(HttpServerResponse response, String origin) {
+        final MultiMap headers = response.headers();
+
+        // Add AMP headers
+        headers.add("AMP-Access-Control-Allow-Source-Origin", origin)
+                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                headers, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    }
+
+    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
+        final MultiMap headers = response.headers();
         headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-        headers.add(HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
     }
 }
