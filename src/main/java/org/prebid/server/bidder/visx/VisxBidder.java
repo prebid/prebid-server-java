@@ -117,6 +117,17 @@ public class VisxBidder implements Bidder<BidRequest> {
         return extBidType != null ? extBidType : getBidTypeFromImp(impId, imps);
     }
 
+    private static BidType getBidTypeFromExt(ObjectNode bidExt) {
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.at("/prebid/meta/mediaType") : null;
+        final String bidTypeTextual = mediaTypeNode != null && mediaTypeNode.isTextual()
+                ? mediaTypeNode.asText()
+                : null;
+
+        return bidTypeTextual != null && SUPPORTED_BID_TYPES_TEXTUAL.contains(bidTypeTextual)
+                ? BidType.valueOf(bidTypeTextual)
+                : null;
+    }
+
     private static BidType getBidTypeFromImp(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
@@ -130,16 +141,5 @@ public class VisxBidder implements Bidder<BidRequest> {
             }
         }
         throw new PreBidException(String.format("Failed to find impression for ID: \"%s\"", impId));
-    }
-
-    private static BidType getBidTypeFromExt(ObjectNode bidExt) {
-        final JsonNode mediaTypeNode = bidExt != null ? bidExt.at("/prebid/meta/mediaType") : null;
-        final String bidTypeTextual = mediaTypeNode != null && mediaTypeNode.isTextual()
-                ? mediaTypeNode.asText()
-                : null;
-
-        return bidTypeTextual != null && SUPPORTED_BID_TYPES_TEXTUAL.contains(bidTypeTextual)
-                ? BidType.valueOf(bidTypeTextual)
-                : null;
     }
 }
