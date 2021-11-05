@@ -269,7 +269,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain debug information"
-        assert response?.ext?.debug
+        assert response.ext?.debug
 
         where:
         requestDebug || storedRequestDebug
@@ -299,7 +299,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response shouldn't contain debug information"
-        assert !response?.ext?.debug
+        assert !response.ext?.debug
 
         where:
         requestDebug || storedRequestDebug

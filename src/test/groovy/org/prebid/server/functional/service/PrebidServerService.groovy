@@ -17,7 +17,9 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.amp.RawAmpResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
@@ -75,35 +77,39 @@ class PrebidServerService {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest) {
-        def payload = mapper.encode(bidRequest)
-
-        def response = given(requestSpecification).body(payload)
-                                                  .post(AUCTION_ENDPOINT)
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(BidResponse)
     }
 
-    @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
-        def payload = mapper.encode(bidRequest)
+    @Step("[POST RAW] /openrtb2/auction")
+    RawAuctionResponse sendAuctionRequestRaw(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
-        def response = given(requestSpecification).headers(headers)
-                                                  .body(payload)
-                                                  .post(AUCTION_ENDPOINT)
-
-        checkResponseStatusCode(response)
-        response.as(BidResponse)
+        new RawAuctionResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[GET] /openrtb2/amp")
-    AmpResponse sendAmpRequest(AmpRequest ampRequest) {
-        def response = given(requestSpecification).queryParams(mapper.toMap(ampRequest))
-                                                  .get(AMP_ENDPOINT)
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(AmpResponse)
+    }
+
+    @Step("[GET RAW] /openrtb2/amp")
+    RawAmpResponse sendAmpRequestRaw(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
+
+        new RawAmpResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[POST] /cookie_sync without cookie")
@@ -244,13 +250,31 @@ class PrebidServerService {
         mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
+    private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def payload = mapper.encode(bidRequest)
+
+        given(requestSpecification).headers(headers)
+                                   .body(payload)
+                                   .post(AUCTION_ENDPOINT)
+    }
+
+    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        given(requestSpecification).headers(headers)
+                                   .queryParams(mapper.toMap(ampRequest))
+                                   .get(AMP_ENDPOINT)
+    }
+
     private void checkResponseStatusCode(Response response) {
         def statusCode = response.statusCode
         if (statusCode != 200) {
             def responseBody = response.body.asString()
             log.error(responseBody)
-            throw new PrebidServerException(statusCode, responseBody)
+            throw new PrebidServerException(statusCode, responseBody, getHeaders(response))
         }
+    }
+
+    private static Map<String, String> getHeaders(Response response) {
+        response.headers().collectEntries { [it.name, it.value] }
     }
 
     List<String> getLogsByTime(Instant testStart,

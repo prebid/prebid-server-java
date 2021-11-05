@@ -23,7 +23,7 @@ import static org.prebid.server.functional.model.response.status.Status.OK
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {
-        given: "Default basic  BidRequest with generic bidder"
+        given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
@@ -60,11 +60,11 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain targeting and httpcalls"
         assert response.targeting
-        assert response.ext.debug.httpcalls
+        assert response.ext?.debug?.httpcalls
 
         and: "httpcalls should send request for bidders from storedRequest"
         def storedRequestBidders = ampStoredRequest.requestBidders
-        def responseBidders = response?.ext?.debug?.bidders
+        def responseBidders = response.ext?.debug?.bidders
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 

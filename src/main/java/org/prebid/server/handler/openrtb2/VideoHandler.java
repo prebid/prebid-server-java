@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -30,6 +31,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.util.ArrayList;
@@ -52,17 +54,17 @@ public class VideoHandler implements Handler<RoutingContext> {
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public VideoHandler(VideoRequestFactory videoRequestFactory,
                         VideoResponseFactory videoResponseFactory,
                         ExchangeService exchangeService,
-                        CacheService cacheService,
-                        AnalyticsReporterDelegator analyticsDelegator,
+                       CacheService cacheService, AnalyticsReporterDelegator analyticsDelegator,
                         Metrics metrics,
                         Clock clock,
+                        PrebidVersionProvider prebidVersionProvider,
                         JacksonMapper mapper) {
-
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -70,6 +72,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -116,12 +119,15 @@ public class VideoHandler implements Handler<RoutingContext> {
         final String body;
         final VideoResponse videoResponse = responseSucceeded ? responseResult.result() : null;
 
+        final HttpServerResponse response = routingContext.response();
+        enrichWithCommonHeaders(response);
+
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            enrichWithSuccessfulHeaders(response);
             body = mapper.encode(videoResponse);
         } else {
             final Throwable exception = responseResult.cause();
@@ -219,5 +225,15 @@ public class VideoHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send video response: {0}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private void enrichWithCommonHeaders(HttpServerResponse response) {
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    }
+
+    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
+        response.headers()
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 }

@@ -69,6 +69,7 @@ import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vast.VastModifier;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -500,9 +501,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequestEnricher httpBidderRequestEnricher(VersionInfo versionInfo) {
+    PrebidVersionProvider prebidVersionProvider(VersionInfo versionInfo) {
+        return new PrebidVersionProvider(versionInfo.getVersion());
+    }
 
-        return new HttpBidderRequestEnricher(versionInfo.getVersion());
+    @Bean
+    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
+        return new HttpBidderRequestEnricher(prebidVersionProvider);
     }
 
     @Bean

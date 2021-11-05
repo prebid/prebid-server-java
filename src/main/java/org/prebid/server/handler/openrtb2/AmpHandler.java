@@ -12,6 +12,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -52,6 +54,7 @@ import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.proto.response.ExtAmpVideoPrebid;
 import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -80,6 +83,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
@@ -91,6 +95,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
+                      PrebidVersionProvider prebidVersionProvider,
                       JacksonMapper mapper) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
@@ -102,6 +107,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -261,17 +267,15 @@ public class AmpHandler implements Handler<RoutingContext> {
         final String origin = originFrom(routingContext);
         ampEventBuilder.origin(origin);
 
-        // Add AMP headers
-        routingContext.response().headers()
-                .add("AMP-Access-Control-Allow-Source-Origin", origin)
-                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        final HttpServerResponse response = routingContext.response();
+        enrichWithCommonHeaders(response, origin);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            enrichWithSuccessfulHeaders(response);
             body = mapper.encode(responseResult.result().getRight());
         } else {
             final Throwable exception = responseResult.cause();
@@ -366,5 +370,21 @@ public class AmpHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable exception) {
         logger.warn("Failed to send amp response: {0}", exception.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private void enrichWithCommonHeaders(HttpServerResponse response, String origin) {
+        final MultiMap headers = response.headers();
+
+        // Add AMP headers
+        headers.add("AMP-Access-Control-Allow-Source-Origin", origin)
+                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                headers, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    }
+
+    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
+        final MultiMap headers = response.headers();
+        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 }

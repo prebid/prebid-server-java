@@ -56,7 +56,7 @@ class BidRequest {
     @JsonIgnore
     List<String> getRequestBidders() {
         def bidderList = []
-        def bidder = imp[0]?.ext?.prebid?.bidder
+        def bidder = imp?.first()?.ext?.prebid?.bidder
         if (bidder) {
             bidderList = bidder.configuredBidders
         }

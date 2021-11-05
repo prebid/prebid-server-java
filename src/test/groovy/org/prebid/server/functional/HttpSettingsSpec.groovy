@@ -74,13 +74,13 @@ class HttpSettingsSpec extends BaseSpec {
         def response = prebidServerService.sendAmpRequest(ampRequest)
 
         then: "Response should contain httpcalls"
-        assert !response?.ext?.debug?.httpcalls?.isEmpty()
+        assert !response.ext?.debug?.httpcalls?.isEmpty()
 
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(ampRequest.account.toString()) == 1
 
         then: "Response should contain targeting"
-        assert !response?.ext?.debug?.httpcalls?.isEmpty()
+        assert !response.ext?.debug?.httpcalls?.isEmpty()
     }
 
     def "PBS should take account information from http data source on event request"() {
