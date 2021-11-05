@@ -12,6 +12,23 @@
           "mid": "1"
         }
       }
+    },
+    {
+      "id": "imp_id_banner",
+      "banner": {
+        "format": [
+          {
+            "w": 100,
+            "h": 100
+          }
+        ] 
+      },
+      "ext": {
+        "adf": {
+          "inv": 1234,
+          "mname": "wallpaper"
+        }
+      }
     }
   ],
   "regs": {
