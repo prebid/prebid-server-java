@@ -6,6 +6,6 @@ import org.prebid.server.functional.model.ResponseModel
 @ToString(includeNames = true, ignoreNulls = true)
 class RawAuctionResponse implements ResponseModel {
 
-    BidResponse responseBody
+    String responseBody
     Map<String, String> headers
 }

@@ -7,7 +7,6 @@ import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
-import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class PBSUtils {
 
@@ -32,9 +31,5 @@ class PBSUtils {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
-    }
-
-    static String getPbsVersion() {
-        PBS_VERSION.split("-")[0]
     }
 }

@@ -696,7 +696,7 @@
                     <systemPropertyVariables>
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
-                        <pbs.version>${version}</pbs.version>
+                        <pbs.version>${project.version}</pbs.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

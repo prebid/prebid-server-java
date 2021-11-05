@@ -18,8 +18,8 @@ import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.model.response.amp.RawAmpResponse
-import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
@@ -77,51 +77,39 @@ class PrebidServerService {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest) {
-        def response = getAuctionResponse(bidRequest)
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(BidResponse)
     }
 
-    @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
-        def response = getAuctionResponse(bidRequest, headers)
+    @Step("[POST RAW] /openrtb2/auction")
+    RawAuctionResponse sendAuctionRequestRaw(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
-        checkResponseStatusCode(response)
-        response.as(BidResponse)
-    }
-
-    @Step("[POST] /openrtb2/auction")
-    RawAuctionResponse sendAuctionRequestRawData(BidRequest bidRequest) {
-        def response = getAuctionResponse(bidRequest)
-
-        checkResponseStatusCode(response)
-        def bidResponse = new RawAuctionResponse().tap {
-            headers = getHeaders(response)
-            responseBody = response.as(BidResponse)
+        new RawAuctionResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
         }
-        bidResponse
     }
 
     @Step("[GET] /openrtb2/amp")
-    AmpResponse sendAmpRequest(AmpRequest ampRequest) {
-        def response = getAmpResponse(ampRequest)
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(AmpResponse)
     }
 
-    @Step("[GET] /openrtb2/amp")
-    RawAmpResponse sendAmpRequestRawData(AmpRequest ampRequest) {
-        def response = getAmpResponse(ampRequest)
+    @Step("[GET RAW] /openrtb2/amp")
+    RawAmpResponse sendAmpRequestRaw(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
 
-        checkResponseStatusCode(response)
-        def ampResponse = new RawAmpResponse().tap {
-            headers = getHeaders(response)
-            responseBody = response.as(AmpResponse)
+        new RawAmpResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
         }
-        ampResponse
     }
 
     @Step("[POST] /cookie_sync without cookie")
@@ -262,7 +250,7 @@ class PrebidServerService {
         mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
-    private Response getAuctionResponse(BidRequest bidRequest, Map<String, String> headers = [:]) {
+    private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def payload = mapper.encode(bidRequest)
 
         given(requestSpecification).headers(headers)
@@ -270,8 +258,9 @@ class PrebidServerService {
                                    .post(AUCTION_ENDPOINT)
     }
 
-    private Response getAmpResponse(AmpRequest ampRequest) {
-        given(requestSpecification).queryParams(mapper.toMap(ampRequest))
+    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        given(requestSpecification).headers(headers)
+                                   .queryParams(mapper.toMap(ampRequest))
                                    .get(AMP_ENDPOINT)
     }
 
@@ -284,8 +273,8 @@ class PrebidServerService {
         }
     }
 
-    private Map<String, String> getHeaders(Response response) {
-        response.headers().asList().collectEntries { header -> [header.name, header.value] }
+    private static Map<String, String> getHeaders(Response response) {
+        response.headers().collectEntries { [it.name, it.value] }
     }
 
     List<String> getLogsByTime(Instant testStart,
