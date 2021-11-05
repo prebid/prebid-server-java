@@ -455,11 +455,7 @@ SELECT JSON_MERGE_PATCH(
                                'ccpa', JSON_OBJECT('enabled', NOT NOT (enforce_ccpa)),
                                'gdpr', tcf_config
                            ),
-                       'analytics', JSON_MERGE_PATCH(
-                               COALESCE(analytics_config, '{}'),
-                               JSON_OBJECT('modules', JSON_OBJECT('vendor', JSON_OBJECT(
-                                    'sampling-factor', analytics_sampling_factor)))
-                           )
+                       'analytics', analytics_config
                    ),
                COALESCE(config, '{}')) as consolidated_config
 FROM accounts_account
