@@ -8,9 +8,12 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 import spock.lang.Unroll
 
+import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+
 class AmpSpec extends BaseSpec {
 
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
@@ -119,6 +122,28 @@ class AmpSpec extends BaseSpec {
         then: "Bidder request timeout should correspond to the maximum from the settings"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
+    }
+
+    @Unroll
+    def "PBS should return version in response header for #description"() {
+        given: "Default AmpRequest"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+        ampStoredRequest.site.publisher.id = ampRequest.account
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequestRaw(ampRequest)
+
+        then: "Response header should contain PBS version"
+        assert response.headers["x-prebid"] == PBS_VERSION_HEADER
+
+        where:
+        ampRequest                   || description
+        AmpRequest.defaultAmpRequest || "valid AMP request"
+        new AmpRequest()             || "invalid AMP request"
     }
 
     private static int getRandomTimeout() {
