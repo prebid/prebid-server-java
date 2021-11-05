@@ -31,6 +31,7 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -162,7 +163,7 @@ public class BidResponseCreatorTest extends VertxTest {
     @Mock
     private IdGenerator idGenerator;
     @Mock
-    private CategoryMappingService categoryMappingService;
+    private BasicCategoryMappingService categoryMappingService;
     @Mock
     private HookStageExecutor hookStageExecutor;
 

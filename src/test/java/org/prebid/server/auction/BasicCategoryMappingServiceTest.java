@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.bidder.model.BidderBid;
@@ -55,7 +56,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-public class CategoryMappingServiceTest extends VertxTest {
+public class BasicCategoryMappingServiceTest extends VertxTest {
 
     private static final PriceGranularity PRICE_GRANULARITY = PriceGranularity.DEFAULT;
 
@@ -65,13 +66,13 @@ public class CategoryMappingServiceTest extends VertxTest {
     @Mock
     ApplicationSettings applicationSettings;
 
-    private CategoryMappingService categoryMappingService;
+    private BasicCategoryMappingService categoryMappingService;
 
     private Timeout timeout;
 
     @Before
     public void setUp() {
-        categoryMappingService = new CategoryMappingService(applicationSettings, jacksonMapper);
+        categoryMappingService = new BasicCategoryMappingService(applicationSettings, jacksonMapper);
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
     }
 
