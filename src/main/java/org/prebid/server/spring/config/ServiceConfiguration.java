@@ -131,8 +131,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CategoryMappingService categoryMapper(ApplicationSettings applicationSettings,
-                                          JacksonMapper jacksonMapper) {
+    @ConditionalOnProperty(prefix = "auction", name = "category-mapping-enabled", havingValue = "true")
+    CategoryMappingService categoryMappingService(ApplicationSettings applicationSettings,
+                                                  JacksonMapper jacksonMapper) {
+
         return new CategoryMappingService(applicationSettings, jacksonMapper);
     }
 
@@ -526,7 +528,6 @@ public class ServiceConfiguration {
     @Bean
     BidResponseCreator bidResponseCreator(
             CacheService cacheService,
-            CategoryMappingService categoryMappingService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -534,13 +535,13 @@ public class ServiceConfiguration {
             WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             HookStageExecutor hookStageExecutor,
+            @Autowired(required = false) CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
 
         return new BidResponseCreator(
                 cacheService,
-                categoryMappingService,
                 bidderCatalog,
                 vastModifier,
                 eventsService,
@@ -548,6 +549,7 @@ public class ServiceConfiguration {
                 winningBidComparatorFactory,
                 bidIdGenerator,
                 hookStageExecutor,
+                categoryMappingService,
                 truncateAttrChars,
                 clock,
                 mapper);

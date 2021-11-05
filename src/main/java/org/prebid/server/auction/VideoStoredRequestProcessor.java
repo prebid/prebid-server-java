@@ -74,7 +74,7 @@ public class VideoStoredRequestProcessor {
     private VideoStoredRequestProcessor(boolean enforceStoredRequest,
                                         List<String> blacklistedAccounts,
                                         long defaultTimeout,
-                                        String adServerCurrency,
+                                        String currency,
                                         BidRequest defaultBidRequest,
                                         ApplicationSettings applicationSettings,
                                         VideoRequestValidator validator,
@@ -87,7 +87,7 @@ public class VideoStoredRequestProcessor {
         this.enforceStoredRequest = enforceStoredRequest;
         this.blacklistedAccounts = blacklistedAccounts;
         this.defaultTimeout = defaultTimeout;
-        this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
+        this.currency = currency;
         this.defaultBidRequest = defaultBidRequest;
         this.applicationSettings = applicationSettings;
         this.validator = validator;
@@ -116,7 +116,7 @@ public class VideoStoredRequestProcessor {
                 enforceStoredRequest,
                 Objects.requireNonNull(blacklistedAccounts),
                 defaultTimeout,
-                adServerCurrency,
+                StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency,
                 readBidRequest(
                         defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper)),
                 Objects.requireNonNull(applicationSettings),
@@ -137,39 +137,44 @@ public class VideoStoredRequestProcessor {
                                                                  BidRequestVideo videoRequest) {
 
         final Set<String> storedRequestIds = StringUtils.isNotBlank(storedBidRequestId)
-                                             ? Collections.singleton(storedBidRequestId)
-                                             : Collections.emptySet();
+                ? Collections.singleton(storedBidRequestId)
+                : Collections.emptySet();
 
         return applicationSettings.getVideoStoredData(accountId, storedRequestIds, podIds,
                         timeoutFactory.create(defaultTimeout))
-                .compose(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
-                .map(storedData -> mergeToBidRequest(storedData, videoRequest, storedBidRequestId))
+
+                .map(storedDataResult -> updateMetrics(storedDataResult, storedRequestIds, podIds))
+
+                .map(storedData -> toBidRequestWithPodErrors(storedData, videoRequest, storedBidRequestId))
+
                 .recover(exception -> Future.failedFuture(new InvalidRequestException(
                         String.format("Stored request fetching failed: %s", exception.getMessage()))));
     }
 
-    private static BidRequest readBidRequest(String defaultBidRequestPath, FileSystem fileSystem,
+    private static BidRequest readBidRequest(String defaultBidRequestPath,
+                                             FileSystem fileSystem,
                                              JacksonMapper mapper) {
 
         return StringUtils.isNotBlank(defaultBidRequestPath)
-               ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
-               : null;
+                ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
+                : null;
     }
 
-    private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult,
-                                                   Set<String> requestIds,
-                                                   Set<String> impIds) {
+    private StoredDataResult updateMetrics(StoredDataResult storedDataResult,
+                                           Set<String> requestIds,
+                                           Set<String> impIds) {
+
         requestIds.forEach(
                 id -> metrics.updateStoredRequestMetric(storedDataResult.getStoredIdToRequest().containsKey(id)));
         impIds.forEach(
                 id -> metrics.updateStoredImpsMetric(storedDataResult.getStoredIdToImp().containsKey(id)));
 
-        return Future.succeededFuture(storedDataResult);
+        return storedDataResult;
     }
 
-    private WithPodErrors<BidRequest> mergeToBidRequest(StoredDataResult storedResult,
-                                                        BidRequestVideo videoRequest,
-                                                        String storedBidRequestId) {
+    private WithPodErrors<BidRequest> toBidRequestWithPodErrors(StoredDataResult storedResult,
+                                                                BidRequestVideo videoRequest,
+                                                                String storedBidRequestId) {
 
         final BidRequestVideo mergedStoredRequest = mergeBidRequest(videoRequest, storedBidRequestId, storedResult);
         validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blacklistedAccounts);
@@ -194,8 +199,8 @@ public class VideoStoredRequestProcessor {
         }
 
         return StringUtils.isNotBlank(storedRequest)
-               ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
-               : originalRequest;
+                ? jsonMerger.merge(originalRequest, storedRequest, storedRequestId, BidRequestVideo.class)
+                : originalRequest;
     }
 
     private WithPodErrors<List<Imp>> mergeStoredImps(Podconfig podconfig,
@@ -306,28 +311,27 @@ public class VideoStoredRequestProcessor {
 
     private BidRequest mergeWithDefaultBidRequest(BidRequestVideo videoRequest, List<Imp> imps) {
         final BidRequest.BidRequestBuilder bidRequestBuilder = defaultBidRequest != null
-                                                               ? defaultBidRequest.toBuilder()
-                                                               : BidRequest.builder();
+                ? defaultBidRequest.toBuilder()
+                : BidRequest.builder();
 
         final Site site = videoRequest.getSite();
         if (site != null) {
-            final Site.SiteBuilder siteBuilder = site.toBuilder();
             final Content content = videoRequest.getContent();
             if (content != null) {
-                siteBuilder.content(content);
+                bidRequestBuilder.site(site.toBuilder()
+                        .content(content)
+                        .build());
             }
-            siteBuilder.content(content);
-            bidRequestBuilder.site(siteBuilder.build());
         }
 
         final App app = videoRequest.getApp();
         if (app != null) {
-            final App.AppBuilder appBuilder = app.toBuilder();
             final Content content = videoRequest.getContent();
             if (content != null) {
-                appBuilder.content(content);
+                bidRequestBuilder.app(app.toBuilder()
+                        .content(content)
+                        .build());
             }
-            bidRequestBuilder.app(appBuilder.build());
         }
 
         final Device device = videoRequest.getDevice();
@@ -355,8 +359,8 @@ public class VideoStoredRequestProcessor {
             bidRequestBuilder.regs(regs);
         }
 
-        final Long videoTmax = timeoutResolver.resolve(videoRequest.getTmax());
-        bidRequestBuilder.tmax(videoTmax);
+        final long timeout = timeoutResolver.resolve(videoRequest.getTmax());
+        bidRequestBuilder.tmax(timeout);
 
         addRequiredOpenRtbFields(bidRequestBuilder);
 
@@ -373,48 +377,50 @@ public class VideoStoredRequestProcessor {
     }
 
     private ExtRequest createExtRequest(BidRequestVideo videoRequest) {
-        final ExtIncludeBrandCategory extIncludeBrandCategory;
-        final IncludeBrandCategory includebrandcategory = videoRequest.getIncludebrandcategory();
-        if (includebrandcategory != null) {
-            extIncludeBrandCategory = ExtIncludeBrandCategory.of(
-                    includebrandcategory.getPrimaryAdserver(),
-                    includebrandcategory.getPublisher(),
-                    true,
-                    includebrandcategory.getTranslateCategories());
-        } else {
-            extIncludeBrandCategory = ExtIncludeBrandCategory.of(null, null, false, null);
-        }
+        final ExtRequestPrebidCache cache = ExtRequestPrebidCache.of(null,
+                ExtRequestPrebidCacheVastxml.of(null, null), null);
 
-        List<Integer> durationRangeSec = null;
-        if (BooleanUtils.isFalse(videoRequest.getPodconfig().getRequireExactDuration())) {
-            durationRangeSec = videoRequest.getPodconfig().getDurationRangeSec();
-        }
+        final ExtIncludeBrandCategory extIncludeBrandCategory = createExtIncludeBrandCategory(videoRequest);
+
+        final Podconfig podconfig = videoRequest.getPodconfig();
+        final List<Integer> durationRangeSec = BooleanUtils.isFalse(podconfig.getRequireExactDuration())
+                ? podconfig.getDurationRangeSec()
+                : null;
 
         final PriceGranularity priceGranularity = videoRequest.getPricegranularity();
         final Integer precision = priceGranularity != null
-                                  ? priceGranularity.getPrecision()
-                                  : null;
-
-        PriceGranularity updatedPriceGranularity = precision != null && precision != 0
-                                                   ? priceGranularity
-                                                   : PriceGranularity.createFromString("med");
+                ? priceGranularity.getPrecision()
+                : null;
+        final PriceGranularity updatedPriceGranularity = precision != null && precision != 0
+                ? priceGranularity
+                : PriceGranularity.createFromString("med");
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
-                .pricegranularity(mapper.mapper().valueToTree(updatedPriceGranularity))
                 .includebidderkeys(true)
                 .includebrandcategory(extIncludeBrandCategory)
                 .durationrangesec(durationRangeSec)
+                .pricegranularity(mapper.mapper().valueToTree(updatedPriceGranularity))
                 .appendbiddernames(videoRequest.getAppendbiddernames())
                 .build();
 
-        final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null,
-                ExtRequestPrebidCacheVastxml.of(null, null), null);
-
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
-                .cache(extReqPrebidCache)
+                .cache(cache)
                 .targeting(targeting)
                 .build();
 
         return ExtRequest.of(extRequestPrebid);
+    }
+
+    private static ExtIncludeBrandCategory createExtIncludeBrandCategory(BidRequestVideo videoRequest) {
+        final IncludeBrandCategory includeBrandCategory = videoRequest.getIncludebrandcategory();
+        if (includeBrandCategory != null) {
+            return ExtIncludeBrandCategory.of(
+                    includeBrandCategory.getPrimaryAdserver(),
+                    includeBrandCategory.getPublisher(),
+                    true,
+                    includeBrandCategory.getTranslateCategories());
+        }
+
+        return ExtIncludeBrandCategory.of(null, null, false, null);
     }
 }

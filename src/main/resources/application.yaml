@@ -129,6 +129,7 @@ auction:
     banner-creative-max-size: skip
     secure-markup: skip
   host-schain-node:
+  category-mapping-enabled: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90

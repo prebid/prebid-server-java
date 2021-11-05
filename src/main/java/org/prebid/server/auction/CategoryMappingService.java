@@ -80,19 +80,15 @@ public class CategoryMappingService {
      */
     public Future<CategoryMappingResult> createCategoryMapping(List<BidderResponse> bidderResponses,
                                                                BidRequest bidRequest,
-                                                               ExtRequestTargeting targeting,
                                                                Timeout timeout) {
+
+        final ExtRequestTargeting targeting = targeting(bidRequest);
 
         final ExtIncludeBrandCategory includeBrandCategory = ObjectUtil.getIfNotNull(
                 targeting, ExtRequestTargeting::getIncludebrandcategory);
 
         if (includeBrandCategory == null) {
-            return Future.succeededFuture(
-                    CategoryMappingResult.of(
-                            Collections.emptyMap(),
-                            Collections.emptyMap(),
-                            bidderResponses,
-                            Collections.emptyList()));
+            return Future.succeededFuture(CategoryMappingResult.of(bidderResponses));
         }
 
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(
@@ -114,6 +110,12 @@ public class CategoryMappingService {
                 bidderResponses, withCategory, translateCategories, primaryAdServer, publisher, rejectedBids, timeout)
                 .map(categoryBidContexts -> resolveBidsCategoriesDurations(
                         bidderResponses, categoryBidContexts, bidRequest, targeting, withCategory, rejectedBids));
+    }
+
+    private static ExtRequestTargeting targeting(BidRequest bidRequest) {
+        final ExtRequest ext = bidRequest.getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
+        return prebid != null ? prebid.getTargeting() : null;
     }
 
     /**

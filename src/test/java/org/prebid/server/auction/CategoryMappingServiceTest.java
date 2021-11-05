@@ -102,7 +102,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -142,7 +142,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -171,7 +171,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         verifyZeroInteractions(applicationSettings);
@@ -192,7 +192,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
-                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout))
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server required but was not defined when translate category is enabled");
     }
@@ -208,7 +208,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when and then
         assertThatThrownBy(() -> categoryMappingService.createCategoryMapping(
-                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout))
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Primary ad server `3` is not recognized");
     }
@@ -227,7 +227,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+        categoryMappingService.createCategoryMapping(bidderResponses, givenBidRequestWithTargeting(extRequestTargeting),
                 timeout);
 
         // then
@@ -248,7 +248,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
-        categoryMappingService.createCategoryMapping(bidderResponses, BidRequest.builder().build(), extRequestTargeting,
+        categoryMappingService.createCategoryMapping(bidderResponses, givenBidRequestWithTargeting(extRequestTargeting),
                 timeout);
 
         // then
@@ -272,7 +272,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -299,7 +299,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -327,7 +327,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -355,7 +355,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(null));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -386,7 +386,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -411,7 +411,7 @@ public class CategoryMappingServiceTest extends VertxTest {
                 Future.succeededFuture(singletonMap("cat2", "fetchedCat2")));
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -434,7 +434,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -463,7 +463,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -488,7 +488,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -513,7 +513,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(
-                bidderResponses, BidRequest.builder().build(), extRequestTargeting, timeout);
+                bidderResponses, givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -541,7 +541,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -563,7 +563,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -589,7 +589,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -616,7 +616,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -644,7 +644,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -668,7 +668,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -690,7 +690,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -713,7 +713,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -735,7 +735,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -750,19 +750,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), false, null))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -784,19 +787,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                                 .bidder(mapper.createObjectNode()
                                         .set("rubicon", givenDealTier("prebidPrefix", 4))).build(), null)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), false, null))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -820,19 +826,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(impExt)
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), false, null))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), false, null);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -852,19 +861,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -886,19 +898,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 3)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(false).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(false)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -918,19 +933,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", givenDealTier("rubiconPrefix", 10)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -955,19 +973,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(impExt)
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -987,19 +1008,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", mapper.createObjectNode()))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1022,19 +1046,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", dealTier))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1058,19 +1085,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", dealTier))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1092,19 +1122,22 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("impId1")
                         .ext(mapper.createObjectNode().set("rubicon", givenDealTier("prefix", -1)))
                         .build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().supportdeals(true).build())).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(givenTargeting(1, "publisher", asList(10, 15, 5), true, true))
+                        .supportdeals(true)
+                        .build()))
+                .build();
 
         final List<BidderResponse> bidderResponses = singletonList(
                 givenBidderResponse("rubicon", givenBidderBid(givenBid("1", "impId1", "10", singletonList("cat1")),
                         BidType.video, 10)));
 
-        final ExtRequestTargeting extRequestTargeting = givenTargeting(1, "publisher", asList(10, 15, 5), true, true);
         given(applicationSettings.getCategories(anyString(), anyString(), any())).willReturn(
                 Future.succeededFuture(singletonMap("cat1", "fetchedCat1")));
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                bidRequest, extRequestTargeting, timeout);
+                bidRequest, timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1135,7 +1168,7 @@ public class CategoryMappingServiceTest extends VertxTest {
 
         // when
         final Future<CategoryMappingResult> resultFuture = categoryMappingService.createCategoryMapping(bidderResponses,
-                BidRequest.builder().build(), extRequestTargeting, timeout);
+                givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
         assertThat(resultFuture.succeeded()).isTrue();
@@ -1195,6 +1228,14 @@ public class CategoryMappingServiceTest extends VertxTest {
                 .includebrandcategory(ExtIncludeBrandCategory.of(primaryAdServer, publisher, withCategory,
                         translateCategories))
                 .durationrangesec(durations)
+                .build();
+    }
+
+    private static BidRequest givenBidRequestWithTargeting(ExtRequestTargeting extRequestTargeting) {
+        return BidRequest.builder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(extRequestTargeting)
+                        .build()))
                 .build();
     }
 
