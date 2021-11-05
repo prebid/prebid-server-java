@@ -105,6 +105,42 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+
+        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
+        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+                : null;
+    }
+
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
+        if (!context.isRequestRejected()) {
+            final BidRequest bidRequest = context.getBidRequest();
+            final UidsCookie uidsCookie = context.getUidsCookie();
+
+            final List<Imp> imps = bidRequest.getImp();
+            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                    imps.size());
+
+            metrics.updateImpTypesMetrics(imps);
+        }
+
+        return context;
+    }
+
     @Override
     public void handle(RoutingContext routingContext) {
         // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
@@ -130,7 +166,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         Tuple3.of(
                                 result.getLeft(),
                                 result.getRight(),
-                                toAmpResponse(result.getRight(), result.getLeft())))
+                                toAmpResponse(result.getLeft())))
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
@@ -143,55 +179,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         addToEvent(result.getRight().getTargeting(), ampEventBuilder::targeting, result))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
-    }
-
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
-    }
-
-    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        if (!context.isRequestRejected()) {
-            final BidRequest bidRequest = context.getBidRequest();
-            final UidsCookie uidsCookie = context.getUidsCookie();
-
-            final List<Imp> imps = bidRequest.getImp();
-            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                    imps.size());
-
-            metrics.updateImpTypesMetrics(imps);
-        }
-
-        return context;
-    }
-
-    private AmpResponse toAmpResponse(AuctionContext auctionContext, BidResponse bidResponse) {
-        // Fetch targeting information from response bids
-        final List<SeatBid> seatBids = bidResponse.getSeatbid();
-
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
-
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (auctionContext.getDebugContext().isDebugEnabled()) {
-            final ExtBidResponse extBidResponse = bidResponse.getExt();
-
-            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
-            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-
-        return AmpResponse.of(targeting, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -242,12 +229,20 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
-        final ExtBidResponse ext = bidResponse.getExt();
-        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+    private AmpResponse toAmpResponse(BidResponse bidResponse) {
+        // Fetch targeting information from response bids
+        final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+                .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+
+        return AmpResponse.of(targeting, extResponseFrom(bidResponse));
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,

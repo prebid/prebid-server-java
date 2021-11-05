@@ -637,6 +637,18 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         }));
     }
 
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
+        // given and when
+        final Future<Map<String, String>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+                timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Not supported");
+    }
+
     private JdbcClient jdbcClient() {
         return new BasicJdbcClient(vertx, JDBCClient.createShared(vertx,
                 new JsonObject()

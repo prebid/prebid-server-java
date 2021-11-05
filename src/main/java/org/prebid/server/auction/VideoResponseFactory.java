@@ -6,9 +6,12 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -34,20 +37,31 @@ public class VideoResponseFactory {
 
     public static final String PREBID_EXT = "prebid";
 
+    private final IdGenerator idGenerator;
     private final JacksonMapper mapper;
 
-    public VideoResponseFactory(JacksonMapper mapper) {
+    public VideoResponseFactory(IdGenerator idGenerator, JacksonMapper mapper) {
+        this.idGenerator = idGenerator;
         this.mapper = mapper;
     }
 
-    public VideoResponse toVideoResponse(
-            AuctionContext auctionContext,
-            BidResponse bidResponse,
-            List<PodError> podErrors) {
+    public VideoResponse toVideoResponse(AuctionContext auctionContext,
+                                         BidResponse bidResponse,
+                                         List<PodError> podErrors) {
 
         final List<Bid> bids = bidsFrom(bidResponse);
         final boolean anyBidsReturned = CollectionUtils.isNotEmpty(bids);
         final List<ExtAdPod> adPods = adPodsWithTargetingFrom(bids);
+
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        if (cachedDebugEnabled(cachedDebugLog) && CollectionUtils.isEmpty(adPods)) {
+            final String cacheId = idGenerator.generateId();
+            cachedDebugLog.setCacheKey(cacheId);
+            cachedDebugLog.setHasBids(false);
+
+            adPods.add(ExtAdPod.of(null,
+                    Collections.singletonList(ExtResponseVideoTargeting.of(null, null, cacheId)), null));
+        }
 
         if (anyBidsReturned && CollectionUtils.isEmpty(adPods)) {
             throw new PreBidException("caching failed for all bids");
@@ -55,19 +69,7 @@ public class VideoResponseFactory {
 
         adPods.addAll(adPodsWithErrors(podErrors));
 
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (auctionContext.getDebugContext().isDebugEnabled()) {
-            final ExtBidResponse extBidResponse = bidResponse.getExt();
-
-            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
-            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-        return VideoResponse.of(adPods, extResponseDebug, errors, extResponseFrom(bidResponse));
+        return VideoResponse.of(adPods, extResponseFrom(bidResponse));
     }
 
     private static List<Bid> bidsFrom(BidResponse bidResponse) {
@@ -150,8 +152,20 @@ public class VideoResponseFactory {
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
         final ExtBidResponse ext = bidResponse.getExt();
         final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
 
-        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
+        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+                : null;
+    }
+
+    private static boolean cachedDebugEnabled(CachedDebugLog cachedDebugLog) {
+        return cachedDebugLog != null && cachedDebugLog.isEnabled();
     }
 }

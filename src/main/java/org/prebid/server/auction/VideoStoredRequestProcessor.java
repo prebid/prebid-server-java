@@ -377,9 +377,12 @@ public class VideoStoredRequestProcessor {
         final IncludeBrandCategory includebrandcategory = videoRequest.getIncludebrandcategory();
         if (includebrandcategory != null) {
             extIncludeBrandCategory = ExtIncludeBrandCategory.of(
-                    includebrandcategory.getPrimaryAdserver(), includebrandcategory.getPublisher(), true);
+                    includebrandcategory.getPrimaryAdserver(),
+                    includebrandcategory.getPublisher(),
+                    true,
+                    includebrandcategory.getTranslateCategories());
         } else {
-            extIncludeBrandCategory = ExtIncludeBrandCategory.of(null, null, false);
+            extIncludeBrandCategory = ExtIncludeBrandCategory.of(null, null, false, null);
         }
 
         List<Integer> durationRangeSec = null;
@@ -401,6 +404,7 @@ public class VideoStoredRequestProcessor {
                 .includebidderkeys(true)
                 .includebrandcategory(extIncludeBrandCategory)
                 .durationrangesec(durationRangeSec)
+                .appendbiddernames(videoRequest.getAppendbiddernames())
                 .build();
 
         final ExtRequestPrebidCache extReqPrebidCache = ExtRequestPrebidCache.of(null,

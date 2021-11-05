@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
-import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.fasterxml.jackson.module.blackbird.BlackbirdModule;
 import io.vertx.core.json.jackson.DatabindCodec;
 
 public final class ObjectMapperProvider {
@@ -20,7 +20,7 @@ public final class ObjectMapperProvider {
                 .enable(JsonGenerator.Feature.WRITE_BIGDECIMAL_AS_PLAIN)
                 .setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE)
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL)
-                .registerModule(new AfterburnerModule())
+                .registerModule(new BlackbirdModule())
                 .registerModule(new ZonedDateTimeModule())
                 .registerModule(new MissingJsonNodeModule())
                 .registerModule(new ZonedDateTimeModule())

@@ -65,7 +65,7 @@ public class YahooSSPBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 

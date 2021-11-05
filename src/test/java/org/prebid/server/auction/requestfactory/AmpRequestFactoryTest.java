@@ -509,7 +509,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenRequestExt(ExtRequestTargeting.builder()
-                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true, false))
                                 .truncateattrchars(10)
                                 .build())),
                 Imp.builder().build());
@@ -523,7 +523,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
-                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true, false), 10));
     }
 
     @Test
