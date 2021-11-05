@@ -9,7 +9,6 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
-import org.prebid.server.auction.CategoryMappingService;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
@@ -25,6 +24,9 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
+import org.prebid.server.auction.categorymapping.CategoryMappingService;
+import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -132,10 +134,20 @@ public class ServiceConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "auction", name = "category-mapping-enabled", havingValue = "true")
-    CategoryMappingService categoryMappingService(ApplicationSettings applicationSettings,
-                                                  JacksonMapper jacksonMapper) {
+    CategoryMappingService basicCategoryMappingService(ApplicationSettings applicationSettings,
+                                                       JacksonMapper jacksonMapper) {
 
-        return new CategoryMappingService(applicationSettings, jacksonMapper);
+        return new BasicCategoryMappingService(applicationSettings, jacksonMapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "auction",
+            name = "category-mapping-enabled",
+            matchIfMissing = true,
+            havingValue = "false")
+    CategoryMappingService noOpCategoryMappingService() {
+        return new NoOpCategoryMappingService();
     }
 
     @Bean
@@ -535,7 +547,7 @@ public class ServiceConfiguration {
             WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             HookStageExecutor hookStageExecutor,
-            @Autowired(required = false) CategoryMappingService categoryMappingService,
+            CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {

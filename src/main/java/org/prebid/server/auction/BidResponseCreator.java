@@ -22,6 +22,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -149,7 +150,7 @@ public class BidResponseCreator {
         this.winningBidComparatorFactory = Objects.requireNonNull(winningBidComparatorFactory);
         this.bidIdGenerator = Objects.requireNonNull(bidIdGenerator);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.categoryMappingService = categoryMappingService;
+        this.categoryMappingService = Objects.requireNonNull(categoryMappingService);
         this.truncateAttrChars = validateTruncateAttrChars(truncateAttrChars);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -449,16 +450,12 @@ public class BidResponseCreator {
     private Future<CategoryMappingResult> createCategoryMapping(AuctionContext auctionContext,
                                                                 List<BidderResponse> bidderResponses) {
 
-        if (categoryMappingService != null) {
-            return categoryMappingService.createCategoryMapping(
-                            bidderResponses,
-                            auctionContext.getBidRequest(),
-                            auctionContext.getTimeout())
+        return categoryMappingService.createCategoryMapping(
+                        bidderResponses,
+                        auctionContext.getBidRequest(),
+                        auctionContext.getTimeout())
 
-                    .map(categoryMappingResult -> addCategoryMappingErrors(categoryMappingResult, auctionContext));
-        }
-
-        return Future.succeededFuture(CategoryMappingResult.of(bidderResponses));
+                .map(categoryMappingResult -> addCategoryMappingErrors(categoryMappingResult, auctionContext));
     }
 
     private static CategoryMappingResult addCategoryMappingErrors(CategoryMappingResult categoryMappingResult,
