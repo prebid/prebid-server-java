@@ -457,7 +457,8 @@ SELECT JSON_MERGE_PATCH(
                            ),
                        'analytics', JSON_MERGE_PATCH(
                                COALESCE(analytics_config, '{}'),
-                               JSON_OBJECT('modules', JSON_OBJECT('vendor', JSON_OBJECT('data', '{}}')))
+                               JSON_OBJECT('modules', JSON_OBJECT('vendor', JSON_OBJECT(
+                                    'sampling-factor', analytics_sampling_factor)))
                            )
                    ),
                COALESCE(config, '{}')) as consolidated_config
