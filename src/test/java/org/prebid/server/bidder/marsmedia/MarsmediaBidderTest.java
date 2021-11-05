@@ -84,7 +84,7 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Zone is empty"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("ZoneId is empty"));
     }
 
     @Test
