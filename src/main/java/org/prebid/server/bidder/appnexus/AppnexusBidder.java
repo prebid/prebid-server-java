@@ -321,7 +321,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                         boolean isAmpRequest,
                                         String adPodId) {
 
-        final boolean includeBrandCategory = isIncludeBrandCategory(extRequest);
+        final Boolean includeBrandCategory = isIncludeBrandCategory(extRequest);
         final AppnexusReqExtAppnexus appnexus = AppnexusReqExtAppnexus.builder()
                 .includeBrandCategory(includeBrandCategory)
                 .brandCategoryUniqueness(includeBrandCategory)
@@ -337,10 +337,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(ExtRequest.of(extRequestPrebid), appnexusNode);
     }
 
-    private static boolean isIncludeBrandCategory(ExtRequest extRequest) {
+    private static Boolean isIncludeBrandCategory(ExtRequest extRequest) {
         final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
         final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : null;
-        return targeting != null && targeting.getIncludebrandcategory() != null;
+        return targeting != null && targeting.getIncludebrandcategory() != null ? true : null;
     }
 
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
