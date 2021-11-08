@@ -17,6 +17,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
@@ -28,33 +29,20 @@ public class FacebookConfiguration {
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("facebookConfigurationProperties")
-    private FacebookConfigurationProperties configProperties;
-
-    @Bean("facebookConfigurationProperties")
-    @ConfigurationProperties("adapters.facebook")
-    FacebookConfigurationProperties configurationProperties() {
-        return new FacebookConfigurationProperties();
-    }
-
     @Bean
-    BidderDeps facebookBidderDeps(BidderConfigurationProperties facebookConfigurationProperties,
+    BidderDeps facebookBidderDeps(FacebookConfigurationProperties facebookConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.<FacebookConfigurationProperties>forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(facebookConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
-                .bidderCreator(configProperties.getEnabled()
+                .bidderCreator(facebookConfigurationProperties.getEnabled()
                         ? config -> new FacebookBidder(
                         config.getEndpoint(),
                         config.getPlatformId(),
                         config.getAppSecret(),
-                        configProperties.getTimeoutNotificationUrlTemplate(), mapper)
+                        facebookConfigurationProperties.getTimeoutNotificationUrlTemplate(), mapper)
                         : null)
                 .assemble();
     }
@@ -63,6 +51,8 @@ public class FacebookConfiguration {
     @Data
     @EqualsAndHashCode(callSuper = true)
     @NoArgsConstructor
+    @Component("facebookConfigurationProperties")
+    @ConfigurationProperties("adapters.facebook")
     private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
 
         @NotNull

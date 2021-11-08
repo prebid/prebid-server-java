@@ -1,5 +1,8 @@
 package org.prebid.server.spring.config.bidder;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.appnexus.AppnexusBidder;
 import org.prebid.server.json.JacksonMapper;
@@ -12,6 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotBlank;
 
@@ -21,21 +25,26 @@ public class AppnexusConfiguration {
 
     private static final String BIDDER_NAME = "appnexus";
 
-    @Bean("appnexusConfigurationProperties")
-    @ConfigurationProperties("adapters.appnexus")
-    BidderConfigurationProperties configurationProperties() {
-        return new BidderConfigurationProperties();
-    }
-
     @Bean
-    BidderDeps appnexusBidderDeps(BidderConfigurationProperties appnexusConfigurationProperties,
+    BidderDeps appnexusBidderDeps(AppnexusConfigurationProperties appnexusConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(appnexusConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AppnexusBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new AppnexusBidder(
+                        config.getEndpoint(), appnexusConfigurationProperties.getPlatformId(), mapper))
                 .assemble();
+    }
+
+    @Data
+    @EqualsAndHashCode(callSuper = true)
+    @NoArgsConstructor
+    @Component("appnexusConfigurationProperties")
+    @ConfigurationProperties("adapters.appnexus")
+    private static class AppnexusConfigurationProperties extends BidderConfigurationProperties {
+
+        Integer platformId;
     }
 }
