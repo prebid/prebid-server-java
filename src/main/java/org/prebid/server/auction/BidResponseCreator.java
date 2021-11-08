@@ -27,6 +27,8 @@ import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.BidderResponseInfo;
+import org.prebid.server.auction.model.CachedDebugLog;
+import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
@@ -111,6 +113,7 @@ public class BidResponseCreator {
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
 
     private final CacheService cacheService;
+    private final CategoryMappingService categoryMappingService;
     private final BidderCatalog bidderCatalog;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
@@ -127,6 +130,7 @@ public class BidResponseCreator {
     private final WinningBidComparatorFactory winningBidComparatorFactory;
 
     public BidResponseCreator(CacheService cacheService,
+                              CategoryMappingService categoryMappingService,
                               BidderCatalog bidderCatalog,
                               VastModifier vastModifier,
                               EventsService eventsService,
@@ -139,6 +143,7 @@ public class BidResponseCreator {
                               JacksonMapper mapper) {
 
         this.cacheService = Objects.requireNonNull(cacheService);
+        this.categoryMappingService = Objects.requireNonNull(categoryMappingService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -178,17 +183,32 @@ public class BidResponseCreator {
                 .compose(videoStoredDataResult -> {
                     final List<BidderResponse> modifiedBidderResponses =
                             updateBids(bidderResponses, videoStoredDataResult, auctionContext, eventsContext, imps);
+                    final BidRequest bidRequest = auctionContext.getBidRequest();
+                    final ExtRequestTargeting targeting = targeting(bidRequest);
 
                     return invokeProcessedBidderResponseHooks(modifiedBidderResponses, auctionContext)
-                            .map(updatedBidderResponses -> toBidderResponseInfos(updatedBidderResponses, imps))
-                            .compose(bidderResponseInfos -> cacheBidsAndCreateResponse(
-                                    bidderResponseInfos,
+                            .compose(updatedBidderResponses ->
+                                    categoryMappingService.createCategoryMapping(updatedBidderResponses,
+                                            bidRequest,
+                                            targeting,
+                                            auctionContext.getTimeout()))
+                            .map(categoryMappingResult ->
+                                    updateWithCategoryErrors(categoryMappingResult, auctionContext))
+                            .compose(categoryMappingResult -> cacheBidsAndCreateResponse(
+                                    toBidderResponseInfos(
+                                            categoryMappingResult.getBidderResponses(), imps, categoryMappingResult),
                                     auctionContext,
                                     cacheInfo,
                                     bidderToMultiBids,
                                     videoStoredDataResult,
                                     eventsContext));
                 });
+    }
+
+    private static CategoryMappingResult updateWithCategoryErrors(CategoryMappingResult categoryMappingResult,
+                                                                  AuctionContext auctionContext) {
+        auctionContext.getPrebidErrors().addAll(CollectionUtils.emptyIfNull(categoryMappingResult.getErrors()));
+        return categoryMappingResult;
     }
 
     private List<BidderResponse> updateBids(List<BidderResponse> bidderResponses,
@@ -355,7 +375,9 @@ public class BidResponseCreator {
                 .allMatch(CollectionUtils::isEmpty);
     }
 
-    private List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses, List<Imp> imps) {
+    private List<BidderResponseInfo> toBidderResponseInfos(List<BidderResponse> bidderResponses,
+                                                           List<Imp> imps,
+                                                           CategoryMappingResult categoryMappingResult) {
         final List<BidderResponseInfo> result = new ArrayList<>();
         for (final BidderResponse bidderResponse : bidderResponses) {
             final String bidder = bidderResponse.getBidder();
@@ -366,7 +388,7 @@ public class BidResponseCreator {
             for (final BidderBid bidderBid : seatBid.getBids()) {
                 final Bid bid = bidderBid.getBid();
                 final BidType type = bidderBid.getType();
-                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidder);
+                final BidInfo bidInfo = toBidInfo(bid, type, imps, bidder, categoryMappingResult);
                 bidInfos.add(bidInfo);
             }
 
@@ -381,11 +403,17 @@ public class BidResponseCreator {
         return result;
     }
 
-    private BidInfo toBidInfo(Bid bid, BidType type, List<Imp> imps, String bidder) {
+    private BidInfo toBidInfo(Bid bid,
+                              BidType type,
+                              List<Imp> imps,
+                              String bidder,
+                              CategoryMappingResult categoryMappingResult) {
         final Imp correspondingImp = correspondingImp(bid, imps);
         final ExtDealLine extDealLine = LineItemUtil.extDealLineFrom(bid, correspondingImp, mapper);
         final String lineItemId = extDealLine != null ? extDealLine.getLineItemId() : null;
         return BidInfo.builder()
+                .satisfiedPriority(categoryMappingResult.isBidSatisfiesPriority(bid))
+                .category(categoryMappingResult.getCategory(bid))
                 .bid(bid)
                 .bidType(type)
                 .bidder(bidder)
@@ -436,18 +464,25 @@ public class BidResponseCreator {
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         if (isEmptyBidderResponses(bidderResponses)) {
+
+            final ExtBidResponse extBidResponse = toExtBidResponse(
+                    bidderResponses,
+                    auctionContext,
+                    CacheServiceResult.empty(),
+                    VideoStoredDataResult.empty(),
+                    eventsContext.getAuctionTimestamp(),
+                    null);
+            final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+            if (isCachedDebugEnabled(cachedDebugLog)) {
+                cachedDebugLog.setExtBidResponse(extBidResponse);
+            }
+
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
                     .cur(bidRequest.getCur().get(0))
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
-                    .ext(toExtBidResponse(
-                            bidderResponses,
-                            auctionContext,
-                            CacheServiceResult.empty(),
-                            VideoStoredDataResult.empty(),
-                            eventsContext.getAuctionTimestamp(),
-                            null))
+                    .ext(extBidResponse)
                     .build());
         }
 
@@ -1054,6 +1089,11 @@ public class BidResponseCreator {
                 auctionTimestamp,
                 bidErrors);
 
+        final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
+        if (isCachedDebugEnabled(cachedDebugLog)) {
+            cachedDebugLog.setExtBidResponse(extBidResponse);
+        }
+
         return BidResponse.builder()
                 .id(bidRequest.getId())
                 .cur(bidRequest.getCur().get(0))
@@ -1202,8 +1242,9 @@ public class BidResponseCreator {
                     bidRequest, account);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
+            final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator.makeFor(bid, bidderCode, isWinningBid, cacheId,
-                    bidType.getName(), videoCacheId);
+                    bidType.getName(), videoCacheId, categoryDuration);
         } else {
             targetingKeywords = null;
         }
@@ -1217,10 +1258,11 @@ public class BidResponseCreator {
         final ExtBidPrebid.ExtBidPrebidBuilder extBidPrebidBuilder = extBidPrebid != null
                 ? extBidPrebid.toBuilder()
                 : ExtBidPrebid.builder();
-
+        final Boolean dealsTierSatisfied = bidInfo.getSatisfiedPriority();
         final ExtBidPrebid updatedExtBidPrebid = extBidPrebidBuilder
                 .targeting(MapUtils.isEmpty(targetingKeywords) ? null : targetingKeywords)
                 .targetBidderCode(targetingInfo.isAddTargetBidderCode() ? bidderCode : null)
+                .dealtiersatisfied(dealsTierSatisfied)
                 .cache(cache)
                 .build();
 
@@ -1486,6 +1528,10 @@ public class BidResponseCreator {
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
         return value != null && value >= 0 && value <= 255 ? value : null;
+    }
+
+    private static boolean isCachedDebugEnabled(CachedDebugLog cachedDebugLog) {
+        return cachedDebugLog != null && cachedDebugLog.isEnabled();
     }
 
     /**

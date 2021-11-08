@@ -62,10 +62,12 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
-                FileSystem fileSystem) {
+                @Value("${settings.filesystem.categories-dir}") String categoriesDir,
+                FileSystem fileSystem,
+                JacksonMapper jacksonMapper) {
 
             return new FileApplicationSettings(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
-                    storedResponsesDir);
+                    storedResponsesDir, categoriesDir, jacksonMapper);
         }
     }
 
@@ -193,9 +195,11 @@ public class SettingsConfiguration {
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint,
-                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
+                @Value("${settings.http.video-endpoint}") String videoEndpoint,
+                @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint);
+            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
+                    categoryEndpoint);
         }
     }
 

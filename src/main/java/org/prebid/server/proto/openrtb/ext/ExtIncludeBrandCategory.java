@@ -13,6 +13,10 @@ public class ExtIncludeBrandCategory {
 
     String publisher;
 
+    @JsonProperty("withcategory")
     Boolean withCategory;
+
+    @JsonProperty("translatecategories")
+    Boolean translateCategories;
 }
 

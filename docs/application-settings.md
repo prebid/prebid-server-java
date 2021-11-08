@@ -438,30 +438,27 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8'
 The following Mysql SQL query could be used to construct a JSON document of required shape on the fly:
 
 ```mysql-sql
-SELECT 
-    JSON_MERGE_PATCH(config, JSON_OBJECT(
-        'id', uuid,
-        'status', status,
-        'auction', JSON_OBJECT(
-            'price-granularity', price_granularity,
-            'banner-cache-ttl', banner_cache_ttl,
-            'video-cache-ttl', video_cache_ttl,
-            'truncate-target-attr', truncate_target_attr,
-            'default-integration', default_integration,
-            'bid-validations', bid_validations,
-            'events', JSON_OBJECT(
-                'enabled', NOT NOT(events_enabled)
-            )
-        ), 
-        'privacy', JSON_OBJECT(
-            'ccpa', JSON_OBJECT(
-                'enabled', NOT NOT(enforce_ccpa)
-            ),
-            'gdpr', tcf_config
-        ), 
-        'analytics', analytics_config
-    )) as consolidated_config 
-FROM accounts_account 
-WHERE uuid = %ACCOUNT_ID% 
-LIMIT 1;
+SELECT JSON_MERGE_PATCH(
+               JSON_OBJECT(
+                       'id', uuid,
+                       'status', status,
+                       'auction', JSON_OBJECT(
+                               'price-granularity', price_granularity,
+                               'banner-cache-ttl', banner_cache_ttl,
+                               'video-cache-ttl', video_cache_ttl,
+                               'truncate-target-attr', truncate_target_attr,
+                               'default-integration', default_integration,
+                               'bid-validations', bid_validations,
+                               'events', JSON_OBJECT('enabled', NOT NOT (events_enabled))
+                           ),
+                       'privacy', JSON_OBJECT(
+                               'ccpa', JSON_OBJECT('enabled', NOT NOT (enforce_ccpa)),
+                               'gdpr', tcf_config
+                           ),
+                       'analytics', analytics_config
+                   ),
+               COALESCE(config, '{}')) as consolidated_config
+FROM accounts_account
+WHERE uuid = %ACCOUNT_ID%
+LIMIT 1
 ```

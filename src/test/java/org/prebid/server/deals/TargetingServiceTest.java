@@ -248,7 +248,7 @@ public class TargetingServiceTest extends VertxTest {
                 jsonFrom("targeting/test-invalid-targeting-definition-intersects-sizes-non-readable-size.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessageStartingWith("Exception occurred while parsing size: "
-                        + "Cannot deserialize instance of `java.lang.Integer`");
+                        + "Cannot deserialize value of type `java.lang.Integer`");
     }
 
     @Test
@@ -338,7 +338,7 @@ public class TargetingServiceTest extends VertxTest {
                 jsonFrom("targeting/test-invalid-targeting-definition-within-non-readable-georegion.json"), null))
                 .isInstanceOf(TargetingSyntaxException.class)
                 .hasMessageStartingWith("Exception occurred while parsing geo region: "
-                        + "Cannot deserialize instance of `java.lang.Float`");
+                        + "Cannot deserialize value of type `java.lang.Float`");
     }
 
     @Test

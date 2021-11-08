@@ -12,6 +12,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -52,6 +54,7 @@ import org.prebid.server.proto.response.AmpResponse;
 import org.prebid.server.proto.response.ExtAmpVideoPrebid;
 import org.prebid.server.proto.response.ExtAmpVideoResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.util.Collections;
@@ -80,6 +83,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final Set<String> biddersSupportingCustomTargeting;
     private final AmpResponsePostProcessor ampResponsePostProcessor;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
@@ -91,6 +95,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                       Set<String> biddersSupportingCustomTargeting,
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
+                      PrebidVersionProvider prebidVersionProvider,
                       JacksonMapper mapper) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
@@ -102,7 +107,44 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.biddersSupportingCustomTargeting = Objects.requireNonNull(biddersSupportingCustomTargeting);
         this.ampResponsePostProcessor = Objects.requireNonNull(ampResponsePostProcessor);
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+
+        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
+        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+                : null;
+    }
+
+    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
+        consumer.accept(field);
+        return result;
+    }
+
+    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
+        if (!context.isRequestRejected()) {
+            final BidRequest bidRequest = context.getBidRequest();
+            final UidsCookie uidsCookie = context.getUidsCookie();
+
+            final List<Imp> imps = bidRequest.getImp();
+            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
+                    imps.size());
+
+            metrics.updateImpTypesMetrics(imps);
+        }
+
+        return context;
     }
 
     @Override
@@ -130,7 +172,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                         Tuple3.of(
                                 result.getLeft(),
                                 result.getRight(),
-                                toAmpResponse(result.getRight(), result.getLeft())))
+                                toAmpResponse(result.getLeft())))
 
                 .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         ampResponsePostProcessor.postProcess(
@@ -143,55 +185,6 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
                         addToEvent(result.getRight().getTargeting(), ampEventBuilder::targeting, result))
                 .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
-    }
-
-    private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
-        consumer.accept(field);
-        return result;
-    }
-
-    private AuctionContext updateAppAndNoCookieAndImpsMetrics(AuctionContext context) {
-        if (!context.isRequestRejected()) {
-            final BidRequest bidRequest = context.getBidRequest();
-            final UidsCookie uidsCookie = context.getUidsCookie();
-
-            final List<Imp> imps = bidRequest.getImp();
-            metrics.updateAppAndNoCookieAndImpsRequestedMetrics(bidRequest.getApp() != null, uidsCookie.hasLiveUids(),
-                    imps.size());
-
-            metrics.updateImpTypesMetrics(imps);
-        }
-
-        return context;
-    }
-
-    private AmpResponse toAmpResponse(AuctionContext auctionContext, BidResponse bidResponse) {
-        // Fetch targeting information from response bids
-        final List<SeatBid> seatBids = bidResponse.getSeatbid();
-
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
-                .filter(Objects::nonNull)
-                .filter(seatBid -> seatBid.getBid() != null)
-                .flatMap(seatBid -> seatBid.getBid().stream()
-                        .filter(Objects::nonNull)
-                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
-                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
-
-        final ExtResponseDebug extResponseDebug;
-        final Map<String, List<ExtBidderError>> errors;
-        // Fetch debug and errors information from response if requested
-        if (auctionContext.getDebugContext().isDebugEnabled()) {
-            final ExtBidResponse extBidResponse = bidResponse.getExt();
-
-            extResponseDebug = extBidResponse != null ? extBidResponse.getDebug() : null;
-            errors = extBidResponse != null ? extBidResponse.getErrors() : null;
-        } else {
-            extResponseDebug = null;
-            errors = null;
-        }
-
-        return AmpResponse.of(targeting, extResponseDebug, errors, extResponseFrom(bidResponse));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -242,12 +235,20 @@ public class AmpHandler implements Handler<RoutingContext> {
         }
     }
 
-    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
-        final ExtBidResponse ext = bidResponse.getExt();
-        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+    private AmpResponse toAmpResponse(BidResponse bidResponse) {
+        // Fetch targeting information from response bids
+        final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        return extModules != null ? ExtAmpVideoResponse.of(ExtAmpVideoPrebid.of(extModules)) : null;
+        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+                .filter(Objects::nonNull)
+                .filter(seatBid -> seatBid.getBid() != null)
+                .flatMap(seatBid -> seatBid.getBid().stream()
+                        .filter(Objects::nonNull)
+                        .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
+                .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+
+        return AmpResponse.of(targeting, extResponseFrom(bidResponse));
     }
 
     private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
@@ -266,17 +267,15 @@ public class AmpHandler implements Handler<RoutingContext> {
         final String origin = originFrom(routingContext);
         ampEventBuilder.origin(origin);
 
-        // Add AMP headers
-        routingContext.response().headers()
-                .add("AMP-Access-Control-Allow-Source-Origin", origin)
-                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+        final HttpServerResponse response = routingContext.response();
+        enrichWithCommonHeaders(response, origin);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
-            routingContext.response().headers().add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+            enrichWithSuccessfulHeaders(response);
             body = mapper.encodeToString(responseResult.result().getRight());
         } else {
             final Throwable exception = responseResult.cause();
@@ -371,5 +370,21 @@ public class AmpHandler implements Handler<RoutingContext> {
     private void handleResponseException(Throwable exception) {
         logger.warn("Failed to send amp response: {0}", exception.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+    }
+
+    private void enrichWithCommonHeaders(HttpServerResponse response, String origin) {
+        final MultiMap headers = response.headers();
+
+        // Add AMP headers
+        headers.add("AMP-Access-Control-Allow-Source-Origin", origin)
+                .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
+
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                headers, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+    }
+
+    private void enrichWithSuccessfulHeaders(HttpServerResponse response) {
+        final MultiMap headers = response.headers();
+        headers.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
     }
 }

@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.beachfront;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -38,6 +40,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -412,28 +416,30 @@ public class BeachfrontBidder implements Bidder<Void> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
         final String bodyString = httpCall.getResponse().getBody();
+        final List<BidderBid> processedBidderBids = new ArrayList<>();
+
         try {
-            return processVideoResponse(bodyString, httpCall.getRequest());
+            processedBidderBids.addAll(processVideoResponse(bodyString, httpCall.getRequest()));
         } catch (DecodeException ignored) {
             try {
-                return processBannerResponse(bodyString);
+                processedBidderBids.addAll(processBannerResponse(bodyString));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badServerResponse(e.getMessage()));
             }
         }
+
+        return Result.withValues(postProcessBidderBids(processedBidderBids));
     }
 
     /**
      * Creates response for banner response, by creating response {@link Bid} from {@link BeachfrontResponseSlot}.
      */
-    private Result<List<BidderBid>> processBannerResponse(String responseBody) {
-        final List<BeachfrontResponseSlot> responseSlots = makeBeachfrontResponseSlots(responseBody);
-
-        return Result.withValues(responseSlots.stream()
+    private List<BidderBid> processBannerResponse(String responseBody) {
+        return makeBeachfrontResponseSlots(responseBody).stream()
                 .filter(Objects::nonNull)
                 .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
                 .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
     }
 
     /**
@@ -468,44 +474,39 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .build();
     }
 
-    private Result<List<BidderBid>> processVideoResponse(String responseBody, HttpRequest httpRequest) {
+    private List<BidderBid> processVideoResponse(String responseBody, HttpRequest<Void> httpRequest) {
         final BidResponse bidResponse = mapper.decodeValue(responseBody, BidResponse.class);
         final BeachfrontVideoRequest videoRequest = mapper.decodeValue(
                 httpRequest.getBody(), BeachfrontVideoRequest.class);
 
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.empty();
+            return Collections.emptyList();
         }
 
         final List<Bid> bids = bidResponse.getSeatbid().get(0).getBid();
-        final List<Imp> imps = videoRequest.getRequest().getImp();
-        if (httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)) {
-            return Result.withValues(updateNurlVideoBids(bids, imps).stream()
-                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                    .collect(Collectors.toList()));
-        } else {
-            return Result.withValues(updateVideoBids(bids).stream()
-                    .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                    .collect(Collectors.toList()));
-        }
+        final List<Bid> updatedBids = httpRequest.getUri().contains(NURL_VIDEO_ENDPOINT_SUFFIX)
+                ? updateNurlVideoBids(bids, videoRequest.getRequest().getImp())
+                : updateVideoBids(bids);
+
+        return updatedBids.stream()
+                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                .collect(Collectors.toList());
     }
 
     private static List<Bid> updateNurlVideoBids(List<Bid> bids, List<Imp> imps) {
         final List<Bid> result = new ArrayList<>();
         for (int i = 0; i < bids.size(); i++) {
-            Bid bid = bids.get(i);
+            final Bid bid = bids.get(i);
             final Imp imp = imps.get(i);
-
             final String impId = imp.getId();
 
-            bid = bid.toBuilder()
+            result.add(bid.toBuilder()
                     .crid(getCrId(bid.getNurl()))
                     .impid(impId)
                     .h(imp.getVideo().getH())
                     .w(imp.getVideo().getW())
                     .id(impId + "NurlVideo")
-                    .build();
-            result.add(bid);
+                    .build());
         }
         return result;
     }
@@ -519,5 +520,36 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static String getCrId(String nurl) {
         final String[] split = nurl.split(":");
         return split.length > 2 ? split[2] : null;
+    }
+
+    private List<BidderBid> postProcessBidderBids(List<BidderBid> bidderBids) {
+        return bidderBids.stream()
+                .map(this::updateBidderBid)
+                .collect(Collectors.toList());
+    }
+
+    private BidderBid updateBidderBid(BidderBid bidderBid) {
+        final Bid bid = bidderBid.getBid();
+        final Integer duration = resolveDuration(bid.getExt());
+        if (duration == null || duration <= 0) {
+            return bidderBid;
+        }
+
+        final List<String> cat = bid.getCat();
+        final String primaryCategory = CollectionUtils.isNotEmpty(cat) ? cat.get(0) : null;
+
+        final Bid resolvedBid = bid.toBuilder().ext(resolveBidExt(duration, primaryCategory)).build();
+        return BidderBid.of(resolvedBid, bidderBid.getType(), bidderBid.getBidCurrency());
+    }
+
+    private static Integer resolveDuration(ObjectNode bidExt) {
+        final JsonNode durationNode = bidExt != null ? bidExt.get("duration") : null;
+        return durationNode != null && durationNode.isInt() ? durationNode.asInt() : null;
+    }
+
+    private ObjectNode resolveBidExt(Integer duration, String primaryCategory) {
+        final ExtBidPrebidVideo extBidPrebidVideo = ExtBidPrebidVideo.of(duration, primaryCategory);
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().video(extBidPrebidVideo).build();
+        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 }

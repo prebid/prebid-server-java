@@ -190,7 +190,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .targeting(ExtRequestTargeting.builder()
                         .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
                         .includebidderkeys(true)
-                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false, null))
+                        .appendbiddernames(true)
                         .build())
                 .build();
 
@@ -377,6 +378,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                                 .build())
                         .site(Site.builder().id("siteId").build())
                         .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                .appendbiddernames(true)
                 .build();
     }
 }

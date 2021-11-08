@@ -11,6 +11,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -22,10 +23,10 @@ public class HttpBidderRequestEnricher {
 
     private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC_HEADER.toString());
 
-    private final String pbsRecord;
+    private final PrebidVersionProvider prebidVersionProvider;
 
-    public HttpBidderRequestEnricher(String pbsVersion) {
-        pbsRecord = createNameVersionRecord("pbs-java", Objects.requireNonNull(pbsVersion));
+    public HttpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
     }
 
     MultiMap enrichHeaders(
@@ -60,7 +61,7 @@ public class HttpBidderRequestEnricher {
     private void addXPrebidHeader(MultiMap headers, BidRequest bidRequest) {
         final String channelRecord = resolveChannelVersionRecord(bidRequest.getExt());
         final String sdkRecord = resolveSdkVersionRecord(bidRequest.getApp());
-        final String value = Stream.of(channelRecord, sdkRecord, pbsRecord)
+        final String value = Stream.of(channelRecord, sdkRecord, prebidVersionProvider.getNameVersionRecord())
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(","));
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_PREBID_HEADER, value);

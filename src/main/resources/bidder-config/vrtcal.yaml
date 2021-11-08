@@ -5,6 +5,7 @@ adapters:
       maintainer-email: support@vrtcal.com
       app-media-types:
         - banner
+        - video
       site-media-types:
       supported-vendors:
       vendor-id: 706

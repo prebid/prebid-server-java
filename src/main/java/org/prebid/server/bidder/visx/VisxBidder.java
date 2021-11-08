@@ -1,5 +1,7 @@
 package org.prebid.server.bidder.visx;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -24,11 +26,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class VisxBidder implements Bidder<BidRequest> {
 
     private static final String DEFAULT_REQUEST_CURRENCY = "USD";
+    private static final Set<String> SUPPORTED_BID_TYPES_TEXTUAL = Set.of("banner", "video");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -89,7 +93,7 @@ public class VisxBidder implements Bidder<BidRequest> {
 
     private BidderBid toBidderBid(BidRequest bidRequest, VisxBid visxBid) {
         final Bid bid = toBid(visxBid, bidRequest.getId());
-        final BidType bidType = getBidType(visxBid.getImpid(), bidRequest.getImp());
+        final BidType bidType = getBidType(bid.getExt(), bid.getImpid(), bidRequest.getImp());
         return BidderBid.of(bid, bidType, null);
     }
 
@@ -104,10 +108,27 @@ public class VisxBidder implements Bidder<BidRequest> {
                 .h(visxBid.getH())
                 .w(visxBid.getW())
                 .adomain(visxBid.getAdomain())
+                .ext(visxBid.getExt())
                 .build();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(ObjectNode bidExt, String impId, List<Imp> imps) {
+        final BidType extBidType = getBidTypeFromExt(bidExt);
+        return extBidType != null ? extBidType : getBidTypeFromImp(impId, imps);
+    }
+
+    private static BidType getBidTypeFromExt(ObjectNode bidExt) {
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.at("/prebid/meta/mediaType") : null;
+        final String bidTypeTextual = mediaTypeNode != null && mediaTypeNode.isTextual()
+                ? mediaTypeNode.asText()
+                : null;
+
+        return bidTypeTextual != null && SUPPORTED_BID_TYPES_TEXTUAL.contains(bidTypeTextual)
+                ? BidType.valueOf(bidTypeTextual)
+                : null;
+    }
+
+    private static BidType getBidTypeFromImp(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {

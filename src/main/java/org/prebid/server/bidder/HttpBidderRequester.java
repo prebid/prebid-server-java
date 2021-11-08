@@ -308,7 +308,7 @@ public class HttpBidderRequester {
             // Capture debugging info from the requests
             final List<ExtHttpCall> extHttpCalls = debugEnabled
                     ? httpCalls.stream()
-                    .map(httpCall -> toExt(httpCall, mapper))
+                    .map(this::toExt)
                     .collect(Collectors.toList())
                     : Collections.emptyList();
 
@@ -320,7 +320,7 @@ public class HttpBidderRequester {
         /**
          * Constructs {@link ExtHttpCall} filled with HTTP call information.
          */
-        private static <T> ExtHttpCall toExt(HttpCall<T> httpCall, JacksonMapper mapper) {
+        private <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())

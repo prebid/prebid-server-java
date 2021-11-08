@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.visx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -162,6 +164,87 @@ public class VisxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInBidExt() throws JsonProcessingException {
+        // given
+        final VisxResponse visxResponse = givenVisxResponse(
+                visxBidBuilder -> visxBidBuilder.impid("123"), null);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()), mapper.writeValueAsString(visxResponse));
+
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("Unknown impression type for ID: \"123\""));
+    }
+
+    @Test
+    public void makeBidsShouldFavourBidExtMediaTypeToImpMediaTypeWhenPresent() throws JsonProcessingException {
+        // given
+        final VisxResponse visxResponse = givenVisxResponse(
+                visxBidBuilder -> visxBidBuilder
+                        .impid("123")
+                        .ext(givenBidExt("banner")),
+                null);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
+                mapper.writeValueAsString(visxResponse));
+
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(givenBid(identity()), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnImpMediaTypeWhenBidExtMediaTypeIsAbsent() throws JsonProcessingException {
+        // given
+        final VisxResponse visxResponse = givenVisxResponse(
+                visxBidBuilder -> visxBidBuilder.impid("123"), null);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
+                mapper.writeValueAsString(visxResponse));
+
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(null)), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnImpMediaTypeWhenBidExtMediaTypeIsInvalid() throws JsonProcessingException {
+        // given
+        final VisxResponse visxResponse = givenVisxResponse(
+                visxBidBuilder -> visxBidBuilder
+                        .impid("123")
+                        .ext(givenBidExt("123")),
+                null);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
+                mapper.writeValueAsString(visxResponse));
+
+        // when
+        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(givenBidExt("123"))), video, null));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfImpIdsFromBidAndRequestWereNotMatchedAndImpWasNotFound()
             throws JsonProcessingException {
         // given
@@ -238,5 +321,16 @@ public class VisxBidderTest extends VertxTest {
     private static VisxResponse givenVisxResponse(UnaryOperator<VisxBid.VisxBidBuilder> bidCustomizer, String seat) {
         return VisxResponse.of(singletonList(VisxSeatBid.of(
                 singletonList(bidCustomizer.apply(VisxBid.builder()).build()), seat)));
+    }
+
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder().id("id").impid("123").ext(givenBidExt("banner"))).build();
+    }
+
+    private static ObjectNode givenBidExt(String mediaType) {
+        return mapper.createObjectNode()
+                .set("prebid", mapper.createObjectNode()
+                        .set("meta", mapper.createObjectNode()
+                                .set("mediaType", TextNode.valueOf(mediaType))));
     }
 }
