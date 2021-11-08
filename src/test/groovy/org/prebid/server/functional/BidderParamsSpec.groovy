@@ -4,15 +4,15 @@ import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.db.StoredResponse
+import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
-import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
@@ -20,6 +20,7 @@ import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 @PBSTest
 class BidderParamsSpec extends BaseSpec {
@@ -279,7 +280,7 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     @PendingFeature
-    def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema"() {
+    def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
         given: "BidRequest with bad bidder datatype"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
@@ -288,13 +289,12 @@ class BidderParamsSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should not contain errors"
-        assert !response.ext?.errors
-
-        and: "Response should contain warnings"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["WARNING: request.imp[0].ext.prebid.generic was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.generic failed validation",
+        then: "Bidder should be dropped"
+        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
+        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "\$.exampleProperty: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
         and: "PBS should not call bidder"
@@ -305,27 +305,68 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     @PendingFeature
-    def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
-        given: "BidRequest with bad bidder datatype and storedAuctionResponse"
-        def storedResponseId = PBSUtils.randomNumber
+    def "PBS should reject bidder when bidder params from stored request doesn't satisfy json-schema for auction request"() {
+        given: "BidRequest with stored request, without imp"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
-            imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
+            ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            imp = null
         }
 
-        and: "Stored response in DB"
-        def responseData = BidResponse.getDefaultBidResponse(bidRequest)
-        def storedResponse = new StoredResponse(resid: storedResponseId, responseData: responseData)
-        storedResponseDao.save(storedResponse)
+        and: "Default stored request with bad bidder datatype"
+        def storedRequestModel = BidRequest.defaultStoredRequest.tap {
+            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel)
+        storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
+        then: "Bidder should be dropped"
+        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
+        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
-        and: "Response should correspond to stored response"
-        assert response.seatbid == responseData.seatbid
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "seatbid should be empty"
+        assert response.seatbid.isEmpty()
+    }
+
+    @PendingFeature
+    def "PBS should reject bidder when bidder params from stored request doesn't satisfy json-schema for amp request"() {
+        given: "AmpRequest with bad bidder datatype"
+        def ampRequest = AmpRequest.defaultAmpRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+            imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder should be dropped"
+        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
+
+        and: "PBS should not call bidder"
+        assert bidder.getRequestCount(ampStoredRequest.id) == 0
+
+        and: "targeting should be empty"
+        assert response.targeting.isEmpty()
     }
 }
