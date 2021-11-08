@@ -27,7 +27,6 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
-import org.prebid.server.bidder.appnexus.proto.AppnexusReqExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -63,6 +62,7 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class AppnexusBidder implements Bidder<BidRequest> {
 
@@ -227,20 +227,18 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        if (app != null) {
-            final ExtApp extApp = app.getExt();
-            final ExtAppPrebid prebid = extApp != null ? extApp.getPrebid() : null;
-            if (prebid != null) {
-                final String source = prebid.getSource();
-                final String version = prebid.getVersion();
-
-                if (source != null && version != null) {
-                    return String.format("%s-%s", source, version);
-                }
-            }
+        final ExtApp extApp = ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getExt);
+        final ExtAppPrebid prebid = ObjectUtil.getIfNotNull(extApp, ExtApp::getPrebid);
+        if (prebid == null) {
+            return null;
         }
-        return null;
+
+        final String source = prebid.getSource();
+        final String version = prebid.getVersion();
+
+        return ObjectUtils.allNotNull(source, version)
+                ? String.format("%s-%s", source, version)
+                : null;
     }
 
     private String constructUrl(Set<String> ids, List<BidderError> errors) {
@@ -333,7 +331,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .build();
 
         final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
-        return mapper.fillExtension(ExtRequest.of(extRequestPrebid), AppnexusReqExt.of(appnexus));
+        final ObjectNode appnexusNode = mapper.mapper().createObjectNode()
+                .set("appnexus", mapper.mapper().valueToTree(appnexus));
+
+        return mapper.fillExtension(ExtRequest.of(extRequestPrebid), appnexusNode);
     }
 
     private static boolean isIncludeBrandCategory(ExtRequest extRequest) {
@@ -378,11 +379,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private ImpWithExtProperties processImp(Imp imp, String defaultDisplayManagerVer) {
-        final ExtImpAppnexus appnexusExt = parseAndValidateAppnexusExt(imp);
+        final ExtImpAppnexus appnexusExt = parseAndValidateImpExt(imp);
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(makeBanner(imp.getBanner(), appnexusExt))
-                .ext(makeAppnexusImpExt(appnexusExt));
+                .ext(makeImpExt(appnexusExt));
 
         final String invCode = appnexusExt.getInvCode();
         if (StringUtils.isNotBlank(invCode)) {
@@ -402,16 +403,16 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(), appnexusExt.getGenerateAdPodId());
     }
 
-    private ObjectNode makeAppnexusImpExt(ExtImpAppnexus appnexusExt) {
-        final AppnexusImpExt appnexusImpExt = AppnexusImpExt.of(
-                AppnexusImpExtAppnexus.of(
-                        appnexusExt.getPlacementId(),
-                        makeKeywords(appnexusExt.getKeywords()),
-                        appnexusExt.getTrafficSourceCode(),
-                        appnexusExt.getUsePmtRule(),
-                        appnexusExt.getPrivateSizes()));
+    private ObjectNode makeImpExt(ExtImpAppnexus appnexusExt) {
+        final AppnexusImpExtAppnexus appnexusImpExt = AppnexusImpExtAppnexus.builder()
+                .placementId(appnexusExt.getPlacementId())
+                .keywords(makeKeywords(appnexusExt.getKeywords()))
+                .trafficSourceCode(appnexusExt.getTrafficSourceCode())
+                .usePmtRule(appnexusExt.getUsePmtRule())
+                .privateSizes(appnexusExt.getPrivateSizes())
+                .build();
 
-        return mapper.mapper().valueToTree(appnexusImpExt);
+        return mapper.mapper().valueToTree(AppnexusImpExt.of(appnexusImpExt));
     }
 
     private static Banner makeBanner(Banner banner, ExtImpAppnexus appnexusExt) {
@@ -442,29 +443,24 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return posAbove != null ? posAbove : posBelow;
     }
 
-
     private static String makeKeywords(List<AppnexusKeyVal> keywords) {
-        if (CollectionUtils.isEmpty(keywords)) {
-            return null;
-        }
+        final String resolvedKeywords = CollectionUtils.emptyIfNull(keywords).stream()
+                .filter(entry -> entry.getKey() != null)
+                .flatMap(AppnexusBidder::extractKeywords)
+                .collect(Collectors.joining(","));
 
-        final List<String> kvs = new ArrayList<>();
-        for (AppnexusKeyVal keyVal : keywords) {
-            final String key = keyVal.getKey();
-            final List<String> values = keyVal.getValue();
-            if (values == null || values.isEmpty()) {
-                kvs.add(key);
-            } else {
-                for (String value : values) {
-                    kvs.add(String.format("%s=%s", key, value));
-                }
-            }
-        }
-
-        return String.join(",", kvs);
+        return StringUtils.stripToNull(resolvedKeywords);
     }
 
-    private ExtImpAppnexus parseAndValidateAppnexusExt(Imp imp) {
+    private static Stream<String> extractKeywords(AppnexusKeyVal appnexusKeyVal) {
+        final String key = appnexusKeyVal.getKey();
+        final List<String> values = appnexusKeyVal.getValue();
+        return CollectionUtils.isNotEmpty(values)
+                ? values.stream().map(value -> String.format("%s=%s", key, value))
+                : Stream.of(key);
+    }
+
+    private ExtImpAppnexus parseAndValidateImpExt(Imp imp) {
         ExtImpAppnexus ext;
         try {
             ext = mapper.mapper().convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE).getBidder();

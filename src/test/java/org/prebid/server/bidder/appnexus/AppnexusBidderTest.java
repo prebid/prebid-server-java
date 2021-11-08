@@ -3,7 +3,6 @@ package org.prebid.server.bidder.appnexus;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
@@ -11,12 +10,11 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import lombok.Value;
 import org.assertj.core.groups.Tuple;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +25,6 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
-import org.prebid.server.bidder.appnexus.proto.AppnexusReqExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -39,12 +36,10 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -52,7 +47,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -114,20 +108,20 @@ public class AppnexusBidderTest extends VertxTest {
         final Imp imp2 = givenImp(impBuilder ->
                 impBuilder.ext(givenExt(builder -> builder.placementId(12).member("member2")))
                         .banner(Banner.builder().build()));
-        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp1, imp2)).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(List.of(imp1, imp2)).build();
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("All request.imp[i].ext.appnexus.member params must match. "
                         + "Request contained: member2, member1"));
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpDisplaymanagerverFromAppExtPrebid() {
+    public void makeHttpRequestsShouldSetImpDisplaymanagerverFromAppExtPrebidIfAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -142,11 +136,11 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getDisplaymanagerver)
-                .containsOnly("some source-any version");
+                .containsExactly("some source-any version");
     }
 
     @Test
@@ -165,7 +159,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getDisplaymanagerver)
@@ -242,7 +236,39 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUpdateRequestExtAppnexusIfIncludeBrandCategoryIsPresent() {
+    public void makeHttpRequestsShouldUpdateImpExtAppnexusWithKeywords() {
+        // given
+        final List<AppnexusKeyVal> keywords = List.of(
+                AppnexusKeyVal.of("key1", null),
+                AppnexusKeyVal.of("key2", List.of("value1", "value2")),
+                AppnexusKeyVal.of(null, null));
+
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                identity(),
+                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(1).keywords(keywords));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final AppnexusImpExt expectedImpExt = AppnexusImpExt.of(
+                AppnexusImpExtAppnexus.builder()
+                        .placementId(1)
+                        .keywords("key1,key2=value1,key2=value2")
+                        .build());
+
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.valueToTree(expectedImpExt));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateRequestExtAppnexus() {
         // given
         final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
                 .targeting(ExtRequestTargeting.builder()
@@ -263,16 +289,15 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus)
-                .containsExactly(
+                .extracting(BidRequest::getExt)
+                .extracting(extRequest -> extRequest.getProperty("appnexus"))
+                .containsExactly(mapper.valueToTree(
                         AppnexusReqExtAppnexus.builder()
-                        .includeBrandCategory(true)
-                        .brandCategoryUniqueness(true)
-                        .isAmp(0)
-                        .headerBiddingSource(5)
-                        .build());
+                                .includeBrandCategory(true)
+                                .brandCategoryUniqueness(true)
+                                .isAmp(0)
+                                .headerBiddingSource(5)
+                                .build()));
     }
 
     @Test
@@ -1099,5 +1124,11 @@ public class AppnexusBidderTest extends VertxTest {
             throws JsonProcessingException {
 
         return givenBidResponse(identity(), bidExtCustomizer);
+    }
+
+    @Value(staticConstructor = "of")
+    private static class AppnexusReqExt {
+
+        AppnexusReqExtAppnexus appnexus;
     }
 }

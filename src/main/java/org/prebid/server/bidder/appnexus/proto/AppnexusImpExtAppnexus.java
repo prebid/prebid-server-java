@@ -2,10 +2,12 @@ package org.prebid.server.bidder.appnexus.proto;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
 @Value
+@Builder
+@AllArgsConstructor(staticName = "of")
 public class AppnexusImpExtAppnexus {
 
     Integer placementId;
