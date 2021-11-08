@@ -343,7 +343,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return targeting != null && targeting.getIncludebrandcategory() != null;
     }
 
-
     private List<HttpRequest<BidRequest>> splitHttpRequests(BidRequest bidRequest,
                                                             ExtRequest requestExt,
                                                             List<Imp> imps,
