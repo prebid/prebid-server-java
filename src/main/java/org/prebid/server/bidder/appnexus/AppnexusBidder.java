@@ -273,7 +273,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         return isVideoRequest && BooleanUtils.isTrue(generateAdPodId)
                 ? constructPodRequests(bidRequest, imps, url)
-                : constructNonPodRequests(bidRequest, imps, url, isVideoRequest, isAmpRequest);
+                : constructPartitionedRequests(bidRequest, imps, url, isVideoRequest, isAmpRequest);
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {
@@ -304,11 +304,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .collect(Collectors.groupingBy(imp -> StringUtils.substringBefore(imp.getId(), POD_SEPARATOR)));
     }
 
-    private List<HttpRequest<BidRequest>> constructNonPodRequests(BidRequest bidRequest,
-                                                                  List<Imp> imps,
-                                                                  String url,
-                                                                  boolean isVideoRequest,
-                                                                  boolean isAmpRequest) {
+    private List<HttpRequest<BidRequest>> constructPartitionedRequests(BidRequest bidRequest,
+                                                                       List<Imp> imps,
+                                                                       String url,
+                                                                       boolean isVideoRequest,
+                                                                       boolean isAmpRequest) {
 
         final ExtRequest updatedExtRequest = updateRequestExt(
                 bidRequest.getExt(), isVideoRequest, isAmpRequest, null);
