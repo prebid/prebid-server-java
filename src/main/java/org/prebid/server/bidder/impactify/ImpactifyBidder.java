@@ -70,7 +70,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             }
         }
 
-        BidRequest updatedBidRequest = request.toBuilder()
+        final BidRequest updatedBidRequest = request.toBuilder()
                 .imp(updatedImps)
                 .cur(List.of(BIDDER_CURRENCY))
                 .build();
@@ -79,7 +79,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(constructHeaders(updatedBidRequest))
-                .body(mapper.encode(updatedBidRequest))
+                .body(mapper.encodeToBytes(updatedBidRequest))
                 .payload(updatedBidRequest)
                 .build());
     }
