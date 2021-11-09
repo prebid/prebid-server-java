@@ -46,7 +46,6 @@ public class ForceDealsUpdateHandlerTest {
     private LineItemService lineItemService;
 
     private ForceDealsUpdateHandler handler;
-
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -80,7 +79,7 @@ public class ForceDealsUpdateHandlerTest {
         // when
         handler.handle(routingContext);
 
-        //  then
+        // then
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
         verify(httpResponse).setStatusCode(400);
@@ -96,7 +95,7 @@ public class ForceDealsUpdateHandlerTest {
         // when
         handler.handle(routingContext);
 
-        //  then
+        // then
         verify(httpRequest).getParam(eq(ACTION_NAME_PARAM));
 
         verify(httpResponse).setStatusCode(400);
