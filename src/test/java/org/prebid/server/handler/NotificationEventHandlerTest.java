@@ -265,10 +265,10 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder();
-        queryParams.add("t", "win");
-        queryParams.add("b", "bidId");
-        queryParams.add("a", "accountId");
+        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId");
         final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
                 .queryParams(queryParams.build())
                 .headers(CaseInsensitiveMultiMap.empty())
@@ -375,13 +375,13 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder();
-        queryParams.add("t", "win");
-        queryParams.add("b", "bidId");
-        queryParams.add("a", "accountId");
-        queryParams.add("bidder", "bidder");
-        queryParams.add("ts", "1000");
-        queryParams.add("int", "pbjs");
+        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000")
+                .add("int", "pbjs");
         final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
                 .queryParams(queryParams.build())
                 .headers(CaseInsensitiveMultiMap.empty())
