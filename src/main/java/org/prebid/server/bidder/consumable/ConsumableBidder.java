@@ -95,18 +95,11 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         }
 
         final ConsumableBidRequest outgoingRequest = requestBuilder.build();
-        final byte[] body;
-        try {
-            body = mapper.encodeToBytes(outgoingRequest);
-        } catch (EncodeException e) {
-            return Result.withError(BidderError.badInput(
-                    String.format("Failed to encode request body, error: %s", e.getMessage())));
-        }
 
         return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(resolveHeaders(request))
                 .payload(outgoingRequest)
                 .build());

@@ -42,19 +42,12 @@ public class AvocetBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final byte[] body;
-        try {
-            body = mapper.encodeToBytes(request);
-        } catch (EncodeException e) {
-            return Result.withError(
-                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
-        }
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(request))
                                 .headers(HttpUtil.headers())
                                 .payload(request)
                                 .build()),
