@@ -61,9 +61,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             BigDecimal bidFloor = imp.getBidfloor();
             try {
-//                shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())
-//                        ? convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur())
-//                        : updatedImps.add(updateImpWithBidFloor(imp, bidFloor));
                 if (shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())) {
                     bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
                 }
