@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server</artifactId>
-    <version>1.78.0-SNAPSHOT</version>
+    <version>1.79.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
@@ -696,6 +696,7 @@
                     <systemPropertyVariables>
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
+                        <pbs.version>${project.version}</pbs.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

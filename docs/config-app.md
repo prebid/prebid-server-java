@@ -78,6 +78,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
+- `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
@@ -93,6 +94,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -206,6 +208,11 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
+- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
+
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
 ## Metrics
@@ -271,6 +278,8 @@ For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
 - `settings.filesystem.stored-imps-dir` - directory with stored imps.
+- `settings.filesystem.stored-responses-dir` - directory with stored responses.
+- `settings.filesystem.categories-dir` - directory with categories.
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.
@@ -293,6 +302,7 @@ For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 - `settings.http.video-endpoint` - the url to fetch video stored requests.
+- `settings.http.category-endpoint` - the url to fetch categories for long form video.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.

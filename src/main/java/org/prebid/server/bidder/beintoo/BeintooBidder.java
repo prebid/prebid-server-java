@@ -59,14 +59,13 @@ public class BeintooBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(updatedBidRequest);
         final MultiMap headers = makeHeaders(request);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(updatedBidRequest))
                         .headers(headers)
                         .payload(request)
                         .build()), Collections.emptyList());

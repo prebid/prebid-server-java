@@ -8,9 +8,12 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 import spock.lang.Unroll
 
+import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+
 class AmpSpec extends BaseSpec {
 
-    private static final int DEFAULT_TIMEOUT = getTimeout()
+    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
+    private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
 
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
@@ -23,7 +26,7 @@ class AmpSpec extends BaseSpec {
         }
 
         and: "Default stored request with timeout"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             tmax = timeout
         }
@@ -43,7 +46,7 @@ class AmpSpec extends BaseSpec {
     @Unroll
     def "PBS should prefer timeout from the request when stored request timeout is #tmax"() {
         given: "Default AMP request with timeout"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.timeout = timeout
         }
@@ -65,7 +68,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
 
         where:
-        tmax << [null, PBSUtils.getRandomNumber(0, MAX_TIMEOUT)]
+        tmax << [null, getRandomTimeout()]
     }
 
     @Unroll
@@ -121,7 +124,29 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
-    private static int getTimeout() {
+    @Unroll
+    def "PBS should return version in response header for #description"() {
+        given: "Default AmpRequest"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+        ampStoredRequest.site.publisher.id = ampRequest.account
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequestRaw(ampRequest)
+
+        then: "Response header should contain PBS version"
+        assert response.headers["x-prebid"] == PBS_VERSION_HEADER
+
+        where:
+        ampRequest                   || description
+        AmpRequest.defaultAmpRequest || "valid AMP request"
+        new AmpRequest()             || "invalid AMP request"
+    }
+
+    private static int getRandomTimeout() {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 }

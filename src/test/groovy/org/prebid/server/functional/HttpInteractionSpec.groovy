@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Retry
 
 import java.time.Instant
 
@@ -16,6 +17,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 @PBSTest
 class HttpInteractionSpec extends BaseSpec {
 
+    @Retry
     def "PBS should only log request to the specified adapter"() {
         given: "Test start time"
         def startTime = Instant.now()
@@ -36,7 +38,10 @@ class HttpInteractionSpec extends BaseSpec {
         and: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS log should contain request to allowed adapter"
+        then: "There should be only one call to bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 1
+
+        and: "PBS log should contain request to allowed adapter"
         def logs = defaultPbsService.getLogsByTime(startTime)
         def genericBidderLogs = getLogsByBidder(logs, GENERIC)
         def rubiconBidderLogs = getLogsByBidder(logs, RUBICON)

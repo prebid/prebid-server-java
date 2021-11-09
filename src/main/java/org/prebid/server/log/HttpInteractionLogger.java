@@ -60,7 +60,7 @@ public class HttpInteractionLogger {
 
     private String toOneLineString(String value) {
         try {
-            return mapper.encode(mapper.mapper().readTree(value));
+            return mapper.encodeToString(mapper.mapper().readTree(value));
         } catch (JsonProcessingException e) {
             return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
         }
@@ -87,7 +87,7 @@ public class HttpInteractionLogger {
         if (interactionSatisfiesSpec(context, bidder)) {
             final BidRequest bidRequest = bidderRequest.getBidRequest();
             final BidRequest updatedBidRequest = bidRequestWithBidderName(bidder, bidRequest);
-            final String jsonBidRequest = mapper.encode(updatedBidRequest);
+            final String jsonBidRequest = mapper.encodeToString(updatedBidRequest);
             logger.info("Request body to {0}: \"{1}\"", bidder, jsonBidRequest);
 
             incLoggedInteractions();

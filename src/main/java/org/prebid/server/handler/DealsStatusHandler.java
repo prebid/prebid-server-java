@@ -28,7 +28,7 @@ public class DealsStatusHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         final DeliveryProgressReport deliveryProgressReport = deliveryProgressService
                 .getOverallDeliveryProgressReport();
-        final String body = mapper.encode(deliveryProgressReport);
+        final String body = mapper.encodeToString(deliveryProgressReport);
 
         // don't send the response if client has gone
         if (routingContext.response().closed()) {

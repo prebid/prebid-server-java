@@ -150,7 +150,7 @@ public class DeliveryStatsService implements Suspendable {
             return promise.future();
         }
 
-        final String body = mapper.encode(deliveryProgressReportFactory
+        final String body = mapper.encodeToString(deliveryProgressReportFactory
                 .updateReportTimeStamp(deliveryProgressReport, now));
 
         logger.info("Sending delivery progress report to Delivery Stats, {0} is {1}", PG_TRX_ID,

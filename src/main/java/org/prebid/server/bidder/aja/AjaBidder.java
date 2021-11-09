@@ -17,7 +17,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -100,20 +99,11 @@ public class AjaBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(imp))
                 .build();
 
-        final String body;
-        try {
-            body = mapper.encode(outgoingRequest);
-        } catch (EncodeException e) {
-            errors.add(BidderError.badInput(
-                    String.format("Failed to unmarshal bidrequest ID: %s err: %s", request.getId(), e.getMessage())));
-            return null;
-        }
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .headers(HttpUtil.headers())
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

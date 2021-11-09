@@ -21,7 +21,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -35,6 +34,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -44,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -53,11 +55,9 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -88,6 +88,8 @@ public class AuctionHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -114,6 +116,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
@@ -123,6 +128,7 @@ public class AuctionHandlerTest extends VertxTest {
                 metrics,
                 clock,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 jacksonMapper);
     }
 
@@ -154,6 +160,26 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+    }
+
+    @Test
+    public void shouldAddPrebidVersionResponseHeader() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("x-prebid", "pbs-java/1.00"));
     }
 
     @Test
@@ -286,9 +312,12 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(exchangeService).holdAuction(any());
-        assertThat(httpResponse.headers()).hasSize(1)
+        assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("Content-Type", "application/json"));
+                .containsExactlyInAnyOrder(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
         verify(httpResponse).end(eq("{}"));
     }
 
@@ -640,7 +669,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         final MultiMap params = MultiMap.caseInsensitiveMultiMap();
         params.add("param", "value1");
-        params.add("param", "value2");
         given(httpRequest.params()).willReturn(params);
 
         // when
@@ -648,8 +676,10 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final Map<String, String> obtainedParams = auctionEvent.getHttpContext().getQueryParams();
-        assertThat(obtainedParams.entrySet()).containsOnly(entry("param", "value1"));
+        final CaseInsensitiveMultiMap expectedParams = CaseInsensitiveMultiMap.builder()
+                .add("param", "value1")
+                .build();
+        assertThat(auctionEvent.getHttpContext().getQueryParams()).isEqualTo(expectedParams);
     }
 
     @Test
@@ -660,7 +690,6 @@ public class AuctionHandlerTest extends VertxTest {
 
         final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
         headers.add("header", "value1");
-        headers.add("header", "value2");
         given(httpRequest.headers()).willReturn(headers);
 
         // when
@@ -668,8 +697,11 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
-        final Map<String, String> obtainedHeaders = auctionEvent.getHttpContext().getHeaders();
-        assertThat(obtainedHeaders.entrySet()).containsOnly(entry("header", "value1"));
+        final CaseInsensitiveMultiMap expectedHeaders = CaseInsensitiveMultiMap.builder()
+                .add("header", "value1")
+                .add("header", "value2")
+                .build();
+        assertThat(auctionEvent.getHttpContext().getHeaders()).isEqualTo(expectedHeaders);
     }
 
     private AuctionContext captureAuctionContext() {
@@ -705,11 +737,10 @@ public class AuctionHandlerTest extends VertxTest {
                 .build();
     }
 
-    private static HttpContext givenHttpContext() {
-        return HttpContext.builder()
-                .queryParams(emptyMap())
-                .headers(emptyMap())
-                .cookies(emptyMap())
+    private static HttpRequestContext givenHttpContext() {
+        return HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
     }
 }

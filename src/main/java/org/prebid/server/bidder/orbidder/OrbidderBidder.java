@@ -55,7 +55,6 @@ public class OrbidderBidder implements Bidder<BidRequest> {
             }
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -63,7 +62,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
                                 .uri(endpointUrl)
                                 .headers(HttpUtil.headers())
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

@@ -17,7 +17,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.cookie.UidsCookieService;
@@ -25,6 +24,8 @@ import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -32,9 +33,6 @@ import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -297,14 +295,13 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("t", "win");
-        queryParams.put("b", "bidId");
-        queryParams.put("a", "accountId");
-        final HttpContext expectedHttpContext = HttpContext.builder()
-                .queryParams(queryParams)
-                .headers(Collections.emptyMap())
-                .cookies(Collections.emptyMap())
+        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId");
+        final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
+                .queryParams(queryParams.build())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
 
         assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
@@ -543,17 +540,16 @@ public class NotificationEventHandlerTest extends VertxTest {
         notificationHandler.handle(routingContext);
 
         // then
-        final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("t", "win");
-        queryParams.put("b", "bidId");
-        queryParams.put("a", "accountId");
-        queryParams.put("bidder", "bidder");
-        queryParams.put("ts", "1000");
-        queryParams.put("int", "pbjs");
-        final HttpContext expectedHttpContext = HttpContext.builder()
-                .queryParams(queryParams)
-                .headers(Collections.emptyMap())
-                .cookies(Collections.emptyMap())
+        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("bidder", "bidder")
+                .add("ts", "1000")
+                .add("int", "pbjs");
+        final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
+                .queryParams(queryParams.build())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
 
         assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
@@ -591,15 +587,15 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         verify(uidsCookieService).parseFromRequest(eq(routingContext));
 
-        final Map<String, String> queryParams = new HashMap<>();
-        queryParams.put("t", "win");
-        queryParams.put("b", "bidId");
-        queryParams.put("a", "accountId");
-        queryParams.put("l", "lineItemId");
-        final HttpContext expectedHttpContext = HttpContext.builder()
-                .queryParams(queryParams)
-                .headers(Collections.emptyMap())
-                .cookies(Collections.emptyMap())
+        final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
+                .add("t", "win")
+                .add("b", "bidId")
+                .add("a", "accountId")
+                .add("l", "lineItemId");
+
+        final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
+                .queryParams(queryParams.build())
+                .headers(CaseInsensitiveMultiMap.empty())
                 .build();
         final NotificationEvent expectedEvent = NotificationEvent.builder()
                 .type(NotificationEvent.Type.win)
