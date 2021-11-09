@@ -103,7 +103,7 @@ public class UidsCookie {
      * Converts {@link Uids} to JSON string.
      */
     String toJson() {
-        return mapper.encode(uids);
+        return mapper.encodeToString(uids);
     }
 
     /**

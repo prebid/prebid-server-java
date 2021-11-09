@@ -84,7 +84,7 @@ public class AdheseBidder implements Bidder<Void> {
                         HttpRequest.<Void>builder()
                                 .method(HttpMethod.POST)
                                 .uri(uri)
-                                .body(mapper.encode(buildBody(request, extImpAdhese)))
+                                .body(mapper.encodeToBytes(buildBody(request, extImpAdhese)))
                                 .headers(replaceHeaders(request.getDevice()))
                                 .build()),
                 Collections.emptyList());

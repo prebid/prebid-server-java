@@ -49,7 +49,7 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
             logEvent = new LogEvent<>("unknown", null);
         }
 
-        logger.debug(mapper.encode(logEvent));
+        logger.debug(mapper.encodeToString(logEvent));
 
         return Future.succeededFuture();
     }

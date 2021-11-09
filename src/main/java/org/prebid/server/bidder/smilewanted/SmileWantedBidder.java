@@ -46,7 +46,7 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(createHeaders())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

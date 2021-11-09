@@ -49,7 +49,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
                                 .uri(endpointUrl)
                                 .headers(HttpUtil.headers()
                                         .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION))
-                                .body(mapper.encode(bidRequest))
+                                .body(mapper.encodeToBytes(bidRequest))
                                 .payload(bidRequest)
                                 .build()),
                 Collections.emptyList());

@@ -40,7 +40,7 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

@@ -112,7 +112,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             requests.add(HttpRequest.<Void>builder()
                     .method(HttpMethod.POST)
                     .uri(bannerEndpointUrl)
-                    .body(mapper.encode(bannerRequest))
+                    .body(mapper.encodeToBytes(bannerRequest))
                     .headers(headers)
                     .build());
         }
@@ -129,7 +129,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .map(videoRequest -> HttpRequest.<Void>builder()
                         .method(HttpMethod.POST)
                         .uri(resolveVideoUri(videoRequest.getAppId(), videoRequest.getIsPrebid()))
-                        .body(mapper.encode(videoRequest))
+                        .body(mapper.encodeToBytes(videoRequest))
                         .headers(videoHeaders)
                         .build())
                 .forEach(requests::add);

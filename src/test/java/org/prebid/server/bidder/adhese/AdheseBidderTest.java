@@ -128,7 +128,7 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsString(
+                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
                         AdheseRequestBody
                         .builder()
                         .slots(Collections.singletonList(
@@ -165,7 +165,7 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsString(
+                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
                         AdheseRequestBody
                                 .builder()
                                 .slots(Collections.singletonList(
@@ -198,7 +198,7 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsString(
+                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
                         AdheseRequestBody
                                 .builder()
                                 .slots(Collections.singletonList(
@@ -235,7 +235,7 @@ public class AdheseBidderTest extends VertxTest {
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsString(
+                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
                         AdheseRequestBody
                                 .builder()
                                 .slots(Collections.singletonList(

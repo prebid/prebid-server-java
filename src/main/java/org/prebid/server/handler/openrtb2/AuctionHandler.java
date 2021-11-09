@@ -142,7 +142,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK;
             enrichWithSuccessfulHeaders(response);
-            body = mapper.encode(responseResult.result().getLeft());
+            body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {

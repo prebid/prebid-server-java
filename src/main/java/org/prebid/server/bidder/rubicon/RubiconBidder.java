@@ -1257,7 +1257,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .headers(headers)
                 .payload(bidRequest)
                 .build();

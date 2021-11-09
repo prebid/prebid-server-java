@@ -89,13 +89,11 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                                                         String endpointUrl) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(getHeaders())
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

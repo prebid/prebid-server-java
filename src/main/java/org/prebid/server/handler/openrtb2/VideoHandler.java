@@ -128,7 +128,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK;
             enrichWithSuccessfulHeaders(response);
-            body = mapper.encode(videoResponse);
+            body = mapper.encodeToString(videoResponse);
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
