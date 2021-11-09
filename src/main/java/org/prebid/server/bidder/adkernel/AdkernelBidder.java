@@ -34,9 +34,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adkernel {@link Bidder} implementation.
- */
 public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernel>> ADKERNEL_EXT_TYPE_REFERENCE =
@@ -135,13 +132,12 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
         final BidRequest outgoingRequest = createBidRequest(extAndImp.getValue(), requestBuilder, site, app);
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

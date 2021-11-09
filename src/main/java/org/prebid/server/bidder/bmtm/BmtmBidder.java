@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Bmtm {@link Bidder} implementation.
- */
 public class BmtmBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>> BMTM_EXT_TYPE_REFERENCE =
@@ -60,12 +57,11 @@ public class BmtmBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpBmtm impExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(request, modifyImp(imp, impExt));
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(createHeaders(request))
                         .payload(outgoingRequest)
                         .build());

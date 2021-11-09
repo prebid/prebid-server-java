@@ -9,7 +9,7 @@
       },
       "ext": {
         "bidder": {
-          "zone": "zone_1"
+          "zoneId": "zone_1"
         }
       }
     }

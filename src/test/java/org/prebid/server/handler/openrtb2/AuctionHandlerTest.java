@@ -45,6 +45,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -87,6 +88,8 @@ public class AuctionHandlerTest extends VertxTest {
     private Clock clock;
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
 
     private AuctionHandler auctionHandler;
     @Mock
@@ -113,6 +116,9 @@ public class AuctionHandlerTest extends VertxTest {
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
         auctionHandler = new AuctionHandler(
@@ -122,6 +128,7 @@ public class AuctionHandlerTest extends VertxTest {
                 metrics,
                 clock,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 jacksonMapper);
     }
 
@@ -153,6 +160,26 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+    }
+
+    @Test
+    public void shouldAddPrebidVersionResponseHeader() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("x-prebid", "pbs-java/1.00"));
     }
 
     @Test
@@ -285,9 +312,12 @@ public class AuctionHandlerTest extends VertxTest {
 
         // then
         verify(exchangeService).holdAuction(any());
-        assertThat(httpResponse.headers()).hasSize(1)
+        assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("Content-Type", "application/json"));
+                .containsExactlyInAnyOrder(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+
         verify(httpResponse).end(eq("{}"));
     }
 
@@ -310,7 +340,7 @@ public class AuctionHandlerTest extends VertxTest {
         given(exchangeService.holdAuction(any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder()
                         .ext(ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, resolvedRequest))
+                                .debug(ExtResponseDebug.of(null, resolvedRequest, null, null))
                                 .build())
                         .build()));
 
@@ -478,7 +508,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
     }
 
     @Test

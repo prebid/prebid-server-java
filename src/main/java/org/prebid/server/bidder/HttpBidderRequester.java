@@ -19,8 +19,10 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -51,16 +53,19 @@ public class HttpBidderRequester {
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
     private final HttpBidderRequestEnricher requestEnricher;
+    private final JacksonMapper mapper;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
                                BidderErrorNotifier bidderErrorNotifier,
-                               HttpBidderRequestEnricher requestEnricher) {
+                               HttpBidderRequestEnricher requestEnricher,
+                               JacksonMapper mapper) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
         this.requestEnricher = Objects.requireNonNull(requestEnricher);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -92,7 +97,8 @@ public class HttpBidderRequester {
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
         final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
-        final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
+        final ResultBuilder<T> resultBuilder =
+                new ResultBuilder<>(httpRequests, bidderErrors, completionTracker, mapper);
 
         final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
@@ -113,9 +119,9 @@ public class HttpBidderRequester {
                                                     BidRequest bidRequest) {
 
         return httpRequests.stream().map(httpRequest -> httpRequest.toBuilder()
-                .headers(requestEnricher.enrichHeaders(
-                        httpRequest.getHeaders(), requestHeaders, bidRequest))
-                .build())
+                        .headers(requestEnricher.enrichHeaders(
+                                httpRequest.getHeaders(), requestHeaders, bidRequest))
+                        .build())
                 .collect(Collectors.toList());
     }
 
@@ -164,7 +170,7 @@ public class HttpBidderRequester {
         }
 
         return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
-                httpRequest.getBody(), remainingTimeout)
+                        httpRequest.getBody(), remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
                 .recover(exception -> failResponse(exception, httpRequest));
     }
@@ -202,7 +208,7 @@ public class HttpBidderRequester {
     private static BidderError errorOrNull(int statusCode) {
         if (statusCode != HttpResponseStatus.OK.code() && statusCode != HttpResponseStatus.NO_CONTENT.code()) {
             return BidderError.create(String.format(
-                    "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
+                            "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
                     statusCode == HttpResponseStatus.BAD_REQUEST.code()
                             ? BidderError.Type.bad_input
                             : BidderError.Type.bad_server_response);
@@ -265,13 +271,16 @@ public class HttpBidderRequester {
         final Map<HttpRequest<T>, HttpCall<T>> httpCallsRecorded = new HashMap<>();
         final List<BidderBid> bidsRecorded = new ArrayList<>();
         final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final JacksonMapper mapper;
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
-                      BidderRequestCompletionTracker completionTracker) {
+                      BidderRequestCompletionTracker completionTracker,
+                      JacksonMapper mapper) {
             this.httpRequests = httpRequests;
             this.previousErrors = previousErrors;
             this.completionTracker = completionTracker;
+            this.mapper = mapper;
         }
 
         void addHttpCall(HttpCall<T> httpCall, Result<List<BidderBid>> bidsResult) {
@@ -298,7 +307,9 @@ public class HttpBidderRequester {
 
             // Capture debugging info from the requests
             final List<ExtHttpCall> extHttpCalls = debugEnabled
-                    ? httpCalls.stream().map(ResultBuilder::toExt).collect(Collectors.toList())
+                    ? httpCalls.stream()
+                    .map(this::toExt)
+                    .collect(Collectors.toList())
                     : Collections.emptyList();
 
             final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded);
@@ -309,11 +320,12 @@ public class HttpBidderRequester {
         /**
          * Constructs {@link ExtHttpCall} filled with HTTP call information.
          */
-        private static <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
+        private <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .requestbody(request.getBody());
+                    .requestbody(mapper.encodeToString(request.getPayload()))
+                    .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
             final HttpResponse response = httpCall.getResponse();
             if (response != null) {
@@ -333,8 +345,8 @@ public class HttpBidderRequester {
             final List<BidderError> bidderErrors = new ArrayList<>(requestErrors);
             bidderErrors.addAll(
                     Stream.concat(
-                            responseErrors.stream(),
-                            calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
+                                    responseErrors.stream(),
+                                    calls.stream().map(HttpCall::getError).filter(Objects::nonNull))
                             .collect(Collectors.toList()));
             return bidderErrors;
         }

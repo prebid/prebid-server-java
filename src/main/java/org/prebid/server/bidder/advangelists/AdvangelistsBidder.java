@@ -36,9 +36,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Advangelists {@link Bidder} implementation.
- */
 public class AdvangelistsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdvangelists>> ADVANGELISTS_EXT_TYPE_REFERENCE = new
@@ -161,7 +158,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(createdEndpoint)
-                    .body(mapper.encode(updatedBidRequest))
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers)
                     .payload(bidRequest)
                     .build();

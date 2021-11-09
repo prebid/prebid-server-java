@@ -36,9 +36,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * AMX {@link Bidder} implementation.
- */
 public class AmxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAmx>> AMX_EXT_TYPE_REFERENCE =
@@ -100,7 +97,7 @@ public class AmxBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build()), errors);
     }
 

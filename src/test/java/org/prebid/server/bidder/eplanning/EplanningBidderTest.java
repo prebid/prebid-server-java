@@ -88,7 +88,7 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize instance");
+                .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 

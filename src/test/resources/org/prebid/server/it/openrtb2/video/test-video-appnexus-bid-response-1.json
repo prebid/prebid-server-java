@@ -10,6 +10,7 @@
           "price": 5.5,
           "adid": "29681110",
           "adm": "some-test-ad",
+          "cat" : ["1-cat"],
           "adomain": [
             "appnexus.com"
           ],
@@ -19,6 +20,7 @@
           "ext": {
             "appnexus": {
               "brand_id": 1,
+              "brand_category_id" : 1,
               "auction_id": 8189378542222915032,
               "bidder_id": 2,
               "bid_ad_type": 1,
@@ -32,6 +34,7 @@
           "price": 2.7,
           "adid": "2961238",
           "adm": "some-test-ad-2",
+          "cat" : ["2-cat"],
           "adomain": [
             "appnexus.com"
           ],
@@ -41,6 +44,7 @@
           "ext": {
             "appnexus": {
               "brand_id": 1,
+              "brand_category_id" : 2,
               "auction_id": 8189378542222915032,
               "bidder_id": 2,
               "bid_ad_type": 1,

@@ -14,6 +14,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
@@ -27,6 +29,7 @@ import java.time.ZoneId;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
@@ -48,6 +51,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private static final String ENDPOINT = "http://stored-requests";
     private static final String AMP_ENDPOINT = "http://amp-stored-requests";
     private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
+    private static final String CATEGORY_ENDPOINT = "http://category-requests";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -63,7 +67,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Before
     public void setUp() {
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                VIDEO_ENDPOINT);
+                VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -75,7 +79,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, "invalid_url", AMP_ENDPOINT,
-                        VIDEO_ENDPOINT))
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -83,7 +87,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidAmpEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, "invalid_url",
-                        VIDEO_ENDPOINT))
+                        VIDEO_ENDPOINT, CATEGORY_ENDPOINT))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -91,7 +95,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void creationShouldFailsOnInvalidVideoEndpoint() {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
-                        "invalid_url"))
+                        "invalid_url", CATEGORY_ENDPOINT))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -100,8 +104,10 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         final Account account = Account.builder()
                 .id("someId")
-                .enforceCcpa(true)
-                .priceGranularity("testPriceGranularity")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("testPriceGranularity")
+                        .build())
+                .privacy(AccountPrivacyConfig.of(null, null))
                 .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
@@ -112,8 +118,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getId()).isEqualTo("someId");
-        assertThat(future.result().getEnforceCcpa()).isEqualTo(true);
-        assertThat(future.result().getPriceGranularity()).isEqualTo("testPriceGranularity");
+        assertThat(future.result().getAuction().getPriceGranularity()).isEqualTo("testPriceGranularity");
 
         verify(httpClient).get(eq("http://stored-requests?account-ids=[\"someId\"]"), any(),
                 anyLong());
@@ -240,7 +245,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         givenHttpClientReturnsResponse(200, null);
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper,
-                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT);
+                "http://some-domain?param1=value1", AMP_ENDPOINT, VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
 
         // when
         httpApplicationSettings.getStoredData(null, singleton("id1"), singleton("id2"), timeout);
@@ -399,6 +404,120 @@ public class HttpApplicationSettingsTest extends VertxTest {
         final ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         verify(httpClient).get(captor.capture(), any(), anyLong());
         assertThat(captor.getValue()).doesNotContain("imp-ids");
+    }
+
+    @Test
+    public void getCategoriesShouldBuildUrlFromEndpointAdServerAndPublisher() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+
+        // when
+        httpApplicationSettings.getCategories("primaryAdServer", "publisher", timeout);
+
+        // then
+        final ArgumentCaptor<String> urlArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(urlArgumentCaptor.capture(), anyLong());
+        assertThat(urlArgumentCaptor.getValue()).isEqualTo("http://category-requests/primaryAdServer/publisher.json");
+    }
+
+    @Test
+    public void getCategoriesShouldBuildUrlFromEndpointAdServer() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+
+        // when
+        httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
+
+        // then
+        final ArgumentCaptor<String> urlArgumentCaptor = ArgumentCaptor.forClass(String.class);
+        verify(httpClient).get(urlArgumentCaptor.capture(), anyLong());
+        assertThat(urlArgumentCaptor.getValue()).isEqualTo("http://category-requests/primaryAdServer.json");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithTimeoutException() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+
+        // when
+        final Future<Map<String, String>> result
+                = httpApplicationSettings.getCategories("primaryAdServer", null, expiredTimeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(TimeoutException.class)
+                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                        + " Reason: Timeout exceeded");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWhenResponseStatusIsNot200() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, "{}")));
+
+        // when
+        final Future<Map<String, String>> result
+                = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                        + " Reason: Response status code is '400'");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWhenBodyIsNull() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
+
+        // when
+        final Future<Map<String, String>> result
+                = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Failed to fetch categories from url 'http://category-requests/primaryAdServer.json'."
+                        + " Reason: Response body is null or empty");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWhenBodyCantBeParsed() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": {}}}")));
+
+        // when
+        final Future<Map<String, String>> result
+                = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessageStartingWith("Failed to fetch categories from url "
+                        + "'http://category-requests/primaryAdServer.json'. Reason: Failed to decode response body");
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResult() {
+        // given
+        given(httpClient.get(anyString(), anyLong()))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": \"id\"}}")));
+
+        // when
+        final Future<Map<String, String>> result
+                = httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).hasSize(1)
+                .containsEntry("iab", "id");
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {

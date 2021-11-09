@@ -25,6 +25,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -38,9 +39,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Adtelligent {@link Bidder} implementation.
- */
 public class AdtelligentBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdtelligent>> ADTELLIGENT_EXT_TYPE_REFERENCE =
@@ -117,9 +115,9 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
             final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
-            final String bidRequestBody;
+            final byte[] bidRequestBody;
             try {
-                bidRequestBody = mapper.encode(bidRequest);
+                bidRequestBody = mapper.encodeToBytes(bidRequest);
             } catch (EncodeException e) {
                 errors.add(BidderError.badInput(
                         String.format("error while encoding bidRequest, err: %s", e.getMessage())));
@@ -171,7 +169,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         final AdtelligentImpExt adtelligentImpExt = AdtelligentImpExt.of(extImpAdtelligent);
         final BigDecimal bidFloor = extImpAdtelligent.getBidFloor();
         return imp.toBuilder()
-                .bidfloor(bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : imp.getBidfloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtelligentImpExt))
                 .build();
     }

@@ -3,7 +3,10 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
+      "video": {
+        "mimes": [
+          "mimes"
+        ],
         "w": 300,
         "h": 600
       },

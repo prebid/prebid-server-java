@@ -28,9 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * Ucfunnel {@link Bidder} implementation.
- */
 public class UcfunnelBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpUcfunnel>> UCFUNNEL_EXT_TYPE_REFERENCE =
@@ -66,17 +63,16 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(request);
         final String requestUrl = String.format("%s/%s/request", endpointUrl, HttpUtil.encodeUrl(partnerId));
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(requestUrl)
+                                .body(mapper.encodeToBytes(request))
+                                .headers(HttpUtil.headers())
+                                .payload(request)
+                                .build()),
                 errors);
     }
 

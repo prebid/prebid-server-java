@@ -1,0 +1,7 @@
+{
+  "adunit.mediatype": {
+    "$intersects": [
+      ""
+    ]
+  }
+}

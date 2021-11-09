@@ -50,6 +50,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -167,7 +168,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, routingContext.request(), account, timeout)
+                                cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -360,7 +361,9 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             final HostVendorTcfResponse hostVendorTcfResponse = hostTcfResponseResult.result();
             if (hostVendorTcfResponse.isVendorAllowed()) {
 
-                final AccountGdprConfig accountGdprConfig = cookieSyncContext.getAccount().getGdpr();
+                final AccountPrivacyConfig accountPrivacyConfig = cookieSyncContext.getAccount().getPrivacy();
+                final AccountGdprConfig accountGdprConfig =
+                        accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
                 tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
                         .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
                                 biddersToSync, cookieSyncContext));
@@ -447,7 +450,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
         final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
-        final String body = mapper.encode(cookieSyncResponse);
+        final String body = mapper.encodeToString(cookieSyncResponse);
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
                 response -> response

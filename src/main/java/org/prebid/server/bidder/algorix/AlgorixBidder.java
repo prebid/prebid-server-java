@@ -11,10 +11,10 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -24,11 +24,11 @@ import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Objects;
-import java.util.List;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -74,20 +74,20 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
-        final String body = mapper.encode(outgoingRequest);
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(resolveUrl(endpointUrl, extImpAlgorix))
-                        .headers(resolveHeaders())
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(resolveUrl(endpointUrl, extImpAlgorix))
+                                .headers(resolveHeaders())
+                                .payload(outgoingRequest)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .build()),
                 errors);
     }
 
     /**
      * Parse Ext Imp
+     *
      * @param imp BidRequest Imp
      * @return Algorix Ext Imp
      */
@@ -101,6 +101,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     /**
      * Update Imp for transform banner Size
+     *
      * @param imp imp
      * @return new imp
      */
@@ -110,7 +111,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
-                return imp.toBuilder()
+                imp = imp.toBuilder()
                         .banner(banner.toBuilder()
                                 .w(firstFormat.getW())
                                 .h(firstFormat.getH())
@@ -123,6 +124,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     /**
      * Check Integer Size Value is Valid(not null and no zero)
+     *
      * @param value Integer size value
      * @return true or false
      */
@@ -132,8 +134,9 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     /**
      * Replace url macro
+     *
      * @param endpoint endpoint Url
-     * @param extImp Algorix Ext Imp
+     * @param extImp   Algorix Ext Imp
      * @return target Url
      */
     private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
@@ -144,6 +147,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     /**
      * Add openrtb version header 2.5
+     *
      * @return headers
      */
     private static MultiMap resolveHeaders() {

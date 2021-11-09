@@ -47,9 +47,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Pubmatic {@link Bidder} implementation.
- */
 public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static final String DCTR_KEY_NAME = "key_val";
@@ -266,12 +263,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = requestBuilder.build();
-        final String body = mapper.encode(modifiedRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .headers(HttpUtil.headers())
                 .payload(modifiedRequest)
                 .build();

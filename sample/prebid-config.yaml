@@ -17,7 +17,9 @@ settings:
     stored-requests-dir:
     stored-imps-dir:
     stored-responses-dir:
+    categories-dir:
 gdpr:
+  default-value: 1
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2

@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Telaria {@link Bidder} implementation.
- */
 public class TelariaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
@@ -88,14 +85,13 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(headers(bidRequest))
                 .payload(outgoingRequest)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

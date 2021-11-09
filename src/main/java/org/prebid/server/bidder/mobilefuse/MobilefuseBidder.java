@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Mobilefuse {@link Bidder} implementation.
- */
 public class MobilefuseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMobilefuse>> MOBILEFUSE_EXT_TYPE_REFERENCE =
@@ -73,14 +70,13 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(requestImp)).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(makeUrl(firstExtImpMobilefuse))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

@@ -1,12 +1,6 @@
 adapters:
   colossus:
-    enabled: false
     endpoint: http://colossusssp.com/?c=o&m=rtb
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: support@huddledmasses.com
       app-media-types:

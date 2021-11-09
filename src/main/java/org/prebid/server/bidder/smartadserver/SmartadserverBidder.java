@@ -34,9 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Smartadserver {@link Bidder} implementation.
- */
 public class SmartadserverBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartadserver>> SMARTADSERVER_EXT_TYPE_REFERENCE =
@@ -85,7 +82,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(getUri())
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .payload(request)
                 .build();
     }

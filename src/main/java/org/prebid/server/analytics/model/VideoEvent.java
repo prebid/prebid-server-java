@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Represents a transaction at /openrtb2/video endpoint.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class VideoEvent {
 

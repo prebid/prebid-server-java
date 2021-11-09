@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.madvertise;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -25,16 +24,15 @@ import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Madvertise {@link Bidder} implementation
- */
 public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMadvertise>> MADVERTISE_EXT_TYPE_REFERENCE =
@@ -44,7 +42,8 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
     private static final int ZONE_ID_MIN_LENGTH = 7;
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final String ZONE_ID_MACRO = "{{ZoneID}}";
-    private static final Set<Integer> VIDEO_BID_ATTRS = ImmutableSet.of(16, 6, 7);
+    private static final Set<Integer> VIDEO_BID_ATTRS = Collections.unmodifiableSet(
+            new HashSet<>(Arrays.asList(16, 6, 7)));
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -101,7 +100,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
                 .uri(url)
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build();
     }
 
@@ -143,8 +142,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidMediaType(List<Integer> bidAttrs) {
-        return CollectionUtils.emptyIfNull(bidAttrs).stream()
-                .anyMatch(VIDEO_BID_ATTRS::contains)
+        return CollectionUtils.emptyIfNull(bidAttrs).stream().anyMatch(VIDEO_BID_ATTRS::contains)
                 ? BidType.video
                 : BidType.banner;
     }

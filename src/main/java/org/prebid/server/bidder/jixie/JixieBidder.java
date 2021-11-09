@@ -27,9 +27,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Jixie {@link Bidder} implementation.
- */
 public class JixieBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -48,7 +45,7 @@ public class JixieBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(resolveHeaders(request.getDevice(), request.getSite()))
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

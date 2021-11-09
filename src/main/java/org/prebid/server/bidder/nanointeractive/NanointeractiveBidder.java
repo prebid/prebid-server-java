@@ -23,9 +23,9 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.nanointeractive.ExtImpNanointeractive;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,16 +72,15 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                 .imp(validImps)
                 .site(modified(reference, request.getSite()))
                 .build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(headers(request))
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(headers(request))
+                                .payload(outgoingRequest)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .build()),
                 errors);
     }
 
@@ -149,7 +148,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(bid -> bid.getPrice().compareTo(BigDecimal.ZERO) > 0)
+                .filter(bid -> BidderUtil.isValidPrice(bid.getPrice()))
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }

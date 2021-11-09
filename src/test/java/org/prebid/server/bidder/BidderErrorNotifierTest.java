@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
@@ -28,7 +29,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-public class BidderErrorNotifierTest {
+public class BidderErrorNotifierTest extends VertxTest {
+
+    private static final byte[] EMPTY_BODY = "{}".getBytes();
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -72,10 +75,10 @@ public class BidderErrorNotifierTest {
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
                 .method(HttpMethod.POST)
-                .body("{}")
+                .body(EMPTY_BODY)
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), any(byte[].class), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         // when
@@ -85,7 +88,7 @@ public class BidderErrorNotifierTest {
         Assertions.assertThat(result).isSameAs(bidderCall);
 
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq(EMPTY_BODY), eq(200L));
         verify(metrics).updateTimeoutNotificationMetric(eq(true));
     }
 
@@ -97,10 +100,10 @@ public class BidderErrorNotifierTest {
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
                 .method(HttpMethod.POST)
-                .body("{}")
+                .body(EMPTY_BODY)
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), any(byte[].class), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
 
         // when
@@ -108,7 +111,7 @@ public class BidderErrorNotifierTest {
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq(EMPTY_BODY), eq(200L));
         verify(metrics).updateTimeoutNotificationMetric(eq(false));
     }
 
@@ -120,10 +123,10 @@ public class BidderErrorNotifierTest {
         given(bidder.makeTimeoutNotification(any())).willReturn(HttpRequest.<Void>builder()
                 .uri("url")
                 .method(HttpMethod.POST)
-                .body("{}")
+                .body(EMPTY_BODY)
                 .build());
 
-        given(httpClient.request(any(), anyString(), any(), anyString(), anyLong()))
+        given(httpClient.request(any(), anyString(), any(), any(byte[].class), anyLong()))
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
         // when
@@ -131,7 +134,7 @@ public class BidderErrorNotifierTest {
 
         // then
         verify(bidder).makeTimeoutNotification(eq(bidderRequest));
-        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq("{}"), eq(200L));
+        verify(httpClient).request(eq(HttpMethod.POST), eq("url"), isNull(), eq(EMPTY_BODY), eq(200L));
         verify(metrics).updateTimeoutNotificationMetric(eq(false));
     }
 }

@@ -29,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -40,9 +41,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * OpenX {@link Bidder} implementation.
- */
 public class OpenxBidder implements Bidder<BidRequest> {
 
     private static final String OPENX_CONFIG = "hb_pbs_1.0.0";
@@ -128,8 +126,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
-                .map(singleBidRequest -> HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri(endpointUrl)
-                        .body(mapper.encode(singleBidRequest)).headers(HttpUtil.headers()).payload(singleBidRequest)
+                .map(singleBidRequest -> HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(mapper.encodeToBytes(singleBidRequest))
+                        .headers(HttpUtil.headers())
+                        .payload(singleBidRequest)
                         .build())
                 .collect(Collectors.toList());
     }
@@ -174,13 +176,9 @@ public class OpenxBidder implements Bidder<BidRequest> {
     }
 
     private static BigDecimal resolveBidFloor(BigDecimal impBidFloor, BigDecimal customFloor) {
-        return !bidFloorIsValid(impBidFloor) && bidFloorIsValid(customFloor)
+        return !BidderUtil.isValidPrice(impBidFloor) && BidderUtil.isValidPrice(customFloor)
                 ? customFloor
                 : impBidFloor;
-    }
-
-    private static boolean bidFloorIsValid(BigDecimal bidFloor) {
-        return bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0;
     }
 
     private ExtRequest makeReqExt(Imp imp) {

@@ -37,9 +37,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Outbrain {@link Bidder} implementation.
- */
 public class OutbrainBidder implements Bidder<BidRequest> {
 
     private static final int IMAGE_TRACKER_METHOD = 1;
@@ -83,7 +80,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(mapper.encode(updatedRequest))
+                        .body(mapper.encodeToBytes(updatedRequest))
                         .headers(HttpUtil.headers())
                         .payload(updatedRequest)
                         .build()), errors);
@@ -201,7 +198,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        final List imptrackers = ListUtils.defaultIfNull(response.getImptrackers(), new ArrayList<>());
+        final List<String> imptrackers = ListUtils.defaultIfNull(response.getImptrackers(), new ArrayList<>());
 
         String jstracker = response.getJstracker();
         for (EventTracker eventTracker : eventtrackers) {
@@ -217,7 +214,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             }
         }
 
-        return mapper.encode(response.toBuilder()
+        return mapper.encodeToString(response.toBuilder()
                 .eventtrackers(null)
                 .jstracker(jstracker)
                 .imptrackers(imptrackers)
