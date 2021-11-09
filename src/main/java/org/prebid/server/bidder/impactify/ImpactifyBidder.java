@@ -68,7 +68,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
-
         }
 
         final BidRequest updatedBidRequest = request.toBuilder()
