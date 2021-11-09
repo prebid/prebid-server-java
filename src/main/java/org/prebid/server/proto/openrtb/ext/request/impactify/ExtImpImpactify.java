@@ -11,9 +11,7 @@ public class ExtImpImpactify {
     @JsonProperty("appId")
     String appId;
 
-    @JsonProperty("format")
     String format;
 
-    @JsonProperty("style")
     String style;
 }

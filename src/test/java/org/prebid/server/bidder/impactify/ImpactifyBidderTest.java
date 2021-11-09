@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -41,7 +40,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -83,11 +81,11 @@ public class ImpactifyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
-        //when
+        // when
         Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
-        //then
-        assertThat(result.getErrors()).hasSize(0);
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -104,10 +102,10 @@ public class ImpactifyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
-        //when
+        // when
         Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
@@ -116,21 +114,21 @@ public class ImpactifyBidderTest extends VertxTest {
 
     @Test
     public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersExceptIpv6() {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestCustomizer -> bidRequestCustomizer
                         .device(givenDevice(deviceCustomizer -> deviceCustomizer.ua("ua").ip("ip").ipv6("ipv6")))
                         .site(Site.builder().page("https://proper.web.site").build())
                         .user(User.builder().buyeruid("buyer_user_uid").build()),
-                singletonList(impCustomizer -> impCustomizer
+                List.of(impCustomizer -> impCustomizer
                         .bidfloorcur("USD")
                         .bidfloor(BigDecimal.ONE)));
 
-        //when
+        // when
         final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
-        //then
-        assertThat(result.getErrors()).hasSize(0);
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
@@ -140,36 +138,10 @@ public class ImpactifyBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "https://proper.web.site"),
                         tuple(HttpUtil.COOKIE_HEADER.toString(), "uids=buyer_user_uid")
-                );
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersExceptIp() {
-        //given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestCustomizer -> bidRequestCustomizer
-                        .device(givenDevice(deviceCustomizer -> deviceCustomizer.ipv6("ipv6"))),
-                singletonList(impCustomizer -> impCustomizer
-                        .bidfloorcur("USD")
-                        .bidfloor(BigDecimal.ONE)));
-
-        //when
-        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
-
-        //then
-        assertThat(result.getErrors()).hasSize(0);
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getHeaders)
-                .flatExtracting(MultiMap::entries)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"),
-                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5")
                 );
     }
 
@@ -179,11 +151,11 @@ public class ImpactifyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("USD"));
 
-        //when
+        // when
         Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
-        //then
-        assertThat(result.getErrors()).hasSize(0);
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
@@ -197,10 +169,10 @@ public class ImpactifyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
-        //when
+        // when
         Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unable to decode the impression ext for id: 123");
@@ -208,7 +180,7 @@ public class ImpactifyBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnValidBidResponseWithBanner() throws JsonProcessingException {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.banner(Banner.builder().build()));
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -216,11 +188,11 @@ public class ImpactifyBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
-        //when
+        // when
         final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
 
-        //then
-        assertThat(result.getErrors()).hasSize(0);
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .containsOnly(Bid.builder()
@@ -234,37 +206,37 @@ public class ImpactifyBidderTest extends VertxTest {
 
     @Test
     public void makeBidsWithInvalidBodyShouldResultInError() {
-        //given
+        // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
-        //when
+        // when
         final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, null);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
     }
 
     @Test
     public void makeBidsReturnEmptyListsResultWhenEmptySeatBidInBidResponse() throws JsonProcessingException {
-        //given
+        // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
-        //when
+        // when
         final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnValidBidResponseWithVideo() throws JsonProcessingException {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.video(Video.builder().build()));
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -272,11 +244,11 @@ public class ImpactifyBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
-        //when
+        // when
         final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
 
-        //then
-        assertThat(result.getErrors()).hasSize(0);
+        // then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .containsOnly(Bid.builder()
@@ -289,29 +261,9 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWithNoValidBidType() throws JsonProcessingException {
-        //given
-        final BidRequest bidRequest = givenBidRequest(
-                impCustomizer -> impCustomizer.banner(null).audio(Audio.builder().build()));
-
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(identity())));
-
-        //when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
-
-        //then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors())
-                .extracting(BidderError::getMessage).containsExactly("Unknown impression type for ID: '123'");
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorWhenBidResponseImpIdIsNotSameAsBidRequestImpId()
             throws JsonProcessingException {
-        //given
+        // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
@@ -319,13 +271,14 @@ public class ImpactifyBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
-        //when
+        // when
         final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
 
-        //then
+        // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
-                .extracting(BidderError::getMessage).containsExactly("Failed to find impression for ID: '321'");
+                .extracting(BidderError::getMessage)
+                .containsExactly("Failed to find a supported media type impression with ID: '321'");
     }
 
     private static BidRequest givenBidRequest(
@@ -358,8 +311,8 @@ public class ImpactifyBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder().impid("123")).build()))
+                .seatbid(List.of(SeatBid.builder()
+                        .bid(List.of(bidCustomizer.apply(Bid.builder().impid("123")).build()))
                         .build()))
                 .build();
     }

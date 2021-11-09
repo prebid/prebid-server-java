@@ -9,7 +9,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -57,52 +56,36 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<Imp> imps = request.getImp();
         final List<Imp> updatedImps = new ArrayList<>();
-        final BidRequest updatedBidRequest;
 
-        for (Imp imp : imps) {
+        for (Imp imp : request.getImp()) {
             BigDecimal bidFloor = imp.getBidfloor();
-            if (isBidFloorValid(bidFloor, imp.getBidfloorcur())) {
-                try {
-                    bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
-                } catch (PreBidException e) {
-                    return Result.withError(BidderError.badInput(e.getMessage()));
-                }
-            }
-
-            final ExtImpImpactify extImpImpactify;
             try {
-                extImpImpactify = mapper.mapper()
-                        .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
-                        .getBidder();
-            } catch (IllegalArgumentException e) {
-                return Result.withError(
-                        BidderError.badInput("Unable to decode the impression ext for id: " + imp.getId()));
+                if (shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())) {
+                    bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
+                }
+                updatedImps.add(updateImpWithBidFloor(imp, bidFloor));
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
-            updatedImps.add(imp.toBuilder()
-                    .bidfloorcur(BIDDER_CURRENCY)
-                    .bidfloor(bidFloor)
-                    .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, extImpImpactify)))
-                    .build());
         }
 
-        updatedBidRequest = request.toBuilder()
+        final BidRequest updatedBidRequest = request.toBuilder()
                 .imp(updatedImps)
-                .cur(List.of("USD"))
+                .cur(List.of(BIDDER_CURRENCY))
                 .build();
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolveEndpoint())
+                .uri(endpointUrl)
                 .headers(constructHeaders(updatedBidRequest))
                 .body(mapper.encode(updatedBidRequest))
                 .payload(updatedBidRequest)
                 .build());
     }
 
-    private static boolean isBidFloorValid(BigDecimal bidFloor, String bidFloorCur) {
+    private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
         return Objects.nonNull(bidFloor)
                 && StringUtils.isNotEmpty(bidFloorCur)
                 && BigDecimal.ZERO.compareTo(bidFloor) <= 0
@@ -121,38 +104,43 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveEndpoint() {
-        return endpointUrl;
+    private Imp updateImpWithBidFloor(Imp imp, BigDecimal bidFloor) {
+        return imp.toBuilder()
+                .bidfloorcur(BIDDER_CURRENCY)
+                .bidfloor(bidFloor)
+                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseExtImp(imp))))
+                .build();
+    }
+
+    private ExtImpImpactify parseExtImp(Imp imp) {
+        try {
+            return mapper.mapper()
+                    .convertValue(imp.getExt(), IMPACTIFY_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(String.format("Unable to decode the impression ext for id: %s", imp.getId()));
+        }
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
-        final String deviceUa = device != null ? device.getUa() : null;
-        final String deviceIpv4 = device != null ? device.getIp() : null;
-        final String deviceIpv6 = device != null ? device.getIpv6() : null;
-        final Site site = bidRequest.getSite();
-        final String sitePage = site != null ? site.getPage() : null;
-        final User user = bidRequest.getUser();
-        final String userUid = user != null ? user.getBuyeruid() : null;
         final MultiMap headers = HttpUtil.headers();
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
-        headers.set(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE);
-        headers.set(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+        final Device device = bidRequest.getDevice();
         if (Objects.nonNull(device)) {
-            if (Objects.nonNull(deviceUa)) {
-                headers.set(HttpUtil.USER_AGENT_HEADER, deviceUa);
-            }
-            if (Objects.nonNull(deviceIpv4)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv4);
-            } else if (Objects.nonNull(deviceIpv6)) {
-                headers.set(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIpv6);
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
         }
-        if (Objects.nonNull(site)) {
-            headers.set(HttpUtil.REFERER_HEADER, sitePage);
-        }
-        if (Objects.nonNull(user) && Objects.nonNull(userUid) && !userUid.isEmpty()) {
+
+        final Site site = bidRequest.getSite();
+        final String sitePage = site != null ? site.getPage() : null;
+        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, sitePage);
+
+        final User user = bidRequest.getUser();
+        final String userUid = user != null ? user.getBuyeruid() : null;
+        if (Objects.nonNull(user) && StringUtils.isNotEmpty(userUid)) {
             headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
         }
 
@@ -177,7 +165,8 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidResponse, bidRequest, errors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest,
+                                             List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -207,9 +196,9 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 if (imp.getVideo() != null) {
                     return BidType.video;
                 }
-                throw new PreBidException(String.format("Unknown impression type for ID: '%s'", impId));
             }
         }
-        throw new PreBidException(String.format("Failed to find impression for ID: '%s'", impId));
+        throw new PreBidException(
+                String.format("Failed to find a supported media type impression with ID: '%s'", impId));
     }
 }
