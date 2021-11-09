@@ -25,7 +25,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -43,6 +42,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -61,7 +62,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -834,11 +834,10 @@ public class AmpHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
-    private static HttpContext givenHttpContext(Map<String, String> headers) {
-        return HttpContext.builder()
-                .queryParams(emptyMap())
-                .headers(headers)
-                .cookies(emptyMap())
+    private static HttpRequestContext givenHttpContext(Map<String, String> headers) {
+        return HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .headers(CaseInsensitiveMultiMap.builder().addAll(headers).build())
                 .build();
     }
 }

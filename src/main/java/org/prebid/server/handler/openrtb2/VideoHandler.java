@@ -9,7 +9,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoResponseFactory;
@@ -24,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.response.VideoResponse;
@@ -85,7 +85,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         final long startTime = clock.millis();
 
         final VideoEvent.VideoEventBuilder videoEventBuilder = VideoEvent.builder()
-                .httpContext(HttpContext.from(routingContext));
+                .httpContext(HttpRequestContext.from(routingContext));
 
         videoRequestFactory.fromRequest(routingContext, startTime)
                 .map(contextToErrors -> addToEvent(

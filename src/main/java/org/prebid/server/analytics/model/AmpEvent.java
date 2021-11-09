@@ -5,6 +5,7 @@ import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.model.HttpRequestContext;
 
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,7 @@ public class AmpEvent {
 
     List<String> errors;
 
-    HttpContext httpContext;
+    HttpRequestContext httpContext;
 
     AuctionContext auctionContext;
 
