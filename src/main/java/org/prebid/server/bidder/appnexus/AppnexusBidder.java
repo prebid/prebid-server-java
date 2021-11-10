@@ -217,48 +217,171 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             }
         }
 
-        final String url = constructUrl(uniqueIds, errors);
-
         if (processedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
+        final String url = constructUrl(uniqueIds, errors);
         return Result.of(constructRequests(bidRequest, processedImps, url, generateAdPodId), errors);
     }
 
     private String makeDefaultDisplayManagerVer(BidRequest bidRequest) {
         final ExtApp extApp = ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getExt);
         final ExtAppPrebid prebid = ObjectUtil.getIfNotNull(extApp, ExtApp::getPrebid);
-        if (prebid == null) {
-            return null;
-        }
 
-        final String source = prebid.getSource();
-        final String version = prebid.getVersion();
+        final String source = ObjectUtil.getIfNotNull(prebid, ExtAppPrebid::getSource);
+        final String version = ObjectUtil.getIfNotNull(prebid, ExtAppPrebid::getVersion);
 
         return ObjectUtils.allNotNull(source, version)
                 ? String.format("%s-%s", source, version)
                 : null;
     }
 
-    private String constructUrl(Set<String> ids, List<BidderError> errors) {
-        if (CollectionUtils.isNotEmpty(ids)) {
-            final String url = String.format("%s?member_id=%s", endpointUrl, ids.iterator().next());
-            try {
-                validateMemberId(ids);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-            }
-            return url;
+    private ImpWithExtProperties processImp(Imp imp, String defaultDisplayManagerVer) {
+        final ExtImpAppnexus appnexusExt = validateAndResolveImpExt(imp);
+
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                .banner(makeBanner(imp.getBanner(), appnexusExt))
+                .ext(makeImpExt(appnexusExt));
+
+        final String invCode = appnexusExt.getInvCode();
+        if (StringUtils.isNotBlank(invCode)) {
+            impBuilder.tagid(invCode);
         }
-        return endpointUrl;
+
+        final BigDecimal reserve = appnexusExt.getReserve();
+        if (!BidderUtil.isValidPrice(imp.getBidfloor()) && BidderUtil.isValidPrice(reserve)) {
+            impBuilder.bidfloor(reserve);
+        }
+
+        if (StringUtils.isBlank(imp.getDisplaymanagerver()) && StringUtils.isNotBlank(defaultDisplayManagerVer)) {
+            impBuilder.displaymanagerver(defaultDisplayManagerVer);
+        }
+
+        return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(), appnexusExt.getGenerateAdPodId());
     }
 
-    private static void validateMemberId(Set<String> uniqueIds) {
+    private ExtImpAppnexus validateAndResolveImpExt(Imp imp) {
+        try {
+            final ExtImpAppnexus ext = mapper.mapper()
+                    .convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE)
+                    .getBidder();
+
+            final ExtImpAppnexus resolvedExt = resolveLegacyParameters(ext);
+            validateExtImpAppnexus(resolvedExt);
+
+            return resolvedExt;
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
+    }
+
+    private static ExtImpAppnexus resolveLegacyParameters(ExtImpAppnexus extImpAppnexus) {
+        if (!shouldReplaceWithLegacyParameters(extImpAppnexus)) {
+            return extImpAppnexus;
+        }
+
+        final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getLegacyPlacementId(), extImpAppnexus.getPlacementId());
+        final String resolvedInvCode = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
+        final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
+                extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
+
+        return extImpAppnexus.toBuilder()
+                .placementId(resolvedPlacementId)
+                .invCode(resolvedInvCode)
+                .trafficSourceCode(resolvedTrafficSourceCode)
+                .build();
+    }
+
+    private static boolean shouldReplaceWithLegacyParameters(ExtImpAppnexus extImpAppnexus) {
+        final boolean setPlacementId = extImpAppnexus.getPlacementId() == null
+                && extImpAppnexus.getLegacyPlacementId() != null;
+        final boolean setInvCode = extImpAppnexus.getInvCode() == null
+                && extImpAppnexus.getLegacyInvCode() != null;
+        final boolean setTrafficSourceCode = extImpAppnexus.getTrafficSourceCode() == null
+                && extImpAppnexus.getLegacyTrafficSourceCode() != null;
+
+        return setPlacementId || setInvCode || setTrafficSourceCode;
+    }
+
+    private static void validateExtImpAppnexus(ExtImpAppnexus extImpAppnexus) {
+        final int placementId = ObjectUtils.defaultIfNull(extImpAppnexus.getPlacementId(), 0);
+        if (placementId == 0 && StringUtils.isAnyBlank(extImpAppnexus.getInvCode(), extImpAppnexus.getMember())) {
+            throw new PreBidException("No placement or member+invcode provided");
+        }
+    }
+
+    private ObjectNode makeImpExt(ExtImpAppnexus appnexusExt) {
+        final AppnexusImpExtAppnexus appnexusImpExt = AppnexusImpExtAppnexus.builder()
+                .placementId(appnexusExt.getPlacementId())
+                .keywords(makeKeywords(appnexusExt.getKeywords()))
+                .trafficSourceCode(appnexusExt.getTrafficSourceCode())
+                .usePmtRule(appnexusExt.getUsePmtRule())
+                .privateSizes(appnexusExt.getPrivateSizes())
+                .build();
+
+        return mapper.mapper().valueToTree(AppnexusImpExt.of(appnexusImpExt));
+    }
+
+    private static String makeKeywords(List<AppnexusKeyVal> keywords) {
+        final String resolvedKeywords = CollectionUtils.emptyIfNull(keywords).stream()
+                .filter(entry -> entry.getKey() != null)
+                .flatMap(AppnexusBidder::extractKeywords)
+                .collect(Collectors.joining(","));
+
+        return StringUtils.stripToNull(resolvedKeywords);
+    }
+
+    private static Stream<String> extractKeywords(AppnexusKeyVal appnexusKeyVal) {
+        final String key = appnexusKeyVal.getKey();
+        final List<String> values = appnexusKeyVal.getValue();
+        return CollectionUtils.isNotEmpty(values)
+                ? values.stream().map(value -> String.format("%s=%s", key, value))
+                : Stream.of(key);
+    }
+
+    private static Banner makeBanner(Banner banner, ExtImpAppnexus appnexusExt) {
+        if (banner == null) {
+            return null;
+        }
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
+
+        final List<Format> formats = banner.getFormat();
+        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
+
+        final boolean replaceWithFirstFormat = firstFormat != null && width == null && height == null;
+
+        final Integer resolvedWidth = replaceWithFirstFormat ? firstFormat.getW() : width;
+        final Integer resolvedHeight = replaceWithFirstFormat ? firstFormat.getH() : height;
+
+        final Integer position = resolvePosition(appnexusExt.getPosition());
+
+        return position != null || replaceWithFirstFormat
+                ? banner.toBuilder().pos(position).w(resolvedWidth).h(resolvedHeight).build()
+                : banner;
+    }
+
+    private static Integer resolvePosition(String position) {
+        final Integer posAbove = Objects.equals(position, "above") ? AD_POSITION_ABOVE_THE_FOLD : null;
+        final Integer posBelow = Objects.equals(position, "below") ? AD_POSITION_BELOW_THE_FOLD : null;
+        return posAbove != null ? posAbove : posBelow;
+    }
+
+    private String constructUrl(Set<String> ids, List<BidderError> errors) {
+        validateMemberIds(ids, errors);
+        return CollectionUtils.isNotEmpty(ids)
+                ? String.format("%s?member_id=%s", endpointUrl, ids.iterator().next())
+                : endpointUrl;
+    }
+
+    private static void validateMemberIds(Set<String> uniqueIds, List<BidderError> errors) {
         if (uniqueIds.size() > 1) {
-            throw new PreBidException(
+            errors.add(BidderError.badInput(
                     "All request.imp[i].ext.appnexus.member params must match. Request contained: "
-                            + String.join(", ", uniqueIds));
+                            + String.join(", ", uniqueIds)));
         }
     }
 
@@ -375,139 +498,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build();
-    }
-
-    private ImpWithExtProperties processImp(Imp imp, String defaultDisplayManagerVer) {
-        final ExtImpAppnexus appnexusExt = parseAndValidateImpExt(imp);
-
-        final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .banner(makeBanner(imp.getBanner(), appnexusExt))
-                .ext(makeImpExt(appnexusExt));
-
-        final String invCode = appnexusExt.getInvCode();
-        if (StringUtils.isNotBlank(invCode)) {
-            impBuilder.tagid(invCode);
-        }
-
-        final BigDecimal reserve = appnexusExt.getReserve();
-        if (!BidderUtil.isValidPrice(imp.getBidfloor()) && BidderUtil.isValidPrice(reserve)) {
-            impBuilder.bidfloor(reserve); // This will be broken for non-USD currency.
-        }
-
-        // Populate imp.displaymanagerver if the SDK failed to do it.
-        if (StringUtils.isBlank(imp.getDisplaymanagerver()) && StringUtils.isNotBlank(defaultDisplayManagerVer)) {
-            impBuilder.displaymanagerver(defaultDisplayManagerVer);
-        }
-
-        return ImpWithExtProperties.of(impBuilder.build(), appnexusExt.getMember(), appnexusExt.getGenerateAdPodId());
-    }
-
-    private ObjectNode makeImpExt(ExtImpAppnexus appnexusExt) {
-        final AppnexusImpExtAppnexus appnexusImpExt = AppnexusImpExtAppnexus.builder()
-                .placementId(appnexusExt.getPlacementId())
-                .keywords(makeKeywords(appnexusExt.getKeywords()))
-                .trafficSourceCode(appnexusExt.getTrafficSourceCode())
-                .usePmtRule(appnexusExt.getUsePmtRule())
-                .privateSizes(appnexusExt.getPrivateSizes())
-                .build();
-
-        return mapper.mapper().valueToTree(AppnexusImpExt.of(appnexusImpExt));
-    }
-
-    private static Banner makeBanner(Banner banner, ExtImpAppnexus appnexusExt) {
-        if (banner == null) {
-            return null;
-        }
-        final Integer width = banner.getW();
-        final Integer height = banner.getH();
-
-        final List<Format> formats = banner.getFormat();
-        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
-
-        final boolean replaceWithFirstFormat = firstFormat != null && width == null && height == null;
-
-        final Integer resolvedWidth = replaceWithFirstFormat ? firstFormat.getW() : width;
-        final Integer resolvedHeight = replaceWithFirstFormat ? firstFormat.getH() : height;
-
-        final Integer position = resolvePosition(appnexusExt.getPosition());
-
-        return position != null || replaceWithFirstFormat
-                ? banner.toBuilder().pos(position).w(resolvedWidth).h(resolvedHeight).build()
-                : banner;
-    }
-
-    private static Integer resolvePosition(String position) {
-        final Integer posAbove = Objects.equals(position, "above") ? AD_POSITION_ABOVE_THE_FOLD : null;
-        final Integer posBelow = Objects.equals(position, "below") ? AD_POSITION_BELOW_THE_FOLD : null;
-        return posAbove != null ? posAbove : posBelow;
-    }
-
-    private static String makeKeywords(List<AppnexusKeyVal> keywords) {
-        final String resolvedKeywords = CollectionUtils.emptyIfNull(keywords).stream()
-                .filter(entry -> entry.getKey() != null)
-                .flatMap(AppnexusBidder::extractKeywords)
-                .collect(Collectors.joining(","));
-
-        return StringUtils.stripToNull(resolvedKeywords);
-    }
-
-    private static Stream<String> extractKeywords(AppnexusKeyVal appnexusKeyVal) {
-        final String key = appnexusKeyVal.getKey();
-        final List<String> values = appnexusKeyVal.getValue();
-        return CollectionUtils.isNotEmpty(values)
-                ? values.stream().map(value -> String.format("%s=%s", key, value))
-                : Stream.of(key);
-    }
-
-    private ExtImpAppnexus parseAndValidateImpExt(Imp imp) {
-        ExtImpAppnexus ext;
-        try {
-            ext = mapper.mapper().convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
-        final ExtImpAppnexus resolvedExt = resolveLegacyParameters(ext);
-        validateExtImpAppnexus(resolvedExt);
-
-        return resolvedExt;
-    }
-
-    private static ExtImpAppnexus resolveLegacyParameters(ExtImpAppnexus extImpAppnexus) {
-        if (!shouldReplaceWithLegacyParameters(extImpAppnexus)) {
-            return extImpAppnexus;
-        }
-
-        final Integer resolvedPlacementId = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getLegacyPlacementId(), extImpAppnexus.getPlacementId());
-        final String resolvedInvCode = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getInvCode(), extImpAppnexus.getLegacyInvCode());
-        final String resolvedTrafficSourceCode = ObjectUtils.defaultIfNull(
-                extImpAppnexus.getTrafficSourceCode(), extImpAppnexus.getLegacyTrafficSourceCode());
-
-        return extImpAppnexus.toBuilder()
-                .placementId(resolvedPlacementId)
-                .invCode(resolvedInvCode)
-                .trafficSourceCode(resolvedTrafficSourceCode)
-                .build();
-    }
-
-    private static boolean shouldReplaceWithLegacyParameters(ExtImpAppnexus extImpAppnexus) {
-        final boolean setPlacementId = extImpAppnexus.getPlacementId() == null
-                && extImpAppnexus.getLegacyPlacementId() != null;
-        final boolean setInvCode = extImpAppnexus.getInvCode() == null
-                && extImpAppnexus.getLegacyInvCode() != null;
-        final boolean setTrafficSourceCode = extImpAppnexus.getTrafficSourceCode() == null
-                && extImpAppnexus.getLegacyTrafficSourceCode() != null;
-
-        return setPlacementId || setInvCode || setTrafficSourceCode;
-    }
-
-    private static void validateExtImpAppnexus(ExtImpAppnexus extImpAppnexus) {
-        final int placementId = ObjectUtils.defaultIfNull(extImpAppnexus.getPlacementId(), 0);
-        if (placementId == 0 && StringUtils.isAnyBlank(extImpAppnexus.getInvCode(), extImpAppnexus.getMember())) {
-            throw new PreBidException("No placement or member+invcode provided");
-        }
     }
 
     @Override
