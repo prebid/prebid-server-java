@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
@@ -13,7 +14,8 @@ public class AccountGdprConfig {
     @JsonProperty("enabled")
     Boolean enabled;
 
-    @JsonProperty("integration-enabled")
+    @JsonProperty("channel-enabled")
+    @JsonAlias("integration-enabled") // TODO: remove integration after transition period
     EnabledForRequestType enabledForRequestType;
 
     Purposes purposes;
