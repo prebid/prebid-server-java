@@ -55,7 +55,7 @@ public class SmarthubBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .uri(buildEndpointUrl(extImpSmarthub))
                 .payload(request)
                 .headers(resolveHeaders())

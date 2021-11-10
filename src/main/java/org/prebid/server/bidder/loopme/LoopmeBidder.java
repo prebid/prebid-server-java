@@ -42,7 +42,7 @@ public class LoopmeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

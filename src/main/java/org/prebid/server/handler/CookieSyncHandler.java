@@ -450,7 +450,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
         final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
-        final String body = mapper.encode(cookieSyncResponse);
+        final String body = mapper.encodeToString(cookieSyncResponse);
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
                 response -> response

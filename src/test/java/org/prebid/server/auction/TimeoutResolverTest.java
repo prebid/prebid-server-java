@@ -19,6 +19,18 @@ public class TimeoutResolverTest {
     }
 
     @Test
+    public void creationShouldFailIfDefaultTimeoutEqualOrLassThanZero() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(0L, 1L, 0L))
+                .withMessage("Both default and max timeouts should be grater than 0: max=1, default=0");
+    }
+
+    @Test
+    public void creationShouldFailIfMaxTimeoutEqualsOrLassThanZero() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(1L, 0L, 0L))
+                .withMessage("Both default and max timeouts should be grater than 0: max=0, default=1");
+    }
+
+    @Test
     public void creationShouldFailIfMaxTimeoutLessThanDefault() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TimeoutResolver(2L, 1L, 0L))
                 .withMessage("Max timeout cannot be less than default timeout: max=1, default=2");

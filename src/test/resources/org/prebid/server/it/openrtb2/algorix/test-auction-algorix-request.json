@@ -7,10 +7,13 @@
         "w": 300,
         "h": 250
       },
+      "tagid": "123",
       "ext": {
         "algorix": {
           "sid": "testSid",
-          "token": "testToken"
+          "token": "testToken",
+          "placementId": "testPlacementId",
+          "appId": "testAppId"
         }
       }
     }

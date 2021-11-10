@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class BmtmConfiguration {
 
     private static final String BIDDER_NAME = "bmtm";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("bmtmConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("bmtmConfigurationProperties")
     @ConfigurationProperties("adapters.bmtm")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class BmtmConfiguration {
     }
 
     @Bean
-    BidderDeps bmtmBidderDeps() {
+    BidderDeps bmtmBidderDeps(BidderConfigurationProperties bmtmConfigurationProperties,
+                              @NotBlank @Value("${external-url}") String externalUrl,
+                              JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(bmtmConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new BmtmBidder(config.getEndpoint(), mapper))
                 .assemble();

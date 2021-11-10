@@ -219,6 +219,22 @@
   ],
   "cur": "USD",
   "ext": {
+    "warnings": {
+      "prebid": [
+        {
+          "code": 999,
+          "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
+        },
+        {
+          "code": 999,
+          "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
+        },
+        {
+          "code": 999,
+          "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
+        }
+      ]
+    },
     "responsetimemillis": {
       "appnexus": "{{ appnexus.response_time_ms }}",
       "rubicon": "{{ rubicon.response_time_ms }}",

@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class PulsepointConfiguration {
 
     private static final String BIDDER_NAME = "pulsepoint";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("pulsepointConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("pulsepointConfigurationProperties")
     @ConfigurationProperties("adapters.pulsepoint")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class PulsepointConfiguration {
     }
 
     @Bean
-    BidderDeps pulsepointBidderDeps() {
+    BidderDeps pulsepointBidderDeps(BidderConfigurationProperties pulsepointConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(pulsepointConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new PulsepointBidder(config.getEndpoint(), mapper))
                 .assemble();

@@ -2,7 +2,7 @@ adapters:
   adot:
     endpoint: https://dsp.adotmob.com/headerbidding/bidrequest
     meta-info:
-      maintainer-email: admin@we-are-adot.com"
+      maintainer-email: admin@we-are-adot.com
       app-media-types:
         - banner
         - video
@@ -14,8 +14,8 @@ adapters:
       supported-vendors:
       vendor-id: 272
     usersync:
-      url:
-      redirect-url:
+      url: https://sync.adotmob.com/cookie/pbs?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+      redirect-url: /setuid?bidder=adot&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={amob_user_id}
       cookie-family-name: adot
       type: redirect
       support-cors: false

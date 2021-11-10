@@ -105,7 +105,7 @@ public class UserService {
 
         final UserDetailsRequest userDetailsRequest = UserDetailsRequest.of(
                 UTC_MILLIS_FORMATTER.format(ZonedDateTime.now(clock)), userIds);
-        final String body = mapper.encode(userDetailsRequest);
+        final String body = mapper.encodeToString(userDetailsRequest);
 
         final long requestTimeout = Math.min(this.timeout, timeout.remaining());
 
@@ -233,7 +233,7 @@ public class UserService {
             return;
         }
 
-        final String body = mapper.encode(WinEventNotification.builder()
+        final String body = mapper.encodeToString(WinEventNotification.builder()
                 .bidderCode(lineItem.getSource())
                 .bidId(bidId)
                 .lineItemId(lineItemId)

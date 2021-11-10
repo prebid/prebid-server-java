@@ -74,14 +74,13 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
-        final String body = mapper.encode(outgoingRequest);
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(resolveUrl(endpointUrl, extImpAlgorix))
                                 .headers(resolveHeaders())
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }
@@ -112,7 +111,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
-                return imp.toBuilder()
+                imp = imp.toBuilder()
                         .banner(banner.toBuilder()
                                 .w(firstFormat.getW())
                                 .h(firstFormat.getH())

@@ -62,7 +62,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(bidRequest))
+                    .body(mapper.encodeToBytes(bidRequest))
                     .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build());
