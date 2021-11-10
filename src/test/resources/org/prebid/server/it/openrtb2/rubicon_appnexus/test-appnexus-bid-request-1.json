@@ -38,6 +38,17 @@
           "placement_id": 9880618
         }
       }
+    },
+    {
+      "id" : "impId32",
+      "audio" : {
+        "mimes" : [ "video/mp4" ]
+      },
+      "ext" : {
+        "appnexus" : {
+          "placement_id" : 10433394
+        }
+      }
     }
   ],
   "site": {
