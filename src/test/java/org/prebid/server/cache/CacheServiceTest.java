@@ -73,7 +73,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -454,12 +453,9 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         // Second value is adm length for each
-        verify(metrics, times(1))
-                .updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.json));
-        verify(metrics, times(1))
-                .updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
-        verify(metrics, times(1))
-                .updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
