@@ -83,7 +83,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         return Result.withValue(HttpRequest.<CriteoRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(jsonMapper.encode(outgoingRequest))
+                .body(jsonMapper.encodeToBytes(outgoingRequest))
                 .headers(resolveHeaders(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());

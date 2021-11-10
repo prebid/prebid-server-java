@@ -232,7 +232,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(expectedImp);
+                .containsExactly(expectedImp);
     }
 
     @Test
@@ -274,7 +274,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
-                .containsOnly(expectedImp);
+                .containsExactly(expectedImp);
     }
 
     @Test
@@ -294,7 +294,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Video: Need at least one size to build request"));
+                .containsExactly(BidderError.badInput("Video: Need at least one size to build request"));
     }
 
     @Test
@@ -314,7 +314,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Video: missing required field mimes"));
+                .containsExactly(BidderError.badInput("Video: missing required field mimes"));
     }
 
     @Test
@@ -338,7 +338,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(request -> request.getImp().get(0).getSecure())
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -363,7 +363,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -388,7 +388,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsOnly(1);
+                .containsExactly(1);
     }
 
     @Test
@@ -413,7 +413,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getSecure)
-                .containsOnly(0);
+                .containsExactly(0);
     }
 
     @Test
@@ -450,7 +450,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(1)
-                .containsOnly(expectedImp);
+                .containsExactly(expectedImp);
     }
 
     @Test
@@ -486,7 +486,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .flatExtracting(r -> r.getHeaders().entries())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("User-Agent", "Agent"),
@@ -544,7 +544,7 @@ public class EmxDigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidWithChangedBidImpId() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidWithCorrectImpId() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -559,7 +559,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").impid("321").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().id("321").impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -578,7 +578,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("321").build(),
+                .containsExactly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("123").build(),
                         video, "USD"));
     }
 
@@ -598,7 +598,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("321").build(),
+                .containsExactly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("123").build(),
                         video, "USD"));
     }
 

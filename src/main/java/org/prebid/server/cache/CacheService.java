@@ -132,7 +132,7 @@ public class CacheService {
         final List<CachedCreative> cachedCreatives = Collections.singletonList(
                 makeDebugCacheCreative(cachedDebugLog, cacheKey, videoCacheTtl));
         final BidCacheRequest bidCacheRequest = toBidCacheRequest(cachedCreatives);
-        httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encode(bidCacheRequest),
+        httpClient.post(endpointUrl.toString(), HttpUtil.headers(), mapper.encodeToString(bidCacheRequest),
                 expectedCacheTimeMs);
         return cacheKey;
     }
@@ -152,8 +152,10 @@ public class CacheService {
     /**
      * Asks external prebid cache service to store the given value.
      */
-    private Future<BidCacheResponse> makeRequest(
-            BidCacheRequest bidCacheRequest, int bidCount, Timeout timeout, String accountId) {
+    private Future<BidCacheResponse> makeRequest(BidCacheRequest bidCacheRequest,
+                                                 int bidCount,
+                                                 Timeout timeout,
+                                                 String accountId) {
 
         if (bidCount == 0) {
             return Future.succeededFuture(BidCacheResponse.of(Collections.emptyList()));
@@ -165,7 +167,7 @@ public class CacheService {
         }
 
         final long startTime = clock.millis();
-        return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encode(bidCacheRequest),
+        return httpClient.post(endpointUrl.toString(), CACHE_HEADERS, mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)
                 .map(response -> toBidCacheResponse(
                         response.getStatusCode(), response.getBody(), bidCount, accountId, startTime))
@@ -197,6 +199,7 @@ public class CacheService {
                                                     String accountId,
                                                     String integration,
                                                     Timeout timeout) {
+
         final List<CachedCreative> cachedCreatives =
                 updatePutObjects(putObjects, isEventsEnabled, biddersAllowingVastUpdate, accountId, integration);
 
@@ -213,6 +216,7 @@ public class CacheService {
                                                   Set<String> allowedBidders,
                                                   String accountId,
                                                   String integration) {
+
         return putObjects.stream()
                 .map(putObject -> putObject.toBuilder()
                         // remove "/vtrack" specific fields
@@ -233,6 +237,7 @@ public class CacheService {
                                                        AuctionContext auctionContext,
                                                        CacheContext cacheContext,
                                                        EventsContext eventsContext) {
+
         if (CollectionUtils.isEmpty(bidsToCache)) {
             return Future.succeededFuture(CacheServiceResult.empty());
         }
@@ -275,6 +280,7 @@ public class CacheService {
     private List<CacheBid> getCacheBids(List<BidInfo> bidInfos,
                                         Integer cacheBidsTtl,
                                         CacheTtl accountCacheTtl) {
+
         return bidInfos.stream()
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, false))
                 .collect(Collectors.toList());
@@ -283,6 +289,7 @@ public class CacheService {
     private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos,
                                              Integer cacheBidsTtl,
                                              CacheTtl accountCacheTtl) {
+
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, true))
@@ -296,6 +303,7 @@ public class CacheService {
                                 Integer requestTtl,
                                 CacheTtl accountCacheTtl,
                                 boolean isVideoBid) {
+
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final Integer bidTtl = bid.getExp();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
@@ -359,7 +367,7 @@ public class CacheService {
         updateCreativeMetrics(accountId, cachedCreatives);
 
         final String url = endpointUrl.toString();
-        final String body = mapper.encode(bidCacheRequest);
+        final String body = mapper.encodeToString(bidCacheRequest);
         final CacheHttpRequest httpRequest = CacheHttpRequest.of(url, body);
 
         final long startTime = clock.millis();
@@ -409,6 +417,7 @@ public class CacheService {
                                                    String accountId,
                                                    CacheHttpRequest request,
                                                    long startTime) {
+
         logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
@@ -422,8 +431,11 @@ public class CacheService {
      * Creates {@link DebugHttpCall} from {@link CacheHttpRequest} and {@link CacheHttpResponse}, endpoint
      * and starttime.
      */
-    private DebugHttpCall makeDebugHttpCall(String endpoint, CacheHttpRequest httpRequest,
-                                            CacheHttpResponse httpResponse, long startTime) {
+    private DebugHttpCall makeDebugHttpCall(String endpoint,
+                                            CacheHttpRequest httpRequest,
+                                            CacheHttpResponse httpResponse,
+                                            long startTime) {
+
         return DebugHttpCall.builder()
                 .endpoint(endpoint)
                 .requestUri(httpRequest != null ? httpRequest.getUri() : null)
@@ -449,6 +461,7 @@ public class CacheService {
     private CachedCreative createJsonPutObjectOpenrtb(CacheBid cacheBid,
                                                       String accountId,
                                                       EventsContext eventsContext) {
+
         final BidInfo bidInfo = cacheBid.getBidInfo();
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
@@ -481,8 +494,7 @@ public class CacheService {
         final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
         final String vastXml = bid.getAdm();
 
-        final String bidder = bidInfo.getBidder();
-        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory(), bidder);
+        final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory());
 
         final PutObject payload = PutObject.builder()
                 .aid(requestId)
@@ -495,11 +507,10 @@ public class CacheService {
         return CachedCreative.of(payload, creativeSizeFromTextNode(payload.getValue()));
     }
 
-    private static String resolveCustomCacheKey(String hbCacheId, String categoryDuration, String bidder) {
-        if (hbCacheId == null || bidder == null) {
-            return null;
-        }
-        return StringUtils.isNotEmpty(categoryDuration) ? String.format("%s_%s", categoryDuration, hbCacheId) : null;
+    private static String resolveCustomCacheKey(String hbCacheId, String category) {
+        return StringUtils.isNoneEmpty(category, hbCacheId)
+                ? String.format("%s_%s", category, hbCacheId)
+                : null;
     }
 
     private String generateWinUrl(String bidId,
@@ -507,6 +518,7 @@ public class CacheService {
                                   String accountId,
                                   EventsContext eventsContext,
                                   String lineItemId) {
+
         if (!eventsContext.isEnabledForAccount()) {
             return null;
         }
@@ -528,8 +540,11 @@ public class CacheService {
      * Handles http response, analyzes response status and creates {@link BidCacheResponse} from response body
      * or throws {@link PreBidException} in case of errors.
      */
-    private BidCacheResponse toBidCacheResponse(
-            int statusCode, String responseBody, int bidCount, String accountId, long startTime) {
+    private BidCacheResponse toBidCacheResponse(int statusCode,
+                                                String responseBody,
+                                                int bidCount,
+                                                String accountId,
+                                                long startTime) {
 
         if (statusCode != 200) {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
@@ -569,6 +584,7 @@ public class CacheService {
                                                                             List<CacheBid> cacheVideoBids,
                                                                             List<String> uuids,
                                                                             String hbCacheId) {
+
         final Map<com.iab.openrtb.response.Bid, CacheInfo> result = new HashMap<>(uuids.size());
 
         // here we assume "videoBids" is a sublist of "bids"
@@ -625,8 +641,11 @@ public class CacheService {
     /**
      * Composes cached asset url template against the given query, schema and host.
      */
-    public static String getCachedAssetUrlTemplate(String cacheSchema, String cacheHost, String path,
+    public static String getCachedAssetUrlTemplate(String cacheSchema,
+                                                   String cacheHost,
+                                                   String path,
                                                    String cacheQuery) {
+
         try {
             final URL baseUrl = getCacheBaseUrl(cacheSchema, cacheHost);
             return new URL(baseUrl, path + "?" + cacheQuery).toString();

@@ -61,13 +61,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         final String uri = String.format("%s%s%s", endpointUrl, "&zone=", firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());
     }
@@ -80,9 +78,9 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("ext.bidder not provided");
         }
 
-        final String zoneId = extImpMarsmedia.getZone();
+        final String zoneId = extImpMarsmedia.getZoneId();
         if (StringUtils.isBlank(zoneId)) {
-            throw new PreBidException("Zone is empty");
+            throw new PreBidException("ZoneId is empty");
         }
 
         return zoneId;

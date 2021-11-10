@@ -69,7 +69,6 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         final String requestUrl = endpointUrl + "/r/" + firstImpExt.getSupplyPartnerId() + "/bidr?bidder=prebid-server";
         final MultiMap headers = resolveHeaders(request.getDevice());
@@ -80,7 +79,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                                 .uri(requestUrl)
                                 .headers(headers)
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

@@ -35,7 +35,7 @@ public class CollectedMetricsHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-        final String responseString = mapper.encode(getAllMetrics());
+        final String responseString = mapper.encodeToString(getAllMetrics());
 
         HttpUtil.executeSafely(routingContext, endpoint,
                 response -> response

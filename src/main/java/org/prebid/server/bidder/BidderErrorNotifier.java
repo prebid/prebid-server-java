@@ -69,7 +69,7 @@ public class BidderErrorNotifier {
                     String.format(
                             "Notified bidder about timeout. Status code: %s. Request body: %s",
                             response.getStatusCode(),
-                            timeoutNotification.getBody()),
+                            new String(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
         }
 
@@ -84,7 +84,7 @@ public class BidderErrorNotifier {
                     String.format(
                             "Error occurred while notifying bidder about timeout. Error message: %s. Request body: %s",
                             exception.getMessage(),
-                            timeoutNotification.getBody()),
+                            new String(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
         }
 

@@ -49,8 +49,8 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
     private static final String DEFAULT_CURRENCY = "USD";
     private static final String BID_ID_FORMAT = "%s-%s";
 
-    private Map<String, Double> bidRates;
-    private LineItemService lineItemService;
+    private final Map<String, Double> bidRates;
+    private final LineItemService lineItemService;
     private final JacksonMapper mapper;
 
     public SimulationAwareHttpBidderRequester(
@@ -61,7 +61,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
             LineItemService lineItemService,
             JacksonMapper mapper) {
 
-        super(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier, requestEnricher);
+        super(httpClient, bidderRequestCompletionTrackerFactory, bidderErrorNotifier, requestEnricher, mapper);
 
         this.lineItemService = Objects.requireNonNull(lineItemService);
         this.mapper = Objects.requireNonNull(mapper);

@@ -25,7 +25,6 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -43,6 +42,8 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -51,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModules;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -60,7 +62,6 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -111,6 +112,8 @@ public class AmpHandlerTest extends VertxTest {
     private HttpServerResponse httpResponse;
     @Mock
     private UidsCookie uidsCookie;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
 
     private Timeout timeout;
 
@@ -131,6 +134,9 @@ public class AmpHandlerTest extends VertxTest {
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
         ampHandler = new AmpHandler(
@@ -143,6 +149,7 @@ public class AmpHandlerTest extends VertxTest {
                 singleton("bidder1"),
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
                 httpInteractionLogger,
+                prebidVersionProvider,
                 jacksonMapper
         );
     }
@@ -179,6 +186,26 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddPrebidVersionResponseHeader() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("x-prebid", "pbs-java/1.00"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
@@ -209,11 +236,12 @@ public class AmpHandlerTest extends VertxTest {
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(400));
 
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
     }
 
@@ -229,11 +257,12 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(403));
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
     }
 
@@ -249,11 +278,12 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(403));
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
     }
 
@@ -269,11 +299,12 @@ public class AmpHandlerTest extends VertxTest {
         // then
         verifyZeroInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Account id is not provided"));
     }
 
@@ -291,11 +322,12 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
     }
 
@@ -315,11 +347,12 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(500));
-        assertThat(httpResponse.headers()).hasSize(2)
+        assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"));
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(
                 startsWith("Critical error while running the auction: Critical error while unpacking AMP targets:"));
     }
@@ -357,12 +390,13 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(httpResponse.headers()).hasSize(3)
+        assertThat(httpResponse.headers()).hasSize(4)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"));
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
 
@@ -399,12 +433,13 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(httpResponse.headers()).hasSize(3)
+        assertThat(httpResponse.headers()).hasSize(4)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactlyInAnyOrder(
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"));
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
@@ -429,7 +464,8 @@ public class AmpHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).end(eq(
-                "{\"targeting\":{},\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}"));
+                "{\"targeting\":{},"
+                        + "\"ext\":{\"debug\":{\"resolvedrequest\":{\"id\":\"reqId1\",\"imp\":[],\"tmax\":5000}}}}"));
     }
 
     @Test
@@ -811,11 +847,10 @@ public class AmpHandlerTest extends VertxTest {
         return captor.getValue();
     }
 
-    private static HttpContext givenHttpContext(Map<String, String> headers) {
-        return HttpContext.builder()
-                .queryParams(emptyMap())
-                .headers(headers)
-                .cookies(emptyMap())
+    private static HttpRequestContext givenHttpContext(Map<String, String> headers) {
+        return HttpRequestContext.builder()
+                .queryParams(CaseInsensitiveMultiMap.empty())
+                .headers(CaseInsensitiveMultiMap.builder().addAll(headers).build())
                 .build();
     }
 }

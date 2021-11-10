@@ -45,7 +45,7 @@ public class BiddersHandler implements Handler<RoutingContext> {
                 .collect(Collectors.toSet())
                 : bidderCatalog.names();
 
-        return mapper.encode(new TreeSet<>(bidderNamesAndAliases));
+        return mapper.encodeToString(new TreeSet<>(bidderNamesAndAliases));
     }
 
     private static boolean enabledOnlyFromQueryStringParams(RoutingContext routingContext) {

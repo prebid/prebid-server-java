@@ -77,7 +77,7 @@ public class GridBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .headers(HttpUtil.headers())
                         .payload(modifiedRequest)
-                        .body(mapper.encode(modifiedRequest))
+                        .body(mapper.encodeToBytes(modifiedRequest))
                         .build();
 
         return Result.of(Collections.singletonList(httpRequest), errors);

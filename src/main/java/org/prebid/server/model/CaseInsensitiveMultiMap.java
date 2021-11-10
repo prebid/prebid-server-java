@@ -61,6 +61,28 @@ public class CaseInsensitiveMultiMap {
         return new Builder();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final CaseInsensitiveMultiMap that = (CaseInsensitiveMultiMap) o;
+        if (delegate == that.delegate) {
+            return true;
+        }
+
+        return delegate != null && delegate.size() == that.delegate.size() && delegate.entries().stream()
+                .allMatch(entry -> that.delegate.contains(entry.getKey(), entry.getValue(), true));
+    }
+
+    @Override
+    public int hashCode() {
+        return delegate != null ? delegate.hashCode() : 0;
+    }
+
     public static class Builder {
 
         private final io.vertx.core.MultiMap delegate;
