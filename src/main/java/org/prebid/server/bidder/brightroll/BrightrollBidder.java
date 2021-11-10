@@ -23,7 +23,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
@@ -77,18 +76,10 @@ public class BrightrollBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final String bidRequestBody;
-        try {
-            bidRequestBody = mapper.encode(updateBidRequest);
-        } catch (EncodeException e) {
-            errors.add(BidderError.badInput(String.format("error while encoding bidRequest, err: %s", e.getMessage())));
-            return Result.withErrors(errors);
-        }
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(String.format("%s?publisher=%s", endpointUrl, firstImpExtPublisher))
-                .body(bidRequestBody)
+                .body(mapper.encodeToBytes(updateBidRequest))
                 .headers(createHeaders(updateBidRequest.getDevice()))
                 .payload(updateBidRequest)
                 .build());

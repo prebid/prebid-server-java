@@ -71,7 +71,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(mapper.encode(updatedRequest))
+                                .body(mapper.encodeToBytes(updatedRequest))
                                 .headers(HttpUtil.headers())
                                 .payload(updatedRequest)
                                 .build()),

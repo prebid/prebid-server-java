@@ -107,7 +107,11 @@ public class RegisterService implements Initializable, Suspendable {
 
     @Override
     public void initialize() {
-        registerTimerId = vertx.setPeriodic(registerPeriod, ignored -> register(headers()));
+        registerTimerId = vertx.setPeriodic(registerPeriod, ignored -> performRegistration());
+        performRegistration();
+    }
+
+    public void performRegistration() {
         register(headers());
     }
 
@@ -129,7 +133,7 @@ public class RegisterService implements Initializable, Suspendable {
                 deploymentProperties.getPbsHostId(),
                 deploymentProperties.getPbsRegion(),
                 deploymentProperties.getPbsVendor());
-        final String body = mapper.encode(request);
+        final String body = mapper.encodeToString(request);
 
         logger.info("Sending register request to Planner, {0} is {1}", PG_TRX_ID, headers.get(PG_TRX_ID));
         logger.debug("Register request payload: {0}", body);

@@ -145,7 +145,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -267,7 +267,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .pods(singletonList(Pod.of(123, 30, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -340,7 +340,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 

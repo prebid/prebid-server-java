@@ -55,7 +55,7 @@ public class LineItemStatusHandler implements Handler<RoutingContext> {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .setStatusCode(HttpResponseStatus.OK.code())
-                            .end(mapper.encode(report)));
+                            .end(mapper.encodeToString(report)));
         } catch (PreBidException e) {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response

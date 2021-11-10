@@ -8,7 +8,25 @@
           "impid": "imp_id",
           "price": 10,
           "adomain": [],
-          "crid": "test-creative-id-1"
+          "crid": "test-creative-id-1",
+          "ext": {
+            "prebid": {
+              "type": "native"
+            }
+          }
+        },
+        {
+          "id": "bid_id_banner",
+          "impid": "imp_id_banner",
+          "price": 10,
+          "adomain": [],
+          "adm": "<html>",
+          "crid": "test-creative-id-2",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
         }
       ]
     }

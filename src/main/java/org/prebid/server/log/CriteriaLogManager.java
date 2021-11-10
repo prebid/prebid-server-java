@@ -50,8 +50,8 @@ public class CriteriaLogManager {
         final String jsonBidResponse;
         final String jsonBidRequest;
         try {
-            jsonBidResponse = mapper.encode(bidResponse);
-            jsonBidRequest = debugEnabled ? null : mapper.encode(bidRequest);
+            jsonBidResponse = mapper.encodeToString(bidResponse);
+            jsonBidRequest = debugEnabled ? null : mapper.encodeToString(bidRequest);
         } catch (EncodeException e) {
             CriteriaLogManager.logger.warn("Failed to parse bidResponse or bidRequest to json string: {0}", e);
             return bidResponse;
