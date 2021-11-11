@@ -14,7 +14,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
-import org.prebid.server.auction.model.Tuple2;
+import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -92,10 +92,14 @@ public class VideoHandler implements Handler<RoutingContext> {
                         contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
                 .compose(contextToErrors -> exchangeService.holdAuction(contextToErrors.getData())
-                        .map(bidResponse -> Tuple2.of(bidResponse, contextToErrors)))
+                        .map(context -> WithPodErrors.of(context, contextToErrors.getPodErrors())))
+                // populate event with updated context
+                .map(contextToErrors ->
+                        addToEvent(contextToErrors.getData(), videoEventBuilder::auctionContext, contextToErrors))
 
-                .map(result -> videoResponseFactory.toVideoResponse(result.getRight().getData(), result.getLeft(),
-                        result.getRight().getPodErrors()))
+                .map(result -> videoResponseFactory.toVideoResponse(
+                        result.getData(), result.getData().getBidResponse(),
+                        result.getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
                 .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,

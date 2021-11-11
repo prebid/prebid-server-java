@@ -24,6 +24,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -171,13 +172,18 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    Future<BidResponse> create(List<BidderResponse> bidderResponses,
+    Future<BidResponse> create(List<AuctionParticipation> auctionParticipations,
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
         final EventsContext eventsContext = createEventsContext(auctionContext);
+
+        final List<BidderResponse> bidderResponses = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(AuctionParticipation::getBidderResponse)
+                .collect(Collectors.toList());
 
         return videoStoredDataResult(auctionContext)
                 .compose(videoStoredDataResult -> {

@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerResponse;
@@ -26,7 +27,6 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple2;
-import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
@@ -111,20 +111,28 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
-        final ExtBidResponse ext = bidResponse.getExt();
-        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+    @Override
+    public void handle(RoutingContext routingContext) {
+        // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
+        // for bids. However, tmax may be defined in the Stored Request data.
+        // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
+        // more accurately if we note the real start time, and use it to compute the auction timeout.
+        final long startTime = clock.millis();
 
-        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+        final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
+                .httpContext(HttpRequestContext.from(routingContext));
 
-        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+        ampRequestFactory.fromRequest(routingContext, startTime)
 
-        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
-        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
+                .map(this::updateAppAndNoCookieAndImpsMetrics)
 
-        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
-                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
-                : null;
+                .compose(exchangeService::holdAuction)
+                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
+                .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
+                .compose(context -> prepareAmpResponse(context, routingContext))
+                .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
+                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -147,44 +155,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         return context;
     }
 
-    @Override
-    public void handle(RoutingContext routingContext) {
-        // Prebid Server interprets request.tmax to be the maximum amount of time that a caller is willing to wait
-        // for bids. However, tmax may be defined in the Stored Request data.
-        // If so, then the trip to the backend might use a significant amount of this time. We can respect timeouts
-        // more accurately if we note the real start time, and use it to compute the auction timeout.
-        final long startTime = clock.millis();
-
-        final AmpEvent.AmpEventBuilder ampEventBuilder = AmpEvent.builder()
-                .httpContext(HttpRequestContext.from(routingContext));
-
-        ampRequestFactory.fromRequest(routingContext, startTime)
-
-                .map(context -> addToEvent(context, ampEventBuilder::auctionContext, context))
-                .map(this::updateAppAndNoCookieAndImpsMetrics)
-
-                .compose(context -> exchangeService.holdAuction(context)
-                        .map(bidResponse -> Tuple2.of(bidResponse, context)))
-
-                .map((Tuple2<BidResponse, AuctionContext> result) ->
-                        addToEvent(result.getLeft(), ampEventBuilder::bidResponse, result))
-                .map((Tuple2<BidResponse, AuctionContext> result) ->
-                        Tuple3.of(
-                                result.getLeft(),
-                                result.getRight(),
-                                toAmpResponse(result.getLeft())))
-
-                .compose((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
-                        ampResponsePostProcessor.postProcess(
-                                        result.getMiddle().getBidRequest(),
-                                        result.getLeft(),
-                                        result.getRight(),
-                                        routingContext)
-                                .map(ampResponse -> Tuple3.of(result.getLeft(), result.getMiddle(), ampResponse)))
-
-                .map((Tuple3<BidResponse, AuctionContext, AmpResponse> result) ->
-                        addToEvent(result.getRight().getTargeting(), ampEventBuilder::targeting, result))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+    private Future<Tuple2<AmpResponse, AuctionContext>> prepareAmpResponse(AuctionContext context,
+                                                                           RoutingContext routingContext) {
+        final BidRequest bidRequest = context.getBidRequest();
+        final BidResponse bidResponse = context.getBidResponse();
+        final AmpResponse ampResponse = toAmpResponse(bidResponse);
+        return ampResponsePostProcessor.postProcess(bidRequest, bidResponse, ampResponse, routingContext)
+                .map(resultAmpResponse -> Tuple2.of(resultAmpResponse, context));
     }
 
     private Map<String, String> targetingFrom(Bid bid, String bidder) {
@@ -251,13 +228,28 @@ public class AmpHandler implements Handler<RoutingContext> {
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
     }
 
-    private void handleResult(AsyncResult<Tuple3<BidResponse, AuctionContext, AmpResponse>> responseResult,
+    private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
+        final ExtBidResponse ext = bidResponse.getExt();
+        final ExtBidResponsePrebid extPrebid = ext != null ? ext.getPrebid() : null;
+
+        final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
+
+        final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+
+        final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
+        final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
+
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+                : null;
+    }
+
+    private void handleResult(AsyncResult<Tuple2<AmpResponse, AuctionContext>> responseResult,
                               AmpEvent.AmpEventBuilder ampEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
 
         final boolean responseSucceeded = responseResult.succeeded();
-        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getMiddle() : null;
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -276,7 +268,7 @@ public class AmpHandler implements Handler<RoutingContext> {
 
             status = HttpResponseStatus.OK;
             enrichWithSuccessfulHeaders(response);
-            body = mapper.encodeToString(responseResult.result().getRight());
+            body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
@@ -328,6 +320,8 @@ public class AmpHandler implements Handler<RoutingContext> {
 
         final int statusCode = status.code();
         final AmpEvent ampEvent = ampEventBuilder.status(statusCode).errors(errorMessages).build();
+
+        final AuctionContext auctionContext = responseSucceeded ? responseResult.result().getRight() : null;
 
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
