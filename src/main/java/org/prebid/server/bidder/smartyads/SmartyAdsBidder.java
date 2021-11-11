@@ -70,7 +70,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
                         .uri(resolveUrl(extImpSmartyAds))
                         .headers(resolveHeaders(request.getDevice()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build()));
     }
 

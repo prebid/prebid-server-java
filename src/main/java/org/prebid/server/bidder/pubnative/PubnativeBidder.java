@@ -161,7 +161,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(requestUri)
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

@@ -55,8 +55,17 @@
     "macmd5": "macmd5"
   },
   "includebrandcategory": {
-    "primaryadserver": 1,
-    "publisher": ""
+    "publisher": "",
+    "translatecategories": false
+  },
+  "pricegranularity": {
+    "precision": 1,
+    "ranges": [
+      {
+        "increment": 0.5,
+        "max": 10
+      }
+    ]
   },
   "video": {
     "w": 640,

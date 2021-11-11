@@ -2,6 +2,7 @@ package org.prebid.server.auction.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -29,6 +30,12 @@ public class AuctionContext {
     UidsCookie uidsCookie;
 
     BidRequest bidRequest;
+
+    @JsonIgnore
+    BidResponse bidResponse;
+
+    @JsonIgnore
+    List<AuctionParticipation> auctionParticipations;
 
     @JsonIgnore
     Timeout timeout;
@@ -59,6 +66,8 @@ public class AuctionContext {
     @JsonIgnore
     DeepDebugLog deepDebugLog;
 
+    CachedDebugLog cachedDebugLog;
+
     public AuctionContext with(Account account) {
         return this.toBuilder().account(account).build();
     }
@@ -67,8 +76,16 @@ public class AuctionContext {
         return this.toBuilder().bidRequest(bidRequest).build();
     }
 
+    public AuctionContext with(BidResponse bidResponse) {
+        return this.toBuilder().bidResponse(bidResponse).build();
+    }
+
     public AuctionContext with(BidRequest bidRequest, List<String> errors) {
         return this.toBuilder().bidRequest(bidRequest).prebidErrors(errors).build();
+    }
+
+    public AuctionContext with(List<AuctionParticipation> auctionParticipations) {
+        return this.toBuilder().auctionParticipations(auctionParticipations).build();
     }
 
     public AuctionContext with(PrivacyContext privacyContext) {
@@ -81,6 +98,12 @@ public class AuctionContext {
     public AuctionContext with(MetricName requestTypeMetric) {
         return this.toBuilder()
                 .requestTypeMetric(requestTypeMetric)
+                .build();
+    }
+
+    public AuctionContext with(DebugContext debugContext) {
+        return this.toBuilder()
+                .debugContext(debugContext)
                 .build();
     }
 

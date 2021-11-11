@@ -9,7 +9,7 @@
       },
       "ext": {
         "marsmedia": {
-          "zone": "zone_1"
+          "zoneId": "zone_1"
         }
       }
     }

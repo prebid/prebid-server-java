@@ -58,12 +58,11 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(buildEndpointUrl(mappedExt.getBidder()))
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(resolveHeaders())
                         .payload(outgoingRequest)
                         .build());

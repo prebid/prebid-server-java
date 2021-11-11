@@ -53,7 +53,7 @@ public class ValueImpressionBidder implements Bidder<BidRequest> {
                             .method(HttpMethod.POST)
                             .uri(endpointUrl)
                             .headers(HttpUtil.headers())
-                            .body(mapper.encode(bidRequest))
+                            .body(mapper.encodeToBytes(bidRequest))
                             .payload(request)
                             .build()),
                     Collections.emptyList());

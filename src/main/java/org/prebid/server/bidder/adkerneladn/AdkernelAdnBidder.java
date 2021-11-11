@@ -175,11 +175,10 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequest(ExtImpAdkernelAdn extImp, List<Imp> imps, BidRequest preBidRequest) {
         final BidRequest outgoingRequest = createBidRequest(preBidRequest, imps);
-        final String body = mapper.encode(outgoingRequest);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(buildEndpoint(extImp))
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers())
                 .payload(outgoingRequest)
                 .build();

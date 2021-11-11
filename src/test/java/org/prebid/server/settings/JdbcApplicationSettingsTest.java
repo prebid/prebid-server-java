@@ -138,6 +138,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"status\": \"active\","
                 + "\"auction\": {"
                 + "\"price-granularity\": \"med\","
+                + "\"debug-allow\": true,"
                 + "\"banner-cache-ttl\": 100,"
                 + "\"video-cache-ttl\": 100,"
                 + "\"truncate-target-attr\": 0,"
@@ -150,7 +151,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "}"
                 + "},"
                 + "\"privacy\": {"
-                + "\"enforce-ccpa\": true,"
                 + "\"gdpr\": {"
                 + "\"enabled\": true,"
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
@@ -230,11 +230,11 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .videoCacheTtl(100)
                             .truncateTargetAttr(0)
                             .defaultIntegration("web")
+                            .debugAllow(true)
                             .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                             .events(AccountEventsConfig.of(true))
                             .build())
                     .privacy(AccountPrivacyConfig.of(
-                            true,
                             AccountGdprConfig.builder()
                                     .enabled(true)
                                     .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
@@ -635,6 +635,18 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
+        // given and when
+        final Future<Map<String, String>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+                timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Not supported");
     }
 
     private JdbcClient jdbcClient() {

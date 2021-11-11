@@ -59,7 +59,7 @@ public class AceexBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(resolveEndpoint(extImpAceex.getAccountId()))
                 .headers(constructHeaders(request))
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .payload(request)
                 .build());
     }

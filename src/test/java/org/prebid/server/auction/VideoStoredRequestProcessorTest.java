@@ -145,7 +145,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -190,7 +190,8 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .targeting(ExtRequestTargeting.builder()
                         .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
                         .includebidderkeys(true)
-                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false))
+                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false, null))
+                        .appendbiddernames(true)
                         .build())
                 .build();
 
@@ -266,7 +267,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                         .pods(singletonList(Pod.of(123, 30, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -335,11 +336,11 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         );
 
         final BidRequestVideo requestVideo = givenValidDataResult(
-                bidRequestVideoBuilder -> bidRequestVideoBuilder.priceGranularity(priceGranularity),
+                bidRequestVideoBuilder -> bidRequestVideoBuilder.pricegranularity(priceGranularity),
                 builder -> builder.pods(singletonList(Pod.of(123, 20, STORED_POD_ID))));
 
         final StoredDataResult storedDataResult = StoredDataResult.of(
-                singletonMap(STORED_REQUEST_ID, jacksonMapper.encode(storedVideo)),
+                singletonMap(STORED_REQUEST_ID, jacksonMapper.encodeToString(storedVideo)),
                 singletonMap(STORED_POD_ID, "{}"),
                 emptyList());
 
@@ -371,12 +372,13 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
             UnaryOperator<Podconfig.PodconfigBuilder> podconfigCustomizer) {
 
         return requestCustomizer.apply(BidRequestVideo.builder()
-                .storedrequestid("storedrequestid")
-                .podconfig(podconfigCustomizer.apply(Podconfig.builder()
-                        .durationRangeSec(asList(200, 100)))
-                        .build())
-                .site(Site.builder().id("siteId").build())
-                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                        .storedrequestid("storedrequestid")
+                        .podconfig(podconfigCustomizer.apply(Podconfig.builder()
+                                        .durationRangeSec(asList(200, 100)))
+                                .build())
+                        .site(Site.builder().id("siteId").build())
+                        .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                .appendbiddernames(true)
                 .build();
     }
 }

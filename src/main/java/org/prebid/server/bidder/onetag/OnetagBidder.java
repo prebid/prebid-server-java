@@ -89,7 +89,7 @@ public class OnetagBidder implements Bidder<BidRequest> {
                 .uri(url)
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

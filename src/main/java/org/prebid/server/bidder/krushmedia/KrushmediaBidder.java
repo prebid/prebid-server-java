@@ -70,7 +70,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
                                 .uri(url)
                                 .headers(resolveHeaders(request.getDevice()))
                                 .payload(outgoingRequest)
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

@@ -97,12 +97,12 @@ Following metrics are collected and submitted if account is configured with `det
 ## General Prebid Cache metrics
 - `prebid_cache.requests.ok` - timer tracking how long did successful cache requests take
 - `prebid_cache.requests.err` - timer tracking how long did failed cache requests take
-- `prebid_cache.creative_size` - histogram tracking creative sizes
+- `prebid_cache.creative_size.<creative_type>` - histogram tracking creative sizes for specific type
 
 ## Prebid Cache per-account metrics
 - `account.<account-id>.prebid_cache.requests.ok` - timer tracking how long did successful cache requests take when incoming request was from `<account-id>`
 - `account.<account-id>.prebid_cache.requests.err` - timer tracking how long did failed cache requests take when incoming request was from `<account-id>`
-- `account.<account-id>.prebid_cache.creative_size` - histogram tracking creative sizes when incoming request was from `<account-id>`
+- `account.<account-id>.prebid_cache.creative_size.<creative_type>` - histogram tracking creative sizes for specific type when incoming request was from `<account-id>`
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received

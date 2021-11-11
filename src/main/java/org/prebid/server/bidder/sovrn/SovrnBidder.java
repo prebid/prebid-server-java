@@ -70,13 +70,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .headers(headers(bidRequest))
                                 .payload(outgoingRequest)
                                 .build()),

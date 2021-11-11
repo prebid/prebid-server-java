@@ -188,7 +188,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // then
         verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
-        verify(remoteFileProcessor, times(1)).setDataPath(FILE_PATH);
+        verify(remoteFileProcessor).setDataPath(FILE_PATH);
         verify(fileSystem).open(eq(TMP_FILE_PATH), any(), any());
         verifyZeroInteractions(httpClient);
     }
