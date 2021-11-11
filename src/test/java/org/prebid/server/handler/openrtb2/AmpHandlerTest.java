@@ -45,6 +45,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.response.ExtBid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
@@ -382,8 +383,7 @@ public class AmpHandlerTest extends VertxTest {
         targeting.put("key1", "value1");
         targeting.put("hb_cache_id_bidder1", "value2");
 
-        final ObjectNode bidExt = mapper.createObjectNode()
-                .set("prebid", mapper.valueToTree(ExtBidPrebid.builder().targeting(targeting).build()));
+        final ObjectNode bidExt = mapper.valueToTree(ExtBid.of(ExtBidPrebid.builder().targeting(targeting).build()));
         givenHoldAuction(givenBidResponse(bidExt));
 
         // when

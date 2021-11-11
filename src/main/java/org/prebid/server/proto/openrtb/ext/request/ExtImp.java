@@ -4,9 +4,7 @@ import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 
 /**
- * Defines the contract for any extension that has "prebid" and "bidder" fields.
- * <p>
- * Can be used by {@link Bidder}s to unmarshal any request.imp[i].ext.
+ * Defines the contract for bidrequest.imp[i].ext.
  */
 
 @Value(staticConstructor = "of")

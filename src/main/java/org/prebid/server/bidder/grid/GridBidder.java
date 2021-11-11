@@ -33,6 +33,7 @@ import org.prebid.server.bidder.grid.model.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -238,8 +239,7 @@ public class GridBidder implements Bidder<BidRequest> {
                 .meta(mapper.mapper().createObjectNode().set("networkName", TextNode.valueOf(demandSource)))
                 .build();
 
-        return mapper.mapper().createObjectNode()
-                .set("prebid", mapper.mapper().valueToTree(extBidPrebid));
+        return mapper.mapper().valueToTree(ExtBid.of(extBidPrebid));
     }
 
     private static BidType getBidMediaType(String impId, List<Imp> imps) {
