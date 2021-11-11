@@ -53,4 +53,16 @@ abstract class BaseSpec extends Specification {
     protected static int getRandomTimeout() {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
+
+    protected static int getCurrentMetricValue(String name) {
+        def response = defaultPbsService.sendCollectedMetricsRequest()
+        response[name] as Integer ?: 0
+    }
+
+    protected static void flushMetrics() {
+        // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
+        defaultPbsService.sendCollectedMetricsRequest()
+    }
+
+
 }
