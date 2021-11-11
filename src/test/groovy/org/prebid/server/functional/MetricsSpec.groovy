@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 // TODO: move metrics tests to the respective specifications as the metrics are a part of normal PBS operation
 // TODO: this won't work as is for banner type as we need to signal PBS to store bid in the cache
@@ -37,6 +38,7 @@ class MetricsSpec extends BaseSpec {
         assert metrics["account.${accountId}.prebid_cache.requests.ok" as String] == 1
     }
 
+    @PendingFeature
     def "PBS should update prebid_cache.creative_size.json metric when json creative is received"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
