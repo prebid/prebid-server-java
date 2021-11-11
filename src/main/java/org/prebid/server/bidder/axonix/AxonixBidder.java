@@ -16,7 +16,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -56,7 +56,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImpAxonix.getSupplyId()))
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

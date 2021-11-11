@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.openweb.ExtImpOpenweb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -115,7 +115,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(resolveEndpoint(sourceId))
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(modifiedRequest))
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .payload(modifiedRequest)
                 .build();
     }

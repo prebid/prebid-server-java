@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.Collections;
@@ -58,7 +58,7 @@ public class AdponeBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(errors.get(0).getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test

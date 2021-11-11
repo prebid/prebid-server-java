@@ -22,7 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -115,9 +115,9 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
         for (Map.Entry<Integer, List<Imp>> sourceIdToImps : sourceToImps.entrySet()) {
             final String url = String.format("%s?aid=%d", endpointUrl, sourceIdToImps.getKey());
             final BidRequest bidRequest = request.toBuilder().imp(sourceIdToImps.getValue()).build();
-            final String bidRequestBody;
+            final byte[] bidRequestBody;
             try {
-                bidRequestBody = mapper.encode(bidRequest);
+                bidRequestBody = mapper.encodeToBytes(bidRequest);
             } catch (EncodeException e) {
                 errors.add(BidderError.badInput(
                         String.format("error while encoding bidRequest, err: %s", e.getMessage())));

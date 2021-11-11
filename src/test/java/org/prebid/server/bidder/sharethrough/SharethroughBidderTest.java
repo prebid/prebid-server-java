@@ -23,7 +23,7 @@ import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
@@ -156,7 +156,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -210,7 +210,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
     }

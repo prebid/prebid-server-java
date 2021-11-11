@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.nanointeractive.ExtImpNanointeractive;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -72,7 +72,6 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                 .imp(validImps)
                 .site(modified(reference, request.getSite()))
                 .build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -80,7 +79,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                                 .uri(endpointUrl)
                                 .headers(headers(request))
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

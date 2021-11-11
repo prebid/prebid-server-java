@@ -67,7 +67,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -1257,7 +1257,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .headers(headers)
                 .payload(bidRequest)
                 .build();

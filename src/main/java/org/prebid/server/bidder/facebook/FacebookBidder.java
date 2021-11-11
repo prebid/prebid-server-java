@@ -32,7 +32,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -122,12 +122,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers)
                 .payload(outgoingRequest)
                 .build();

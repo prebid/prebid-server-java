@@ -17,6 +17,7 @@ settings:
     stored-requests-dir:
     stored-imps-dir:
     stored-responses-dir:
+    categories-dir:
 gdpr:
   default-value: 1
   vendorlist:

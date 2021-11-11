@@ -24,7 +24,7 @@ import org.prebid.server.bidder.telaria.model.TelariaRequestExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpOutTelaria;
 import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
@@ -85,14 +85,13 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(headers(bidRequest))
                 .payload(outgoingRequest)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smarthub.ExtImpSmarthub;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -55,7 +55,7 @@ public class SmarthubBidder implements Bidder<BidRequest> {
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .uri(buildEndpointUrl(extImpSmarthub))
                 .payload(request)
                 .headers(resolveHeaders())

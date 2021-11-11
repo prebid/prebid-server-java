@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.beintoo.ExtImpBeintoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -59,14 +59,13 @@ public class BeintooBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(updatedBidRequest);
         final MultiMap headers = makeHeaders(request);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(updatedBidRequest))
                         .headers(headers)
                         .payload(request)
                         .build()), Collections.emptyList());

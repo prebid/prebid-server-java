@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Builder(toBuilder = true)
 @Value
-public final class AppnexusBidExtAppnexus {
+public class AppnexusBidExtAppnexus {
 
     Integer bidAdType;
 
@@ -14,4 +14,6 @@ public final class AppnexusBidExtAppnexus {
     Integer brandCategoryId;
 
     AppnexusBidExtCreative creativeInfo;
+
+    Integer dealPriority;
 }

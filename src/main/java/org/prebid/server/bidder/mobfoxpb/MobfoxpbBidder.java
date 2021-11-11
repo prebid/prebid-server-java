@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.mobfoxpb.ExtImpMobfoxpb;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -70,7 +70,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .build());

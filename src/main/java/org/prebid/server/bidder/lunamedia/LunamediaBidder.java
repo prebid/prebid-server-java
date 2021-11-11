@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.lunamedia.ExtImpLunamedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -155,7 +155,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(updatedBidRequest))
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers())
                     .payload(updatedBidRequest)
                     .build();

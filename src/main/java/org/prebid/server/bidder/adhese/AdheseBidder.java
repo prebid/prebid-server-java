@@ -33,7 +33,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adhese.ExtImpAdhese;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -46,7 +46,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-public class AdheseBidder implements Bidder<Void> {
+public class AdheseBidder implements Bidder<AdheseRequestBody> {
 
     private static final TypeReference<ExtImp<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
             new TypeReference<ExtImp<?, ExtImpAdhese>>() {
@@ -66,7 +66,7 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<AdheseRequestBody>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
             return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
@@ -79,12 +79,14 @@ public class AdheseBidder implements Bidder<Void> {
         }
 
         final String uri = getUrl(extImpAdhese);
+        final AdheseRequestBody body = buildBody(request, extImpAdhese);
 
         return Result.of(Collections.singletonList(
-                        HttpRequest.<Void>builder()
+                        HttpRequest.<AdheseRequestBody>builder()
                                 .method(HttpMethod.POST)
                                 .uri(uri)
-                                .body(mapper.encode(buildBody(request, extImpAdhese)))
+                                .body(mapper.encodeToBytes(body))
+                                .payload(body)
                                 .headers(replaceHeaders(request.getDevice()))
                                 .build()),
                 Collections.emptyList());
@@ -167,7 +169,7 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
 
         final JsonNode bodyNode;

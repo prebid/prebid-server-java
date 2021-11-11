@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adkernel.ExtImpAdkernel;
 import org.prebid.server.util.HttpUtil;
 
@@ -90,7 +90,7 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
-                && error.getMessage().startsWith("Cannot deserialize instance"));
+                && error.getMessage().startsWith("Cannot deserialize value"));
         assertThat(result.getValue()).isEmpty();
     }
 

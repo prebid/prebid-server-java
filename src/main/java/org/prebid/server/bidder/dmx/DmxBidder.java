@@ -29,7 +29,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.dmx.ExtImpDmx;
@@ -118,7 +118,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                                 .method(HttpMethod.POST)
                                 .uri(uri)
                                 .headers(HttpUtil.headers())
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .payload(outgoingRequest)
                                 .build()),
                 errors);

@@ -85,7 +85,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class AmpRequestFactoryTest extends VertxTest {
@@ -184,7 +184,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Future<?> future = target.fromRequest(routingContext, 0L);
 
         // then
-        verifyZeroInteractions(storedRequestProcessor);
+        verifyNoInteractions(storedRequestProcessor);
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
@@ -509,7 +509,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         givenBidRequest(
                 builder -> builder
                         .ext(givenRequestExt(ExtRequestTargeting.builder()
-                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true))
+                                .includebrandcategory(ExtIncludeBrandCategory.of(1, "publisher", true, false))
                                 .truncateattrchars(10)
                                 .build())),
                 Imp.builder().build());
@@ -523,7 +523,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getTargeting)
                 .extracting(ExtRequestTargeting::getIncludebrandcategory, ExtRequestTargeting::getTruncateattrchars)
-                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true), 10));
+                .containsOnly(tuple(ExtIncludeBrandCategory.of(1, "publisher", true, false), 10));
     }
 
     @Test
@@ -1269,7 +1269,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsMissed() {
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsMissed() {
         // given
         givenBidRequest();
 
@@ -1281,10 +1281,10 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAttlConsentIsBlank() {
+    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsBlank() {
         // given
         routingContext.queryParams()
-                .add("attl_consent", "  ");
+                .add("addtl_consent", "  ");
 
         givenBidRequest();
 
@@ -1344,7 +1344,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         verify(fpdResolver).resolveBidRequestExt(any(), any());
         assertThat(request)
                 .extracting(BidRequest::getExt)
-                .containsOnly(ExtRequest.of(ExtRequestPrebid.builder()
+                .isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
                         .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
     }
 
@@ -1633,7 +1633,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
 
         // then
-
         final BidRequest resultBidRequest = result.result().getBidRequest();
         assertThat(resultBidRequest.getSite()).isNull();
         assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());

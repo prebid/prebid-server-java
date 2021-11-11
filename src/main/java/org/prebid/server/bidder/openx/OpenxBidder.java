@@ -24,7 +24,7 @@ import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
@@ -126,8 +126,12 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
-                .map(singleBidRequest -> HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri(endpointUrl)
-                        .body(mapper.encode(singleBidRequest)).headers(HttpUtil.headers()).payload(singleBidRequest)
+                .map(singleBidRequest -> HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .body(mapper.encodeToBytes(singleBidRequest))
+                        .headers(HttpUtil.headers())
+                        .payload(singleBidRequest)
                         .build())
                 .collect(Collectors.toList());
     }

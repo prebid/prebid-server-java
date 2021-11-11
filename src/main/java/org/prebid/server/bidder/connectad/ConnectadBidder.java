@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.connectad.ExtImpConnectAd;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -72,15 +72,13 @@ public class ConnectadBidder implements Bidder<BidRequest> {
         }
         final BidRequest outgoingRequest = request.toBuilder().imp(processedImps).build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
                                 .headers(resolveHeaders(request.getDevice()))
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

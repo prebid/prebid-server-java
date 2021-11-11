@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.amx.ExtImpAmx;
 
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
-                && error.getMessage().startsWith("Cannot deserialize instance"));
+                && error.getMessage().startsWith("Cannot deserialize value"));
     }
 
     @Test
@@ -235,7 +235,7 @@ public class AmxBidderTest extends VertxTest {
                 .satisfies(error -> {
                     assertThat(error).extracting(BidderError::getType).containsExactly(BidderError.Type.bad_input);
                     assertThat(error).extracting(BidderError::getMessage)
-                            .element(0).asString().startsWith("Cannot deserialize instance");
+                            .element(0).asString().startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
     }

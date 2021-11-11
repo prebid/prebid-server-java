@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 
 import java.util.List;
@@ -261,7 +261,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
                 .ext(mapper.valueToTree(ExtImp.of(null,
-                        ExtImpAlgorix.of("testSid", "testToken")))))
+                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId")))))
                 .build();
     }
 

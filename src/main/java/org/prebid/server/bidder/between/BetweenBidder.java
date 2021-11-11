@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -138,7 +138,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .uri(url)
                         .headers(resolveHeaders(request.getDevice(), request.getSite()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build();
     }
 

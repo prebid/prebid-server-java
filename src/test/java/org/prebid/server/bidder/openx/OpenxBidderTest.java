@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.openx.proto.OpenxRequestExt;
 import org.prebid.server.bidder.openx.proto.OpenxVideoExt;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -190,7 +190,7 @@ public class OpenxBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Cannot deserialize instance of");
+                .startsWith("Cannot deserialize value of");
     }
 
     @Test

@@ -31,6 +31,10 @@ public class BidInfo {
 
     TargetingInfo targetingInfo;
 
+    String category;
+
+    Boolean satisfiedPriority;
+
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;
         final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;

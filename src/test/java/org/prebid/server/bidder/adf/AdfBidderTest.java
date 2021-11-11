@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -17,7 +18,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 
 import java.util.Arrays;
@@ -68,7 +69,10 @@ public class AdfBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdf.of("1"))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdf.of("1", null, null))))
+                                .build(),
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdf.of(null, 321, "placement"))))
                                 .build())));
 
         // when
@@ -78,9 +82,17 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(2)
+                .flatExtracting(BidRequest::getImp).hasSize(3)
                 .extracting(Imp::getTagid)
-                .containsExactly("12345", "1");
+                .containsExactly("12345", "1", null);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).hasSize(3)
+                .extracting(Imp::getExt)
+                .containsExactly(
+                        mapper.valueToTree(ExtImp.of(ExtImpAdf.of("12345", null, null))),
+                        mapper.valueToTree(ExtImp.of(ExtImpAdf.of("1", null, null))),
+                        mapper.valueToTree(ExtImp.of(ExtImpAdf.of(null, 321, "placement"))));
     }
 
     @Test
@@ -91,7 +103,8 @@ public class AdfBidderTest extends VertxTest {
                         .w(1)
                         .h(1)
                         .build()).build())).build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.impid("123").ext(createBidExtPrebidWithType("banner")))));
 
         // when
         final Result<List<BidderBid>> result = adfBidder.makeBids(httpCall, null);
@@ -99,7 +112,8 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123").ext(createBidExtPrebidWithType("banner")).build(), banner, "USD"));
     }
 
     @Test
@@ -110,7 +124,9 @@ public class AdfBidderTest extends VertxTest {
                         .w(1)
                         .h(1)
                         .build()).build())).build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .ext(createBidExtPrebidWithType("video")))));
 
         // when
         final Result<List<BidderBid>> result = adfBidder.makeBids(httpCall, null);
@@ -118,7 +134,8 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123").ext(createBidExtPrebidWithType("video")).build(), video, "USD"));
     }
 
     @Test
@@ -128,7 +145,8 @@ public class AdfBidderTest extends VertxTest {
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123")
                         .xNative(new Native())
                         .build())).build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.impid("123").ext(createBidExtPrebidWithType("native")))));
 
         // when
         final Result<List<BidderBid>> result = adfBidder.makeBids(httpCall, null);
@@ -136,16 +154,33 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123").ext(createBidExtPrebidWithType("native")).build(), xNative, "USD"));
     }
 
     @Test
-    public void makeBidsShouldThrowErrorNoImp() throws JsonProcessingException {
+    public void makeBidsShouldThrowErrorIfNoMediaType() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123")
                         .build())).build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = adfBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+    }
+
+    @Test
+    public void makeBidsShouldThrowErrorIfWrongMediaType() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().imp(singletonList(Imp.builder().id("123")
+                        .build())).build(),
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder.impid("123").ext(createBidExtPrebidWithType("invalidMedia")))));
 
         // when
         final Result<List<BidderBid>> result = adfBidder.makeBids(httpCall, null);
@@ -172,7 +207,7 @@ public class AdfBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdf.of("12345"))))
+                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdf.of("12345", null, null))))
                 .build();
     }
 
@@ -191,4 +226,7 @@ public class AdfBidderTest extends VertxTest {
                 .build();
     }
 
+    private static ObjectNode createBidExtPrebidWithType(String type) {
+        return mapper.createObjectNode().set("prebid", mapper.createObjectNode().put("type", type));
+    }
 }

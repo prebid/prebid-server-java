@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.logicad.ExtImpLogicad;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -105,12 +105,11 @@ public class LogicadBidder implements Bidder<BidRequest> {
 
         for (Map.Entry<ExtImpLogicad, List<Imp>> entry : extImpToImps.entrySet()) {
             final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(entry.getValue()).build();
-            final String body = mapper.encode(updatedBidRequest);
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(endpointUrl)
-                    .body(body)
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build();

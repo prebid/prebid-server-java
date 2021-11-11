@@ -29,7 +29,7 @@ import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
@@ -81,7 +81,7 @@ public class PubmaticBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -870,7 +870,6 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
-
         final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "value1,value2");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)

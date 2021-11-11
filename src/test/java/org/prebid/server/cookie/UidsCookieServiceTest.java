@@ -28,7 +28,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UidsCookieServiceTest extends VertxTest {
 
@@ -382,7 +382,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final String hostCookie = uidsCookieService.parseHostCookie(emptyMap());
 
         // then
-        verifyZeroInteractions(routingContext);
+        verifyNoInteractions(routingContext);
         assertThat(hostCookie).isNull();
     }
 

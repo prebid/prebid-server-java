@@ -11,4 +11,6 @@ import lombok.Value;
 public class ExtImpAdf {
 
     String mid;
+    Integer inv;
+    String mname;
 }

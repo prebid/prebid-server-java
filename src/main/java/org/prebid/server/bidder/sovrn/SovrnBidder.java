@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -70,13 +70,12 @@ public class SovrnBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(processedImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .headers(headers(bidRequest))
                                 .payload(outgoingRequest)
                                 .build()),

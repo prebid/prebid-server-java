@@ -40,7 +40,7 @@ import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
@@ -315,7 +315,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
     }

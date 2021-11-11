@@ -23,7 +23,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -103,13 +103,12 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-        final String body = mapper.encode(outgoingRequest);
         final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .headers(headers)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

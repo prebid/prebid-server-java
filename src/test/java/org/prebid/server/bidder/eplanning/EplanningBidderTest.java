@@ -25,7 +25,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -88,7 +88,7 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize instance");
+                .startsWith("Ignoring imp id=123, error while decoding extImpBidder, err: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 

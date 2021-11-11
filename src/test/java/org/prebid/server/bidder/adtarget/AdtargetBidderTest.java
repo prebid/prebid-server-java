@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
@@ -108,7 +108,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while "
-                            + "decoding impExt, err: Cannot deserialize instance");
+                            + "decoding impExt, err: Cannot deserialize value");
                 });
     }
 

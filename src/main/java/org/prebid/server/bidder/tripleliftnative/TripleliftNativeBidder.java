@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
@@ -103,7 +103,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(mapper.encode(updatedRequest))
+                                .body(mapper.encodeToBytes(updatedRequest))
                                 .headers(HttpUtil.headers())
                                 .payload(updatedRequest)
                                 .build()),

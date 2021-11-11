@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.smartyads.ExtImpSmartyAds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -70,7 +70,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
                         .uri(resolveUrl(extImpSmartyAds))
                         .headers(resolveHeaders(request.getDevice()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build()));
     }
 

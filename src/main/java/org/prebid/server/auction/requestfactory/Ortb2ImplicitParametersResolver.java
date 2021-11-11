@@ -470,10 +470,11 @@ public class Ortb2ImplicitParametersResolver {
 
     private boolean shouldMoveBidderParams(Imp imp) {
         return imp.getExt() != null
-                && StreamUtil.asStream(imp.getExt().fieldNames()).anyMatch(this::isImpExtBidderField);
+                && StreamUtil.asStream(imp.getExt().fieldNames())
+                .anyMatch(Ortb2ImplicitParametersResolver::isImpExtBidderField);
     }
 
-    private boolean isImpExtBidderField(String field) {
+    public static boolean isImpExtBidderField(String field) {
         return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
@@ -510,10 +511,12 @@ public class Ortb2ImplicitParametersResolver {
 
     private ObjectNode prepareValidImpExtCopy(ObjectNode impExt) {
         final ObjectNode copiedImpExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
+
         final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(copiedImpExt, PREBID_EXT);
         copiedImpExt.replace(PREBID_EXT, modifiedExtPrebid);
         final ObjectNode modifiedExtPrebidBidder = getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
         modifiedExtPrebid.replace(BIDDER_EXT, modifiedExtPrebidBidder);
+
         return copiedImpExt;
     }
 
@@ -521,7 +524,7 @@ public class Ortb2ImplicitParametersResolver {
         final ObjectNode modifiedExtPrebidBidder = (ObjectNode) impExt.get(PREBID_EXT).get(BIDDER_EXT);
 
         final Set<String> bidderFields = StreamUtil.asStream(impExt.fieldNames())
-                .filter(this::isImpExtBidderField)
+                .filter(Ortb2ImplicitParametersResolver::isImpExtBidderField)
                 .collect(Collectors.toSet());
 
         for (final String currentBidderField : bidderFields) {
@@ -766,17 +769,18 @@ public class Ortb2ImplicitParametersResolver {
      * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
      */
     private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
-        final String existingChannelName = ObjectUtil.getIfNotNull(ObjectUtil.getIfNotNull(prebid,
-                        ExtRequestPrebid::getChannel),
-                ExtRequestPrebidChannel::getName);
+        final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
+        final String channelName = ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
 
-        if (StringUtils.isNotBlank(existingChannelName)) {
+        if (StringUtils.isNotBlank(channelName)) {
             return null;
         }
 
         if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
-        } else if (bidRequest.getSite() != null) {
+        }
+
+        if (bidRequest.getSite() != null) {
             return ExtRequestPrebidChannel.of(WEB_CHANNEL);
         }
 

@@ -1132,11 +1132,19 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheCreativeSizeHistogram() {
         // when
-        metrics.updateCacheCreativeSize("accountId", 235);
+        metrics.updateCacheCreativeSize("accountId", 123, MetricName.json);
+        metrics.updateCacheCreativeSize("accountId", 456, MetricName.xml);
+        metrics.updateCacheCreativeSize("accountId", 789, MetricName.unknown);
 
         // then
-        assertThat(metricRegistry.histogram("prebid_cache.creative_size").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size").getCount())
+        assertThat(metricRegistry.histogram("prebid_cache.creative_size.json").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size.json").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_size.xml").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size.xml").getCount())
+                .isEqualTo(1);
+        assertThat(metricRegistry.histogram("prebid_cache.creative_size.unknown").getCount()).isEqualTo(1);
+        assertThat(metricRegistry.histogram("account.accountId.prebid_cache.creative_size.unknown").getCount())
                 .isEqualTo(1);
     }
 

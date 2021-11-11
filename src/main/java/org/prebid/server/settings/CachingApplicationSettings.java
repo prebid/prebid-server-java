@@ -35,6 +35,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     private final Map<String, Account> accountCache;
     private final Map<String, String> accountToErrorCache;
+    private final Map<String, String> adServerPublisherToErrorCache;
+    private final Map<String, Map<String, String>> categoryConfigCache;
     private final SettingsCache cache;
     private final SettingsCache ampCache;
     private final SettingsCache videoCache;
@@ -54,6 +56,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
         this.delegate = Objects.requireNonNull(delegate);
         this.accountCache = SettingsCache.createCache(ttl, size);
         this.accountToErrorCache = SettingsCache.createCache(ttl, size);
+        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size);
+        this.categoryConfigCache = SettingsCache.createCache(ttl, size);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);
@@ -113,6 +117,17 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return delegate.getStoredResponses(responseIds, timeout);
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        final String compoundKey = StringUtils.isNotBlank(publisher)
+                ? String.format("%s_%s", primaryAdServer, publisher)
+                : primaryAdServer;
+
+        return getFromCacheOrDelegate(categoryConfigCache, adServerPublisherToErrorCache, compoundKey, timeout,
+                (key, timeoutParam) -> delegate.getCategories(primaryAdServer, publisher, timeout),
+                CachingApplicationSettings::noOp);
     }
 
     private static <T> Future<T> getFromCacheOrDelegate(Map<String, T> cache,
@@ -234,5 +249,8 @@ public class CachingApplicationSettings implements ApplicationSettings {
     public void invalidateAllAccountCache() {
         accountCache.clear();
         logger.debug("All accounts cache were invalidated");
+    }
+
+    private static <ANY> void noOp(ANY any) {
     }
 }

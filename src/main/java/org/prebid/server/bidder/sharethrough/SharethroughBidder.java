@@ -22,7 +22,7 @@ import org.prebid.server.bidder.sharethrough.model.UserInfo;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
 import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
@@ -190,7 +190,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(mapper.encode(body))
+                .body(mapper.encodeToBytes(body))
                 .payload(body)
                 .build();
     }

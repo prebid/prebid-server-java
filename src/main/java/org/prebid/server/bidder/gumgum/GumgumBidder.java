@@ -27,7 +27,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -74,7 +74,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .headers(HttpUtil.headers())
                                 .payload(outgoingRequest)
                                 .build()),

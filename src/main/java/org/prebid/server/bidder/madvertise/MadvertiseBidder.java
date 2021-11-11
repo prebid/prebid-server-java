@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -100,7 +100,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
                 .uri(url)
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build();
     }
 

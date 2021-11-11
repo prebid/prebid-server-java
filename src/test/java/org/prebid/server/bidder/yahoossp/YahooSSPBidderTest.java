@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.yahoossp.ExtImpYahooSSP;
 
 import java.util.List;
@@ -65,7 +65,7 @@ public class YahooSSPBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 

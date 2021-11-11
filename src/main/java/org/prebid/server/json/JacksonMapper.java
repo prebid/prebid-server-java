@@ -24,7 +24,7 @@ public class JacksonMapper {
         return mapper;
     }
 
-    public <T> String encode(T obj) throws EncodeException {
+    public <T> String encodeToString(T obj) throws EncodeException {
         try {
             return mapper.writeValueAsString(obj);
         } catch (JsonProcessingException e) {
@@ -32,10 +32,26 @@ public class JacksonMapper {
         }
     }
 
+    public <T> byte[] encodeToBytes(T obj) throws EncodeException {
+        try {
+            return mapper.writeValueAsBytes(obj);
+        } catch (JsonProcessingException e) {
+            throw new EncodeException("Failed to encode as byte array: " + e.getMessage());
+        }
+    }
+
     public <T> T decodeValue(String str, Class<T> clazz) throws DecodeException {
         try {
             return mapper.readValue(str, clazz);
         } catch (JsonProcessingException e) {
+            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()));
+        }
+    }
+
+    public <T> T decodeValue(byte[] bytes, Class<T> clazz) throws DecodeException {
+        try {
+            return mapper.readValue(bytes, clazz);
+        } catch (IOException e) {
             throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()));
         }
     }

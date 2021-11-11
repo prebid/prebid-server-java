@@ -221,7 +221,7 @@ public class DeliveryProgressServiceTest extends VertxTest {
                 .extracting(lineItemId1)
                 .extracting(lineItemId2)
                 .extracting(lostToLineItem -> ((LostToLineItem) lostToLineItem).getCount().sum())
-                .containsOnly(1L);
+                .isEqualTo(1L);
 
         assertThat(lineItemStatuses)
                 .flatExtracting(LineItemStatus::getDeliveryPlans)

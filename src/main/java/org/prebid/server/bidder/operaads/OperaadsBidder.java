@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -110,7 +110,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
             if (nativeNode != null && nativeNode.isObject()) {
                 final JsonNode requestNode = mapper.mapper().createObjectNode().set("native", nativeNode);
                 return xNative.toBuilder()
-                        .request(mapper.encode(requestNode))
+                        .request(mapper.encodeToString(requestNode))
                         .build();
             }
         } catch (JsonProcessingException e) {
@@ -151,7 +151,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .uri(resolvedUrl)
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

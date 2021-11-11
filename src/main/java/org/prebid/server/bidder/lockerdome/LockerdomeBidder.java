@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.lockerdome.ExtImpLockerdome;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -70,14 +70,12 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 ? bidRequest.toBuilder().imp(validImps).build()
                 : bidRequest;
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
                                 .headers(headers)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .payload(outgoingRequest)
                                 .build()),
                 errors);

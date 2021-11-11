@@ -151,7 +151,6 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "}"
                 + "},"
                 + "\"privacy\": {"
-                + "\"enforce-ccpa\": true,"
                 + "\"gdpr\": {"
                 + "\"enabled\": true,"
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
@@ -636,6 +635,18 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
+        // given and when
+        final Future<Map<String, String>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+                timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Not supported");
     }
 
     private JdbcClient jdbcClient() {

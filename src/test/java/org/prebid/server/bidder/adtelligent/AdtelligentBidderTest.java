@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
@@ -76,7 +76,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(
                                 Imp.builder()
@@ -409,7 +409,7 @@ public class AdtelligentBidderTest extends VertxTest {
                 .containsExactly(BidderError.badServerResponse(
                         "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
                                 + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
-                                + "column: 3]"));
+                                + "column: 2]"));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

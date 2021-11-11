@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -93,13 +93,12 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(uri)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

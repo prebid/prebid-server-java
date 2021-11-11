@@ -24,7 +24,7 @@ import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -145,7 +145,7 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(modifiedRequest)
-                .body(mapper.encode(modifiedRequest))
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .build();
     }
 

@@ -31,7 +31,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpCriteo;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -109,7 +109,7 @@ public class CriteoBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance of");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value of");
                 });
     }
 

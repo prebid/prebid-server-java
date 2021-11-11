@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
@@ -62,7 +62,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(bidRequest))
+                    .body(mapper.encodeToBytes(bidRequest))
                     .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build());

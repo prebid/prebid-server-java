@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.openweb.ExtImpOpenweb;
 import org.prebid.server.util.HttpUtil;
 
@@ -173,7 +173,7 @@ public class OpenWebBidderTest extends VertxTest {
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(bidderError.getMessage()).startsWith(
-                            "ignoring imp id=123, error while encoding impExt, err: Cannot deserialize instance");
+                            "ignoring imp id=123, error while encoding impExt, err: Cannot deserialize value");
                 });
     }
 

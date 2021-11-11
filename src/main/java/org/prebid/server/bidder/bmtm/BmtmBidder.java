@@ -20,7 +20,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bmtm.ExtImpBmtm;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -57,12 +57,11 @@ public class BmtmBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpBmtm impExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(request, modifyImp(imp, impExt));
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(createHeaders(request))
                         .payload(outgoingRequest)
                         .build());

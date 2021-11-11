@@ -17,9 +17,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -55,19 +54,11 @@ public class KubientBidder implements Bidder<BidRequest> {
             }
         }
 
-        String body;
-        try {
-            body = mapper.encode(request);
-        } catch (EncodeException e) {
-            return Result.withError(
-                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
-        }
-
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(request))
                                 .headers(HttpUtil.headers())
                                 .payload(request)
                                 .build()),

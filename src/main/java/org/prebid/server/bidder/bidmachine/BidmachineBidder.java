@@ -21,7 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.bidmachine.ExtImpBidmachine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -58,12 +58,11 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImp<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(buildEndpointUrl(mappedExt.getBidder()))
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(resolveHeaders())
                         .payload(outgoingRequest)
                         .build());

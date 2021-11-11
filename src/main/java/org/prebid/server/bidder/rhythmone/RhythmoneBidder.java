@@ -18,7 +18,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.rhythmone.ExtImpRhythmone;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -71,13 +71,12 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(composedUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .headers(HttpUtil.headers())
                                 .payload(outgoingRequest)
                                 .build()),

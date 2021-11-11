@@ -25,7 +25,7 @@ import org.prebid.server.bidder.pangle.model.BidExt;
 import org.prebid.server.bidder.pangle.model.NetworkIds;
 import org.prebid.server.bidder.pangle.model.PangleBidExt;
 import org.prebid.server.bidder.pangle.model.WrappedImpExtBidder;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pangle.ExtImpPangle;
 import org.prebid.server.util.HttpUtil;

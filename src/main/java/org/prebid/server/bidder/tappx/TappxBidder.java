@@ -19,7 +19,7 @@ import org.prebid.server.bidder.tappx.model.TappxBidderExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -67,7 +67,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(url)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());
     }

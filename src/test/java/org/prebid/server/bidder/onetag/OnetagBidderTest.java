@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.onetag.ExtImpOnetag;
 
 import java.util.Arrays;
@@ -104,7 +104,7 @@ public class OnetagBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
     }

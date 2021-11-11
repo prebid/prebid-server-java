@@ -19,7 +19,7 @@ import org.prebid.server.bidder.somoaudience.proto.SomoaudienceReqExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -120,7 +120,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers(outgoingRequest.getDevice()))
                 .payload(outgoingRequest)
                 .build();

@@ -55,7 +55,7 @@ class AdformRequestUtil {
             }
         }
 
-        final String encodedEids = mapper.encode(eidsMap);
+        final String encodedEids = mapper.encodeToString(eidsMap);
 
         return ObjectUtils
                 .defaultIfNull(Base64.getUrlEncoder().withoutPadding().encodeToString(encodedEids.getBytes()),

@@ -18,7 +18,7 @@ import org.prebid.server.bidder.unruly.proto.ImpExtUnruly;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -89,13 +89,11 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                                                         String endpointUrl) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(getHeaders())
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

@@ -21,7 +21,7 @@ import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
 import org.prebid.server.bidder.ttx.response.TtxBidExt;
 import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 
 import java.util.List;
@@ -66,7 +66,7 @@ public class TtxBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance of");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value of");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
     }

@@ -33,7 +33,7 @@ import org.prebid.server.bidder.smaato.proto.SmaatoBidExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoBidRequestExt;
 import org.prebid.server.bidder.smaato.proto.SmaatoSiteExtData;
 import org.prebid.server.bidder.smaato.proto.SmaatoUserExtData;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
@@ -193,7 +193,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
 
@@ -365,7 +365,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
                     assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
 

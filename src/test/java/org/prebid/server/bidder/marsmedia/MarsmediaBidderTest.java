@@ -24,7 +24,7 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.marsmedia.ExtImpMarsmedia;
 import org.prebid.server.util.HttpUtil;
 
@@ -84,7 +84,7 @@ public class MarsmediaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Zone is empty"));
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("ZoneId is empty"));
     }
 
     @Test

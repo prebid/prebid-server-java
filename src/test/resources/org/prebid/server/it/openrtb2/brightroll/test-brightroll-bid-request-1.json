@@ -5,8 +5,7 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 250,
-        "battr": []
+        "h": 250
       },
       "ext": {
         "bidder": {
@@ -34,8 +33,6 @@
   "cur": [
     "USD"
   ],
-  "bcat": [],
-  "badv": [],
   "regs": {
     "ext": {
       "gdpr": 0

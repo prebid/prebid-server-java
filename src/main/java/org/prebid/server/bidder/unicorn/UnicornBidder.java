@@ -26,7 +26,7 @@ import org.prebid.server.bidder.unicorn.model.UnicornImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
@@ -189,7 +189,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

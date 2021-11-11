@@ -17,7 +17,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.adview.ExtImpAdview;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -61,7 +61,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(resolveEndpoint(extImpAdview.getAccountId()))
                         .headers(HttpUtil.headers())
-                        .body(mapper.encode(modifiedRequest))
+                        .body(mapper.encodeToBytes(modifiedRequest))
                         .payload(modifiedRequest)
                         .build());
     }
