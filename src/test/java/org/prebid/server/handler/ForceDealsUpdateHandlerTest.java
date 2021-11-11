@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class ForceDealsUpdateHandlerTest {
 
@@ -113,7 +113,7 @@ public class ForceDealsUpdateHandlerTest {
 
         // then
         verify(plannerService).updateLineItemMetaData();
-        verifyZeroInteractions(deliveryStatsService, registerService, alertHttpService, deliveryProgressService,
+        verifyNoInteractions(deliveryStatsService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
         verify(httpResponse).setStatusCode(204);
@@ -130,7 +130,7 @@ public class ForceDealsUpdateHandlerTest {
 
         // then
         verify(deliveryStatsService).sendDeliveryProgressReports();
-        verifyZeroInteractions(plannerService, registerService, alertHttpService, deliveryProgressService,
+        verifyNoInteractions(plannerService, registerService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
         verify(httpResponse).setStatusCode(204);
@@ -147,7 +147,7 @@ public class ForceDealsUpdateHandlerTest {
 
         // then
         verify(registerService).performRegistration();
-        verifyZeroInteractions(plannerService, deliveryStatsService, alertHttpService, deliveryProgressService,
+        verifyNoInteractions(plannerService, deliveryStatsService, alertHttpService, deliveryProgressService,
                 lineItemService);
 
         verify(httpResponse).setStatusCode(204);
@@ -167,7 +167,7 @@ public class ForceDealsUpdateHandlerTest {
         verify(alertHttpService).resetAlertCount("pbs-planner-client-error");
         verify(alertHttpService).resetAlertCount("pbs-planner-empty-response-error");
         verify(alertHttpService).resetAlertCount("pbs-delivery-stats-client-error");
-        verifyZeroInteractions(plannerService, deliveryStatsService, registerService, deliveryProgressService,
+        verifyNoInteractions(plannerService, deliveryStatsService, registerService, deliveryProgressService,
                 lineItemService);
 
         verify(httpResponse).setStatusCode(204);
@@ -184,7 +184,7 @@ public class ForceDealsUpdateHandlerTest {
 
         // then
         verify(deliveryProgressService).createDeliveryProgressReports(any());
-        verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
+        verifyNoInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 lineItemService);
 
         verify(httpResponse).setStatusCode(204);
@@ -201,7 +201,7 @@ public class ForceDealsUpdateHandlerTest {
 
         // then
         verify(lineItemService).invalidateLineItems();
-        verifyZeroInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
+        verifyNoInteractions(registerService, plannerService, deliveryStatsService, alertHttpService,
                 deliveryProgressService);
 
         verify(httpResponse).setStatusCode(204);

@@ -74,7 +74,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
@@ -183,7 +183,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsOpenrtb(emptyList(), null, null, null);
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -891,7 +891,7 @@ public class CacheServiceTest extends VertxTest {
                 emptySet(), null, null, null);
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
         assertThat(result.result().getResponses()).isEmpty();
     }
 

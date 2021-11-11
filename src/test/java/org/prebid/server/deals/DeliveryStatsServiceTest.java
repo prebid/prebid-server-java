@@ -52,7 +52,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class DeliveryStatsServiceTest extends VertxTest {
 
@@ -349,7 +349,7 @@ public class DeliveryStatsServiceTest extends VertxTest {
         deliveryStatsService.sendDeliveryProgressReports();
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

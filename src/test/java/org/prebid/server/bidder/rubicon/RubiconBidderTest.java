@@ -113,7 +113,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -537,7 +537,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
 
         // then
-        verifyZeroInteractions(currencyConversionService);
+        verifyNoInteractions(currencyConversionService);
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.of("Imp `impId` floor provided with no currency, assuming USD",
                         BidderError.Type.bad_input));
