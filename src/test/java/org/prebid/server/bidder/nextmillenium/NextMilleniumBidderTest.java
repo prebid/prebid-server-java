@@ -56,11 +56,10 @@ public class NextMilleniumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
 
         // then
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(
+                .containsExactly(mapper.writeValueAsBytes(
                         BidRequest.builder()
                                 .id(bidRequest.getId())
                                 .test(bidRequest.getTest())

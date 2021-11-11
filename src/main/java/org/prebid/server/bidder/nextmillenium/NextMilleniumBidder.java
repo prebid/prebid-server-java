@@ -95,7 +95,7 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5"))
                 .payload(bidRequest)
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .build();
     }
 
