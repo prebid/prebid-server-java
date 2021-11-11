@@ -186,7 +186,7 @@ public class AdotBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("firstImp")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdot.of(true, "placementId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdot.of(true, "placementId")))))
                 .build();
     }
 

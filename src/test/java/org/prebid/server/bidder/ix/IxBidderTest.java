@@ -67,7 +67,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
@@ -652,7 +652,7 @@ public class IxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpIx.of(SITE_ID, null)))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpIx.of(SITE_ID, null)))))
                 .build();
     }
 

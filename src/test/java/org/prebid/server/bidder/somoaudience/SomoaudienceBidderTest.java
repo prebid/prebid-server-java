@@ -179,7 +179,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("impId")
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))),
                         givenImp(impBuilder -> impBuilder
                                 .id("impId2")
                                 .ext(mapper.valueToTree(ExtImp.of(

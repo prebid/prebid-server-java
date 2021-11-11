@@ -104,7 +104,7 @@ public class GamoshiBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gamoshiBidder.makeHttpRequests(bidRequest);
@@ -120,7 +120,7 @@ public class GamoshiBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpGamoshi.of("", null)))));
 
         // when
@@ -318,7 +318,7 @@ public class GamoshiBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpGamoshi.of("supply", "type")))))
                 .build();
     }

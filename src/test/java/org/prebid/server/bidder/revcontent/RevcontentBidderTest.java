@@ -56,7 +56,7 @@ public class RevcontentBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().name("appname").build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -83,7 +83,7 @@ public class RevcontentBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -105,7 +105,7 @@ public class RevcontentBidderTest extends VertxTest {
                 .app(App.builder().build())
                 .site(Site.builder().build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .id("request_id")
                 .build();

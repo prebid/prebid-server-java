@@ -54,7 +54,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
@@ -71,7 +71,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtDoesNotContainRequiredAttributes() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMobfoxpb.of("", null)))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMobfoxpb.of("", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobfoxpbBidder.makeHttpRequests(bidRequest);
@@ -103,7 +103,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetNativeRouteAndMethodToUrlIfKeyParamIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpMobfoxpb.of("tagId", null))))
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpMobfoxpb.of("tagId", null))))
         );
 
         // when
@@ -262,7 +262,7 @@ public class MobfoxpbBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMobfoxpb.of("tagId", "key")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMobfoxpb.of("tagId", "key")))))
                 .build();
     }
 

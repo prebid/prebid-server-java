@@ -70,7 +70,7 @@ public class ValueImpressionBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = valueImpressionBidder.makeHttpRequests(bidRequest);
 
@@ -214,7 +214,7 @@ public class ValueImpressionBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCpmStar.of(12, 123)))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpCpmStar.of(12, 123)))))
                 .build();
     }
 

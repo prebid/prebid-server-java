@@ -57,7 +57,7 @@ public class AxonixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAxonix.of("someSupplyId")))));
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAxonix.of("someSupplyId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = axonixBidder.makeHttpRequests(bidRequest);
@@ -75,7 +75,7 @@ public class AxonixBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = axonixBidder.makeHttpRequests(bidRequest);
 
@@ -221,7 +221,7 @@ public class AxonixBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 

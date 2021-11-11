@@ -83,7 +83,7 @@ public class AdheseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -109,7 +109,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(ExtUser.builder().consent("dummy").build())
                         .build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdhese.of(
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdhese.of(
                                 "demo",
                                 "_adhese_prebid_demo_",
                                 "leaderboard",
@@ -150,7 +150,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ifa("ifaValue").build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
                                         mapper.convertValue(emptyMap(), JsonNode.class)))))
                         .build()))
@@ -183,7 +183,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().page("pageValue").build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
                                         mapper.convertValue(emptyMap(), JsonNode.class)))))
                         .build()))
@@ -218,7 +218,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(ExtUser.builder().consent("dummy").build())
                         .build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdhese.of(
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdhese.of(
                                 "demo",
                                 "_adhese_prebid_demo_",
                                 "leaderboard",

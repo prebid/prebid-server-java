@@ -80,7 +80,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
@@ -97,7 +97,7 @@ public class EplanningBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 mapper.createObjectNode().put("ci", "")))));
 
         // when
@@ -488,7 +488,7 @@ public class EplanningBidderTest extends VertxTest {
                                         .height(1)
                                         .build()))))));
 
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                 ExtImpEplanning.of("clientId", null)))));
 
         // when
@@ -560,7 +560,7 @@ public class EplanningBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpEplanning.of("clientId", "test_ad.-un(itco:de:")))))
                 .build();
     }

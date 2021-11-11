@@ -236,7 +236,7 @@ public class BidmyadzBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpBidmyadz.of("placementId")))))
                 .build();
     }

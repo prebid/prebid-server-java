@@ -68,7 +68,7 @@ public class ConsumableBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
@@ -315,7 +315,7 @@ public class ConsumableBidderTest extends VertxTest {
                                         .format(Arrays.asList(Format.builder().w(468).h(60).build(),
                                                 Format.builder().w(486).h(60).build()))
                                         .build())
-                                .ext(mapper.valueToTree(ExtImp.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         ExtImpConsumable.of(123, 234, 345, "unit"))))
                                 .build()))
                 .user(User.builder()
@@ -347,7 +347,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(120).h(90).build()))
                         .build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpConsumable.of(111, 222, 333, "unit_name")))))
                 .build();
     }

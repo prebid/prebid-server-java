@@ -60,7 +60,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
@@ -75,7 +75,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
                                 .id("123")
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
@@ -260,7 +260,7 @@ public class AlgorixBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId")))))
                 .build();
     }

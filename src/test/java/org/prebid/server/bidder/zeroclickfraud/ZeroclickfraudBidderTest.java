@@ -153,11 +153,11 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMakeOneHttpRequestPerEachImpExtWithReplacedImps() {
         // given
         final Imp firstImp = Imp.builder().id("imp1")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpZeroclickfraud.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpZeroclickfraud.of(2, "host")))).build();
         final Imp secondImp = Imp.builder().id("imp2")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpZeroclickfraud.of(3, "host1")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpZeroclickfraud.of(3, "host1")))).build();
         final Imp thirdImp = Imp.builder().id("imp3")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpZeroclickfraud.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpZeroclickfraud.of(2, "host")))).build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(firstImp, secondImp, thirdImp))
@@ -287,7 +287,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(Object extImpDatablocks) {
         return BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, extImpDatablocks)))
+                        .ext(mapper.valueToTree(ExtImp.of(extImpDatablocks)))
                         .build()))
                 .build();
     }

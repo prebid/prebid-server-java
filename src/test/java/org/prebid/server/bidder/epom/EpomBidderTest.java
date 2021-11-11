@@ -74,7 +74,7 @@ public class EpomBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .build();
 
@@ -92,7 +92,7 @@ public class EpomBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .build();
 
@@ -271,7 +271,7 @@ public class EpomBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                 .build();
     }
 

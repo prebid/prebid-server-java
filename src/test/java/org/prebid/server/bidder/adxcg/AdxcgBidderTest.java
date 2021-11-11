@@ -56,7 +56,7 @@ public class AdxcgBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdxcg.of("adZoneId"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdxcg.of("adZoneId"))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -245,7 +245,7 @@ public class AdxcgBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpAdxcg.of("adzoneid")))))
                 .build();
     }

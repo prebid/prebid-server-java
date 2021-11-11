@@ -48,7 +48,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -66,7 +66,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("invalid host", "tappxkey", "endpoint", null,
                                         null, null, null))))
                         .build()))
@@ -89,7 +89,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTappx.of(
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpTappx.of(
                                 "host", "tappxkey", "endpoint", null,
                                 "mktag", singletonList("bcid"), singletonList("bcrid"))))))))
                 .build();
@@ -174,7 +174,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("host/rtb/v2/", "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
@@ -198,7 +198,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("host/rtb/v2", "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
@@ -222,7 +222,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("host/rtb/v2", "tappxkey", "/endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
@@ -246,7 +246,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("htTpS://host-host.com/rtb/v2", "tappxkey", "/endpoint",
                                         BigDecimal.ONE, null, null, null))))
                         .build()))
@@ -270,7 +270,7 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("endpoint.host", "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
@@ -294,21 +294,21 @@ public class TappxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequestEmptyHost = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("", "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null)))).build()))
                 .build();
 
         final BidRequest bidRequestEmptyTappxKey = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("host", "", "endpoint", BigDecimal.ONE,
                                         null, null, null)))).build()))
                 .build();
 
         final BidRequest bidRequestEmptyEndpoint = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpTappx.of("host", "tappxkey", "", BigDecimal.ONE,
                                         null, null, null)))).build()))
                 .build();
@@ -413,7 +413,7 @@ public class TappxBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTappx.of(
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpTappx.of(
                         "host", "tappxkey", "endpoint", BigDecimal.ONE,
                         "mktag", singletonList("bcid"), singletonList("bcrid")))))
         ).build();

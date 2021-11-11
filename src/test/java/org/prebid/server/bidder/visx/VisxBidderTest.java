@@ -57,7 +57,7 @@ public class VisxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpVisx.of(123, Arrays.asList(10, 20)))))
                         .build()))
                 .id("request_id")

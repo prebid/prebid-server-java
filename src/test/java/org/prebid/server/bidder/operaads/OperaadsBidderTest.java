@@ -207,10 +207,10 @@ public class OperaadsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 impBuilder -> impBuilder
                         .id("234")
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))),
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOperaads.of(
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpOperaads.of(
                                 "placementId", "endpointId", "publisherId")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
@@ -381,7 +381,7 @@ public class OperaadsBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOperaads.of("placementId",
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpOperaads.of("placementId",
                         "endpointId", "publisherId"))))).build();
     }
 

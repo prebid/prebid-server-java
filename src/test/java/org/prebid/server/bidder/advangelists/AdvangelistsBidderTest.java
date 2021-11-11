@@ -63,7 +63,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -429,14 +429,14 @@ public class AdvangelistsBidderTest extends VertxTest {
                                 ExtImpAdvangelists extImpAdvangelists) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, extImpAdvangelists))))
+                        ExtImp.of(extImpAdvangelists))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpAdvangelists.of("pubid", "placment")))))
+                        ExtImp.of(ExtImpAdvangelists.of("pubid", "placment")))))
                 .build();
     }
 

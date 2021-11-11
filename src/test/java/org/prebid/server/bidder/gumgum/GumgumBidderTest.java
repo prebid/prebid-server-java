@@ -60,7 +60,7 @@ public class GumgumBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
@@ -101,7 +101,7 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().w(0).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
                         .build()))
                 .build();
@@ -129,7 +129,7 @@ public class GumgumBidderTest extends VertxTest {
                                 .placement(33)
                                 .linearity(233)
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
                         .build()))
                 .build();
@@ -236,7 +236,7 @@ public class GumgumBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))),
                         givenImp(identity())))
                 .build();
@@ -264,14 +264,14 @@ public class GumgumBidderTest extends VertxTest {
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGumgum.of("ignored zone",
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpGumgum.of("ignored zone",
                                         BigInteger.TEN, "irisId", 0L))))),
                         givenImp(impBuilder -> impBuilder
                                 .id("345")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
-                                .ext(mapper.valueToTree(ExtImp.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))
                         )))
                 .build();
@@ -300,7 +300,7 @@ public class GumgumBidderTest extends VertxTest {
                                 Format.builder().w(120).h(100).build(),
                                 Format.builder().w(100).h(100).build()))
                         .build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGumgum.of("ignored zone",
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGumgum.of("ignored zone",
                         BigInteger.TEN, "irisId", 42L)))));
 
         // when
@@ -446,7 +446,7 @@ public class GumgumBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().id("banner_id").build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L)))))
                 .build();
     }

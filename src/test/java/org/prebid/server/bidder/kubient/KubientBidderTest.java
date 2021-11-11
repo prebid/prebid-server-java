@@ -48,7 +48,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -67,7 +67,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKubient.of(null))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpKubient.of(null))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -85,7 +85,7 @@ public class KubientBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKubient.of("zoneId"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpKubient.of("zoneId"))))
                         .build()))
                 .id("request_id")
                 .build();

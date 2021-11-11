@@ -68,7 +68,7 @@ public class EngagebdrBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
@@ -84,7 +84,7 @@ public class EngagebdrBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtSspidIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEngagebdr.of("")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEngagebdr.of("")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = engagebdrBidder.makeHttpRequests(bidRequest);
@@ -99,13 +99,13 @@ public class EngagebdrBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSendImpsToUrlsBySspid() {
         // given
         final Imp firstimpWithSspidOne = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEngagebdr.of("sspid1"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEngagebdr.of("sspid1"))))
                 .build();
         final Imp secondImpWithSspidOne = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEngagebdr.of("sspid1"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEngagebdr.of("sspid1"))))
                 .build();
         final Imp impWithSspidTwo = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEngagebdr.of("sspid2"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEngagebdr.of("sspid2"))))
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstimpWithSspidOne, secondImpWithSspidOne, impWithSspidTwo))

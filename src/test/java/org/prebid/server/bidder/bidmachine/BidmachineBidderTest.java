@@ -56,7 +56,7 @@ public class BidmachineBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpBidmachine.of("host", "pubId", "1")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -80,7 +80,7 @@ public class BidmachineBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidmachineBidder.makeHttpRequests(bidRequest);
 
@@ -250,7 +250,7 @@ public class BidmachineBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBidmachine.of("127.0.0.1", "path", "1")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBidmachine.of("127.0.0.1", "path", "1")))))
                 .build();
     }
 

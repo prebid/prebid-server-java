@@ -138,7 +138,7 @@ public class MedianetBidderTest extends VertxTest {
                 .id("request_id")
                 .imp(singletonList(Imp.builder()
                     .id("imp_id")
-                    .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                    .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                     .build()))
                 .build();
     }

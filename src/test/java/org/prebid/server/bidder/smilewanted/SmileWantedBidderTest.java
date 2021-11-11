@@ -187,7 +187,7 @@ public class SmileWantedBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 

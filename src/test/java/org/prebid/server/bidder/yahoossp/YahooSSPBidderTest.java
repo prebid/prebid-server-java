@@ -57,7 +57,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))),
                 identity());
 
         // when
@@ -74,7 +74,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("", null)))),
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpYahooSSP.of("", null)))),
                 identity());
 
         // when
@@ -91,7 +91,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", "")))),
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpYahooSSP.of("dcn", "")))),
                 identity());
 
         // when
@@ -110,7 +110,7 @@ public class YahooSSPBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", ""))))),
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpYahooSSP.of("dcn", ""))))),
                         givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
 
@@ -383,7 +383,7 @@ public class YahooSSPBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .tagid("tagId")
                 .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpYahooSSP.of("dcn", "pos")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpYahooSSP.of("dcn", "pos")))))
                 .build();
     }
 

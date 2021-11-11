@@ -53,7 +53,7 @@ public class AcuityadsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -66,7 +66,7 @@ public class AcuityadsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, null))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -80,7 +80,7 @@ public class AcuityadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpAcuityads.of("", "someVal")))));
+                        ExtImp.of(ExtImpAcuityads.of("", "someVal")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -94,7 +94,7 @@ public class AcuityadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpAcuityads.of("someVal", "")))));
+                        ExtImp.of(ExtImpAcuityads.of("someVal", "")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = acuityadsBidder.makeHttpRequests(bidRequest);
 
@@ -297,7 +297,7 @@ public class AcuityadsBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(
                         ExtImpAcuityads.of("hostVal", "accountIdVal")))))
                 .build();
     }

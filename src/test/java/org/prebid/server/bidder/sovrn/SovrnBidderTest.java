@@ -143,7 +143,7 @@ public class SovrnBidderTest extends VertxTest {
                                         .w(200)
                                         .h(300)
                                         .build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of("tagid", null, null))))
                                 .build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
                 .regs(Regs.of(null, ExtRegs.of(1, null)))
@@ -159,7 +159,7 @@ public class SovrnBidderTest extends VertxTest {
                 .containsExactly(BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .id("impId")
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of("tagid", null, null))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of("tagid", null, null))))
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(200).h(300).build()))
                                         .w(200)
@@ -182,7 +182,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(BigDecimal.ZERO)
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -205,7 +205,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(null)
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -228,7 +228,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder().id("impId")
                                 .bidfloor(BigDecimal.ONE)
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of(null, null, BigDecimal.TEN))))
                                 .build()))
                 .build();
 
@@ -284,7 +284,7 @@ public class SovrnBidderTest extends VertxTest {
                 .imp(Collections.singletonList(
                         Imp.builder()
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpSovrn.of("tagid", "legacyTagId", null))))
+                                        ExtImp.of(ExtImpSovrn.of("tagid", "legacyTagId", null))))
                                 .build()))
                 .build();
 
@@ -306,7 +306,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Collections.singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSovrn.of(null, "legacyTagId", null))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSovrn.of(null, "legacyTagId", null))))
                                 .build()))
                 .build();
 
@@ -334,7 +334,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 

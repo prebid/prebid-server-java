@@ -92,7 +92,7 @@ public class BeachfrontBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
@@ -108,7 +108,7 @@ public class BeachfrontBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenNoAppIdIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         mapper.valueToTree(ExtImpBeachfront.of(null, null, null, null))))));
 
         // when
@@ -126,10 +126,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
                 .imp(asList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 mapper.valueToTree(ExtImpBeachfront.of(null, null, null, null)))))),
                         givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 mapper.valueToTree(ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "nurl")))))),
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder()
@@ -141,7 +141,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                         .format(singletonList(Format.builder().w(100).h(300).build()))
                                         .build())
                                 .video(null)
-                                .ext(mapper.valueToTree(ExtImp.of(null,
+                                .ext(mapper.valueToTree(ExtImp.of(
                                         mapper.valueToTree(ExtImpBeachfront.of(null, null, null, null))))))))
                 .build();
 
@@ -170,7 +170,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().build())
                 .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 mapper.valueToTree(ExtImpBeachfront.of("appId", null, BigDecimal.ONE, null))))))))
                 .build();
 
@@ -319,7 +319,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .app(App.builder().bundle("prefix_test1.test2.test3_suffix").build())
                 .device(Device.builder().build())
                 .imp(asList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 mapper.valueToTree(ExtImpBeachfront.of("appId2", null, BigDecimal.TEN, "nurl")))))),
                         givenImp(impBuilder -> impBuilder.id("234"))))
                 .build();
@@ -368,7 +368,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                                 mapper.valueToTree(ExtImpBeachfront.of("appId2", null, null, "unknownType"))))))
                 ))
                 .build();
@@ -411,7 +411,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpBeachfront.of("appId",
                                         ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
                                         null, "adm"))))
@@ -436,7 +436,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpBeachfront.of("appId",
                                         ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
                                         BigDecimal.TEN, "adm"))))
@@ -799,7 +799,7 @@ public class BeachfrontBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpBeachfront.of("appId", ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
                                         BigDecimal.ONE, "adm")))))
                 .build();

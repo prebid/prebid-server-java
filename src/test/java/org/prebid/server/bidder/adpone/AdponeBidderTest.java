@@ -165,7 +165,7 @@ public class AdponeBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(JsonNode bidderNode) {
         return BidRequest.builder()
                 .imp(Collections.singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, bidderNode)))
+                        .ext(mapper.valueToTree(ExtImp.of(bidderNode)))
                         .build()))
                 .build();
     }

@@ -51,7 +51,7 @@ public class AvocetBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createObjectNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createObjectNode())))
                         .build()))
                 .build();
 

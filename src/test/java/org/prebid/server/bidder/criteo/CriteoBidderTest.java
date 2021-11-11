@@ -78,10 +78,10 @@ public class CriteoBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(Arrays.asList(
                                 Imp.builder()
-                                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 1))))
+                                        .ext(mapper.valueToTree(ExtImp.of(ExtImpCriteo.of(1, 1))))
                                         .build(),
                                 Imp.builder()
-                                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 2))))
+                                        .ext(mapper.valueToTree(ExtImp.of(ExtImpCriteo.of(1, 2))))
                                         .build()))
                         .build();
 
@@ -100,7 +100,7 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<CriteoRequest>>> result = criteoBidder.makeHttpRequests(bidRequest);
 
@@ -359,7 +359,7 @@ public class CriteoBidderTest extends VertxTest {
                         .w(300)
                         .build()
                 )
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpCriteo.of(1, 1)))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpCriteo.of(1, 1)))))
                 .build();
     }
 

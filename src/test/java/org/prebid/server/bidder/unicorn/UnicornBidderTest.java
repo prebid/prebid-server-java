@@ -81,7 +81,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotValidImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
 
@@ -235,7 +235,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotFoundStoredRequestId() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpUnicorn.of("", 123, "mediaId", 456)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
@@ -321,7 +321,7 @@ public class UnicornBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
                 .build();
     }
 

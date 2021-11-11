@@ -64,7 +64,7 @@ public class LockerdomeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = lockerdomeBidder.makeHttpRequests(bidRequest);
@@ -80,9 +80,9 @@ public class LockerdomeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(builder -> builder
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLockerdome.of(null))))),
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpLockerdome.of(null))))),
                         givenImp(builder -> builder
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLockerdome.of("  ")))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpLockerdome.of("  ")))))))
                 .build();
 
         // when
@@ -118,7 +118,7 @@ public class LockerdomeBidderTest extends VertxTest {
                         givenImp(builder -> builder.banner(null)),
                         givenImp(builder -> builder.id("imp2")),
                         givenImp(builder -> builder
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLockerdome.of(null)))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpLockerdome.of(null)))))))
                 .build();
 
         // when
@@ -200,7 +200,7 @@ public class LockerdomeBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLockerdome.of("adUnitId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpLockerdome.of("adUnitId")))))
                 .build();
     }
 

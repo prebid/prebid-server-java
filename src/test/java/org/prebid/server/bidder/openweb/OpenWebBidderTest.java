@@ -162,7 +162,7 @@ public class OpenWebBidderTest extends VertxTest {
     public void makePodHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = openWebBidder.makeHttpRequests(bidRequest);
@@ -328,7 +328,7 @@ public class OpenWebBidderTest extends VertxTest {
                                                                Integer placementId,
                                                                Integer siteId,
                                                                BigDecimal bidFloor) {
-        return ExtImp.of(null, ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
+        return ExtImp.of(ExtImpOpenweb.of(sourceId, placementId, siteId, bidFloor));
     }
 
     private static ObjectNode givenOpenWebImpExtObjectNode(Integer sourceId,

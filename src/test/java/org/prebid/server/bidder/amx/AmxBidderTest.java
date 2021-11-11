@@ -55,7 +55,7 @@ public class AmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = amxBidder.makeHttpRequests(bidRequest);
 
@@ -98,7 +98,7 @@ public class AmxBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .tagid("testAdUnitId")
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpAmx.of("testTagId", "testAdUnitId"))))
                         .build())).build();
         assertThat(result.getValue())
@@ -275,7 +275,7 @@ public class AmxBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(
                         ExtImpAmx.of("testTagId", "testAdUnitId")))))
                 .build();
     }

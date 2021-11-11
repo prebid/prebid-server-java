@@ -69,7 +69,7 @@ public class AdmanBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdman.of("otherTagId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdman.of("otherTagId"))))
                                 .build())));
 
         // when
@@ -210,7 +210,7 @@ public class AdmanBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdman.of("tagidString"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdman.of("tagidString"))))
                 .build();
     }
 

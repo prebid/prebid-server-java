@@ -178,7 +178,7 @@ public class LoopmeBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpLoopme.of("somePubId"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpLoopme.of("somePubId"))))
                 .build();
     }
 

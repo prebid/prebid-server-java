@@ -61,7 +61,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -82,7 +82,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", ""))))
                         .build()))
                 .build();
 
@@ -103,7 +103,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of(null, ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of(null, ""))))
                         .build()))
                 .build();
 
@@ -124,7 +124,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("not", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("not", ""))))
                         .build()))
                 .build();
 
@@ -145,7 +145,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("0", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("0", ""))))
                         .build()))
                 .build();
 
@@ -166,7 +166,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("1", "1"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("1", "1"))))
                         .build()))
                 .build();
 
@@ -187,7 +187,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(Collections.emptyList()).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("1", "1"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("1", "1"))))
                         .build()))
                 .build();
 
@@ -208,7 +208,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .site(Site.builder().page("https://exmaple/").build())
@@ -220,7 +220,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                 .banner(Banner.builder().w(100).h(100).build())
                 .tagid("123")
                 .secure(1)
@@ -246,7 +246,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                                 .w(100)
                                 .h(100)
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -257,7 +257,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         final Imp expectedImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                 .video(Video.builder()
                         .mimes(Collections.singletonList("someMime"))
                         .protocols(Arrays.asList(1, 2))
@@ -283,7 +283,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().mimes(Collections.singletonList("someMime")).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -303,7 +303,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -323,7 +323,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .site(Site.builder().page("https://exmaple/").build())
@@ -347,7 +347,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .app(App.builder().domain("https://exmaple/").build())
@@ -372,7 +372,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .app(App.builder().storeurl("https://exmaple/").build())
@@ -397,7 +397,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .site(Site.builder().page("http://exmaple/").build())
@@ -426,7 +426,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(formats).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("1", "asd"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("1", "asd"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -440,7 +440,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .format(singletonList(Format.builder().h(30).w(31).build())).build();
 
         final Imp expectedImp = Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("1", "asd"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("1", "asd"))))
                 .banner(expectedBanner)
                 .tagid("1")
                 .secure(0)
@@ -459,7 +459,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpEmxDigital.of("1", "asd"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpEmxDigital.of("1", "asd"))))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
                 .site(Site.builder().page("myPage").build())

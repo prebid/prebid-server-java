@@ -55,7 +55,7 @@ public class VrtcalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vrtcalBidder.makeHttpRequests(bidRequest);
@@ -260,7 +260,7 @@ public class VrtcalBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
                 .build();
     }
 

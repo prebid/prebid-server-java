@@ -66,7 +66,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpUcfunnel.of("adUnitId", null)))).build()))
                 .build();
 
@@ -84,7 +84,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpUcfunnel.of(null, "partnerId")))).build()))
                 .build();
 
@@ -102,7 +102,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpUcfunnel.of("adUnitId", "partnerId")))).build()))
                 .build();
 

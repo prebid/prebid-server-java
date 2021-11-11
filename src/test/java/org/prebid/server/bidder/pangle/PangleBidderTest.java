@@ -592,7 +592,7 @@ public class PangleBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpPangle.of("token", null, null))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpPangle.of("token", null, null))))
                 .build();
     }
 

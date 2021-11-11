@@ -98,7 +98,7 @@ public class AdtargetBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
@@ -116,7 +116,7 @@ public class AdtargetBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnErrorMessageWhenImpExtIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, null))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(null))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
@@ -134,12 +134,12 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .id("impId")
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, null))).build(),
+                                .ext(mapper.valueToTree(ExtImp.of(null))).build(),
                         Imp.builder()
                                 .id("impId2")
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtImp.of(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -163,7 +163,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .bidfloor(BigDecimal.valueOf(16))
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, null))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdtarget.of(15, 1, 2, null))))
                         .build()))
                 .build();
 
@@ -185,12 +185,12 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtImp.of(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpAdtarget.of(16, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtImp.of(ExtImpAdtarget.of(16, 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -209,7 +209,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpAdtarget.of(null, 1, 2, BigDecimal.valueOf(3)))))
+                                ExtImp.of(ExtImpAdtarget.of(null, 1, 2, BigDecimal.valueOf(3)))))
                         .build()))
                 .build();
 
@@ -230,12 +230,12 @@ public class AdtargetBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtImp.of(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                 .build(),
                         Imp.builder()
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
+                                        ExtImp.of(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))
                                 .build()))
                 .build();
 
@@ -415,7 +415,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .id("impId")
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))))))
+                        ExtImp.of(ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3))))))
                 .build();
     }
 

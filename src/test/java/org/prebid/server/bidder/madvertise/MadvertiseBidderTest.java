@@ -60,7 +60,7 @@ public class MadvertiseBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMadvertise.of("")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMadvertise.of("")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(firstImp))
@@ -79,7 +79,7 @@ public class MadvertiseBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMadvertise.of(null)))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMadvertise.of(null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(firstImp))
@@ -98,11 +98,11 @@ public class MadvertiseBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMadvertise.of("someZoneIdLongerThan7")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMadvertise.of("someZoneIdLongerThan7")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("124")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMadvertise.of("anotherZoneIdLongerThan7")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMadvertise.of("anotherZoneIdLongerThan7")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(firstImp, secondImp))
@@ -120,7 +120,7 @@ public class MadvertiseBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMadvertise.of("someZoneIdLongerThan7")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMadvertise.of("someZoneIdLongerThan7")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
@@ -148,7 +148,7 @@ public class MadvertiseBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = madvertiseBidder.makeHttpRequests(bidRequest);
 
@@ -167,7 +167,7 @@ public class MadvertiseBidderTest extends VertxTest {
                                         .w(300).h(500)
                                         .build()))
                         .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpMadvertise.of("someZoneIdLongerThan7")))));
 
         // when
@@ -284,7 +284,7 @@ public class MadvertiseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 

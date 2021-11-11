@@ -60,7 +60,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -77,7 +77,7 @@ public class GammaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .banner(null)
                 .id("iId")
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -93,7 +93,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenExtImpGammaIdIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("", "zid", "wid")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("", "zid", "wid")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -107,7 +107,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenExtImpGammaWidIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("id", "zid", "")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("id", "zid", "")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -121,7 +121,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenExtImpGammaZidIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("id", "", "wid")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("id", "", "wid")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -135,7 +135,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFillMethodAndUrlAndExpectedHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("id", "zid", "wid")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -177,7 +177,7 @@ public class GammaBidderTest extends VertxTest {
                                 .build()),
                 impBuilder -> impBuilder
 
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("id", "zid", "wid")))));
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
@@ -209,7 +209,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotSendBody() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpGamma.of("id", "zid", "wid")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
         final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);

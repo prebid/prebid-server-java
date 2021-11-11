@@ -77,7 +77,7 @@ public class OutbrainBidderTest extends VertxTest {
         final Imp firstImp = Imp.builder()
                 .id("123")
                 .tagid("123")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOutbrain.of(
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpOutbrain.of(
                         ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
                         null, singletonList("testBcat"), singletonList("testBadv")))))
                 .build();
@@ -85,7 +85,7 @@ public class OutbrainBidderTest extends VertxTest {
         final Imp thirdImp = Imp.builder()
                 .id("789")
                 .tagid("789")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOutbrain.of(
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpOutbrain.of(
                         ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
                         "098", singletonList("testBcat"), singletonList("testBadv")))))
                 .build();
@@ -150,7 +150,7 @@ public class OutbrainBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = outbrainBidder.makeHttpRequests(bidRequest);
 
@@ -322,7 +322,7 @@ public class OutbrainBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpOutbrain.of(
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpOutbrain.of(
                         ExtImpOutbrainPublisher.of("testId", "testName", "testDomain"),
                         "tagId", singletonList("testBcat"), singletonList("testBadv"))))))
                 .build();

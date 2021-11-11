@@ -112,7 +112,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = dmxBidder.makeHttpRequests(bidRequest);
@@ -126,7 +126,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenExtPublisherIdAndMemberIdAreBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .memberId("")
                                 .publisherId("")
@@ -196,7 +196,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSkipImpWhenExtDmxAndExtTagIdAndImpTagIdIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .tagId("")
                                 .dmxId("")
@@ -219,7 +219,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateImpTagIdFromTagIdWhenExtTagIdIsPresentAndDmxIdIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .tagId("tagId")
                                 .dmxId("")
@@ -243,7 +243,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateImpTagIdFromDmxIdWhenExtTagIdAndDmxIdIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .tagId("tagId")
                                 .dmxId("dmxId")
@@ -303,7 +303,7 @@ public class DmxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateAppPublisherWhenAppAndMemberIdPresentAndImpExtPubIdIsEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .memberId("memberId")
                                 .publisherId(null)
@@ -364,7 +364,7 @@ public class DmxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.site(Site.builder().publisher(Publisher.builder().build()).build()),
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .memberId("memberId")
                                 .publisherId(null)
@@ -387,7 +387,7 @@ public class DmxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.site(Site.builder().build()),
-                builder -> builder.ext(mapper.valueToTree(ExtImp.of(null,
+                builder -> builder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .memberId("memberId")
                                 .publisherId(null)
@@ -553,7 +553,7 @@ public class DmxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(500).build())).build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpDmx.builder()
                                 .tagId("tagId")
                                 .dmxId("dmxId")

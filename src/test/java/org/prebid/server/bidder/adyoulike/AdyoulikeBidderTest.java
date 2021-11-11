@@ -75,7 +75,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build(),
                         givenImp(identity())))
                 .build();
@@ -97,10 +97,10 @@ public class AdyoulikeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build(),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -281,7 +281,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpAdyoulike.of("placementId", "campaign", "track",
                                 "creative", "source", "debug"))))
                 .build();

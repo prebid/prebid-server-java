@@ -54,7 +54,7 @@ public class KayzenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
 
@@ -226,7 +226,7 @@ public class KayzenBidderTest extends VertxTest {
     }
 
     private static ExtImp<?, ExtImpKayzen> givenPrebidKayzenExt(String zoneId, String exchange) {
-        return ExtImp.of(null, ExtImpKayzen.of(zoneId, exchange));
+        return ExtImp.of(ExtImpKayzen.of(zoneId, exchange));
     }
 
     @SafeVarargs
@@ -246,7 +246,7 @@ public class KayzenBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpKayzen.of("zoneId", "exchange")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpKayzen.of("zoneId", "exchange")))))
                 .build();
     }
 

@@ -50,7 +50,7 @@ public class LogicadBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -197,7 +197,7 @@ public class LogicadBidderTest extends VertxTest {
                                 ExtImpLogicad extImpLogicad) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, extImpLogicad))))
+                        ExtImp.of(extImpLogicad))))
                 .build();
     }
 

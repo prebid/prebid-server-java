@@ -212,7 +212,7 @@ public class JixieBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123"))
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpJixie.of("unit", "accountId", "jxProp1", "jxProp2"))))
                 .build();
     }

@@ -57,7 +57,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of(null, null)))));
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdoppler.of(null, null)))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
 
@@ -85,7 +85,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of("adUnit", "")))));
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAdoppler.of("adUnit", "")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
@@ -172,7 +172,7 @@ public class AdopplerBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdoppler.of("adUnit", "clientId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdoppler.of("adUnit", "clientId")))))
                 .build();
     }
 

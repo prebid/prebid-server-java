@@ -57,7 +57,7 @@ public class TtxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
@@ -132,7 +132,7 @@ public class TtxBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpTtx.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -151,7 +151,7 @@ public class TtxBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpTtx.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -174,7 +174,7 @@ public class TtxBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo().toBuilder().placement(23).build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpTtx.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -197,7 +197,7 @@ public class TtxBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo())
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTtx.of("11", null, "instream")))))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpTtx.of("11", null, "instream")))))))
                 .build();
 
         // when
@@ -368,7 +368,7 @@ public class TtxBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpTtx.of("siteId", "zoneId", "productId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpTtx.of("siteId", "zoneId", "productId")))))
                 .build();
     }
 

@@ -52,7 +52,7 @@ public class UnrulyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = unrulyBidder.makeHttpRequests(bidRequest);
@@ -181,7 +181,7 @@ public class UnrulyBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpUnruly.of("uuid", "site_id")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpUnruly.of("uuid", "site_id")))))
                 .build();
     }
 

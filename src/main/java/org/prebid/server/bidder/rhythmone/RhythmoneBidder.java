@@ -103,7 +103,7 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
     private ObjectNode impExtToObjectNode(ExtImpRhythmone extImpRhythmone) {
         final ObjectNode impExt;
         try {
-            impExt = mapper.mapper().valueToTree(ExtImp.of(null, extImpRhythmone));
+            impExt = mapper.mapper().valueToTree(ExtImp.of(extImpRhythmone));
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Failed to create imp.ext with error: %s", e.getMessage()));
         }

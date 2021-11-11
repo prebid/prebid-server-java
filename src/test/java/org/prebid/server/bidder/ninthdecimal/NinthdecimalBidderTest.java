@@ -62,7 +62,7 @@ public class NinthdecimalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -426,14 +426,14 @@ public class NinthdecimalBidderTest extends VertxTest {
                                 ExtImpNinthdecimal extImpNinthdecimal) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, extImpNinthdecimal))))
+                        ExtImp.of(extImpNinthdecimal))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpNinthdecimal.of("pubid", "placment")))))
+                        ExtImp.of(ExtImpNinthdecimal.of("pubid", "placment")))))
                 .build();
     }
 

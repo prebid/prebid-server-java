@@ -81,7 +81,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))).build()))
+                        ExtImp.of(ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))).build()))
                 .build();
 
         // when
@@ -185,7 +185,7 @@ public class SmarthubBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
+                        ExtImp.of(ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
@@ -221,7 +221,7 @@ public class SmarthubBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("someId")
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))))
+                                ExtImp.of(ExtImpSmarthub.of("somePartnerName", "someSeat", "someToken")))))
                 .build();
     }
 

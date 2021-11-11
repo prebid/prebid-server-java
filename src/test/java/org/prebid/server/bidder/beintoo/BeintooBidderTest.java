@@ -56,7 +56,7 @@ public class BeintooBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .id("request_id")
                 .build();
@@ -77,7 +77,7 @@ public class BeintooBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("123", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("123", ""))))
                         .build()))
                 .build();
 
@@ -98,7 +98,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of(null, ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of(null, ""))))
                         .build()))
                 .build();
 
@@ -119,7 +119,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("not", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("not", ""))))
                         .build()))
                 .build();
 
@@ -140,7 +140,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("0", ""))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("0", ""))))
                         .build()))
                 .build();
 
@@ -161,7 +161,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("1", "1"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("1", "1"))))
                         .build()))
                 .build();
 
@@ -182,7 +182,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(Collections.emptyList()).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("1", "1"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("1", "1"))))
                         .build()))
                 .build();
 
@@ -203,7 +203,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(100).h(100).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("123", "2"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("123", "2"))))
                         .build()))
                 .tmax(1000L)
                 .site(Site.builder().page("https://exmaple/").build())
@@ -238,7 +238,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().format(formats).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("1", "3"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("1", "3"))))
                         .build()))
                 .tmax(1000L)
                 .build();
@@ -271,7 +271,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBeintoo.of("1", "3"))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBeintoo.of("1", "3"))))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").dnt(1).build())
                 .site(Site.builder().page("myPage").build())

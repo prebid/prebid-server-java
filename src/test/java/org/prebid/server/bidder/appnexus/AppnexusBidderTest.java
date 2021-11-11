@@ -109,7 +109,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -709,7 +709,7 @@ public class AppnexusBidderTest extends VertxTest {
         final List<Imp> imps = IntStream.rangeClosed(0, 35)
                 .mapToObj(ignore -> Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAppnexus.builder().placementId(10).build())))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpAppnexus.builder().placementId(10).build())))
                         .build())
                 .collect(Collectors.toList());
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
@@ -1194,7 +1194,7 @@ public class AppnexusBidderTest extends VertxTest {
     }
 
     private static ObjectNode givenExt(UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
-        return mapper.valueToTree(ExtImp.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
+        return mapper.valueToTree(ExtImp.of(extCustomizer.apply(ExtImpAppnexus.builder()).build()));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {

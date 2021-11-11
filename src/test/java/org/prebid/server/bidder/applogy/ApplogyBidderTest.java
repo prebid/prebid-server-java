@@ -59,7 +59,7 @@ public class ApplogyBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
 
@@ -74,7 +74,7 @@ public class ApplogyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpApplogy.of(null)))));
 
         // when
@@ -87,7 +87,7 @@ public class ApplogyBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtImp<?, ExtImpApplogy> ext = ExtImp.of(null, ExtImpApplogy.of("token1"));
+        ExtImp<?, ExtImpApplogy> ext = ExtImp.of(ExtImpApplogy.of("token1"));
         Imp imp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
@@ -373,7 +373,7 @@ public class ApplogyBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(null,
+                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtImp.of(
                         ExtImpApplogy.of("token")))))
                 .build();
     }

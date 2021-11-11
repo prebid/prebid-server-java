@@ -59,7 +59,7 @@ public class MobilefuseBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpMobilefuse.of(1, 2, "ext")))));
 
         // when
@@ -80,7 +80,7 @@ public class MobilefuseBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpMobilefuse.of(1, null, null)))));
 
         // when
@@ -102,7 +102,7 @@ public class MobilefuseBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpMobilefuse.of(1, 2, "ext")))));
 
         // when
@@ -143,7 +143,7 @@ public class MobilefuseBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .id("456")
                 .banner(null)
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = mobilefuseBidder.makeHttpRequests(bidRequest);
@@ -162,7 +162,7 @@ public class MobilefuseBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .id("456")
                                 .banner(null)
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))),
                         givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
                 .build();
 
@@ -182,11 +182,11 @@ public class MobilefuseBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .id("456")
                                 .banner(null)
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))),
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))),
                         givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build())),
                         givenImp(impBuilder -> impBuilder
                                 .id("789")
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))))))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))))))
                 .build();
 
         // when
@@ -209,7 +209,7 @@ public class MobilefuseBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpMobilefuse.of(1, 2, "ext")))));
 
         // when
@@ -323,7 +323,7 @@ public class MobilefuseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpMobilefuse.of(1, 2, "tagidSrc")))))
                 .build();
     }

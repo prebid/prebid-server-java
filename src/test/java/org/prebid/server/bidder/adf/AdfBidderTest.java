@@ -207,7 +207,7 @@ public class AdfBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpAdf.of("12345", null, null))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpAdf.of("12345", null, null))))
                 .build();
     }
 

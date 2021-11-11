@@ -94,7 +94,7 @@ public class InvibesBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder().page(PAGE_URL).build())
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -329,7 +329,7 @@ public class InvibesBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 ExtImpInvibes extImpInvibes) {
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, extImpInvibes))))
+                .ext(mapper.valueToTree(ExtImp.of(extImpInvibes))))
                 .build();
     }
 }

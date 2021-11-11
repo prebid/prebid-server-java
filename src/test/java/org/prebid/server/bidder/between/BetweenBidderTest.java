@@ -58,11 +58,11 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("", "pubId")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("", "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of(null, "pubId")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -85,11 +85,11 @@ public class BetweenBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("host", "pubId")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("host", "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("host", "pubId")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("host", "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -109,7 +109,7 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpBetween.of("host", "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -139,11 +139,11 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPublisherIdParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("host", "")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("host", "")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("host", null)))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("host", null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -166,7 +166,7 @@ public class BetweenBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
 
@@ -222,7 +222,7 @@ public class BetweenBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("http://page.com").build()),
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))));
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("127.0.0.1", "pubId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
@@ -353,7 +353,7 @@ public class BetweenBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBetween.of("127.0.0.1", "pubId")))))
                 .build();
     }
 

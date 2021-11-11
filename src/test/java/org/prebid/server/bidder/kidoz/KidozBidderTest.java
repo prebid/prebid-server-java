@@ -67,7 +67,7 @@ public class KidozBidderTest extends VertxTest {
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
                         .id("123")
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = kidozBidder.makeHttpRequests(bidRequest);
 
@@ -85,7 +85,7 @@ public class KidozBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpKidoz.of(null, "publisherId")))));
 
         // when
@@ -103,7 +103,7 @@ public class KidozBidderTest extends VertxTest {
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().w(300).h(500).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpKidoz.of("accessToken", null)))));
 
         // when
@@ -116,7 +116,7 @@ public class KidozBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtImp<?, ExtImpKidoz> ext = ExtImp.of(null, ExtImpKidoz.of("token1", "publisherId"));
+        ExtImp<?, ExtImpKidoz> ext = ExtImp.of(ExtImpKidoz.of("token1", "publisherId"));
         final Imp validImp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
@@ -356,7 +356,7 @@ public class KidozBidderTest extends VertxTest {
                 .banner(Banner.builder()
                         .format(singletonList(Format.builder().w(300).h(500).build()))
                         .build())
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         ExtImpKidoz.of("acessToken", "publisherId")))))
                 .build();
     }

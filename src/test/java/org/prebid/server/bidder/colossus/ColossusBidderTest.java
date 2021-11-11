@@ -52,7 +52,7 @@ public class ColossusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -91,7 +91,7 @@ public class ColossusBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpColossus.of("otherTagId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpColossus.of("otherTagId"))))
                                 .build())));
 
         // when
@@ -215,7 +215,7 @@ public class ColossusBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpColossus.of("tagidString"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpColossus.of("tagidString"))))
                 .build();
     }
 

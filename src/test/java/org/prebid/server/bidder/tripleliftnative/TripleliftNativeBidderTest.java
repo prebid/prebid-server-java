@@ -166,7 +166,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .app(App.builder().publisher(Publisher.builder().id("foo").build()).build())
                 .imp(singletonList(Imp.builder()
                         .xNative(Native.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -284,7 +284,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
 
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtImp.of(null, extImpTriplelift))))
+                .ext(mapper.valueToTree(ExtImp.of(extImpTriplelift))))
                 .build();
     }
 

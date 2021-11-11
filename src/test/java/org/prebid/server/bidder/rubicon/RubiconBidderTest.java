@@ -367,7 +367,7 @@ public class RubiconBidderTest extends VertxTest {
                                         Format.builder().w(300).h(250).build(),
                                         Format.builder().w(300).h(600).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpRubicon.builder()
                                 .sizes(singletonList(15)).build())))
                         .build()))
                 .build();
@@ -395,7 +395,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .format(singletonList(
                                         Format.builder().w(360).h(616).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder().build())))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpRubicon.builder().build())))
                         .build()))
                 .build();
 
@@ -425,7 +425,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .format(singletonList(
                                         Format.builder().w(616).h(360).build()))
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder().build())))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpRubicon.builder().build())))
                         .build()))
                 .build();
 
@@ -2311,7 +2311,7 @@ public class RubiconBidderTest extends VertxTest {
                         givenImp(builder -> builder.video(Video.builder().build())),
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -2371,7 +2371,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpRubicon.builder()
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpRubicon.builder()
                                 .sizes(singletonList(3)).build())))
                         .build()))
                 .build();

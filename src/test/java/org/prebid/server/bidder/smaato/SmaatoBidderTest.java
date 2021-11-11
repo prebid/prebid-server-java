@@ -183,7 +183,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makePodHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
@@ -201,7 +201,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makePodHttpRequestsShouldReturnErrorIfImpExtPublisherIdIsAbsent() {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of(null, null, "adbreakId")))));
 
         // when
@@ -216,7 +216,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makePodHttpRequestsShouldReturnErrorIfImpExtAdBreakIdIsAbsent() {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpSmaato.of(
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpSmaato.of(
                         "publisherId", null, null)))));
 
         // when
@@ -232,7 +232,7 @@ public class SmaatoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()).app(null),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of("publisherId", null, "adBreakId")))));
 
         // when
@@ -253,7 +253,7 @@ public class SmaatoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenVideoBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of("publisherId", null, "adBreakId")))));
 
         // when
@@ -355,7 +355,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
@@ -373,7 +373,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtPublisherIdIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of(null, "adspaceId", null)))));
 
         // when
@@ -388,7 +388,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeIndividualHttpRequestsShouldReturnErrorIfImpExtAdSpaceIdIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null, ExtImpSmaato.of(
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(ExtImpSmaato.of(
                         "publisherId", null, null)))));
 
         // when
@@ -404,7 +404,7 @@ public class SmaatoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()).app(null),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
@@ -425,7 +425,7 @@ public class SmaatoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.site(null).app(App.builder().build()),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
@@ -509,7 +509,7 @@ public class SmaatoBidderTest extends VertxTest {
     public void makeIndividualHttpRequestsShouldSetImpTagIdAndRemoveImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
@@ -975,7 +975,7 @@ public class SmaatoBidderTest extends VertxTest {
                                 .w(300)
                                 .h(500)
                                 .build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpSmaato.of("publisherId", "adspaceId", "adbreakId")))))
                 .build();
     }

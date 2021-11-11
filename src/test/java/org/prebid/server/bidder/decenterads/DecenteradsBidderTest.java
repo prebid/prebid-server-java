@@ -54,7 +54,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDecenterads.of("somePubId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpDecenterads.of("somePubId"))))
                                 .build())));
 
         // when
@@ -75,7 +75,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 .imp(asList(Imp.builder()
                                 .id("123")
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build(),
                         givenImp(identity())))
                 .build();
@@ -212,7 +212,7 @@ public class DecenteradsBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpDecenterads.of("somePubId"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpDecenterads.of("somePubId"))))
                 .build();
     }
 

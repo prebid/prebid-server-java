@@ -54,7 +54,7 @@ public class SmartadserverBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -138,7 +138,7 @@ public class SmartadserverBidderTest extends VertxTest {
                 .imp(Arrays.asList(givenImp(impBuilder -> impBuilder.id("456")),
                         Imp.builder()
                                 .id("invalidImp")
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()
                 ))
                 .build();
@@ -261,7 +261,7 @@ public class SmartadserverBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSmartadserver.of(1, 2, 3, 4))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpSmartadserver.of(1, 2, 3, 4))))
                 .build();
     }
 

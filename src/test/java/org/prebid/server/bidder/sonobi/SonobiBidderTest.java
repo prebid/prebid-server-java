@@ -52,7 +52,7 @@ public class SonobiBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -92,7 +92,7 @@ public class SonobiBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSonobi.of("otherTagId"))))
+                                .ext(mapper.valueToTree(ExtImp.of(ExtImpSonobi.of("otherTagId"))))
                                 .build())));
 
         // when
@@ -216,7 +216,7 @@ public class SonobiBidderTest extends VertxTest {
                 .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpSonobi.of("tagidString"))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpSonobi.of("tagidString"))))
                 .build();
     }
 

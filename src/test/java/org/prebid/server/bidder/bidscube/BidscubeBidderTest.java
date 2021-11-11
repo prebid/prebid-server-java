@@ -59,7 +59,7 @@ public class BidscubeBidderTest extends VertxTest {
         // given
         final Imp imp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBidscube.of(null)))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBidscube.of(null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(imp))
@@ -78,7 +78,7 @@ public class BidscubeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBidscube.of("someId")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBidscube.of("someId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(firstImp))
@@ -101,7 +101,7 @@ public class BidscubeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
 
@@ -210,7 +210,7 @@ public class BidscubeBidderTest extends VertxTest {
                         .seatbid(givenSeatBid(
                                 givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
                                 givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
-                                        ExtImp.of(null, null)))),
+                                        ExtImp.of(null)))),
                                 givenBid("213", null)
                                 )
                         ).build());
@@ -259,7 +259,7 @@ public class BidscubeBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpBidscube.of("someId")))))
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpBidscube.of("someId")))))
                 .build();
     }
 

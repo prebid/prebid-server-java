@@ -63,7 +63,7 @@ public class MarsmediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
@@ -77,7 +77,7 @@ public class MarsmediaBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtZoneIsBlank() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMarsmedia.of(" ")))));
+                .ext(mapper.valueToTree(ExtImp.of(ExtImpMarsmedia.of(" ")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
@@ -399,7 +399,7 @@ public class MarsmediaBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
                         .banner(Banner.builder().h(150).w(300).build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, ExtImpMarsmedia.of("zoneId")))))
+                        .ext(mapper.valueToTree(ExtImp.of(ExtImpMarsmedia.of("zoneId")))))
                 .build();
     }
 

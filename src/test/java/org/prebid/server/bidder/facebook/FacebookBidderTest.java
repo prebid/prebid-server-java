@@ -111,7 +111,7 @@ public class FacebookBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtCannotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))),
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))),
                 identity());
 
         // when

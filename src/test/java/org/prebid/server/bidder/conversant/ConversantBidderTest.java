@@ -76,7 +76,7 @@ public class ConversantBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode()))));
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
@@ -151,7 +151,7 @@ public class ConversantBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.site(Site.builder().id(null).build()),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtImp.of(
                         ExtImpConversant.builder().mobile(123).siteId("site id").build()))),
                 identity());
 
@@ -688,7 +688,7 @@ public class ConversantBidderTest extends VertxTest {
 
         return impCustomizer.apply(Imp.builder()
                 .id("123")
-                .ext(mapper.valueToTree(ExtImp.of(null,
+                .ext(mapper.valueToTree(ExtImp.of(
                         extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
                 .build();
     }

@@ -81,7 +81,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
                 .imp(singletonList(
                         Imp.builder()
                                 .banner(Banner.builder().build())
-                                .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                                .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                                 .build()))
                 .build();
 
@@ -451,7 +451,7 @@ public class AdkernelAdnBidderTest extends VertxTest {
                 .id("123")
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
+                        ExtImp.of(extCustomizer.apply(ExtImpAdkernelAdn.builder().pubId(50357)).build()))))
                 .build();
     }
 

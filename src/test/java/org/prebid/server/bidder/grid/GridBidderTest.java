@@ -65,7 +65,7 @@ public class GridBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpGrid.of(10, Keywords.empty()))))
+                                ExtImp.of(ExtImpGrid.of(10, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -150,7 +150,7 @@ public class GridBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpGrid.of(null, Keywords.empty()))))
+                                ExtImp.of(ExtImpGrid.of(null, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();
@@ -170,7 +170,7 @@ public class GridBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpGrid.of(0, Keywords.empty()))))
+                                ExtImp.of(ExtImpGrid.of(0, Keywords.empty()))))
                         .build()))
                 .id("request_id")
                 .build();

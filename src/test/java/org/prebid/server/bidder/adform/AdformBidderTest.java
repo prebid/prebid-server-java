@@ -58,7 +58,7 @@ public class AdformBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null,
+                        .ext(mapper.valueToTree(ExtImp.of(
                                 ExtImpAdform.of(15L, "gross", "color:red", "red", "300X60", 2.5,
                                         "https://adform.com?a=b"))))
                         .build()))

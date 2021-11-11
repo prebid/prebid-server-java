@@ -161,7 +161,7 @@ public class OpenxBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, null)))
+                                ExtImp.of(null)))
                         .build()))
                 .build();
 
@@ -180,7 +180,7 @@ public class OpenxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -204,7 +204,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .bidfloor(BigDecimal.valueOf(0.5))
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null,
+                                        ExtImp.of(
                                                 ExtImpOpenx.builder()
                                                         .customParams(givenCustomParams("foo1", singletonList("bar1")))
                                                         .delDomain("se-demo-d.openx.net")
@@ -214,7 +214,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .bidfloor(BigDecimal.valueOf(0.5))
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null,
+                                        ExtImp.of(
                                                 ExtImpOpenx.builder()
                                                         .customFloor(BigDecimal.valueOf(0.1))
                                                         .customParams(givenCustomParams("foo2", "bar2"))
@@ -236,7 +236,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .id("impId4")
                                 .video(Video.builder().build())
                                 .ext(mapper.valueToTree(
-                                        ExtImp.of(null,
+                                        ExtImp.of(
                                                 ExtImpOpenx.builder()
                                                         .customParams(givenCustomParams("foo4", "bar4"))
                                                         .platform("PLATFORM")
@@ -351,7 +351,7 @@ public class OpenxBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ZERO)
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpOpenx.builder().customFloor(BigDecimal.valueOf(123)).build()))
+                                ExtImp.of(ExtImpOpenx.builder().customFloor(BigDecimal.valueOf(123)).build()))
                         ).build()))
                 .build();
 
@@ -374,7 +374,7 @@ public class OpenxBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ZERO.subtract(BigDecimal.ONE))
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
-                                ExtImp.of(null, ExtImpOpenx.builder().customFloor(BigDecimal.valueOf(123)).build()))
+                                ExtImp.of(ExtImpOpenx.builder().customFloor(BigDecimal.valueOf(123)).build()))
                         ).build()))
                 .build();
 

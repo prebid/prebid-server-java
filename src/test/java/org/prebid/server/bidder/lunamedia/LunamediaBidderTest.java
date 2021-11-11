@@ -62,7 +62,7 @@ public class LunamediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtImp.of(null, mapper.createArrayNode())))
+                        .ext(mapper.valueToTree(ExtImp.of(mapper.createArrayNode())))
                         .build()))
                 .build();
 
@@ -429,14 +429,14 @@ public class LunamediaBidderTest extends VertxTest {
                                 ExtImpLunamedia extImpLunamedia) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, extImpLunamedia))))
+                        ExtImp.of(extImpLunamedia))))
                 .build();
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .ext(mapper.valueToTree(
-                        ExtImp.of(null, ExtImpLunamedia.of("pubid", "placment")))))
+                        ExtImp.of(ExtImpLunamedia.of("pubid", "placment")))))
                 .build();
     }
 
