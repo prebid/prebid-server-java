@@ -109,8 +109,6 @@ public class VideoHandlerTest extends VertxTest {
 
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
-
         videoHandler = new VideoHandler(
                 videoRequestFactory,
                 videoResponseFactory,
@@ -125,11 +123,11 @@ public class VideoHandlerTest extends VertxTest {
     @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
+        final WithPodErrors<AuctionContext> auctionContext = givenAuctionContext(identity(), emptyList());
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+                .willReturn(Future.succeededFuture(auctionContext));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         // when
         videoHandler.handle(routingContext);
@@ -147,7 +145,9 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
         given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
 
         // when
         videoHandler.handle(routingContext);
@@ -164,8 +164,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         final Instant now = Instant.now();
         given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
@@ -244,8 +243,7 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
                 .willReturn(VideoResponse.of(emptyList(), null));
@@ -254,7 +252,6 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        verify(exchangeService).holdAuction(any());
         verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
         assertThat(httpResponse.headers()).hasSize(2)
@@ -307,7 +304,9 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
         given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
         given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
                 .willReturn(VideoResponse.of(emptyList(), null));
@@ -327,6 +326,13 @@ public class VideoHandlerTest extends VertxTest {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(exchangeService).holdAuction(captor.capture());
         return captor.getValue();
+    }
+
+    private void givenHoldAuction(BidResponse bidResponse) {
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(bidResponse)
+                        .build()));
     }
 
     private WithPodErrors<AuctionContext> givenAuctionContext(
