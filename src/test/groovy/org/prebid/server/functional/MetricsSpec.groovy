@@ -19,7 +19,10 @@ class MetricsSpec extends BaseSpec {
     }
 
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
-        given: "Default VtrackRequest"
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue("prebid_cache.requests.ok")
+
+        and: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()
         def creative = mapper.encodeXml(Vast.getDefaultVastModel(PBSUtils.randomString))
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
@@ -31,7 +34,7 @@ class MetricsSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         def creativeSize = creative.bytes.length
         assert metrics["prebid_cache.creative_size.xml"] == creativeSize
-        assert metrics["prebid_cache.requests.ok"] == 1
+        assert metrics["prebid_cache.requests.ok"] == initialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.xml should be updated"
         assert metrics["account.${accountId}.prebid_cache.creative_size.xml" as String] == creativeSize
@@ -40,7 +43,10 @@ class MetricsSpec extends BaseSpec {
 
     @PendingFeature
     def "PBS should update prebid_cache.creative_size.json metric when json creative is received"() {
-        given: "Default BidRequest"
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue("prebid_cache.requests.ok")
+
+        and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.enableCache()
 
@@ -62,7 +68,7 @@ class MetricsSpec extends BaseSpec {
 
         def creativeSize = adm.bytes.length
         assert metrics["prebid_cache.creative_size.json"] == creativeSize
-        assert metrics["prebid_cache.requests.ok"] == 1
+        assert metrics["prebid_cache.requests.ok"] == initialValue + 1
 
         and: "account.<account-id>.prebid_cache.creative_size.json should be update"
         def accountId = bidRequest.site.publisher.id
@@ -91,6 +97,6 @@ class MetricsSpec extends BaseSpec {
 
     private static int getCurrentMetricValue(String name) {
         def response = defaultPbsService.sendCollectedMetricsRequest()
-        response[name] as int ?: 0
+        response[name] as Integer ?: 0
     }
 }
