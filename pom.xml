@@ -60,6 +60,8 @@
         <mockserver-client.version>5.11.2</mockserver-client.version>
         <allure.version>2.14.0</allure.version>
         <aspectj.version>1.9.7</aspectj.version>
+        <restassured.version>3.3.0</restassured.version>
+        <h2.version>1.4.200</h2.version>
         <bytebuddy.version>1.11.19</bytebuddy.version>
 
         <!-- plugin versions -->
@@ -422,6 +424,12 @@
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <version>${restassured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${bytebuddy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
