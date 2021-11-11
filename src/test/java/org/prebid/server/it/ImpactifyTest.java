@@ -20,14 +20,14 @@ public class ImpactifyTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromImpactify() throws IOException, JSONException {
-        //given
+        // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/impactify-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/impactify/test-impactify-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/impactify/test-impactify-bid-response.json"))));
-        //when
+        // when
         final Response response = responseFor("openrtb2/impactify/test-auction-impactify-request.json",
                 Endpoint.openrtb2_auction);
-        //then
+        // then
         assertJsonEquals("openrtb2/impactify/test-auction-impactify-response.json",
                 response, singletonList("impactify"));
     }

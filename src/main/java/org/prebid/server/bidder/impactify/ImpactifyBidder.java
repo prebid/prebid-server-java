@@ -64,7 +64,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 if (shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())) {
                     bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
                 }
-                updatedImps.add(updateImpWithBidFloor(imp, bidFloor));
+                updatedImps.add(updateImp(imp, bidFloor));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
@@ -85,7 +85,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
-        return Objects.nonNull(bidFloor)
+        return bidFloor != null
                 && StringUtils.isNotEmpty(bidFloorCur)
                 && BigDecimal.ZERO.compareTo(bidFloor) <= 0
                 && !bidFloorCur.equalsIgnoreCase(BIDDER_CURRENCY);
@@ -103,7 +103,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImpWithBidFloor(Imp imp, BigDecimal bidFloor) {
+    private Imp updateImp(Imp imp, BigDecimal bidFloor) {
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
