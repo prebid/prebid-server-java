@@ -35,6 +35,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.UUIDIdGenerator;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -72,7 +73,6 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
@@ -453,15 +453,16 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         // Second value is adm length for each
-        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(0));
-        verify(metrics, times(2)).updateCacheCreativeSize(eq("accountId"), eq(4));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
 
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(3)
-                .containsOnly(
+        assertThat(bidCacheRequest.getPuts())
+                .containsExactly(
                         PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid1)).build(),
                         PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid2)).build(),
                         PutObject.builder().aid("auctionId").type("xml").value(new TextNode(receivedBid2Adm)).build());
@@ -898,7 +899,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldModifyVastAndCachePutObjects() throws IOException {
         // given
         final PutObject firstPutObject = PutObject.builder()
-                .type("xml")
+                .type("json")
                 .bidid("bidId1")
                 .bidder("bidder1")
                 .timestamp(1L)
@@ -911,18 +912,32 @@ public class CacheServiceTest extends VertxTest {
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
                 .build();
+        final PutObject thirdPutObject = PutObject.builder()
+                .type("text")
+                .bidid("bidId3")
+                .bidder("bidder3")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
 
         given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
                 .willReturn(new TextNode("modifiedVast"))
-                .willReturn(new TextNode("VAST"));
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
 
         // when
         cacheService.cachePutObjects(
-                asList(firstPutObject, secondPutObject), true, singleton("bidder1"), "account", "pbjs", timeout);
+                asList(firstPutObject, secondPutObject, thirdPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
 
         // then
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondPutObject, "account", "pbjs");
@@ -938,9 +953,15 @@ public class CacheServiceTest extends VertxTest {
                 .bidder(null)
                 .timestamp(null)
                 .build();
+        final PutObject modifiedThirdPutObject = thirdPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("updatedVast"))
+                .build();
 
-        assertThat(captureBidCacheRequest().getPuts()).hasSize(2)
-                .containsOnly(modifiedFirstPutObject, modifiedSecondPutObject);
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(modifiedFirstPutObject, modifiedSecondPutObject, modifiedThirdPutObject);
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,
