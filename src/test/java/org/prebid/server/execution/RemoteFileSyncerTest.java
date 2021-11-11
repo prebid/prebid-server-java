@@ -38,7 +38,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -168,8 +168,8 @@ public class RemoteFileSyncerTest extends VertxTest {
 
         // then
         verify(fileSystem).exists(eq(FILE_PATH), any());
-        verifyZeroInteractions(remoteFileProcessor);
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(remoteFileProcessor);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -190,7 +190,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
         verify(remoteFileProcessor).setDataPath(FILE_PATH);
         verify(fileSystem).open(eq(TMP_FILE_PATH), any(), any());
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -350,8 +350,8 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
         verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(TMP_FILE_PATH), any(), any());
 
-        verifyZeroInteractions(httpClient);
-        verifyZeroInteractions(remoteFileProcessor);
+        verifyNoInteractions(httpClient);
+        verifyNoInteractions(remoteFileProcessor);
     }
 
     @Test
@@ -380,8 +380,8 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(RETRY_INTERVAL), any());
         verify(fileSystem, times(RETRY_COUNT + 2)).delete(eq(TMP_FILE_PATH), any());
 
-        verifyZeroInteractions(httpClient);
-        verifyZeroInteractions(remoteFileProcessor);
+        verifyNoInteractions(httpClient);
+        verifyNoInteractions(remoteFileProcessor);
     }
 
     @Test
@@ -461,7 +461,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(TIMEOUT), any());
         verify(asyncFile, times(RETRY_COUNT + 1)).close();
 
-        verifyZeroInteractions(remoteFileProcessor);
+        verifyNoInteractions(remoteFileProcessor);
     }
 
     private void givenTriggerUpdate() {

@@ -448,8 +448,8 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(res -> mapper.readValue(res.getBody(), BidRequest.class))
-                .element(0).extracting(BidRequest::getImp).hasSize(1)
-                .containsOnly(singletonList(Imp.builder()
+                .element(0).extracting(BidRequest::getImp)
+                .isEqualTo(singletonList(Imp.builder()
                         .bidfloor(BigDecimal.valueOf(10))
                         .tagid("tagid")
                         .ext(mapper.valueToTree(

@@ -37,7 +37,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class PubstackAnalyticsReporterTest extends VertxTest {
 
@@ -118,8 +119,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 .isInstanceOf(PreBidException.class);
         verify(auctionHandler).reportEvents();
         verify(setuidHandler).reportEvents();
-        verifyZeroInteractions(auctionHandler);
-        verifyZeroInteractions(setuidHandler);
+        verifyNoMoreInteractions(auctionHandler);
+        verifyNoMoreInteractions(setuidHandler);
         verify(vertx).setPeriodic(anyLong(), any());
     }
 
@@ -156,8 +157,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         // then
         verify(vertx).setPeriodic(anyLong(), any());
         verify(httpClient).get(anyString(), anyLong());
-        verifyZeroInteractions(auctionHandler);
-        verifyZeroInteractions(setuidHandler);
+        verifyNoInteractions(auctionHandler);
+        verifyNoInteractions(setuidHandler);
     }
 
     @Test
@@ -172,8 +173,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         // then
         verify(vertx).setPeriodic(anyLong(), any());
         verify(httpClient).get(anyString(), anyLong());
-        verifyZeroInteractions(auctionHandler);
-        verifyZeroInteractions(setuidHandler);
+        verifyNoInteractions(auctionHandler);
+        verifyNoInteractions(setuidHandler);
     }
 
     @Test

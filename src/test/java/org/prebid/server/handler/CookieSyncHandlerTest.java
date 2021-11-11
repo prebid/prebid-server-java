@@ -77,7 +77,7 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class CookieSyncHandlerTest extends VertxTest {
 
@@ -1104,7 +1104,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .extracting(bidderStatus -> bidderStatus.getUsersync().getUrl())
                 .containsOnly("http://adnxsexample.com/sync?gdpr=&gdpr_consent=");
 
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
     }
 
     @Test
