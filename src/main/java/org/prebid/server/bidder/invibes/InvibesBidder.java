@@ -194,14 +194,12 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
         final Site site = request.getSite();
         final MultiMap headers = resolveHeaders(device, site);
 
-        final String body = mapper.encode(parameter);
-
         return HttpRequest.<InvibesBidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .headers(headers)
                 .payload(parameter)
-                .body(body)
+                .body(mapper.encodeToBytes(parameter))
                 .build();
     }
 
@@ -220,7 +218,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
         return InvibesBidRequest.builder()
                 .isTestBid(StringUtils.isNotBlank(testBvid))
-                .bidParamsJson(mapper.encode(invibesParams.getBidParams()))
+                .bidParamsJson(mapper.encodeToString(invibesParams.getBidParams()))
                 .location(site.getPage())
                 .lid(lid)
                 .kw(site.getKeywords())

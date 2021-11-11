@@ -49,7 +49,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class TcfDefinerServiceTest {
@@ -115,8 +115,8 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).succeededWith(TcfContext.empty());
 
-        verifyZeroInteractions(geoLocationService);
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(geoLocationService);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -133,8 +133,8 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).succeededWith(TcfContext.builder().build());
 
-        verifyZeroInteractions(geoLocationService);
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(geoLocationService);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -149,8 +149,8 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).succeededWith(TcfContext.empty());
 
-        verifyZeroInteractions(geoLocationService);
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(geoLocationService);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -168,8 +168,8 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).succeededWith(TcfContext.empty());
 
-        verifyZeroInteractions(geoLocationService);
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(geoLocationService);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -197,8 +197,8 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).succeededWith(TcfContext.empty());
 
-        verifyZeroInteractions(geoLocationService);
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(geoLocationService);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -270,7 +270,7 @@ public class TcfDefinerServiceTest {
                         true, null, null, null);
         assertThat(result.result().getConsent()).isNotNull();
 
-        verifyZeroInteractions(geoLocationService);
+        verifyNoInteractions(geoLocationService);
         verify(metrics).updatePrivacyTcfRequestsMetric(2);
         verify(metrics).updatePrivacyTcfGeoMetric(2, null);
     }
@@ -292,7 +292,7 @@ public class TcfDefinerServiceTest {
                 TcfContext::getIpAddress)
                 .containsExactly("1", "consent", null, true, "ip");
 
-        verifyZeroInteractions(geoLocationService);
+        verifyNoInteractions(geoLocationService);
         verify(metrics).updatePrivacyTcfGeoMetric(2, true);
     }
 
@@ -394,7 +394,7 @@ public class TcfDefinerServiceTest {
                 TcfContext::getIpAddress)
                 .containsExactly("0", null, null, null, null);
 
-        verifyZeroInteractions(geoLocationService);
+        verifyNoInteractions(geoLocationService);
     }
 
     @Test
@@ -476,7 +476,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(
                 TcfResponse.of(false, singletonMap(1, PrivacyEnforcementAction.allowAll()), null));
 
-        verifyZeroInteractions(tcf2Service);
+        verifyNoInteractions(tcf2Service);
     }
 
     @Test
@@ -504,7 +504,7 @@ public class TcfDefinerServiceTest {
         assertThat(result).succeededWith(
                 TcfResponse.of(false, singletonMap("b1", PrivacyEnforcementAction.allowAll()), null));
 
-        verifyZeroInteractions(tcf2Service);
+        verifyNoInteractions(tcf2Service);
     }
 
     @Test

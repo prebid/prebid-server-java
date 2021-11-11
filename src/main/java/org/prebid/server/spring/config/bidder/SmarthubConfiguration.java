@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class SmarthubConfiguration {
 
     private static final String BIDDER_NAME = "smarthub";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("smarthubConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("smarthubConfigurationProperties")
     @ConfigurationProperties("adapters.smarthub")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class SmarthubConfiguration {
     }
 
     @Bean
-    BidderDeps smarthubBidderDeps() {
+    BidderDeps smarthubBidderDeps(BidderConfigurationProperties smarthubConfigurationProperties,
+                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                  JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(smarthubConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new SmarthubBidder(config.getEndpoint(), mapper))
                 .assemble();

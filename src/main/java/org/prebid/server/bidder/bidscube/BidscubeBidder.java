@@ -77,7 +77,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(internalRequest)
-                .body(mapper.encode(internalRequest))
+                .body(mapper.encodeToBytes(internalRequest))
                 .build();
     }
 

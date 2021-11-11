@@ -184,6 +184,13 @@ public final class HttpUtil {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
     }
 
+    public static String createCookiesHeader(RoutingContext routingContext) {
+        return routingContext.cookieMap().entrySet().stream()
+                .map(entry -> Cookie.cookie(entry.getKey(), entry.getValue().getValue()))
+                .map(Cookie::encode)
+                .collect(Collectors.joining("; "));
+    }
+
     public static String toSetCookieHeaderValue(Cookie cookie) {
         return String.join("; ", cookie.encode(), "SameSite=None; Secure");
     }

@@ -42,9 +42,6 @@
   "cur": "USD",
   "ext": {
     "debug": {
-      "httpcalls": {
-        "rubicon": []
-      },
       "resolvedrequest": {
         "id": "tid",
         "imp": [

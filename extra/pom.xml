@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>1.76.0-SNAPSHOT</version>
+    <version>1.79.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
@@ -15,6 +15,11 @@
     </scm>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+
         <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     </properties>
 
@@ -37,5 +42,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

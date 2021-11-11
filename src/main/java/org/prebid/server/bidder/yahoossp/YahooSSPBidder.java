@@ -143,7 +143,7 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(makeHeaders(outgoingRequest.getDevice()))
                 .payload(outgoingRequest)
                 .build();

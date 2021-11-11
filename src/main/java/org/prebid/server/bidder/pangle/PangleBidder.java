@@ -138,7 +138,7 @@ public class PangleBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(makeHeaders(token))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

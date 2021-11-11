@@ -108,7 +108,7 @@ public class AlertHttpService {
 
         try {
             httpClient.post(alertProxyProperties.getUrl(), headers(),
-                            mapper.encode(Collections.singletonList(alertEvent)), timeoutMillis)
+                            mapper.encodeToString(Collections.singletonList(alertEvent)), timeoutMillis)
                     .setHandler(this::handleResponse);
         } catch (EncodeException e) {
             logger.warn("Can't parse alert proxy payload: {0}", e.getMessage());

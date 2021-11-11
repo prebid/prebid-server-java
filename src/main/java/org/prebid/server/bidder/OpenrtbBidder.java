@@ -161,12 +161,11 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         modifyRequest(bidRequest, requestBuilder, impsWithExts);
 
         final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers())
                 .payload(outgoingRequest)
                 .build();

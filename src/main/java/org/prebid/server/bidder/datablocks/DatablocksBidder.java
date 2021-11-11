@@ -93,13 +93,12 @@ public class DatablocksBidder implements Bidder<BidRequest> {
                 .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(uri)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

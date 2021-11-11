@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class HttpInteractionLogger {
 
     private static final String HTTP_INTERACTION_LOGGER_NAME = "http-interaction";
-    private static final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
+    private final Logger logger = LoggerFactory.getLogger(HTTP_INTERACTION_LOGGER_NAME);
 
     private final JacksonMapper mapper;
 
@@ -60,7 +60,7 @@ public class HttpInteractionLogger {
 
     private String toOneLineString(String value) {
         try {
-            return mapper.encode(mapper.mapper().readTree(value));
+            return mapper.encodeToString(mapper.mapper().readTree(value));
         } catch (JsonProcessingException e) {
             return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
         }
@@ -87,7 +87,7 @@ public class HttpInteractionLogger {
         if (interactionSatisfiesSpec(context, bidder)) {
             final BidRequest bidRequest = bidderRequest.getBidRequest();
             final BidRequest updatedBidRequest = bidRequestWithBidderName(bidder, bidRequest);
-            final String jsonBidRequest = mapper.encode(updatedBidRequest);
+            final String jsonBidRequest = mapper.encodeToString(updatedBidRequest);
             logger.info("Request body to {0}: \"{1}\"", bidder, jsonBidRequest);
 
             incLoggedInteractions();
@@ -103,8 +103,8 @@ public class HttpInteractionLogger {
             return false;
         }
 
-        final Account requestAccount = auctionContext != null ? auctionContext.getAccount() : null;
-        final String requestAccountId = requestAccount != null ? requestAccount.getId() : null;
+        final Account requestAccount = ObjectUtil.getIfNotNull(auctionContext, AuctionContext::getAccount);
+        final String requestAccountId = ObjectUtil.getIfNotNull(requestAccount, Account::getId);
 
         final HttpLogSpec spec = specWithCounter.getSpec();
         final HttpLogSpec.Endpoint endpoint = spec.getEndpoint();

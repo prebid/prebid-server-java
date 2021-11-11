@@ -54,6 +54,11 @@ public class ExtRequestPrebid {
     ExtRequestTargeting targeting;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.supportdeals
+     */
+    Boolean supportdeals;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.storedrequest
      */
     ExtStoredRequest storedrequest;

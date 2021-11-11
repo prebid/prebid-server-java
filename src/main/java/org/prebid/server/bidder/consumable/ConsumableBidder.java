@@ -26,7 +26,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -95,18 +94,11 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         }
 
         final ConsumableBidRequest outgoingRequest = requestBuilder.build();
-        final String body;
-        try {
-            body = mapper.encode(outgoingRequest);
-        } catch (EncodeException e) {
-            return Result.withError(BidderError.badInput(
-                    String.format("Failed to encode request body, error: %s", e.getMessage())));
-        }
 
         return Result.withValue(HttpRequest.<ConsumableBidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(resolveHeaders(request))
                 .payload(outgoingRequest)
                 .build());

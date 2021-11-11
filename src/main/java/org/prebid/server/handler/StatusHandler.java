@@ -40,7 +40,7 @@ public class StatusHandler implements Handler<RoutingContext> {
             HttpUtil.executeSafely(routingContext, Endpoint.status,
                     response -> response
                             .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                            .end(mapper.encode(nameToStatus)));
+                            .end(mapper.encodeToString(nameToStatus)));
         }
     }
 }

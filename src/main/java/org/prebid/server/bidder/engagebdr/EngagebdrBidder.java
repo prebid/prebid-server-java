@@ -53,12 +53,11 @@ public class EngagebdrBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         for (Map.Entry<String, List<Imp>> sspidToImpsEntry : dispatchedRequest.entrySet()) {
             final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(sspidToImpsEntry.getValue()).build();
-            final String body = mapper.encode(updatedBidRequest);
 
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(endpointUrl + "?zoneid=" + sspidToImpsEntry.getKey())
-                    .body(body)
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(HttpUtil.headers())
                     .payload(updatedBidRequest)
                     .build());

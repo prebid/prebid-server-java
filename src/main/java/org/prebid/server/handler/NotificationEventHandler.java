@@ -14,7 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
@@ -24,6 +23,7 @@ import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -45,14 +45,13 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private static final String TRACKING_PIXEL_PNG = "static/tracking-pixel.png";
     private static final String PNG_CONTENT_TYPE = "image/png";
 
-    private static final long DEFAULT_TIMEOUT = 1000L;
-
     private final UidsCookieService uidsCookieService;
     private final ApplicationEventService applicationEventService;
     private final UserService userService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final long defaultTimeoutMillis;
     private final boolean dealsEnabled;
     private final TrackingPixel trackingPixel;
 
@@ -62,6 +61,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                                     AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings,
+                                    long defaultTimeoutMillis,
                                     boolean dealsEnabled) {
 
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -70,6 +70,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.defaultTimeoutMillis = defaultTimeoutMillis;
         this.dealsEnabled = dealsEnabled;
 
         trackingPixel = createTrackingPixel();
@@ -116,7 +117,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
     private Future<Account> getAccountById(String accountId) {
-        return applicationSettings.getAccountById(accountId, timeoutFactory.create(DEFAULT_TIMEOUT))
+        return applicationSettings.getAccountById(accountId, timeoutFactory.create(defaultTimeoutMillis))
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId));
     }
 
@@ -167,7 +168,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                         .bidder(eventRequest.getBidder())
                         .timestamp(eventRequest.getTimestamp())
                         .integration(eventRequest.getIntegration())
-                        .httpContext(HttpContext.from(routingContext))
+                        .httpContext(HttpRequestContext.from(routingContext))
                         .lineItemId(lineItemId)
                         .build();
 

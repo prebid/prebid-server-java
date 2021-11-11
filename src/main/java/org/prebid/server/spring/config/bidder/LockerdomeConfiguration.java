@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class LockerdomeConfiguration {
 
     private static final String BIDDER_NAME = "lockerdome";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("lockerdomeConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("lockerdomeConfigurationProperties")
     @ConfigurationProperties("adapters.lockerdome")
     BidderConfigurationProperties configurationProperties() {
@@ -41,9 +28,12 @@ public class LockerdomeConfiguration {
     }
 
     @Bean
-    BidderDeps lockerdomeBidderDeps() {
+    BidderDeps lockerdomeBidderDeps(BidderConfigurationProperties lockerdomeConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(lockerdomeConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new LockerdomeBidder(config.getEndpoint(), mapper))
                 .assemble();
