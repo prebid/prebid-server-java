@@ -458,7 +458,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
+    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
 
@@ -471,7 +471,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
 
@@ -521,7 +521,10 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseHasEmptySeatBids() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("{}",
+        final byte[] byteArray = mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build());
+        final BeachfrontVideoRequest videoRequest = jacksonMapper.decodeValue(byteArray, BeachfrontVideoRequest.class);
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build()),
                 mapper.writeValueAsString(BidResponse.builder().id("some_id").build()));
 
         // when
@@ -547,7 +550,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         final HttpCall<Void> httpCall = HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
+                        .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url&prebidserver").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
@@ -580,7 +583,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         final HttpCall<Void> httpCall = HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
+                        .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
@@ -813,10 +816,11 @@ public class BeachfrontBidderTest extends VertxTest {
 
     private static HttpCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
                                                 BidResponse bidResponse) throws JsonProcessingException {
-        return givenHttpCall(mapper.writeValueAsString(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
+        return givenHttpCall(mapper.writeValueAsBytes(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody) {
+    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody)
+            throws JsonProcessingException {
         return HttpCall.success(
                 HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
                 HttpResponse.of(200, null, responseBody), null);

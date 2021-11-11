@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class CompositeApplicationSettingsTest {
 
@@ -76,7 +76,7 @@ public class CompositeApplicationSettingsTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isSameAs(account);
-        verifyZeroInteractions(delegate2);
+        verifyNoInteractions(delegate2);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class CompositeApplicationSettingsTest {
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
-        verifyZeroInteractions(delegate2);
+        verifyNoInteractions(delegate2);
     }
 
     @Test
@@ -191,7 +191,7 @@ public class CompositeApplicationSettingsTest {
                 .containsOnly(entry("key1", "value1"));
         assertThat(future.result().getStoredIdToImp()).hasSize(1)
                 .containsOnly(entry("key2", "value2"));
-        verifyZeroInteractions(delegate2);
+        verifyNoInteractions(delegate2);
     }
 
     @Test
@@ -314,7 +314,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.result().getErrors()).isEmpty();
         assertThat(future.result().getStoredIdToRequest()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
-        verifyZeroInteractions(delegate2);
+        verifyNoInteractions(delegate2);
     }
 
     @Test
@@ -424,7 +424,7 @@ public class CompositeApplicationSettingsTest {
         assertThat(future.result().getErrors()).isEmpty();
         assertThat(future.result().getIdToStoredResponses()).hasSize(1)
                 .containsOnly(entry("key1", "value1"));
-        verifyZeroInteractions(delegate2);
+        verifyNoInteractions(delegate2);
     }
 
     @Test

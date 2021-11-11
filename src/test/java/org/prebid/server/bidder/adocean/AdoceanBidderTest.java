@@ -310,7 +310,7 @@ public class AdoceanBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "");
 
@@ -519,10 +519,11 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody) {
+    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody)
+            throws JsonProcessingException {
         return HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(requestBody)
+                        .body(mapper.writeValueAsBytes(requestBody))
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"
                                 + "&nc=1&nosecure=1&pbsrv_v=1.0.0")
                         .build(),

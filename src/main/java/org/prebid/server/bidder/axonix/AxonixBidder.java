@@ -56,7 +56,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImpAxonix.getSupplyId()))
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

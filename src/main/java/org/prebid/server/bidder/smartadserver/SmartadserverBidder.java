@@ -82,7 +82,7 @@ public class SmartadserverBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(getUri())
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .payload(request)
                 .build();
     }

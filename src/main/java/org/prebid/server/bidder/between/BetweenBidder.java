@@ -138,7 +138,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .uri(url)
                         .headers(resolveHeaders(request.getDevice(), request.getSite()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build();
     }
 

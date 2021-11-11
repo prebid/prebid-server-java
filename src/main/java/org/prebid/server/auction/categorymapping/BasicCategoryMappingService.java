@@ -1,4 +1,4 @@
-package org.prebid.server.auction;
+package org.prebid.server.auction.categorymapping;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,6 +19,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.CpmRange;
+import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -55,7 +57,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class CategoryMappingService {
+public class BasicCategoryMappingService implements CategoryMappingService {
 
     private static final TypeReference<Map<String, DealTierContainer>> EXT_IMP_DEAL_TIER_REFERENCE =
             new TypeReference<>() {
@@ -67,7 +69,7 @@ public class CategoryMappingService {
     private final ApplicationSettings applicationSettings;
     private final JacksonMapper jacksonMapper;
 
-    public CategoryMappingService(ApplicationSettings applicationSettings, JacksonMapper jacksonMapper) {
+    public BasicCategoryMappingService(ApplicationSettings applicationSettings, JacksonMapper jacksonMapper) {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
@@ -78,21 +80,18 @@ public class CategoryMappingService {
      * Removes the bids with duplicated category key, leaving one with the highest price.
      * Returns list of errors for each dropped bid.
      */
+    @Override
     public Future<CategoryMappingResult> createCategoryMapping(List<BidderResponse> bidderResponses,
                                                                BidRequest bidRequest,
-                                                               ExtRequestTargeting targeting,
                                                                Timeout timeout) {
+
+        final ExtRequestTargeting targeting = targeting(bidRequest);
 
         final ExtIncludeBrandCategory includeBrandCategory = ObjectUtil.getIfNotNull(
                 targeting, ExtRequestTargeting::getIncludebrandcategory);
 
         if (includeBrandCategory == null) {
-            return Future.succeededFuture(
-                    CategoryMappingResult.of(
-                            Collections.emptyMap(),
-                            Collections.emptyMap(),
-                            bidderResponses,
-                            Collections.emptyList()));
+            return Future.succeededFuture(CategoryMappingResult.of(bidderResponses));
         }
 
         final boolean withCategory = BooleanUtils.toBooleanDefaultIfNull(
@@ -114,6 +113,12 @@ public class CategoryMappingService {
                 bidderResponses, withCategory, translateCategories, primaryAdServer, publisher, rejectedBids, timeout)
                 .map(categoryBidContexts -> resolveBidsCategoriesDurations(
                         bidderResponses, categoryBidContexts, bidRequest, targeting, withCategory, rejectedBids));
+    }
+
+    private static ExtRequestTargeting targeting(BidRequest bidRequest) {
+        final ExtRequest ext = bidRequest.getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
+        return prebid != null ? prebid.getTargeting() : null;
     }
 
     /**
@@ -592,7 +597,7 @@ public class CategoryMappingService {
 
         return categoryToDuplicatedCategoryBids.values().stream()
                 .filter(categoryBids -> categoryBids.size() > 1)
-                .flatMap(CategoryMappingService::getDuplicatedForCategory)
+                .flatMap(BasicCategoryMappingService::getDuplicatedForCategory)
                 .map(categoryBidContext -> RejectedBid.of(
                         extractBidId(categoryBidContext),
                         categoryBidContext.getBidder(),

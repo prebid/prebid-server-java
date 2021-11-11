@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -96,25 +97,25 @@ public class StoredResponseProcessor {
                 .collect(Collectors.toList());
     }
 
-    List<BidderResponse> mergeWithBidderResponses(List<BidderResponse> bidderResponses,
-                                                  List<SeatBid> storedAuctionResponses,
-                                                  List<Imp> imps) {
+    List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
+                                                        List<SeatBid> storedAuctionResponses,
+                                                        List<Imp> imps) {
         if (CollectionUtils.isEmpty(storedAuctionResponses)) {
-            return bidderResponses;
+            return auctionParticipations;
         }
 
-        final Map<String, BidderResponse> bidderToResponse = bidderResponses.stream()
-                .collect(Collectors.toMap(BidderResponse::getBidder, Function.identity()));
+        final Map<String, AuctionParticipation> bidderToAuctionParticipation = auctionParticipations.stream()
+                .collect(Collectors.toMap(AuctionParticipation::getBidder, Function.identity()));
         final Map<String, SeatBid> bidderToSeatBid = storedAuctionResponses.stream()
                 .collect(Collectors.toMap(SeatBid::getSeat, Function.identity()));
         final Map<String, BidType> impIdToBidType = imps.stream()
                 .collect(Collectors.toMap(Imp::getId, this::resolveBidType));
-        final Set<String> responseBidders = new HashSet<>(bidderToResponse.keySet());
+        final Set<String> responseBidders = new HashSet<>(bidderToAuctionParticipation.keySet());
         responseBidders.addAll(bidderToSeatBid.keySet());
 
         return responseBidders.stream()
-                .map(bidder -> makeBidderResponse(bidderToResponse.get(bidder), bidderToSeatBid.get(bidder),
-                        impIdToBidType))
+                .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
+                        bidderToSeatBid.get(bidder), impIdToBidType))
                 .collect(Collectors.toList());
     }
 
@@ -248,16 +249,30 @@ public class StoredResponseProcessor {
                                         bidderToId -> idToStoredResponses.get(bidderToId.getValue())))));
     }
 
-    private BidderResponse makeBidderResponse(BidderResponse bidderResponse, SeatBid seatBid,
-                                              Map<String, BidType> impIdToBidType) {
-        if (bidderResponse != null) {
+    private AuctionParticipation updateBidderResponse(AuctionParticipation auctionParticipation,
+                                                      SeatBid storedSeatBid,
+                                                      Map<String, BidType> impIdToBidType) {
+        if (auctionParticipation != null) {
+            if (auctionParticipation.isRequestBlocked()) {
+                return auctionParticipation;
+            }
+
+            final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
             final BidderSeatBid bidderSeatBid = bidderResponse.getSeatBid();
-            return BidderResponse.of(bidderResponse.getBidder(),
-                    seatBid == null ? bidderSeatBid : makeBidderSeatBid(bidderSeatBid, seatBid, impIdToBidType),
-                    bidderResponse.getResponseTime());
+            final BidderSeatBid updatedSeatBid = storedSeatBid == null
+                    ? bidderSeatBid
+                    : makeBidderSeatBid(bidderSeatBid, storedSeatBid, impIdToBidType);
+            final BidderResponse updatedBidderResponse = BidderResponse.of(bidderResponse.getBidder(),
+                    updatedSeatBid, bidderResponse.getResponseTime());
+            return auctionParticipation.with(updatedBidderResponse);
         } else {
-            return BidderResponse.of(seatBid != null ? seatBid.getSeat() : null,
-                    makeBidderSeatBid(null, seatBid, impIdToBidType), 0);
+            final String bidder = storedSeatBid != null ? storedSeatBid.getSeat() : null;
+            final BidderSeatBid updatedSeatBid = makeBidderSeatBid(null, storedSeatBid, impIdToBidType);
+            final BidderResponse updatedBidderResponse = BidderResponse.of(bidder, updatedSeatBid, 0);
+            return AuctionParticipation.builder()
+                    .bidder(bidder)
+                    .bidderResponse(updatedBidderResponse)
+                    .build();
         }
     }
 

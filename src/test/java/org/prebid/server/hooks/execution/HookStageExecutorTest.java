@@ -2561,7 +2561,7 @@ public class HookStageExecutorTest extends VertxTest {
     }
 
     private String executionPlan(Map<Endpoint, EndpointExecutionPlan> endpoints) {
-        return jacksonMapper.encode(ExecutionPlan.of(endpoints));
+        return jacksonMapper.encodeToString(ExecutionPlan.of(endpoints));
     }
 
     private static StageExecutionPlan execPlanTwoGroupsTwoHooksEach() {

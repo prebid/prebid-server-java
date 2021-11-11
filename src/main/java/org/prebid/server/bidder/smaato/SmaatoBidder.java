@@ -315,7 +315,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
     }

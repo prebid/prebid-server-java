@@ -78,6 +78,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
+- `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications

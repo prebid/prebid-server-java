@@ -18,7 +18,6 @@ class MetricsSpec extends BaseSpec {
         defaultPbsService.sendCollectedMetricsRequest()
     }
 
-    @PendingFeature
     def "PBS should update prebid_cache.creative_size.xml metric when xml creative is received"() {
         given: "Default VtrackRequest"
         def accountId = PBSUtils.randomNumber.toString()

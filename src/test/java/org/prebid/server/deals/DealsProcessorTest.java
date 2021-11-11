@@ -67,7 +67,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class DealsProcessorTest extends VertxTest {
 
@@ -894,7 +894,7 @@ public class DealsProcessorTest extends VertxTest {
         assertThat(result.getBidRequest().getDevice()).isEqualTo(Device.builder()
                 .geo(Geo.builder().ext(expectedExtGeo).build())
                 .build());
-        verifyZeroInteractions(geoLocationService);
+        verifyNoInteractions(geoLocationService);
         assertThat(result.getGeoInfo()).isSameAs(geoInfo);
     }
 

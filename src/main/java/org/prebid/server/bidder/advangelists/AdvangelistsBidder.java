@@ -158,7 +158,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(createdEndpoint)
-                    .body(mapper.encode(updatedBidRequest))
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers)
                     .payload(bidRequest)
                     .build();

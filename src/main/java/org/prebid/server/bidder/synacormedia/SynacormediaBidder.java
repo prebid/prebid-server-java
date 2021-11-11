@@ -84,7 +84,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
                                 .method(HttpMethod.POST)
                                 .headers(HttpUtil.headers())
                                 .uri(endpointUrl.replaceAll("\\{\\{Host}}", firstExtImp.getSeatId()))
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .payload(outgoingRequest)
                                 .build()),
                 errors);

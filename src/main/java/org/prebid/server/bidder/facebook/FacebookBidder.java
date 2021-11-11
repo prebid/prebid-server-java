@@ -122,12 +122,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers)
                 .payload(outgoingRequest)
                 .build();

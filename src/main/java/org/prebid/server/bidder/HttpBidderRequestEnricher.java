@@ -64,6 +64,7 @@ public class HttpBidderRequestEnricher {
         final String value = Stream.of(channelRecord, sdkRecord, prebidVersionProvider.getNameVersionRecord())
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(","));
+
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_PREBID_HEADER, value);
     }
 
@@ -86,7 +87,7 @@ public class HttpBidderRequestEnricher {
     }
 
     private static String createNameVersionRecord(String name, String version) {
-        return StringUtils.isNotEmpty(name) && StringUtils.isNotEmpty(version)
+        return StringUtils.isNoneEmpty(name, version)
                 ? String.format("%s/%s", name, version)
                 : null;
     }

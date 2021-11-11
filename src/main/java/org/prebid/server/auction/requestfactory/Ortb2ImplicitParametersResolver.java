@@ -769,17 +769,18 @@ public class Ortb2ImplicitParametersResolver {
      * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
      */
     private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
-        final String existingChannelName = ObjectUtil.getIfNotNull(ObjectUtil.getIfNotNull(prebid,
-                        ExtRequestPrebid::getChannel),
-                ExtRequestPrebidChannel::getName);
+        final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
+        final String channelName = ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
 
-        if (StringUtils.isNotBlank(existingChannelName)) {
+        if (StringUtils.isNotBlank(channelName)) {
             return null;
         }
 
         if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
-        } else if (bidRequest.getSite() != null) {
+        }
+
+        if (bidRequest.getSite() != null) {
             return ExtRequestPrebidChannel.of(WEB_CHANNEL);
         }
 
