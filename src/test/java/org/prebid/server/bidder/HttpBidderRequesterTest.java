@@ -189,7 +189,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldMakeRequestToBidderWhenStoredResponseDefinedButBidderCreatesMoreThanOneRequest() {
         // given
-        givenHttpClientReturnsResponseForStringRequest(200, null);
+        givenHttpClientResponse(200, null);
         final MultiMap headers = new CaseInsensitiveHeaders();
         headers.add("header1", "value1");
         headers.add("header2", "value2");
@@ -220,7 +220,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldSendPopulatedGetRequestWithoutBody() {
         // given
-        givenHttpClientReturnsResponseForStringRequest(200, null);
+        givenHttpClientResponse(200, null);
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -241,7 +241,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldSendMultipleRequests() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponseForStringRequest(200, null);
+        givenHttpClientResponse(200, null);
         final BidRequest bidRequest = givenBidRequest(identity());
 
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
@@ -280,7 +280,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientReturnsResponseForStringRequest(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody");
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
@@ -311,7 +311,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
-        givenHttpClientReturnsResponseForByteRequest(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody");
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
         // when
@@ -441,7 +441,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientReturnsResponseForStringRequest(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody");
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().dealid("deal2").build(), null, null);
         given(bidder.makeBids(any(), any())).willReturn(Result.of(singletonList(bidderBid), emptyList()));
@@ -794,7 +794,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientReturnsResponseForStringRequest(204, EMPTY);
+        givenHttpClientResponse(204, EMPTY);
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().test(1).build());
 
@@ -831,12 +831,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
     }
 
-    private void givenHttpClientReturnsResponseForStringRequest(int statusCode, String response) {
-        given(httpClient.request(any(), anyString(), any(), (byte[]) any(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
-    }
-
-    private void givenHttpClientReturnsResponseForByteRequest(int statusCode, String response) {
+    private void givenHttpClientResponse(int statusCode, String response) {
         given(httpClient.request(any(), anyString(), any(), (byte[]) any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }
