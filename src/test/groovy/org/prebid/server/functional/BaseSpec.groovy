@@ -12,6 +12,7 @@ import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static org.prebid.server.functional.testcontainers.Dependencies.mysqlContainer
@@ -47,5 +48,9 @@ abstract class BaseSpec extends Specification {
         prebidCache.reset()
         repository.removeAllDatabaseData()
         pbsServiceFactory.stopContainers()
+    }
+
+    protected static int getRandomTimeout() {
+        PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 }

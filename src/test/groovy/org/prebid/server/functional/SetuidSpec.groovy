@@ -12,6 +12,7 @@ class SetuidSpec extends BaseSpec {
     @PendingFeature
     def "PBS should return an error for setuid request when the timeout time is exceeded"() {
         given: "PBS with timeout configuration"
+        // Using minimal allowed time for timeout (1ms) to get timeout error.
         def pbsService = pbsServiceFactory.getService(["setuid.default-timeout-ms": "1"])
 
         and: "Default setuid request with account"

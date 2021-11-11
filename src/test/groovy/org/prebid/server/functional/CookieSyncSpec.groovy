@@ -12,6 +12,7 @@ class CookieSyncSpec extends BaseSpec {
     @PendingFeature
     def "PBS should return an error for cookie_sync request when the timeout time is exceeded"() {
         given: "PBS with timeout configuration"
+        // Using minimal allowed time for timeout (1ms) to get timeout error.
         def pbsService = pbsServiceFactory.getService(["cookie-sync.default-timeout-ms": "1"])
 
         and: "Default CookieSyncRequest with account"

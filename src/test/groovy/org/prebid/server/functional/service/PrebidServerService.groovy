@@ -282,7 +282,7 @@ class PrebidServerService {
         if (uids) {
             return mapper.decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
         } else {
-            throw new IllegalStateException()
+            throw new IllegalStateException("uids cookie is missing in response")
         }
     }
 

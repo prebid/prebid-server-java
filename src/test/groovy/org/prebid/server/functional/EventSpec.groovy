@@ -8,6 +8,7 @@ class EventSpec extends BaseSpec {
 
     def "PBS should return an error for event request when the timeout time is exceeded"() {
         given: "PBS with timeout configuration"
+        // Using minimal allowed time for timeout (1ms) to get timeout error.
         def pbsService = pbsServiceFactory.getService(["event.default-timeout-ms": "1"])
 
         and: "Default EventRequest"

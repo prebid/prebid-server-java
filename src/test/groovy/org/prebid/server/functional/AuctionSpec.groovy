@@ -12,9 +12,9 @@ import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
 
-    private static final int MAX_TIMEOUT = 5000
-    private static final int DEFAULT_TIMEOUT = PBSUtils.getRandomNumber(1000, MAX_TIMEOUT)
+    private static final int DEFAULT_TIMEOUT = getRandomTimeout()
     private static final String PBS_VERSION_HEADER = "pbs-java/$PBS_VERSION"
+
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
                                                                             "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
@@ -42,7 +42,7 @@ class AuctionSpec extends BaseSpec {
         }
 
         and: "Default stored request with timeout"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def storedRequestModel = BidRequest.defaultStoredRequest.tap {
             tmax = timeout
         }
@@ -62,7 +62,7 @@ class AuctionSpec extends BaseSpec {
     @Unroll
     def "PBS should prefer timeout from the auction request when stored request timeout is #tmax"() {
         given: "Default basic BidRequest with generic bidder"
-        def timeout = PBSUtils.getRandomNumber(0, MAX_TIMEOUT)
+        def timeout = getRandomTimeout()
         def bidRequest = BidRequest.defaultBidRequest.tap {
             tmax = timeout
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber.toString())
@@ -85,7 +85,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
 
         where:
-        tmaxStoredRequest << [null, PBSUtils.getRandomNumber(0, MAX_TIMEOUT)]
+        tmaxStoredRequest << [null, getRandomTimeout()]
     }
 
     @Unroll
