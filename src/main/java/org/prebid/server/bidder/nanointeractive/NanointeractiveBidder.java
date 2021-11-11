@@ -72,7 +72,6 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                 .imp(validImps)
                 .site(modified(reference, request.getSite()))
                 .build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -80,7 +79,7 @@ public class NanointeractiveBidder implements Bidder<BidRequest> {
                                 .uri(endpointUrl)
                                 .headers(headers(request))
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

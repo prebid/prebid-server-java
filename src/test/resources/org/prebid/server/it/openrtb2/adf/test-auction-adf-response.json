@@ -17,6 +17,21 @@
             "origbidcpm": 10,
             "origbidcur": "EUR"
           }
+        },
+        {
+          "id": "bid_id_banner",
+          "impid": "imp_id_banner",
+          "price": 11.393,
+          "adomain": [],
+          "adm": "<html>",
+          "crid": "test-creative-id-2",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+          "origbidcpm": 10,
+          "origbidcur": "EUR"
+          }
         }
       ],
       "seat": "adf",

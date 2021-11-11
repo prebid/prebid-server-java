@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.beachfront;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -34,16 +36,18 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -97,7 +101,7 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith(
-                "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize instance");
+                "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize value");
     }
 
     @Test
@@ -454,7 +458,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
+    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
 
@@ -467,7 +471,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() {
+    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
 
@@ -501,8 +505,8 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
                         Bid.builder()
                                 .id("first_slotBanner")
                                 .impid("first_slot")
@@ -517,7 +521,10 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseHasEmptySeatBids() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("{}",
+        final byte[] byteArray = mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build());
+        final BeachfrontVideoRequest videoRequest = jacksonMapper.decodeValue(byteArray, BeachfrontVideoRequest.class);
+        final HttpCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build()),
                 mapper.writeValueAsString(BidResponse.builder().id("some_id").build()));
 
         // when
@@ -543,7 +550,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         final HttpCall<Void> httpCall = HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
+                        .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url&prebidserver").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
@@ -552,8 +559,8 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
                         Bid.builder()
                                 .id("123NurlVideo")
                                 .impid("123")
@@ -576,7 +583,7 @@ public class BeachfrontBidderTest extends VertxTest {
 
         final HttpCall<Void> httpCall = HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(mapper.writeValueAsString(videoRequest))
+                        .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
@@ -585,40 +592,220 @@ public class BeachfrontBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
                         Bid.builder()
                                 .id("imp1AdmVideo")
                                 .impid("imp1")
                                 .build(), BidType.video, "USD"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+    @Test
+    public void makeBidsShouldEnrichBidsExtWithDurationIfDurationIsPresentInBidExt() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .ext(mapper.createObjectNode().set("duration", IntNode.valueOf(1234))));
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .id("153")
-                .app(App.builder().build())
-                .imp(singletonList(givenImp(impCustomizer))))
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenBidExt(1234, null));
+    }
+
+    @Test
+    public void makeBidsShouldEnrichBidsExtWithPrimaryCategoryIfDurationAndCategoryIsPresentInBidExt()
+            throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2"))
+                        .ext(mapper.createObjectNode().set("duration", IntNode.valueOf(1234))));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenBidExt(1234, "cat1"));
+    }
+
+    @Test
+    public void makeBidsShouldNotModifyBidExtIfDurationIfAbsentInBidExt() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode();
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2"))
+                        .ext(bidExt));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(bidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotModifyBidExtIfDurationIsLessThanZero() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode().set("duration", IntNode.valueOf(-1));
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2"))
+                        .ext(bidExt));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(bidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotModifyBidExtIfDurationIsEqualToZero() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode().set("duration", IntNode.valueOf(0));
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2"))
+                        .ext(bidExt));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(bidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotModifyBidExtIfDurationIsNotInteger() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode().set("duration", mapper.createArrayNode());
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2"))
+                        .ext(bidExt));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(bidExt);
+    }
+
+    @Test
+    public void makeBidsShouldNotModifyBidExtIfBidExtIsAbsent() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = givenBidResponse(
+                bidBuilder -> bidBuilder
+                        .impid("imp1")
+                        .cat(List.of("cat1", "cat2")));
+
+        final BeachfrontVideoRequest videoRequest =
+                BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
+
+        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getExt).hasSize(1)
+                .containsNull();
+    }
+
+    private static BidRequest givenBidRequest(
+            UnaryOperator<Imp.ImpBuilder> impCustomizer,
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+
+        return bidRequestCustomizer.apply(
+                        BidRequest.builder()
+                                .id("153")
+                                .app(App.builder().build())
+                                .imp(List.of(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(impCustomizer, identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpBeachfront.of("appId", ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
-                                BigDecimal.ONE, "adm")))))
+                        .id("123")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpBeachfront.of("appId", ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
+                                        BigDecimal.ONE, "adm")))))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
@@ -627,9 +814,22 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody) {
+    private static HttpCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
+                                                BidResponse bidResponse) throws JsonProcessingException {
+        return givenHttpCall(mapper.writeValueAsBytes(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
+    }
+
+    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody)
+            throws JsonProcessingException {
         return HttpCall.success(
-                HttpRequest.<Void>builder().body(requestBody).build(),
+                HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
                 HttpResponse.of(200, null, responseBody), null);
+    }
+
+    private static ObjectNode givenBidExt(Integer duration, String primaryCategory) {
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .video(ExtBidPrebidVideo.of(duration, primaryCategory))
+                .build();
+        return mapper.valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 }

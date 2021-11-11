@@ -4,17 +4,9 @@
   "description": "A schema which validates params accepted by the Marsmedia adapter",
   "type": "object",
   "properties": {
-    "zone": {
-      "type": "string",
-      "description": "Zone ID to use."
-    },
     "zoneId": {
       "type": "string",
       "description": "Zone ID to use."
     }
-  },
-  "oneOf": [
-    {"required": ["zone"]},
-    {"required": ["zoneId"]}
-  ]
+  }
 }

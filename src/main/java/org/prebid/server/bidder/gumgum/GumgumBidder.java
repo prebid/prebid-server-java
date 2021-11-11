@@ -74,7 +74,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(endpointUrl)
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .headers(HttpUtil.headers())
                                 .payload(outgoingRequest)
                                 .build()),

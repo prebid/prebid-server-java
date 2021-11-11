@@ -71,7 +71,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(resolveHeaders())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

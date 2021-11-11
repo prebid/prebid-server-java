@@ -110,7 +110,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
             if (nativeNode != null && nativeNode.isObject()) {
                 final JsonNode requestNode = mapper.mapper().createObjectNode().set("native", nativeNode);
                 return xNative.toBuilder()
-                        .request(mapper.encode(requestNode))
+                        .request(mapper.encodeToString(requestNode))
                         .build();
             }
         } catch (JsonProcessingException e) {
@@ -151,7 +151,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .uri(resolvedUrl)
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,6 +35,7 @@ import org.prebid.server.settings.model.StoredResponseDataResult;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -352,15 +354,25 @@ public class StoredResponseProcessorTest extends VertxTest {
     }
 
     @Test
-    public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponse() {
+    public void mergeWithBidderResponsesShouldReturnMergedStoredSeatWithResponseWithoutBlocked() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+        final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
                         emptyList()),
-                100));
+                100);
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderResponse(bidderResponse)
+                .build();
+        final AuctionParticipation blockedRequestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("appnexus")
+                .requestBlocked(true)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = Arrays.asList(requestAuctionParticipation,
+                blockedRequestAuctionParticipation);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon")
@@ -370,11 +382,13 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
-                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of(
+        assertThat(result)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .containsOnly(BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         asList(
@@ -393,19 +407,25 @@ public class StoredResponseProcessorTest extends VertxTest {
                                         "USD")),
                         emptyList(),
                         emptyList()),
-                100));
+                100),
+                        null);
     }
 
     @Test
     public void mergeWithBidderResponsesShouldMergeBidderResponsesWithoutCorrespondingStoredSeatBid() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+        final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
                         emptyList()),
-                100));
+                100);
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderResponse(bidderResponse)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = singletonList(requestAuctionParticipation);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("appnexus")
@@ -415,31 +435,16 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
-                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps);
 
         // then
-        assertThat(result).contains(
-                BidderResponse.of(
-                        "rubicon",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(
-                                        Bid.builder().id("bid1").build(),
-                                        BidType.banner,
-                                        "USD")),
-                                emptyList(),
-                                emptyList()),
-                        100),
-                BidderResponse.of(
-                        "appnexus",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(
-                                        Bid.builder().id("bid2").impid("storedImp").build(),
-                                        BidType.banner,
-                                        "USD")),
-                                emptyList(),
-                                emptyList()),
-                        0));
+        final BidderResponse secondExpectedBidResponse = BidderResponse.of("appnexus", BidderSeatBid.of(
+                singletonList(BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(),
+                        BidType.banner, "USD")), emptyList(), emptyList()), 0);
+        assertThat(result)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .contains(bidderResponse, secondExpectedBidResponse);
     }
 
     @Test
@@ -453,11 +458,13 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
+        final List<AuctionParticipation> result =
                 storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of(
+        assertThat(result)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .contains(BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(
@@ -472,13 +479,18 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void mergeWithBidderResponsesShouldResolveCurrencyFromBidderResponse() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+        final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "EUR")),
                         emptyList(),
                         emptyList()),
-                100));
+                100);
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderResponse(bidderResponse)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = singletonList(requestAuctionParticipation);
 
         final List<SeatBid> seatBid = singletonList(SeatBid.builder()
                 .seat("rubicon")
@@ -488,11 +500,13 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
-                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of(
+        assertThat(result)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .contains(BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         asList(
@@ -512,13 +526,18 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void mergeWithBidderResponsesShouldResolveBidTypeFromStoredBidExt() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+        final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
                         emptyList()),
-                100));
+                100);
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderResponse(bidderResponse)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = singletonList(requestAuctionParticipation);
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder().type(BidType.video).build();
 
@@ -534,30 +553,23 @@ public class StoredResponseProcessorTest extends VertxTest {
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
-                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, seatBid, imps);
+        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps);
 
         // then
-        assertThat(result).contains(BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(
+        assertThat(result)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .contains(BidderResponse.of("rubicon", BidderSeatBid.of(
                         asList(BidderBid.of(
                                 Bid.builder()
                                         .id("bid2")
                                         .impid("storedImp")
-                                        .ext(mapper.createObjectNode().set("prebid", mapper.valueToTree(extBidPrebid)))
-                                        .build(),
-                                BidType.video,
-                                "USD"),
+                                        .ext(mapper.createObjectNode()
+                                                .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
+                                BidType.video, "USD"),
                                 BidderBid.of(
-                                        Bid.builder()
-                                                .id("bid1")
-                                                .build(),
-                                        BidType.banner,
-                                        "USD")),
-                        emptyList(),
-                        emptyList()),
-                100));
+                                        Bid.builder().id("bid1").build(), BidType.banner, "USD")), emptyList(),
+                        emptyList()), 100));
     }
 
     @Test
@@ -584,28 +596,29 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Test
     public void mergeWithBidderResponsesShouldReturnSameResponseWhenThereAreNoStoredResponses() {
         // given
-        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of(
+        final BidderResponse bidderResponse = BidderResponse.of(
                 "rubicon",
                 BidderSeatBid.of(
                         singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
                         emptyList(),
                         emptyList()),
-                100));
+                100);
+        final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
+                .bidder("rubicon")
+                .bidderResponse(bidderResponse)
+                .build();
+        final List<AuctionParticipation> auctionParticipations = singletonList(requestAuctionParticipation);
 
         final List<Imp> imps = singletonList(Imp.builder().banner(Banner.builder().build()).build());
 
         // when
-        final List<BidderResponse> result =
-                storedResponseProcessor.mergeWithBidderResponses(bidderResponses, emptyList(), imps);
+        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
+                auctionParticipations, emptyList(), imps);
 
         // then
-        assertThat(result).containsOnly(BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(
-                        singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD")),
-                        emptyList(),
-                        emptyList()),
-                100));
+        assertThat(result)
+                        .extracting(AuctionParticipation::getBidderResponse)
+                        .containsOnly(bidderResponse);
     }
 
     private <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {

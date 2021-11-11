@@ -257,7 +257,7 @@ public class DeliveryStatsServiceTest extends VertxTest {
         deliveryStatsService.sendDeliveryProgressReports();
 
         // when and then
-        verify(httpClient, times(1)).post(anyString(), any(), anyString(), anyLong());
+        verify(httpClient).post(anyString(), any(), anyString(), anyLong());
         @SuppressWarnings("unchecked") final NavigableSet<DeliveryProgress> reports = (NavigableSet<DeliveryProgress>)
                 ReflectionTestUtils.getField(deliveryStatsService, "requiredBatches");
         assertThat(reports).hasSize(3);
@@ -393,8 +393,7 @@ public class DeliveryStatsServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<byte[]> bodyCaptor = ArgumentCaptor.forClass(byte[].class);
         final ArgumentCaptor<MultiMap> headerCaptor = ArgumentCaptor.forClass(MultiMap.class);
-        verify(httpClient, times(1)).request(any(), anyString(), headerCaptor.capture(), bodyCaptor.capture(),
-                anyLong());
+        verify(httpClient).request(any(), anyString(), headerCaptor.capture(), bodyCaptor.capture(), anyLong());
         // verify body was compressed well
         final byte[] compressedRequestBody = bodyCaptor.getValue();
         final String decompressedRequestBody = decompress(compressedRequestBody);

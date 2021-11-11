@@ -99,7 +99,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .map(request -> HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(mapper.encode(request))
+                        .body(mapper.encodeToBytes(request))
                         .headers(HttpUtil.headers())
                         .payload(request)
                         .build())
@@ -259,7 +259,7 @@ public class IxBidder implements Bidder<BidRequest> {
         final boolean isV11 = responseV11 != null;
         final Response response = isV11 ? responseV11 : parseBidAdm(adm, Response.class);
         final List<EventTracker> trackers = ObjectUtil.getIfNotNull(response, Response::getEventtrackers);
-        final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encode(isV11
+        final String updatedAdm = CollectionUtils.isNotEmpty(trackers) ? mapper.encodeToString(isV11
                 ? NativeV11Wrapper.of(mergeNativeImpTrackers(response, trackers))
                 : mergeNativeImpTrackers(response, trackers))
                 : null;

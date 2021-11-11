@@ -20,7 +20,4 @@ adapters:
       support-cors: false
     accounts:
       - id: ACCOUNT
-        badv:
-        bcat:
-        imp_battr:
         bid_floor:

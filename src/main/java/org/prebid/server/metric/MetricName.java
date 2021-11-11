@@ -106,8 +106,9 @@ public enum MetricName {
     stored_imps_found,
     stored_imps_missing,
 
-    // cache
-    creative_size,
+    // cache creative types
+    json,
+    xml,
 
     // account.*.requests.
     rejected,

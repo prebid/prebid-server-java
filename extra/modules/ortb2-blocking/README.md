@@ -1,6 +1,6 @@
 # Overview
 
-Prebid Server doesn't provide the services as SSP normally provides, including account configuration of blocked:
+Prebid Server doesn't provide all services an SSP normally provides, including account configuration of blocked:
 
 - advertiser domains
 - advertiser categories

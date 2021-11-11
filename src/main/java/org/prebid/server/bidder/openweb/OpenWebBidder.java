@@ -115,7 +115,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(resolveEndpoint(sourceId))
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(modifiedRequest))
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .payload(modifiedRequest)
                 .build();
     }

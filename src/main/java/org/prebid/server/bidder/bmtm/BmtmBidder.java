@@ -57,12 +57,11 @@ public class BmtmBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpBmtm impExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(request, modifyImp(imp, impExt));
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(createHeaders(request))
                         .payload(outgoingRequest)
                         .build());

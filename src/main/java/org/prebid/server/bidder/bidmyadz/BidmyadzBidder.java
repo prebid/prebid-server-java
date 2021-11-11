@@ -47,7 +47,7 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(createHeaders())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 
