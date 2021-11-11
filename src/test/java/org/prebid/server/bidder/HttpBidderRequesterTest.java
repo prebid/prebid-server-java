@@ -319,7 +319,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .result();
 
         // then
-        verify(httpClient).request(any(), anyString(), any(), any(byte[].class), anyLong());
+        final ArgumentCaptor<byte[]> actualRequestBody = ArgumentCaptor.forClass(byte[].class);
+        verify(httpClient).request(any(), anyString(), any(), actualRequestBody.capture(), anyLong());
+        assertThat(actualRequestBody.getValue()).isNotSameAs(EMPTY_BYTE_BODY);
     }
 
     @Test
