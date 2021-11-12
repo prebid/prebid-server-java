@@ -44,8 +44,6 @@ public class BidderConfigurationProperties {
     @NotNull
     private UsersyncConfigurationProperties usersync;
 
-    private Map<String, String> extraInfo;
-
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
     public BidderConfigurationProperties() {
@@ -61,6 +59,5 @@ public class BidderConfigurationProperties {
         debug = ObjectUtils.defaultIfNull(debug, defaultProperties.getDebug());
         aliases = ObjectUtils.defaultIfNull(aliases, defaultProperties.getAliases());
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
-        extraInfo = ObjectUtils.defaultIfNull(extraInfo, defaultProperties.getExtraInfo());
     }
 }

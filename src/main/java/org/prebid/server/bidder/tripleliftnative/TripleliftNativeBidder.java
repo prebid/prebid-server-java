@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tripleliftnative;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -43,33 +41,15 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
             };
-    private static final TypeReference<List<String>> WHITELIST_TYPE_REFERENCE =
-            new TypeReference<List<String>>() {
-            };
 
     private final String endpointUrl;
     private final List<String> publisherWhiteList;
     private final JacksonMapper mapper;
 
-    public TripleliftNativeBidder(String endpointUrl, Map<String, String> extraInfo, JacksonMapper mapper) {
+    public TripleliftNativeBidder(String endpointUrl, List<String> publisherWhiteList, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.publisherWhiteList = Objects.requireNonNull(publisherWhiteList);
         this.mapper = Objects.requireNonNull(mapper);
-        this.publisherWhiteList = initPublisherWhiteList(extraInfo);
-    }
-
-    private List<String> initPublisherWhiteList(Map<String, String> extraInfo) {
-        final String jsonWhiteList = extraInfo == null ? null : extraInfo.get("publisher_whitelist");
-
-        if (jsonWhiteList == null) {
-            return Collections.emptyList();
-        }
-
-        try {
-            final List<String> whiteList = mapper.mapper().readValue(jsonWhiteList, WHITELIST_TYPE_REFERENCE);
-            return whiteList == null ? Collections.emptyList() : whiteList;
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("TripleliftNativeBidder could not unmarshal config json");
-        }
     }
 
     @Override
