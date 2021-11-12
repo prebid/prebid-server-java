@@ -1,7 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import lombok.Value;
-import org.prebid.server.bidder.Bidder;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.
