@@ -2,6 +2,7 @@ package com.iab.openrtb.request;
 
 import lombok.Builder;
 import lombok.Value;
+import lombok.experimental.Wither;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class BidRequest {
      * Array of Imp objects (Section 3.2.4) representing the impressions
      * offered. At least 1 Imp object is required.
      */
+    @Wither
     List<Imp> imp;
 
     /**

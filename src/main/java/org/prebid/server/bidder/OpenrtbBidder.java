@@ -59,7 +59,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             try {
                 final T impExt = parseImpExt(imp);
                 final Imp modifiedImp = modifyImp(imp, impExt);
-                modifiedImpsWithExts.add(new ImpWithExt<>(modifiedImp, impExt));
+                modifiedImpsWithExts.add(ImpWithExt.of(modifiedImp, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
