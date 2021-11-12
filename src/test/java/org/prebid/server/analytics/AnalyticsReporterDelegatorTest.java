@@ -246,7 +246,7 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(EVENT, TcfContext.empty());
 
         // then
-        verify(vertx, times(1)).runOnContext(any());
+        verify(vertx).runOnContext(any());
         assertThat(captureEvent(secondReporter)).isSameAs(EVENT);
     }
 

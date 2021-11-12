@@ -286,13 +286,13 @@ public class OutbrainBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build())).build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .adm(jacksonMapper.encode(nativeResponse)))));
+                                .adm(jacksonMapper.encodeToString(nativeResponse)))));
 
         // when
         final Result<List<BidderBid>> result = outbrainBidder.makeBids(httpCall, null);
 
         // then
-        final String expectedAdm = jacksonMapper.encode(Response.builder()
+        final String expectedAdm = jacksonMapper.encodeToString(Response.builder()
                 .eventtrackers(null)
                 .jstracker(String.format("<script src=\"%s\"></script>", jsUrl))
                 .imptrackers(singletonList(impUrl))

@@ -88,7 +88,7 @@ public class BrightrollBidderTest extends VertxTest {
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "192.168.0.1"),
                         tuple(HttpUtil.DNT_HEADER.toString(), "1"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder()
                                 .bidfloor(BID_FLOOR)
@@ -188,7 +188,7 @@ public class BrightrollBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().w(200).h(100)
                                 .format(singletonList(Format.builder().w(200).h(100).build())).build())
@@ -266,7 +266,7 @@ public class BrightrollBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
-        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsString(
+        assertThat(result.getValue()).extracting(HttpRequest::getBody).containsExactly(mapper.writeValueAsBytes(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBrightroll.of("publisher"))))

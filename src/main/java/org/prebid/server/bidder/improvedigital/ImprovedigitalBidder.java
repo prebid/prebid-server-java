@@ -91,7 +91,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(modifiedRequest)
-                .body(mapper.encode(modifiedRequest))
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .build();
     }
 

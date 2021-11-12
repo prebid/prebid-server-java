@@ -263,12 +263,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = requestBuilder.build();
-        final String body = mapper.encode(modifiedRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .headers(HttpUtil.headers())
                 .payload(modifiedRequest)
                 .build();

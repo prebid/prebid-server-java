@@ -59,7 +59,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class StoredRequestProcessorTest extends VertxTest {
 
@@ -543,7 +543,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         final Future<BidRequest> bidRequestFuture = storedRequestProcessor.processStoredRequests(null, bidRequest);
 
         // then
-        verifyZeroInteractions(applicationSettings, metrics);
+        verifyNoInteractions(applicationSettings, metrics);
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().getImp().get(0)).isSameAs(imp);
         assertThat(bidRequestFuture.result()).isSameAs(bidRequest);
@@ -737,7 +737,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("bidRequest")).build()))));
 
         // then
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -750,7 +750,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         storedRequestProcessor.processAmpRequest(null, "123", BidRequest.builder().build());
 
         // then
-        verifyZeroInteractions(metrics);
+        verifyNoInteractions(metrics);
     }
 
     @Test

@@ -24,7 +24,7 @@ public class UsersyncerCreatorTest {
         // when and then
         assertThat(UsersyncerCreator.create("http://localhost:8000").apply(config))
                 .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
-                .containsOnly("http://localhost:8000/redirect-url");
+                .isEqualTo("http://localhost:8000/redirect-url");
     }
 
     @Test
@@ -39,7 +39,7 @@ public class UsersyncerCreatorTest {
         // when and then
         assertThat(UsersyncerCreator.create(null).apply(config))
                 .extracting(usersyncer -> usersyncer.getPrimaryMethod().getRedirectUrl())
-                .containsOnly("");
+                .isEqualTo("");
     }
 
     @Test

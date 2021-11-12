@@ -2,9 +2,11 @@ package org.prebid.server.bidder;
 
 import com.iab.openrtb.request.BidRequest;
 import io.netty.channel.ConnectTimeoutException;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -18,13 +20,17 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +40,7 @@ import java.util.Objects;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Implements HTTP communication functionality common for {@link Bidder}'s.
@@ -52,16 +59,19 @@ public class HttpBidderRequester {
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
     private final BidderErrorNotifier bidderErrorNotifier;
     private final HttpBidderRequestEnricher requestEnricher;
+    private final JacksonMapper mapper;
 
     public HttpBidderRequester(HttpClient httpClient,
                                BidderRequestCompletionTrackerFactory completionTrackerFactory,
                                BidderErrorNotifier bidderErrorNotifier,
-                               HttpBidderRequestEnricher requestEnricher) {
+                               HttpBidderRequestEnricher requestEnricher,
+                               JacksonMapper mapper) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.completionTrackerFactory = completionTrackerFactoryOrFallback(completionTrackerFactory);
         this.bidderErrorNotifier = Objects.requireNonNull(bidderErrorNotifier);
         this.requestEnricher = Objects.requireNonNull(requestEnricher);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     /**
@@ -93,7 +103,8 @@ public class HttpBidderRequester {
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
         final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
-        final ResultBuilder<T> resultBuilder = new ResultBuilder<>(httpRequests, bidderErrors, completionTracker);
+        final ResultBuilder<T> resultBuilder =
+                new ResultBuilder<>(httpRequests, bidderErrors, completionTracker, mapper);
 
         final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
@@ -164,10 +175,43 @@ public class HttpBidderRequester {
             return failResponse(new TimeoutException("Timeout has been exceeded"), httpRequest);
         }
 
-        return httpClient.request(httpRequest.getMethod(), httpRequest.getUri(), httpRequest.getHeaders(),
-                        httpRequest.getBody(), remainingTimeout)
+        return createRequest(httpRequest, remainingTimeout)
                 .compose(response -> processResponse(response, httpRequest))
                 .recover(exception -> failResponse(exception, httpRequest));
+    }
+
+    private <T> Future<HttpClientResponse> createRequest(HttpRequest<T> httpRequest, long remainingTimeout) {
+        final byte[] requestBody = httpRequest.getBody();
+        final MultiMap requestHeaders = httpRequest.getHeaders();
+
+        final byte[] preparedBody = compressIfRequired(requestBody, requestHeaders);
+
+        return httpClient.request(httpRequest.getMethod(),
+                httpRequest.getUri(),
+                requestHeaders,
+                preparedBody,
+                remainingTimeout);
+    }
+
+    private static byte[] compressIfRequired(byte[] existingBody, MultiMap headers) {
+        final String contentEncodingHeader = headers.get(HttpUtil.CONTENT_ENCODING_HEADER);
+        if (Objects.equals(contentEncodingHeader, HttpHeaderValues.GZIP.toString())) {
+            return gzip(existingBody);
+        }
+
+        return existingBody;
+    }
+
+    private static byte[] gzip(byte[] value) {
+        try (ByteArrayOutputStream obj = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(
+                obj)) {
+            gzip.write(value);
+            gzip.finish();
+
+            return obj.toByteArray();
+        } catch (IOException e) {
+            throw new PreBidException(String.format("Failed to compress request : %s", e.getMessage()));
+        }
     }
 
     /**
@@ -266,13 +310,16 @@ public class HttpBidderRequester {
         final Map<HttpRequest<T>, HttpCall<T>> httpCallsRecorded = new HashMap<>();
         final List<BidderBid> bidsRecorded = new ArrayList<>();
         final List<BidderError> errorsRecorded = new ArrayList<>();
+        private final JacksonMapper mapper;
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
-                      BidderRequestCompletionTracker completionTracker) {
+                      BidderRequestCompletionTracker completionTracker,
+                      JacksonMapper mapper) {
             this.httpRequests = httpRequests;
             this.previousErrors = previousErrors;
             this.completionTracker = completionTracker;
+            this.mapper = mapper;
         }
 
         void addHttpCall(HttpCall<T> httpCall, Result<List<BidderBid>> bidsResult) {
@@ -299,7 +346,9 @@ public class HttpBidderRequester {
 
             // Capture debugging info from the requests
             final List<ExtHttpCall> extHttpCalls = debugEnabled
-                    ? httpCalls.stream().map(ResultBuilder::toExt).collect(Collectors.toList())
+                    ? httpCalls.stream()
+                    .map(this::toExt)
+                    .collect(Collectors.toList())
                     : Collections.emptyList();
 
             final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded);
@@ -310,11 +359,11 @@ public class HttpBidderRequester {
         /**
          * Constructs {@link ExtHttpCall} filled with HTTP call information.
          */
-        private static <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
+        private <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())
-                    .requestbody(request.getBody())
+                    .requestbody(mapper.encodeToString(request.getPayload()))
                     .requestheaders(HttpUtil.toDebugHeaders(request.getHeaders()));
 
             final HttpResponse response = httpCall.getResponse();

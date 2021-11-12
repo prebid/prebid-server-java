@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class AlertHttpServiceTest extends VertxTest {
 
@@ -80,7 +80,7 @@ public class AlertHttpServiceTest extends VertxTest {
         alertHttpService.alert("pbs", AlertPriority.HIGH, "errorMessage");
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

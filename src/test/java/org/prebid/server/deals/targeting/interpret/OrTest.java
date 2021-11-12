@@ -12,7 +12,6 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class OrTest {
@@ -47,7 +46,7 @@ public class OrTest {
     public void matchesShouldReturnTrueAndNotEvaluateRemainingExpressions() {
         assertThat(new Or(asList(falseExpression, trueExpression, falseExpression)).matches(context)).isTrue();
 
-        verify(falseExpression, times(1)).matches(context);
-        verify(trueExpression, times(1)).matches(context);
+        verify(falseExpression).matches(context);
+        verify(trueExpression).matches(context);
     }
 }

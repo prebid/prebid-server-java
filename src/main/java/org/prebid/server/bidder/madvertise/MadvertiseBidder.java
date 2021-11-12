@@ -100,7 +100,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
                 .uri(url)
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build();
     }
 

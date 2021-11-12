@@ -63,14 +63,13 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(request);
         final String requestUrl = String.format("%s/%s/request", endpointUrl, HttpUtil.encodeUrl(partnerId));
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(requestUrl)
-                                .body(body)
+                                .body(mapper.encodeToBytes(request))
                                 .headers(HttpUtil.headers())
                                 .payload(request)
                                 .build()),

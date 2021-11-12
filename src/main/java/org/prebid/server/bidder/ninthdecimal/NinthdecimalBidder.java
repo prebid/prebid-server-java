@@ -152,7 +152,6 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImp.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpNinthdecimal, imps);
 
-            final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
                     .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
             final String createdEndpoint = endpointUrl + extImpNinthdecimal.getPubid();
@@ -160,7 +159,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(createdEndpoint)
-                    .body(body)
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers)
                     .payload(bidRequest)
                     .build();

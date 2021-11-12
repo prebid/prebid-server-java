@@ -75,7 +75,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -90,7 +90,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -105,7 +105,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -120,7 +120,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -135,7 +135,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -150,7 +150,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     @Test
@@ -165,7 +165,7 @@ public class HookCatalogTest {
         // then
         assertThat(foundHook).isNotNull()
                 .extracting(Hook::code)
-                .containsOnly("sample-hook");
+                .isEqualTo("sample-hook");
     }
 
     private void givenHook(Class<? extends Hook<?, ? extends InvocationContext>> clazz) {

@@ -64,15 +64,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(bidRequest);
-        final MultiMap headers = makeHeaders(request);
-        final String url = makeUrl(request);
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(url)
-                .body(body)
-                .headers(headers)
+                .uri(makeUrl(request))
+                .body(mapper.encodeToBytes(bidRequest))
+                .headers(makeHeaders(request))
                 .payload(request)
                 .build());
     }

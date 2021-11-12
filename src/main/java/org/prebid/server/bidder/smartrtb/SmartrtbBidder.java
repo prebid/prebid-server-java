@@ -82,7 +82,6 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
         final String requestUrl = endpointUrl + pubId;
         final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
 
@@ -92,7 +91,7 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                                 .uri(requestUrl)
                                 .headers(headers)
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

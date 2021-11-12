@@ -57,7 +57,7 @@ public class PriceGranularity {
     /**
      * Creates {@link PriceGranularity} from {@link ExtPriceGranularity}.
      */
-    static PriceGranularity createFromExtPriceGranularity(ExtPriceGranularity extPriceGranularity) {
+    public static PriceGranularity createFromExtPriceGranularity(ExtPriceGranularity extPriceGranularity) {
         return createFromRanges(extPriceGranularity.getPrecision(), extPriceGranularity.getRanges());
     }
 
@@ -107,7 +107,7 @@ public class PriceGranularity {
     /**
      * Creates {@link PriceGranularity} from list of {@link ExtGranularityRange}s and validates it.
      */
-    private static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
+    public static PriceGranularity createFromRanges(Integer precision, List<ExtGranularityRange> ranges) {
 
         final BigDecimal rangeMax = CollectionUtils.emptyIfNull(ranges).stream()
                 .filter(Objects::nonNull)
