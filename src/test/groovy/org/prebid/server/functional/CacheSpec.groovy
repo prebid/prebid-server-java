@@ -1,6 +1,7 @@
 package org.prebid.server.functional
 
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.BidResponse
@@ -69,6 +70,7 @@ class CacheSpec extends BaseSpec {
         given: "Default BidRequest with cache, targeting"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.enableCache()
+        bidRequest.ext.prebid.targeting = new Targeting()
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -82,7 +84,6 @@ class CacheSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.enableCache()
         bidRequest.ext.prebid.targeting = null
-
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
