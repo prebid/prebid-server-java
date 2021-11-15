@@ -1,24 +1,19 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.testcontainers.PBSTest
-import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 @PBSTest
-class CoppaSpec extends BaseSpec {
+class CoppaSpec extends PrivacyBaseSpec {
 
     @PendingFeature
     def "PBS should add debug log for auction request when coppa = 0 was passed"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        given: "Default COPPA BidRequest"
+        def bidRequest = bidRequestWithGeo.tap {
             regs.coppa = 0
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
         }
 
         when: "PBS processes auction request"
@@ -52,10 +47,9 @@ class CoppaSpec extends BaseSpec {
 
     @PendingFeature
     def "PBS should add debug log for auction request when coppa = 1 was passed"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        given: "Default COPPA BidRequest"
+        def bidRequest = bidRequestWithGeo.tap {
             regs.coppa = 1
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
         }
 
         when: "PBS processes auction request"
@@ -81,13 +75,10 @@ class CoppaSpec extends BaseSpec {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo.tap {
             regs.coppa = 0
         }
-
-        and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -125,13 +116,10 @@ class CoppaSpec extends BaseSpec {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-            regs.coppa = 0
-        }
-
         and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            regs.coppa = 1
+        }
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 

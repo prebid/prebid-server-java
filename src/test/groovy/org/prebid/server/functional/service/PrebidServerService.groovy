@@ -61,7 +61,7 @@ class PrebidServerService {
     private final RequestSpecification requestSpecification
     private final RequestSpecification adminRequestSpecification
 
-    private final Logger log = LoggerFactory.getLogger(PrebidServerService.class)
+    private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
     PrebidServerService(PrebidServerContainer pbsContainer, ObjectMapperWrapper mapper) {
         def authenticationScheme = new BasicAuthScheme()

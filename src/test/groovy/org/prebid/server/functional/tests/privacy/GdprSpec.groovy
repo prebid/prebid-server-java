@@ -1,37 +1,25 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.RegsExt
-import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.ConsentString
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-import static org.prebid.server.functional.util.ConsentString.BASIC_ADS_PURPOSE_ID
+import static org.prebid.server.functional.util.ConsentString.PurposeId.BASIC_ADS
 
 @PBSTest
-class GdprSpec extends BaseSpec {
+class GdprSpec extends PrivacyBaseSpec {
 
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
-        given: "Generic BidRequest with consent string"
+        given: "Default gdpr BidRequest"
         def validConsentString = new ConsentString.Builder()
-                .setPurposesLITransparency(BASIC_ADS_PURPOSE_ID)
+                .setPurposesLITransparency(BASIC_ADS)
                 .build()
                 .consentString
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext = new RegsExt(gdpr: 1)
-            user = new User(id: PBSUtils.getRandomNumber(),
-                    ext: new UserExt(consent: validConsentString),
-                    geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        def bidRequest = getGdprBidRequest(validConsentString)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -65,11 +53,9 @@ class GdprSpec extends BaseSpec {
 
     @PendingFeature
     def "PBS should add debug log for auction request when invalid gdpr was passed"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        given: "Default gdpr BidRequest"
         def invalidConsentString = PBSUtils.randomString
-        bidRequest.regs.ext = new RegsExt(gdpr: 1)
-        bidRequest.user = new User(ext: new UserExt(consent: invalidConsentString))
+        def bidRequest = getGdprBidRequest(invalidConsentString)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -101,24 +87,13 @@ class GdprSpec extends BaseSpec {
     def "PBS should add debug log for amp request when valid gdpr was passed"() {
         given: "AmpRequest with consent string"
         def validConsentString = new ConsentString.Builder()
-                .setPurposesLITransparency(BASIC_ADS_PURPOSE_ID)
+                .setPurposesLITransparency(BASIC_ADS)
                 .build()
                 .consentString
-
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            gdprConsent = validConsentString
-            consentType = 2
-            gdprApplies = true
-        }
-
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            user = new User(id: PBSUtils.getRandomNumber(),
-                    ext: new UserExt(consent: validConsentString),
-                    geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        def ampRequest = getGdprAmpRequest(validConsentString)
 
         and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -156,17 +131,10 @@ class GdprSpec extends BaseSpec {
     def "PBS should add debug log for amp request when invalid gdpr was passed"() {
         given: "Default AmpRequest"
         def invalidConsentString = PBSUtils.randomString
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            gdprConsent = invalidConsentString
-            consentType = 2
-        }
-
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        def ampRequest = getGdprAmpRequest(invalidConsentString)
 
         and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 

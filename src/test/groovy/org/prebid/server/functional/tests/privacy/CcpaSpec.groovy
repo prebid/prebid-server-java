@@ -1,4 +1,4 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountCcpaConfig
@@ -6,27 +6,20 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.testcontainers.PBSTest
-import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.UsPrivacy
 import spock.lang.PendingFeature
 
+import static org.prebid.server.functional.util.UsPrivacy.Signal.ENFORCED
+
 @PBSTest
-class CcpaSpec extends BaseSpec {
+class CcpaSpec extends PrivacyBaseSpec {
 
     // TODO: extend ccpa test with actual fields that we should mask
     def "PBS should mask publisher info when privacy.ccpa.enabled = true in account config"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        def validCcpa = "1YYY"
-        bidRequest.regs.ext = new RegsExt(gdpr: 0, usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
-        bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
+        given: "Default ccpa BidRequest"
+        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def bidRequest = getCcpaBidRequest(validCcpa)
 
         and: "Save account config into DB"
         def ccpa = new AccountCcpaConfig(enabled: true)
@@ -40,19 +33,16 @@ class CcpaSpec extends BaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundFractionalNumber(lat, 2)
-        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundFractionalNumber(lon, 2)
+        def maskedGeo = getMaskedGeo(bidderRequests)
+        assert bidderRequests.device?.geo?.lat == maskedGeo["lat"]
+        assert bidderRequests.device?.geo?.lon == maskedGeo["lon"]
     }
 
     // TODO: extend this ccpa test with actual fields that we should mask
     def "PBS should not mask publisher info when privacy.ccpa.enabled = false in account config"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        def validCcpa = "1YYY"
-        bidRequest.regs.ext = new RegsExt(gdpr: 0, usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
-        bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
+        given: "Default ccpa BidRequest"
+        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def bidRequest = getCcpaBidRequest(validCcpa)
 
         and: "Save account config into DB"
         def ccpa = new AccountCcpaConfig(enabled: false)
@@ -66,18 +56,15 @@ class CcpaSpec extends BaseSpec {
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == lat
-        assert bidderRequests.device?.geo?.lon == lon
+        assert bidderRequests.device?.geo?.lat == bidRequest.device.geo.lat
+        assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
     }
 
     @PendingFeature
     def "PBS should add debug log for auction request when valid ccpa was passed"() {
-        given: "Default basic generic BidRequest"
-        def validCcpa = "1YYY"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            regs.ext = new RegsExt(usPrivacy: validCcpa)
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        given: "Default ccpa BidRequest"
+        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def bidRequest = getCcpaBidRequest(validCcpa)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -111,10 +98,9 @@ class CcpaSpec extends BaseSpec {
 
     @PendingFeature
     def "PBS should add debug log for auction request when invalid ccpa was passed"() {
-        given: "Default basic generic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        given: "Default ccpa BidRequest"
         def invalidCcpa = "1ASD"
-        bidRequest.regs.ext = new RegsExt(usPrivacy: invalidCcpa)
+        def bidRequest = getCcpaBidRequest(invalidCcpa)
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -140,18 +126,11 @@ class CcpaSpec extends BaseSpec {
     @PendingFeature
     def "PBS should add debug log for amp request when valid ccpa was passed"() {
         given: "Default AmpRequest"
-        def validCcpa = "1YYY"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            gdprConsent = validCcpa
-            consentType = 3
-        }
-
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def ampRequest = getCcpaAmpRequest(validCcpa)
 
         and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -189,17 +168,10 @@ class CcpaSpec extends BaseSpec {
     def "PBS should add debug log for amp request when invalid ccpa was passed"() {
         given: "Default AmpRequest"
         def invalidCcpa = "1ASD"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            gdprConsent = invalidCcpa
-            consentType = 3
-        }
-
-        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            site.publisher.id = ampRequest.account
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
-        }
+        def ampRequest = getCcpaAmpRequest(invalidCcpa)
 
         and: "Save storedRequest into DB"
+        def ampStoredRequest = bidRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 

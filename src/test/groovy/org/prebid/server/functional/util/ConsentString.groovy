@@ -7,9 +7,8 @@ import static io.restassured.RestAssured.given
 
 class ConsentString {
 
-    static private final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
-    static private final Integer VENDOR_LIST_VERSION = getVendorListVersion()
-    static public final Integer BASIC_ADS_PURPOSE_ID = 2
+    private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
+    private static final Integer VENDOR_LIST_VERSION = getVendorListVersion()
 
     private final TCStringEncoder.Builder tcStringEncoder
 
@@ -67,13 +66,27 @@ class ConsentString {
             this
         }
 
-        Builder setPurposesLITransparency(Integer purposesLITransparency) {
-            tcStringEncoder.addPurposesLITransparency(purposesLITransparency)
+        Builder setPurposesLITransparency(PurposeId purposesLITransparency) {
+            tcStringEncoder.addPurposesLITransparency(purposesLITransparency.value)
             this
         }
 
         ConsentString build() {
             new ConsentString(this)
+        }
+    }
+
+    enum PurposeId {
+
+        DEVICE_ACCESS(1),
+        BASIC_ADS(2),
+        PERSONALIZED_ADS(4),
+        MEASURE_AD_PERFORMANCE(7)
+
+        final int value
+
+        PurposeId(int value) {
+            this.value = value
         }
     }
 }
