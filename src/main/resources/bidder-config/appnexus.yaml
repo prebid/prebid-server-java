@@ -21,3 +21,4 @@ adapters:
       cookie-family-name: adnxs
       type: redirect
       support-cors: false
+    platform-id: 5
