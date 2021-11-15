@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -37,10 +39,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.UnaryOperator;
 
-import static java.util.Arrays.asList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -94,7 +95,7 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsWithValidDataWillThrowExceptionOnCurrencyConversion() {
+    public void makeHttpRequestsShouldReturnErrorMessageOnFailedCurrencyConversion() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willThrow(PreBidException.class);
@@ -120,9 +121,9 @@ public class ImpactifyBidderTest extends VertxTest {
                         .device(givenDevice(deviceCustomizer -> deviceCustomizer.ua("ua").ip("ip").ipv6("ipv6")))
                         .site(Site.builder().page("https://proper.web.site").build())
                         .user(User.builder().buyeruid("buyer_user_uid").build()),
-                List.of(impCustomizer -> impCustomizer
+                impCustomizer -> impCustomizer
                         .bidfloorcur("USD")
-                        .bidfloor(BigDecimal.ONE)));
+                        .bidfloor(BigDecimal.ONE));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
@@ -138,6 +139,60 @@ public class ImpactifyBidderTest extends VertxTest {
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
                         tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"),
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "https://proper.web.site"),
+                        tuple(HttpUtil.COOKIE_HEADER.toString(), "uids=buyer_user_uid")
+                );
+    }
+
+    @Test
+    public void makeHttpRequestsWithValidDataShouldContainCorrectExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestCustomizer -> bidRequestCustomizer
+                        .site(Site.builder().page("https://proper.web.site").build())
+                        .user(User.builder().buyeruid("buyer_user_uid").build()),
+                impCustomizer -> impCustomizer
+                        .bidfloorcur("USD")
+                        .bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(createObjectNode());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnValidBidResponseWithAllHeadersExceptIpv4() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestCustomizer -> bidRequestCustomizer
+                        .device(givenDevice(deviceCustomizer -> deviceCustomizer.ua("ua").ipv6("ipv6")))
+                        .site(Site.builder().page("https://proper.web.site").build())
+                        .user(User.builder().buyeruid("buyer_user_uid").build()),
+                impCustomizer -> impCustomizer
+                        .bidfloorcur("USD")
+                        .bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"),
                         tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"),
                         tuple(HttpUtil.REFERER_HEADER.toString(), "https://proper.web.site"),
@@ -164,7 +219,7 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsWithInvalidImpressionExtWillReturnWithError() {
+    public void makeHttpRequestsWithInvalidImpressionExtShouldReturnUnableToDecodeError() {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
@@ -282,22 +337,19 @@ public class ImpactifyBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            List<Function<Imp.ImpBuilder, Imp.ImpBuilder>> impCustomizers) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(impCustomizers.stream()
-                                .map(ImpactifyBidderTest::givenImp)
-                                .collect(Collectors.toList())))
+                        .imp(List.of(givenImp(impCustomizer))))
                 .build();
     }
 
-    @SafeVarargs
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequest(identity(), asList(impCustomizers));
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static Device givenDevice(Function<Device.DeviceBuilder, Device.DeviceBuilder> deviceCustomizer) {
+    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
         return deviceCustomizer.apply(Device.builder()).build();
     }
 
@@ -305,11 +357,11 @@ public class ImpactifyBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpImpactify.of("accountId", "format", "style")))))
+                                ExtImpImpactify.of("appId", "format", "style")))))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder()
                         .bid(List.of(bidCustomizer.apply(Bid.builder().impid("123")).build()))
@@ -322,5 +374,15 @@ public class ImpactifyBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private static ObjectNode createObjectNode() {
+        final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
+
+        modifiedImpExtBidder.set("appId", TextNode.valueOf("appId"));
+        modifiedImpExtBidder.set("format", TextNode.valueOf("format"));
+        modifiedImpExtBidder.set("style", TextNode.valueOf("style"));
+
+        return mapper.createObjectNode().set("impactify", modifiedImpExtBidder);
     }
 }

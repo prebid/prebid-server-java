@@ -7,9 +7,10 @@
         "w": 320,
         "h": 250
       },
+      "bidfloor": 10,
       "bidfloorcur": "USD",
       "ext": {
-        "bidder": {
+        "impactify": {
           "appId": "appId",
           "format": "format",
           "style": "style"

@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -26,6 +28,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.impactify.ExtImpImpactify;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -59,21 +62,15 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         final List<Imp> updatedImps = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            BigDecimal bidFloor = imp.getBidfloor();
             try {
-                if (shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())) {
-                    bidFloor = convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur());
-                }
-                updatedImps.add(updateImp(imp, bidFloor));
+                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp, imp.getBidfloor());
+                updatedImps.add(updateImp(imp, resolvedBidFloor));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final BidRequest updatedBidRequest = request.toBuilder()
-                .imp(updatedImps)
-                .cur(List.of(BIDDER_CURRENCY))
-                .build();
+        final BidRequest updatedBidRequest = updateBidRequest(request, updatedImps);
 
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -84,11 +81,14 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .build());
     }
 
+    private BigDecimal resolveBidFloor(BidRequest request, Imp imp, BigDecimal bidFloor) {
+        return shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())
+                ? convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur())
+                : imp.getBidfloor();
+    }
+
     private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
-        return bidFloor != null
-                && StringUtils.isNotEmpty(bidFloorCur)
-                && BigDecimal.ZERO.compareTo(bidFloor) <= 0
-                && !bidFloorCur.equalsIgnoreCase(BIDDER_CURRENCY);
+        return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCur, BIDDER_CURRENCY);
     }
 
     private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest,
@@ -104,10 +104,12 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, BigDecimal bidFloor) {
+        final ObjectNode modifiedImpExtBidder = createImpExtObjectNode(parseExtImp(imp));
+
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
-                .ext(mapper.mapper().valueToTree(ExtPrebid.of(null, parseExtImp(imp))))
+                .ext(mapper.mapper().createObjectNode().set("impactify", modifiedImpExtBidder))
                 .build();
     }
 
@@ -121,25 +123,49 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
     }
 
+    private ObjectNode createImpExtObjectNode(ExtImpImpactify impExt) {
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+
+        if (impExt != null) {
+            modifiedImpExtBidder.set("appId", TextNode.valueOf(impExt.getAppId()));
+            modifiedImpExtBidder.set("format", TextNode.valueOf(impExt.getFormat()));
+            modifiedImpExtBidder.set("style", TextNode.valueOf(impExt.getStyle()));
+        }
+
+        return modifiedImpExtBidder;
+    }
+
+    private static BidRequest updateBidRequest(BidRequest request, List<Imp> updatedImps) {
+
+        return request.toBuilder()
+                .imp(updatedImps)
+                .cur(List.of(BIDDER_CURRENCY))
+                .build();
+    }
+
     private static MultiMap constructHeaders(BidRequest bidRequest) {
         final MultiMap headers = HttpUtil.headers();
 
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
 
         final Device device = bidRequest.getDevice();
-        if (Objects.nonNull(device)) {
+        if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            if (device.getIp() != null) {
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            } else {
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            }
         }
 
         final Site site = bidRequest.getSite();
-        final String sitePage = site != null ? site.getPage() : null;
-        HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, sitePage);
+        if (site != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getPage());
+        }
 
         final User user = bidRequest.getUser();
         final String userUid = user != null ? user.getBuyeruid() : null;
-        if (Objects.nonNull(user) && StringUtils.isNotEmpty(userUid)) {
+        if (StringUtils.isNotEmpty(userUid)) {
             headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
         }
 
