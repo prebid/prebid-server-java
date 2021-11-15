@@ -22,12 +22,9 @@ import org.prebid.server.proto.openrtb.ext.request.nextmillenium.ExtImpNextMille
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.UnaryOperator;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -70,6 +67,29 @@ public class NextMilleniumBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsWithProperDataShouldContainCorrectPayload() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final BidRequest expectedPayload = BidRequest.builder()
+                .id(bidRequest.getId())
+                .test(bidRequest.getTest())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of("placement_id"))
+                        .build()))
+                .build();
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(expectedPayload);
+    }
+
+    @Test
     public void makeHttpRequestsWithInvalidImpsShouldReturnError() {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
@@ -80,19 +100,6 @@ public class NextMilleniumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value of type");
-    }
-
-    @Test
-    public void makeHttpRequestsWithNoImpsShouldReturnError() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors().get(0).getMessage())
-                .containsSequence("There are no impressions in BidRequest.");
     }
 
     @Test
@@ -124,8 +131,8 @@ public class NextMilleniumBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = nextMilleniumBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors()).isNull();
-        assertThat(result.getValue()).isNull();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -142,24 +149,22 @@ public class NextMilleniumBidderTest extends VertxTest {
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:");
     }
 
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
     private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            List<Function<Imp.ImpBuilder, Imp.ImpBuilder>> impCustomizers) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .id("1500")
                         .test(100)
-                        .imp(impCustomizers.stream()
-                                .map(NextMilleniumBidderTest::givenImp)
-                                .collect(Collectors.toList())))
+                        .imp(List.of(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequest(identity(), asList(impCustomizers));
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -167,7 +172,7 @@ public class NextMilleniumBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .seatbid(List.of(SeatBid.builder()
                         .bid(List.of(bidCustomizer.apply(Bid.builder()).build()))

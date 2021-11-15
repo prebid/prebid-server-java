@@ -31,6 +31,7 @@ public class NextMilleniumConfiguration {
     BidderDeps nextmilleniumBidderDeps(BidderConfigurationProperties nextmilleniumConfigurationProperties,
                                        @NotBlank @Value("${external-url}") String externalUrl,
                                        JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(nextmilleniumConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))

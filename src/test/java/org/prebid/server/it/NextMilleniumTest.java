@@ -21,7 +21,7 @@ public class NextMilleniumTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromNextMillenium() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nextmillenium-exchange/"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/nextmillenium-exchange"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/nextmillenium/test-nextmillenium-bid-request.json")))
                 .willReturn(aResponse().withBody(

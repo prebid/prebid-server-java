@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -25,7 +26,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -46,22 +46,20 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
         final List<BidderError> errors = new ArrayList<>();
-        final List<ExtImpNextMillenium> extImps = CollectionUtils.isNotEmpty(imps)
-                ? getImpressionInfo(imps, errors)
-                : errorIfEmpty(errors);
+        final List<ExtImpNextMillenium> impExts = getImpExts(bidRequest, errors);
 
         if (errors.size() > 0) {
-            return Result.of(null, errors);
-        } else {
-            return Result.of(makeRequests(bidRequest, extImps), Collections.emptyList());
+            return Result.withErrors(errors);
         }
+
+        return Result.withValues(makeRequests(bidRequest, impExts));
     }
 
-    private List<ExtImpNextMillenium> getImpressionInfo(List<Imp> imps, List<BidderError> errors) {
+    private List<ExtImpNextMillenium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
         final List<ExtImpNextMillenium> impExts = new ArrayList<>();
-        for (Imp imp : imps) {
+
+        for (Imp imp : bidRequest.getImp()) {
             try {
                 impExts.add(mapper.mapper()
                         .convertValue(imp.getExt(), NEXTMILLENIUM_EXT_TYPE_REFERENCE)
@@ -73,33 +71,14 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
         return impExts;
     }
 
-    private List<ExtImpNextMillenium> errorIfEmpty(List<BidderError> errors) {
-        errors.add(BidderError.badInput("There are no impressions in BidRequest."));
-
-        return Collections.emptyList();
-    }
-
     private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillenium> extImps) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (ExtImpNextMillenium ext : extImps) {
-            httpRequests.add(makeHttpRequest(updateBidRequest(bidRequest, ext)));
-        }
-
-        return httpRequests;
+        return extImps.stream()
+                .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
+                .collect(Collectors.toList());
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5"))
-                .payload(bidRequest)
-                .body(mapper.encodeToBytes(bidRequest))
-                .build();
-    }
-
-    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillenium ext) {
+    private static BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillenium ext) {
         return BidRequest.builder()
                 .id(bidRequest.getId())
                 .test(bidRequest.getTest())
@@ -110,12 +89,28 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(headers())
+                .payload(bidRequest)
+                .body(mapper.encodeToBytes(bidRequest))
+                .build();
+    }
+
+    private static MultiMap headers() {
+
+        return HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
+    }
+
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            if (bidResponse.getSeatbid().size() == 0) {
-                return Result.of(null, null);
+            if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+                return Result.empty();
             }
             return Result.withValues(bidsFromResponse(bidResponse));
         } catch (DecodeException e) {
