@@ -59,6 +59,10 @@
     }
   },
   "ext": {
+    "appnexus" : {
+      "is_amp" : 1,
+      "hb_source" : 5
+    },
     "prebid": {
       "currency": {
         "rates": {
