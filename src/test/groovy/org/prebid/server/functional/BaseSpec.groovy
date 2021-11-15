@@ -12,6 +12,7 @@ import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 import static org.prebid.server.functional.testcontainers.Dependencies.mysqlContainer
@@ -47,5 +48,19 @@ abstract class BaseSpec extends Specification {
         prebidCache.reset()
         repository.removeAllDatabaseData()
         pbsServiceFactory.stopContainers()
+    }
+
+    protected static int getRandomTimeout() {
+        PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
+    }
+
+    protected static Number getCurrentMetricValue(String name) {
+        def response = defaultPbsService.sendCollectedMetricsRequest()
+        response[name] ?: 0
+    }
+
+    protected static void flushMetrics() {
+        // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
+        defaultPbsService.sendCollectedMetricsRequest()
     }
 }

@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -51,7 +52,8 @@ public class AdagioBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap resolveHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers();
+        final MultiMap headers = HttpUtil.headers()
+                .add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());

@@ -32,7 +32,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class AdminCentralServiceTest extends VertxTest {
 
@@ -119,7 +119,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(suspendable);
+        verifyNoInteractions(suspendable);
     }
 
     @Test
@@ -147,7 +147,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(criteriaManager);
+        verifyNoInteractions(criteriaManager);
     }
 
     @Test
@@ -161,7 +161,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(criteriaManager);
+        verifyNoInteractions(criteriaManager);
     }
 
     @Test
@@ -174,8 +174,8 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(settingsCache);
-        verifyZeroInteractions(ampSettingsCache);
+        verifyNoInteractions(settingsCache);
+        verifyNoInteractions(ampSettingsCache);
     }
 
     @Test
@@ -188,8 +188,8 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(settingsCache);
-        verifyZeroInteractions(ampSettingsCache);
+        verifyNoInteractions(settingsCache);
+        verifyNoInteractions(ampSettingsCache);
     }
 
     @Test
@@ -202,8 +202,8 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(settingsCache);
-        verifyZeroInteractions(ampSettingsCache);
+        verifyNoInteractions(settingsCache);
+        verifyNoInteractions(ampSettingsCache);
     }
 
     @Test
@@ -244,7 +244,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(ampSettingsCache);
+        verifyNoInteractions(ampSettingsCache);
     }
 
     @Test
@@ -292,7 +292,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(settingsCache);
+        verifyNoInteractions(settingsCache);
     }
 
     @Test
@@ -375,7 +375,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(cachingApplicationSettings);
+        verifyNoInteractions(cachingApplicationSettings);
     }
 
     @Test
@@ -389,7 +389,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(cachingApplicationSettings);
+        verifyNoInteractions(cachingApplicationSettings);
     }
 
     @Test
@@ -403,7 +403,7 @@ public class AdminCentralServiceTest extends VertxTest {
         adminCentralService.processAdminCentralEvent(adminCentralResponse);
 
         // then
-        verifyZeroInteractions(cachingApplicationSettings);
+        verifyNoInteractions(cachingApplicationSettings);
     }
 
     @Test

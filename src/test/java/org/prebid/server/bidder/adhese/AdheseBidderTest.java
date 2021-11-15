@@ -36,7 +36,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -72,7 +71,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -89,7 +88,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -101,10 +100,10 @@ public class AdheseBidderTest extends VertxTest {
     public void makeHttpRequestsShouldModifyIncomingRequestAndSetExpectedHttpRequestUri()
             throws JsonProcessingException {
         // given
-        Map<String, List<String>> targets = new HashMap<>();
-        targets.put("ci", asList("gent", "brussels"));
-        targets.put("ag", singletonList("55"));
-        targets.put("tl", singletonList("all"));
+        final Map<String, List<String>> targets = Map.of(
+                "ci", asList("gent", "brussels"),
+                "ag", singletonList("55"),
+                "tl", singletonList("all"));
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
                         .ext(ExtUser.builder().consent("dummy").build())
@@ -120,28 +119,29 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
+        final TreeMap<String, List<String>> expectedParameters = new TreeMap<>();
+        expectedParameters.put("ag", singletonList("55"));
+        expectedParameters.put("ci", List.of("gent", "brussels"));
+        expectedParameters.put("tl", singletonList("all"));
+        expectedParameters.put("xt", singletonList("dummy"));
+        expectedParameters.put("xz", singletonList("dum-my"));
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsOnly("https://ads-demo.adhese.com/json");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
                 .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
-                        AdheseRequestBody
-                        .builder()
-                        .slots(Collections.singletonList(
-                                AdheseRequestBody.Slot.builder()
-                                        .slotname("_adhese_prebid_demo_-leaderboard")
-                                        .build()))
-                        .parameters(new TreeMap<String, List<String>>() {{
-                                put("ag", Arrays.asList("55"));
-                                put("ci", Arrays.asList("gent", "brussels"));
-                                put("tl", Arrays.asList("all"));
-                                put("xt", Arrays.asList("dummy"));
-                                put("xz", Arrays.asList("dum-my")); }})
-                        .build()));
+                        AdheseRequestBody.builder()
+                                .slots(Collections.singletonList(
+                                        AdheseRequestBody.Slot.builder()
+                                                .slotname("_adhese_prebid_demo_-leaderboard")
+                                                .build()))
+                                .parameters(expectedParameters)
+                                .build()));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -190,7 +190,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -227,7 +227,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -250,7 +250,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -265,7 +265,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyIsUnexpected() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("{}");
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("{}");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -280,7 +280,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseIsEmptyArray() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("[]");
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[]");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -293,7 +293,7 @@ public class AdheseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseIsArrayWithEmptyObject() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("[{}]");
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[{}]");
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -331,7 +331,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
@@ -375,7 +375,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -434,7 +434,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -492,7 +492,7 @@ public class AdheseBidderTest extends VertxTest {
         final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
 
         final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
 
         // when
         final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
@@ -518,9 +518,9 @@ public class AdheseBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
     }
 
-    private static HttpCall<Void> givenHttpCall(String responseBody) {
+    private static HttpCall<AdheseRequestBody> givenHttpCall(String responseBody) {
         return HttpCall.success(
-                HttpRequest.<Void>builder().build(),
+                HttpRequest.<AdheseRequestBody>builder().build(),
                 HttpResponse.of(200, null, responseBody), null);
     }
 }

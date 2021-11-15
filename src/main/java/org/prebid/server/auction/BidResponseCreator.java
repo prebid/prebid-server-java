@@ -24,6 +24,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderResponse;
@@ -171,13 +172,18 @@ public class BidResponseCreator {
      * Creates an OpenRTB {@link BidResponse} from the bids supplied by the bidder,
      * including processing of winning bids with cache IDs.
      */
-    Future<BidResponse> create(List<BidderResponse> bidderResponses,
+    Future<BidResponse> create(List<AuctionParticipation> auctionParticipations,
                                AuctionContext auctionContext,
                                BidRequestCacheInfo cacheInfo,
                                Map<String, MultiBidConfig> bidderToMultiBids) {
 
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
         final EventsContext eventsContext = createEventsContext(auctionContext);
+
+        final List<BidderResponse> bidderResponses = auctionParticipations.stream()
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .map(AuctionParticipation::getBidderResponse)
+                .collect(Collectors.toList());
 
         return videoStoredDataResult(auctionContext)
                 .compose(videoStoredDataResult -> {
@@ -1390,16 +1396,16 @@ public class BidResponseCreator {
     }
 
     private static String channelFromRequest(BidRequest bidRequest) {
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequest ext = bidRequest.getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
         final ExtRequestPrebidChannel channel = prebid != null ? prebid.getChannel() : null;
 
         return channel != null ? channel.getName() : null;
     }
 
     private static boolean eventsAllowedByRequest(AuctionContext auctionContext) {
-        final ExtRequest requestExt = auctionContext.getBidRequest().getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequest ext = auctionContext.getBidRequest().getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
 
         return prebid != null && prebid.getEvents() != null;
     }
@@ -1408,16 +1414,16 @@ public class BidResponseCreator {
      * Extracts auction timestamp from {@link ExtRequest} or get it from {@link Clock} if it is null.
      */
     private long auctionTimestamp(AuctionContext auctionContext) {
-        final ExtRequest requestExt = auctionContext.getBidRequest().getExt();
-        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
+        final ExtRequest ext = auctionContext.getBidRequest().getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
         final Long auctionTimestamp = prebid != null ? prebid.getAuctiontimestamp() : null;
 
         return auctionTimestamp != null ? auctionTimestamp : clock.millis();
     }
 
     private static String integrationFrom(AuctionContext auctionContext) {
-        final ExtRequest extRequest = auctionContext.getBidRequest().getExt();
-        final ExtRequestPrebid prebid = extRequest == null ? null : extRequest.getPrebid();
+        final ExtRequest ext = auctionContext.getBidRequest().getExt();
+        final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
 
         return prebid != null ? prebid.getIntegration() : null;
     }
@@ -1592,9 +1598,8 @@ public class BidResponseCreator {
     }
 
     private ExtBidPrebid getExtPrebid(ObjectNode bidExt) {
-        if (bidExt == null || !bidExt.hasNonNull(PREBID_EXT)) {
-            return null;
-        }
-        return mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
+        return bidExt != null && bidExt.hasNonNull(PREBID_EXT)
+                ? mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class)
+                : null;
     }
 }

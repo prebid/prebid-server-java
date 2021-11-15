@@ -92,12 +92,12 @@ and verify response status is `200 OK`.
 # Documentation
 
 ## Development
-- [Endpoints](docs/endpoints)
-- [Adding new bidder](docs/developers/add-new-bidder.md)
-- [Adding new analytics module](docs/developers/add-new-analytics-module.md)
+- [Endpoints](https://docs.prebid.org/prebid-server/endpoints/pbs-endpoint-overview.html)
+- [Adding new bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html)
+- [Adding new analytics module](https://docs.prebid.org/prebid-server/developers/pbs-build-an-analytics-adapter.html#adding-an-analytics-adapter-in-pbs-java)
 - [Adding viewability support](docs/developers/add-viewability-vendors.md)
 - [Auction result post-processing](docs/developers/auction-result-post-processing.md)
-- [Cookie Syncs](docs/developers/cookie-syncs.md)
+- [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
 - [Stored Requests](docs/developers/stored-requests.md)
 - [Unit Tests](docs/developers/unit-tests.md)
 - [GDPR](docs/developers/gdpr.md)

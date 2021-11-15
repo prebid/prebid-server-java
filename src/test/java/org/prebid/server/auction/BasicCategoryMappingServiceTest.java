@@ -54,7 +54,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class BasicCategoryMappingServiceTest extends VertxTest {
 
@@ -175,7 +175,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 givenBidRequestWithTargeting(extRequestTargeting), timeout);
 
         // then
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
         assertThat(resultFuture.succeeded()).isTrue();
         final Map<Bid, String> expectedBidCategory = new HashMap<>();
         expectedBidCategory.put(givenBid("1", null, "10", singletonList("cat1")), "10.00_cat1_10s");

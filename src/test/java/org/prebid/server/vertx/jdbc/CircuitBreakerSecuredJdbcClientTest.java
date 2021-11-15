@@ -110,7 +110,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.setHandler(context.asyncAssertFailure(throwable -> {
             assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
 
-            verify(wrappedJdbcClient, times(1))
+            verify(wrappedJdbcClient)
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 call
         }));
     }

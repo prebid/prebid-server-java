@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class HttpInteractionLoggerTest extends VertxTest {
 
@@ -103,7 +103,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
@@ -147,7 +147,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
@@ -231,7 +231,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
@@ -275,7 +275,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test
@@ -340,7 +340,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
         testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
-        verifyZeroInteractions(logger);
+        verifyNoInteractions(logger);
     }
 
     @Test

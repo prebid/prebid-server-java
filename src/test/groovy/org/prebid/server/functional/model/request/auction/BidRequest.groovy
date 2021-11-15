@@ -70,6 +70,9 @@ class BidRequest {
         if (ext.prebid == null) {
             ext.prebid = new Prebid()
         }
+        if (ext.prebid.targeting == null) {
+            ext.prebid.targeting = new Targeting()
+        }
         if (ext.prebid.cache == null) {
             ext.prebid.cache = new PrebidCache()
         }

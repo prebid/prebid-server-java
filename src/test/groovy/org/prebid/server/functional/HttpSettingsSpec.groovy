@@ -6,7 +6,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
@@ -117,8 +117,10 @@ class HttpSettingsSpec extends BaseSpec {
         def response = prebidServerService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie
-        assert !response.responseBody?.isEmpty()
+        assert response.uidsCookie.bday
+        assert !response.uidsCookie.tempUIDs
+        assert !response.uidsCookie.uids
+        assert response.responseBody == ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(request.account) == 1
