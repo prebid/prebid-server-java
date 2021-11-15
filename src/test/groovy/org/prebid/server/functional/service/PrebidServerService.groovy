@@ -6,6 +6,7 @@ import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
 import io.restassured.specification.RequestSpecification
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -14,7 +15,6 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.model.response.amp.RawAmpResponse
@@ -147,8 +147,8 @@ class PrebidServerService {
         checkResponseStatusCode(response)
 
         def setuidResponse = new SetuidResponse()
-        setuidResponse.uidsCookie = response.detailedCookie("uids")
-        setuidResponse.responseBody = response.asString()
+        setuidResponse.uidsCookie = getDecodedUidsCookie(response)
+        setuidResponse.responseBody = response.asByteArray()
         setuidResponse
     }
 
@@ -275,6 +275,15 @@ class PrebidServerService {
 
     private static Map<String, String> getHeaders(Response response) {
         response.headers().collectEntries { [it.name, it.value] }
+    }
+
+    private UidsCookie getDecodedUidsCookie(Response response) {
+        def uids = response.detailedCookie("uids")?.value
+        if (uids) {
+            return mapper.decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
+        } else {
+            throw new IllegalStateException("uids cookie is missing in response")
+        }
     }
 
     List<String> getLogsByTime(Instant testStart,

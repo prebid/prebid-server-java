@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 import spock.lang.Unroll
 
@@ -144,9 +143,5 @@ class AmpSpec extends BaseSpec {
         ampRequest                   || description
         AmpRequest.defaultAmpRequest || "valid AMP request"
         new AmpRequest()             || "invalid AMP request"
-    }
-
-    private static int getRandomTimeout() {
-        PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 }
