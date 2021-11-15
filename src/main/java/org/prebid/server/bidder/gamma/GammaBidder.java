@@ -181,8 +181,7 @@ public class GammaBidder implements Bidder<Void> {
                 .set(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5")
                 .set(HttpUtil.ACCEPT_HEADER, "*/*")
                 .set(HttpUtil.CACHE_CONTROL_HEADER, "no-cache")
-                .set(HttpUtil.CONNECTION_HEADER, "keep-alive")
-                .set(HttpUtil.ACCEPT_ENCODING_HEADER, "gzip, deflate");
+                .set(HttpUtil.CONNECTION_HEADER, "keep-alive");
 
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());

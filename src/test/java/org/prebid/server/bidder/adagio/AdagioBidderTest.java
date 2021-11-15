@@ -71,6 +71,7 @@ public class AdagioBidderTest extends VertxTest {
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.CONTENT_ENCODING_HEADER.toString(), HttpHeaderValues.GZIP.toString()),
                         tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "someIp"));
     }
 

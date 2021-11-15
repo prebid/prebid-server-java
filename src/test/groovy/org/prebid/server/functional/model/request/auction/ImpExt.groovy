@@ -10,12 +10,9 @@ import org.prebid.server.functional.model.bidder.Rubicon
 class ImpExt {
 
     ImpExtPrebid prebid
-
     Generic generic
-
     @Deprecated
     Rubicon rubicon
-
     @Deprecated
     @JsonProperty("appnexus")
     AppNexus appNexus

@@ -86,7 +86,7 @@ http-client:
   idle-timeout-ms: 0
   pool-cleaner-period-ms: 1000
   connect-timeout-ms: 2500
-  use-compression: false
+  use-compression: true
   max-redirects: 0
   ssl: false
   jks-path:
