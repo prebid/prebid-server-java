@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
-class Pmp {
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
+class DealLine {
 
-    Integer privateAuction
-    List<Deal> deals
+    String lineItemId
+    String extLineItemId
+    List<Format> sizes
+    String bidder
 }
