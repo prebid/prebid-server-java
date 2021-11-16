@@ -7,6 +7,8 @@ import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static org.awaitility.Awaitility.with
 
 class PBSUtils {
 
@@ -31,5 +33,13 @@ class PBSUtils {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
+    }
+
+    static void waitUntil(Closure closure, long timeout = 1000, long pollInterval = 100) {
+        with().pollDelay(0, MILLISECONDS)
+              .pollInterval(pollInterval, MILLISECONDS)
+              .await()
+              .atMost(timeout, MILLISECONDS)
+              .until(closure)
     }
 }

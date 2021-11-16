@@ -10,8 +10,8 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     public static final int PORT = 8080
     public static final int DEBUG_PORT = 8000
     public static final int ADMIN_PORT = 8060
-    public static final String ADMIN_ENDPOINT_USERNAME = "user"
-    public static final String ADMIN_ENDPOINT_PASSWORD = "user"
+    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
 
     private static final String DB_ACCOUNT_QUERY = """
 SELECT JSON_MERGE_PATCH(JSON_OBJECT('id', uuid,
@@ -151,13 +151,15 @@ LIMIT 1
         return "http://$host:$adminPort"
     }
 
-    private static Map<String, String> normalizeProperties(Map<String, String> properties) {
-        properties.collectEntries { [normalizeProperty(it.key), it.value] } as Map<String, String>
-    }
-
-    private static String normalizeProperty(String property) {
+    static String normalizeProperty(String property) {
         property.replace(".", "_")
                 .replace("-", "")
+                .replace("[", "_")
+                .replace("]", "_")
+    }
+
+    private static Map<String, String> normalizeProperties(Map<String, String> properties) {
+        properties.collectEntries { [normalizeProperty(it.key), it.value] } as Map<String, String>
     }
 
     @Override

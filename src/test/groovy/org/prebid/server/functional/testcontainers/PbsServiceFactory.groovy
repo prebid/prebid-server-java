@@ -4,6 +4,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 
 class PbsServiceFactory {
 
@@ -24,13 +25,17 @@ class PbsServiceFactory {
             remove([(container.key): container.value])
         }
         if (containers.containsKey(config)) {
-            return new PrebidServerService(containers.get(config), mapper)
+            return new PrebidServerService(getContainer(config), mapper)
         } else {
             def pbsContainer = new PrebidServerContainer(config)
             pbsContainer.start()
             containers.put(config, pbsContainer)
             return new PrebidServerService(pbsContainer, mapper)
         }
+    }
+
+    static PrebidServerContainer getContainer(Map<String, String> config) {
+        containers.get(config)
     }
 
     static void stopContainers() {
@@ -52,6 +57,17 @@ class PbsServiceFactory {
          "settings.http.amp-endpoint"     : "$networkServiceContainer.rootUri/amp-stored-requests".toString(),
          "settings.http.video-endpoint"   : "$networkServiceContainer.rootUri/video-stored-requests".toString(),
          "settings.http.category-endpoint": "$networkServiceContainer.rootUri/video-categories".toString()]
+    }
+
+    static Map<String, String> generalSettings() {
+        ["host-id"          : PBSUtils.randomString,
+         "datacenter-region": PBSUtils.randomString,
+         "vendor"           : PBSUtils.randomString,
+         "profile"          : PBSUtils.randomString,
+         "system"           : PBSUtils.randomString,
+         "sub-system"       : PBSUtils.randomString,
+         "data-center"      : PBSUtils.randomString
+        ]
     }
 
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
