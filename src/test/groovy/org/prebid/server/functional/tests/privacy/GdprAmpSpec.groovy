@@ -4,20 +4,22 @@ import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 
-import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
-import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
-import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 @PBSTest
-class GdprSpec extends PrivacyBaseSpec {
+class GdprAmpSpec extends PrivacyBaseSpec {
 
+
+    def setupSpec(){
+        cacheVendorList()
+    }
+    
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
         given: "Default gdpr BidRequest"
@@ -89,17 +91,18 @@ class GdprSpec extends PrivacyBaseSpec {
         }
     }
 
-    @PendingFeature
+     @PendingFeature
     def "PBS should add debug log for amp request when valid gdpr was passed"() {
         given: "AmpRequest with consent string"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def ampRequest = getGdprAmpRequest(validConsentString)
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = bidRequestWithGeo
+        def ampStoredRequest = storedRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -140,7 +143,7 @@ class GdprSpec extends PrivacyBaseSpec {
         def ampRequest = getGdprAmpRequest(invalidConsentString)
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = bidRequestWithGeo
+        def ampStoredRequest = storedRequestWithGeo
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -260,5 +263,68 @@ class GdprSpec extends PrivacyBaseSpec {
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["Amp request parameter consent_string has invalid format for consent type tcfV2: $ccpaConsent" as String]
+    }
+
+    def "PBS should apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = true in account config"() {
+        given: "Default AmpRequest"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+        def ampRequest = getGdprAmpRequest(validConsentString)
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = storedRequestWithGeo
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: ampRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain masked values"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequests.device?.geo == maskGeo(ampStoredRequest)
+
+        where:
+        gdprConfig << [new AccountGdprConfig(enabled: false, enabledForRequestType: [(AMP): true]),
+                              new AccountGdprConfig(enabled: true)]
+    }
+
+    def "PBS should not apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = false in account config"() {
+        given: "Default AmpRequest"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+        def ampRequest = getGdprAmpRequest(validConsentString)
+
+        and: "Save storedRequest into DB"
+        def ampStoredRequest = storedRequestWithGeo
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: ampRequest.account, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not masked values"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequests.device?.geo?.lat == ampStoredRequest.device.geo.lat
+        assert bidderRequests.device?.geo?.lon == ampStoredRequest.device.geo.lon
+
+        where:
+        gdprConfig << [new AccountGdprConfig(enabled: true, enabledForRequestType: [(AMP): false]),
+                              new AccountGdprConfig(enabled: false)]
     }
 }

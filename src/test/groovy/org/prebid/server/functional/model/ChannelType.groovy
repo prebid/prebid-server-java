@@ -1,4 +1,4 @@
-package org.prebid.server.functional.model.config
+package org.prebid.server.functional.model
 
 import com.fasterxml.jackson.annotation.JsonValue
 

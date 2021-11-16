@@ -8,18 +8,19 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 
+import static org.prebid.server.functional.model.ChannelType.APP
+import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 @PBSTest
-class CcpaSpec extends PrivacyBaseSpec {
+class CcpaAuctionSpec extends PrivacyBaseSpec {
 
     // TODO: extend ccpa test with actual fields that we should mask
     def "PBS should mask publisher info when privacy.ccpa.enabled = true in account config"() {
@@ -268,5 +269,99 @@ class CcpaSpec extends PrivacyBaseSpec {
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["Amp request parameter gdpr_consent has invalid format for consent type usPrivacy: $tcfConsent" as String]
+    }
+
+    def "PBS should apply ccpa when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = true in account config"() {
+        given: "Default basic generic BidRequest"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def bidRequest = getCcpaBidRequest(APP, validCcpa)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: bidRequest.app.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo == maskGeo(bidRequest)
+
+        where:
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, enabledForRequestType: [(APP): true]),
+                       new AccountCcpaConfig(enabled: true)]
+    }
+
+    def "PBS should apply ccpa when privacy.ccpa.channel-enabled.web or privacy.ccpa.enabled = true in account config"() {
+        given: "Default basic generic BidRequest"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def bidRequest = getCcpaBidRequest(WEB, validCcpa)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo == maskGeo(bidRequest)
+
+        where:
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, enabledForRequestType: [(WEB): true]),
+                       new AccountCcpaConfig(enabled: true)]
+    }
+
+    def "PBS should not apply ccpa when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = false in account config"() {
+        given: "Default basic generic BidRequest"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def bidRequest = getCcpaBidRequest(APP, validCcpa)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: bidRequest.app.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo?.lat == bidRequest.device.geo.lat
+        assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
+
+        where:
+        ccpaConfig << [new AccountCcpaConfig(enabled: true, enabledForRequestType: [(APP): false]),
+                       new AccountCcpaConfig(enabled: false)]
+    }
+
+    def "PBS should not apply ccpa when privacy.ccpa.channel-enabled.web or privacy.ccpa.enabled = false in account config"() {
+        given: "Default basic generic BidRequest"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def bidRequest = getCcpaBidRequest(validCcpa)
+
+        and: "Save account config into DB"
+        def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain not masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo?.lat == bidRequest.device.geo.lat
+        assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
+
+        where:
+        ccpaConfig << [new AccountCcpaConfig(enabled: true, enabledForRequestType: [(WEB): false]),
+                       new AccountCcpaConfig(enabled: false)]
     }
 }

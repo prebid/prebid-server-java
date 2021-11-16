@@ -1,9 +1,12 @@
 package org.prebid.server.functional.testcontainers.container
 
 import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.privacy.TcfConsent
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
+
+import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
@@ -115,9 +118,10 @@ LIMIT 1
 
     void withBidder(String host) {
         withConfig(["adapters.generic.enabled"      : "true",
-                    "adapters.generic.endpoint"     : "$host/auction".toString(),
-                    "adapters.generic.usersync.url" : "$host/generic-usersync".toString(),
-                    "adapters.generic.usersync.type": "redirect"
+                    "adapters.generic.endpoint"     : "$host/auction" as String,
+                    "adapters.generic.usersync.url" : "$host/generic-usersync" as String,
+                    "adapters.generic.usersync.type": "redirect",
+                    "adapters.generic.meta-info.vendor-id": RUBICON_VENDOR_ID as String
         ])
     }
 
