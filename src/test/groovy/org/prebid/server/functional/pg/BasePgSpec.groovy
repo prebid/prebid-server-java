@@ -1,6 +1,7 @@
 package org.prebid.server.functional.pg
 
 import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
+import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsContainerProperties
@@ -45,5 +46,9 @@ abstract class BasePgSpec extends Specification {
 
         userData.setResponse()
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
+    }
+
+    def cleanupSpec() {
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 }
