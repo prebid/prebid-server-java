@@ -1,0 +1,17 @@
+adapters:
+  richaudience:
+    endpoint: http://ortb.richaudience.com/ortb/?bidder=pbs
+    meta-info:
+      maintainer-email: partnerintegrations@richaudience.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 108
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: richaudience
+      type: redirect
+      support-cors: false
