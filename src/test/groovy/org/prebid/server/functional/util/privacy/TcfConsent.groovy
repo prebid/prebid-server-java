@@ -1,23 +1,19 @@
-package org.prebid.server.functional.util
+package org.prebid.server.functional.util.privacy
 
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
 
 import static io.restassured.RestAssured.given
 
-class ConsentString {
+class TcfConsent implements BuildableConsentString{
 
     private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
-    private static final Integer VENDOR_LIST_VERSION = getVendorListVersion()
+    private static final Integer VENDOR_LIST_VERSION = vendorListVersion
 
     private final TCStringEncoder.Builder tcStringEncoder
 
-    private ConsentString(Builder builder) {
+    private TcfConsent(Builder builder) {
         this.tcStringEncoder = builder.tcStringEncoder
-    }
-
-    String getConsentString() {
-        tcStringEncoder.encode()
     }
 
     static Integer getVendorListVersion() {
@@ -28,6 +24,16 @@ class ConsentString {
             return vendorListVersion
         }
 
+    }
+
+    @Override
+    String getConsentString() {
+        tcStringEncoder.encode()
+    }
+
+    @Override
+    String toString() {
+        consentString
     }
 
     static class Builder {
@@ -71,8 +77,8 @@ class ConsentString {
             this
         }
 
-        ConsentString build() {
-            new ConsentString(this)
+        TcfConsent build() {
+            new TcfConsent(this)
         }
     }
 

@@ -3,11 +3,11 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.testcontainers.PBSTest
-import org.prebid.server.functional.util.ConsentString
-import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.BogusConsent
+import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 
-import static org.prebid.server.functional.util.ConsentString.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 @PBSTest
 class GdprSpec extends PrivacyBaseSpec {
@@ -15,10 +15,10 @@ class GdprSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
         given: "Default gdpr BidRequest"
-        def validConsentString = new ConsentString.Builder()
+        def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .build()
-                .consentString
+
         def bidRequest = getGdprBidRequest(validConsentString)
 
         when: "PBS processes auction request"
@@ -30,11 +30,11 @@ class GdprSpec extends PrivacyBaseSpec {
 
         verifyAll {
             privacy.originPrivacy?.tcf?.gdpr == "1"
-            privacy.originPrivacy?.tcf?.tcfConsentString == validConsentString
+            privacy.originPrivacy?.tcf?.tcfConsentString == validConsentString as String
             !privacy.originPrivacy?.tcf?.tcfConsentVersion
             !privacy.originPrivacy?.tcf?.inEea
             privacy.resolvedPrivacy?.tcf?.gdpr == "1"
-            privacy.resolvedPrivacy?.tcf?.tcfConsentString == validConsentString
+            privacy.resolvedPrivacy?.tcf?.tcfConsentString == validConsentString as String
             privacy.resolvedPrivacy?.tcf?.tcfConsentVersion == 2
             !privacy.resolvedPrivacy?.tcf?.inEea
 
@@ -54,7 +54,7 @@ class GdprSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for auction request when invalid gdpr was passed"() {
         given: "Default gdpr BidRequest"
-        def invalidConsentString = PBSUtils.randomString
+        def invalidConsentString = new BogusConsent()
         def bidRequest = getGdprBidRequest(invalidConsentString)
 
         when: "PBS processes auction request"
@@ -69,11 +69,11 @@ class GdprSpec extends PrivacyBaseSpec {
 
         verifyAll {
             privacy.originPrivacy?.tcf?.gdpr == "1"
-            privacy.originPrivacy?.tcf?.tcfConsentString == invalidConsentString
+            privacy.originPrivacy?.tcf?.tcfConsentString == invalidConsentString as String
             !privacy.originPrivacy?.tcf?.tcfConsentVersion
             !privacy.originPrivacy?.tcf?.inEea
             privacy.resolvedPrivacy?.tcf?.gdpr == "1"
-            privacy.resolvedPrivacy?.tcf?.tcfConsentString == invalidConsentString
+            privacy.resolvedPrivacy?.tcf?.tcfConsentString == invalidConsentString as String
             privacy.resolvedPrivacy?.tcf?.tcfConsentVersion == 2
             !privacy.resolvedPrivacy?.tcf?.inEea
 
@@ -86,10 +86,10 @@ class GdprSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for amp request when valid gdpr was passed"() {
         given: "AmpRequest with consent string"
-        def validConsentString = new ConsentString.Builder()
+        def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .build()
-                .consentString
+
         def ampRequest = getGdprAmpRequest(validConsentString)
 
         and: "Save storedRequest into DB"
@@ -106,11 +106,11 @@ class GdprSpec extends PrivacyBaseSpec {
 
         verifyAll {
             privacy.originPrivacy?.tcf?.gdpr == "1"
-            privacy.originPrivacy?.tcf?.tcfConsentString == validConsentString
+            privacy.originPrivacy?.tcf?.tcfConsentString == validConsentString as String
             !privacy.originPrivacy?.tcf?.tcfConsentVersion
             !privacy.originPrivacy?.tcf?.inEea
             privacy.resolvedPrivacy?.tcf?.gdpr == "1"
-            privacy.resolvedPrivacy?.tcf?.tcfConsentString == validConsentString
+            privacy.resolvedPrivacy?.tcf?.tcfConsentString == validConsentString as String
             privacy.resolvedPrivacy?.tcf?.tcfConsentVersion == 2
             !privacy.resolvedPrivacy?.tcf?.inEea
 
@@ -130,7 +130,7 @@ class GdprSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for amp request when invalid gdpr was passed"() {
         given: "Default AmpRequest"
-        def invalidConsentString = PBSUtils.randomString
+        def invalidConsentString = new BogusConsent()
         def ampRequest = getGdprAmpRequest(invalidConsentString)
 
         and: "Save storedRequest into DB"
@@ -150,11 +150,11 @@ class GdprSpec extends PrivacyBaseSpec {
 
         verifyAll {
             privacy.originPrivacy?.tcf?.gdpr == "1"
-            privacy.originPrivacy?.tcf?.tcfConsentString == invalidConsentString
+            privacy.originPrivacy?.tcf?.tcfConsentString == invalidConsentString as String
             !privacy.originPrivacy?.tcf?.tcfConsentVersion
             !privacy.originPrivacy?.tcf?.inEea
             privacy.resolvedPrivacy?.tcf?.gdpr == "1"
-            privacy.resolvedPrivacy?.tcf?.tcfConsentString == invalidConsentString
+            privacy.resolvedPrivacy?.tcf?.tcfConsentString == invalidConsentString as String
             privacy.resolvedPrivacy?.tcf?.tcfConsentVersion == 2
             !privacy.resolvedPrivacy?.tcf?.inEea
 

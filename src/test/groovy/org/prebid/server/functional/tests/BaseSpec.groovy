@@ -16,10 +16,6 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
-import static org.prebid.server.functional.testcontainers.Dependencies.mysqlContainer
-import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
-import static org.prebid.server.functional.testcontainers.Dependencies.objectMapperWrapper
-
 @PBSTest
 abstract class BaseSpec extends Specification {
 

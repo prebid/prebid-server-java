@@ -7,10 +7,11 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.testcontainers.PBSTest
-import org.prebid.server.functional.util.UsPrivacy
+import org.prebid.server.functional.util.privacy.BogusConsent
+import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature
 
-import static org.prebid.server.functional.util.UsPrivacy.Signal.ENFORCED
+import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 @PBSTest
 class CcpaSpec extends PrivacyBaseSpec {
@@ -18,7 +19,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     // TODO: extend ccpa test with actual fields that we should mask
     def "PBS should mask publisher info when privacy.ccpa.enabled = true in account config"() {
         given: "Default ccpa BidRequest"
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def bidRequest = getCcpaBidRequest(validCcpa)
 
         and: "Save account config into DB"
@@ -41,7 +42,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     // TODO: extend this ccpa test with actual fields that we should mask
     def "PBS should not mask publisher info when privacy.ccpa.enabled = false in account config"() {
         given: "Default ccpa BidRequest"
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def bidRequest = getCcpaBidRequest(validCcpa)
 
         and: "Save account config into DB"
@@ -63,7 +64,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for auction request when valid ccpa was passed"() {
         given: "Default ccpa BidRequest"
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def bidRequest = getCcpaBidRequest(validCcpa)
 
         when: "PBS processes auction request"
@@ -74,8 +75,8 @@ class CcpaSpec extends PrivacyBaseSpec {
         def privacy = response.ext?.debug?.privacy
 
         verifyAll {
-            privacy.originPrivacy?.ccpa?.usPrivacy == validCcpa
-            privacy.resolvedPrivacy?.ccpa?.usPrivacy == validCcpa
+            privacy.originPrivacy?.ccpa?.usPrivacy == validCcpa as String
+            privacy.resolvedPrivacy?.ccpa?.usPrivacy == validCcpa as String
 
             !privacy.originPrivacy?.coppa?.coppa
             !privacy.resolvedPrivacy?.coppa?.coppa
@@ -99,7 +100,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for auction request when invalid ccpa was passed"() {
         given: "Default ccpa BidRequest"
-        def invalidCcpa = "1ASD"
+        def invalidCcpa = new BogusConsent()
         def bidRequest = getCcpaBidRequest(invalidCcpa)
 
         when: "PBS processes auction request"
@@ -113,8 +114,8 @@ class CcpaSpec extends PrivacyBaseSpec {
         def privacy = response.ext?.debug?.privacy
 
         verifyAll {
-            privacy.originPrivacy?.ccpa?.usPrivacy == invalidCcpa
-            privacy.resolvedPrivacy?.ccpa?.usPrivacy == invalidCcpa
+            privacy.originPrivacy?.ccpa?.usPrivacy == invalidCcpa as String
+            privacy.resolvedPrivacy?.ccpa?.usPrivacy == invalidCcpa as String
 
             privacy.privacyActionsPerBidder[BidderName.GENERIC].isEmpty()
 
@@ -126,7 +127,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for amp request when valid ccpa was passed"() {
         given: "Default AmpRequest"
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def ampRequest = getCcpaAmpRequest(validCcpa)
 
         and: "Save storedRequest into DB"
@@ -142,8 +143,8 @@ class CcpaSpec extends PrivacyBaseSpec {
         def privacy = response.ext?.debug?.privacy
 
         verifyAll {
-            privacy.originPrivacy?.ccpa?.usPrivacy == validCcpa
-            privacy.resolvedPrivacy?.ccpa?.usPrivacy == validCcpa
+            privacy.originPrivacy?.ccpa?.usPrivacy == validCcpa as String
+            privacy.resolvedPrivacy?.ccpa?.usPrivacy == validCcpa as String
 
             !privacy.originPrivacy?.coppa?.coppa
             !privacy.resolvedPrivacy?.coppa?.coppa
@@ -167,7 +168,7 @@ class CcpaSpec extends PrivacyBaseSpec {
     @PendingFeature
     def "PBS should add debug log for amp request when invalid ccpa was passed"() {
         given: "Default AmpRequest"
-        def invalidCcpa = "1ASD"
+        def invalidCcpa = new BogusConsent()
         def ampRequest = getCcpaAmpRequest(invalidCcpa)
 
         and: "Save storedRequest into DB"
@@ -186,8 +187,8 @@ class CcpaSpec extends PrivacyBaseSpec {
         def privacy = response.ext?.debug?.privacy
 
         verifyAll {
-            privacy.originPrivacy?.ccpa?.usPrivacy == invalidCcpa
-            privacy.resolvedPrivacy?.ccpa?.usPrivacy == invalidCcpa
+            privacy.originPrivacy?.ccpa?.usPrivacy == invalidCcpa as String
+            privacy.resolvedPrivacy?.ccpa?.usPrivacy == invalidCcpa as String
 
             privacy.privacyActionsPerBidder[BidderName.GENERIC].isEmpty()
 

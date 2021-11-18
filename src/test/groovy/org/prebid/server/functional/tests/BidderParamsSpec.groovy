@@ -16,12 +16,12 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.UsPrivacy
+import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.util.UsPrivacy.Signal.ENFORCED
+import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 @PBSTest
@@ -144,7 +144,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
         def lat = PBSUtils.getFractionalRandomNumber(0, 90)
         def lon = PBSUtils.getFractionalRandomNumber(0, 90)
@@ -172,7 +172,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        def validCcpa = new UsPrivacy(explicitNotice: ENFORCED, optOutSale: ENFORCED, serviceProviderAgreement: ENFORCED).usPrivacy
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
         def lat = PBSUtils.getFractionalRandomNumber(0, 90)
         def lon = PBSUtils.getFractionalRandomNumber(0, 90)

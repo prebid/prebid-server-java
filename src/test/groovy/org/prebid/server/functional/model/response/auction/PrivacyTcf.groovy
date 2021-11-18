@@ -6,7 +6,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class PrivacyTcfDebug {
+class PrivacyTcf {
 
     String gdpr
     String tcfConsentString

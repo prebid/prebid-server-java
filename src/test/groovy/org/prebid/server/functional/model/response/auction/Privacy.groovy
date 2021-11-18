@@ -5,7 +5,7 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 class Privacy {
 
-    PrivacyTcfDebug tcf
-    PrivacyCcpaDebug ccpa
-    PrivacyCoppaDebug coppa
+    PrivacyTcf tcf
+    PrivacyCcpa ccpa
+    PrivacyCoppa coppa
 }
