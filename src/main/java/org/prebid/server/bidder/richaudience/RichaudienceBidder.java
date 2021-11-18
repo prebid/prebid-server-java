@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.richaudience;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -62,7 +63,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         try {
             isSecure = HttpUtil.isSecure(ObjectUtil.getIfNotNull(request.getSite(), Site::getPage));
         } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
+            return Result.withError(BidderError.badInput("Problem with Request.Site: " + e.getMessage()));
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -104,10 +105,17 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static boolean isBannerCorrect(Banner banner) {
         return banner != null
                 && (banner.getW() != null || banner.getH() != null
-                || CollectionUtils.isEmpty(banner.getFormat()));
+                || CollectionUtils.isNotEmpty(banner.getFormat()));
     }
 
     private ExtImpRichaudience parseImpExt(Imp imp, Consumer<BidderError> onError) {
+        final ObjectNode ext = imp.getExt();
+        if (ext == null) {
+            final String errorMessage = String.format("Ext not found. ImpId: %s", imp.getId());
+            onError.accept(BidderError.badInput(errorMessage));
+            return null;
+        }
+
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
