@@ -8,6 +8,7 @@
         "h": 250
       },
       "ext": {
+        "gpid": "gpid",
         "aceex": {
           "accountid": "accountid"
         }

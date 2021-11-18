@@ -43,7 +43,6 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
