@@ -5,8 +5,7 @@ import lombok.Value;
 
 import java.util.List;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class RubiconImpExt {
 
     RubiconImpExtRp rp;

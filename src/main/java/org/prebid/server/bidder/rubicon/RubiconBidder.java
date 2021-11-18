@@ -128,6 +128,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String LIVERAMP_EID = "liveramp.com";
 
+    private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
     private static final String FPD_PAGECAT_FIELD = "pagecat";
     private static final String FPD_PAGE_FIELD = "page";
@@ -518,7 +519,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()),
                 getMaxBids(extRequest),
-                getAdSlot(imp, context));
+                getGpid(imp.getExt()));
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, ExtImpContext context) {
@@ -760,6 +761,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
         return multibidMaxBids != null ? multibidMaxBids : 1;
+    }
+
+    private String getGpid(ObjectNode impExt) {
+        final JsonNode gpidNode = impExt.get(FPD_GPID_FIELD);
+        return gpidNode != null && gpidNode.isTextual() ? gpidNode.asText() : null;
     }
 
     private String getAdSlot(Imp imp, ExtImpContext context) {

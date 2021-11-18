@@ -1803,25 +1803,12 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldPreferContextDataGamAdSlot() {
+    public void makeHttpRequestsShouldPassThroughImpExtGpid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                identity());
+                identity(), impBuilder -> impBuilder.video(Video.builder().build()), identity());
 
-        bidRequest.getImp().get(0).getExt()
-                .<ObjectNode>set("context", mapper.createObjectNode()
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/test-pbadslot-context-data")
-                                .set("adserver", mapper.createObjectNode()
-                                        .put("name", "gam")
-                                        .put("adslot", "/test-adserver-context-data"))))
-                .set("data", mapper.createObjectNode()
-                        .put("pbadslot", "/test-pbadslot-data")
-                        .set("adserver", mapper.createObjectNode()
-                                .put("name", "gam")
-                                .put("adslot", "/test-adserver-data")));
+        bidRequest.getImp().get(0).getExt().set("gpid", TextNode.valueOf("gpidvalue"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
@@ -1829,44 +1816,11 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getGpid)
-                .containsOnly("/test-adserver-context-data");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPreferDataGamAdSlot() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                identity());
-
-        bidRequest.getImp().get(0).getExt()
-                .<ObjectNode>set("context", mapper.createObjectNode()
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/test-pbadslot-context-data")))
-                .set("data", mapper.createObjectNode()
-                        .put("pbadslot", "/test-pbadslot-data")
-                        .set("adserver", mapper.createObjectNode()
-                                .put("name", "gam")
-                                .put("adslot", "test-adserver-data")));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getGpid)
-                .containsOnly("test-adserver-data");
+                .extracting(ext -> ext.get("gpid"))
+                .containsExactly(TextNode.valueOf("gpidvalue"));
     }
 
     @Test
