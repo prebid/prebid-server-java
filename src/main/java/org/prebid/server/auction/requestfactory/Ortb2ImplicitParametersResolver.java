@@ -62,8 +62,8 @@ public class Ortb2ImplicitParametersResolver {
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
 
-    private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS = Collections.unmodifiableSet(new HashSet<>(
-            Arrays.asList(PREBID_EXT, "context", "all", "general", "skadn", "data")));
+    private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
+            Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid");
 
     private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
