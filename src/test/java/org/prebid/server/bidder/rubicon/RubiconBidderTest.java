@@ -2225,6 +2225,85 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldOverridePbadslotIfPresentInRequestImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(), impBuilder -> impBuilder.video(Video.builder().build()), identity());
+
+        final ObjectNode dataNode = mapper.createObjectNode()
+                .set("pbadslot", TextNode.valueOf("pbadslotvalue"));
+
+        bidRequest.getImp().get(0).getExt().set("data", dataNode);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.at("/rp/target/pbadslot"))
+                .containsExactly(TextNode.valueOf("pbadslotvalue"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldOverrideDfpAdunitCodeIfAdslotPresentInImpExtDataAndAndAdserverNameIsGam() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(), impBuilder -> impBuilder.video(Video.builder().build()), identity());
+
+        final ObjectNode dataNode =
+                mapper.createObjectNode()
+                        .set("adserver", mapper.createObjectNode()
+                                .put("adslot", "adslotvalue")
+                                .put("name", "gam"));
+
+        bidRequest.getImp().get(0).getExt().set("data", dataNode);
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.at("/rp/target/dfp_ad_unit_code"))
+                .containsExactly(TextNode.valueOf("adslotvalue"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldOverrideDfpAdunitCodeIfAdslotPresentInImpExtContextDataAndAndAdserverNameIsGam() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(), impBuilder -> impBuilder.video(Video.builder().build()), identity());
+
+        final ObjectNode dataNode =
+                mapper.createObjectNode()
+                        .set("adserver", mapper.createObjectNode()
+                                .put("adslot", "adslotvalue")
+                                .put("name", "gam"));
+
+        bidRequest.getImp().get(0).getExt()
+                .set("context", mapper.createObjectNode().set("data", dataNode));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.at("/rp/target/dfp_ad_unit_code"))
+                .containsExactly(TextNode.valueOf("adslotvalue"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldMergeImpExtContextDataAndAppAttributesAndCopyToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
