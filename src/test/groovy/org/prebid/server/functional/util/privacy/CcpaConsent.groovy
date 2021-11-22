@@ -2,16 +2,16 @@ package org.prebid.server.functional.util.privacy
 
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.NOT_DEFINED
 
-class CcpaConsent implements BuildableConsentString {
+class CcpaConsent implements ConsentString {
 
-    private static final int specificationVersion = 1
+    private static final int SPECIFICATION_VERSION = 1
     private Signal explicitNotice = NOT_DEFINED
     private Signal optOutSale = NOT_DEFINED
     private Signal serviceProviderAgreement = NOT_DEFINED
 
     @Override
     String getConsentString() {
-        "$specificationVersion$explicitNotice.value$optOutSale.value$serviceProviderAgreement.value"
+        "$SPECIFICATION_VERSION$explicitNotice.value$optOutSale.value$serviceProviderAgreement.value"
     }
 
     @Override

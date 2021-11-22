@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -11,7 +10,7 @@ import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.BuildableConsentString
+import org.prebid.server.functional.util.privacy.ConsentString
 
 @PBSTest
 abstract class PrivacyBaseSpec extends BaseSpec {
@@ -24,27 +23,27 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static BidRequest getCcpaBidRequest(BuildableConsentString consentString) {
+    protected static BidRequest getCcpaBidRequest(ConsentString consentString) {
         bidRequestWithGeo.tap {
             regs.ext = new RegsExt(usPrivacy: consentString)
         }
     }
 
-    protected static AmpRequest getCcpaAmpRequest(BuildableConsentString consentString) {
+    protected static AmpRequest getCcpaAmpRequest(ConsentString consentString) {
         AmpRequest.defaultAmpRequest.tap {
             gdprConsent = consentString
             consentType = 3
         }
     }
 
-    protected static BidRequest getGdprBidRequest(BuildableConsentString consentString) {
+    protected static BidRequest getGdprBidRequest(ConsentString consentString) {
         bidRequestWithGeo.tap {
             regs.ext = new RegsExt(gdpr: 1)
             user = new User(ext: new UserExt(consent: consentString))
         }
     }
 
-    protected static AmpRequest getGdprAmpRequest(BuildableConsentString consentString) {
+    protected static AmpRequest getGdprAmpRequest(ConsentString consentString) {
         AmpRequest.defaultAmpRequest.tap {
             gdprConsent = consentString
             consentType = 2
@@ -52,8 +51,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static Map<String, Float> getMaskedGeo(BidderRequest bidderRequest) {
-        [lat: PBSUtils.getRoundFractionalNumber(bidderRequest.device.geo.lat, GEO_PRECISION),
-         lon: PBSUtils.getRoundFractionalNumber(bidderRequest.device.geo.lon, GEO_PRECISION)]
+    protected static Geo getMaskedGeo(BidRequest bidRequest) {
+        def geo = bidRequest.device.geo
+        geo.lat = PBSUtils.getRoundFractionalNumber(geo.lat, GEO_PRECISION)
+        geo.lon = PBSUtils.getRoundFractionalNumber(geo.lon, GEO_PRECISION)
+        geo
     }
 }

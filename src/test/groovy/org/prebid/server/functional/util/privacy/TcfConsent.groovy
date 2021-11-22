@@ -5,7 +5,7 @@ import com.iabtcf.utils.BitSetIntIterable
 
 import static io.restassured.RestAssured.given
 
-class TcfConsent implements BuildableConsentString{
+class TcfConsent implements ConsentString {
 
     private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
     private static final Integer VENDOR_LIST_VERSION = vendorListVersion

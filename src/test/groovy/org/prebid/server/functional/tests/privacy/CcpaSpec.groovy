@@ -34,9 +34,7 @@ class CcpaSpec extends PrivacyBaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        def maskedGeo = getMaskedGeo(bidderRequests)
-        assert bidderRequests.device?.geo?.lat == maskedGeo["lat"]
-        assert bidderRequests.device?.geo?.lon == maskedGeo["lon"]
+        assert bidderRequests.device?.geo == getMaskedGeo(bidRequest)
     }
 
     // TODO: extend this ccpa test with actual fields that we should mask
