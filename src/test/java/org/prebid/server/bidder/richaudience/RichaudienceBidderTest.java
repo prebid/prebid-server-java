@@ -1,16 +1,21 @@
 package org.prebid.server.bidder.richaudience;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudience;
@@ -22,9 +27,9 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.groups.Tuple.tuple;
 
 public class RichaudienceBidderTest extends VertxTest {
 
@@ -43,7 +48,7 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfDeviceAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(BidRequestCustomizer.identity());
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -106,14 +111,14 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfSomeImpHaveIncorrectBanner() {
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpHaveIncorrectBanner() {
         // given
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withSecureSite)
                         .andThen(withEmptyImp)
                         .andThen(withImpWithEmptyBanner)
-                        .andThen(withImpWithExt));
+                        .andThen(withImpWithExt)); // success
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -125,13 +130,13 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfSomeImpHaveIncorrectExt() {
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpHaveIncorrectExt() {
         // given
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withSecureSite)
                         .andThen(withImpWithoutExt)
-                        .andThen(withImpWithExt));
+                        .andThen(withImpWithExt)); // success
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
@@ -143,7 +148,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfSomeImpExtBidFloorCurAbsent() {
+    public void makeHttpRequestsShouldSetImpBidFloorCurIfImpExtBidFloorCurExistsOrDefault() {
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withSecureSite)
@@ -163,7 +168,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfSitePageUnsecure() {
+    public void makeHttpRequestsShouldSetImpSecureToFalseIfSitePageUnsecure() {
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withUnsecureSite)
@@ -183,7 +188,27 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsIfSomeImpExtTestIsTrue() {
+    public void makeHttpRequestsShouldSetImpSecureToTrueIfSitePageSecure() {
+        final BidRequest bidRequest =
+                givenBidRequest(withDevice
+                        .andThen(withSecureSite)
+                        .andThen(withImpWithEmptyExt)
+                        .andThen(withImpWithExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getPayload().getImp())
+                .hasSize(2)
+                .extracting(Imp::getSecure)
+                .allMatch(Integer.valueOf(1)::equals);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTestToTrueIfSomeImpExtTestIsTrue() {
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withSecureSite)
@@ -201,7 +226,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequests() {
+    public void makeHttpRequestsShouldSetImpTagIdIfImpExtPidExists() {
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
                         .andThen(withSecureSite)
@@ -215,9 +240,51 @@ public class RichaudienceBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue().get(0).getPayload().getImp())
                 .hasSize(2)
-                .extracting(Imp::getTagid, Imp::getBidfloorcur, Imp::getSecure)
-                .containsExactly(tuple(null, DEFAULT_CUR, 1), tuple(PID, CUR, 1));
+                .extracting(Imp::getTagid)
+                .containsExactly(null, PID);
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(INCORRECT_BODY);
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .allMatch(error -> error.getType().equals(BidderError.Type.bad_server_response))
+                .allMatch(error -> error.getMessage().startsWith(DECODE_ERROR));
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(EMPTY_BODY);
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(EMPTY_OBJECT);
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static final String ENDPOINT_URL = "http://test.domain.dm/uri";
@@ -236,8 +303,19 @@ public class RichaudienceBidderTest extends VertxTest {
     private static final String BANNER_ERROR = "Banner W/H/Format is required. ImpId: null";
     private static final String EXT_ERROR = "Ext not found. ImpId: null";
 
-    private BidRequest givenBidRequest(BidRequestCustomizer bidRequestCustomizer) {
+    private static final String INCORRECT_BODY = "Incorrect body";
+    private static final String EMPTY_BODY = "null";
+    private static final String EMPTY_OBJECT = "{}";
+
+    private static final String DECODE_ERROR = "Failed to decode: Unrecognized token";
+
+    private BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()).build();
+    }
+
+    private HttpCall<BidRequest> givenHttpCall(String body) {
+        final HttpResponse response = HttpResponse.of(200, null, body);
+        return HttpCall.success(null, response, null);
     }
 
     private final BidRequestCustomizer withEmptyDevice = withDevice(null);
@@ -248,15 +326,12 @@ public class RichaudienceBidderTest extends VertxTest {
     private final BidRequestCustomizer withUnsecureSite = withSite(UNSECURE_SITE_URL);
     private final BidRequestCustomizer withSecureSite = withSite(SECURE_SITE_URL);
 
-    private final BidRequestCustomizer withEmptyImp = withImp(UnaryOperator.identity());
-    private final BidRequestCustomizer withImpWithEmptyBanner = withImp(withBanner(UnaryOperator.identity()));
+    private final BidRequestCustomizer withEmptyImp = withImp(identity());
+    private final BidRequestCustomizer withImpWithEmptyBanner = withImp(withBanner(identity()));
     private final BidRequestCustomizer withImpWithoutExt = withImp(withBanner());
-    private final BidRequestCustomizer withImpWithEmptyExt =
-            withImp(withBanner().andThen(withExt(UnaryOperator.identity())));
-    private final BidRequestCustomizer withImpWithExtWithTest =
-            withImp(withBanner().andThen(withExt(extCustomizer -> extCustomizer.test(true))));
-    private final BidRequestCustomizer withImpWithExt =
-            withImp(withBanner().andThen(withExt(extCustomizer -> extCustomizer.pid(PID).bidFloorCur(CUR))));
+    private final BidRequestCustomizer withImpWithEmptyExt = withImpWithExt(identity());
+    private final BidRequestCustomizer withImpWithExtWithTest = withImpWithExt(c -> c.test(true));
+    private final BidRequestCustomizer withImpWithExt = withImpWithExt(c -> c.pid(PID).bidFloorCur(CUR));
 
     private BidRequestCustomizer withDevice(String ip) {
         return customizer -> customizer.device(Device.builder().ip(ip).build());
@@ -269,12 +344,16 @@ public class RichaudienceBidderTest extends VertxTest {
     private BidRequestCustomizer withImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return customizer -> {
             final BidRequest built = customizer.build();
-            final List<Imp> newImps = built.getImp() != null
-                    ? built.getImp()
-                    : new ArrayList<>();
+            final List<Imp> newImps = Objects.requireNonNullElseGet(built.getImp(), ArrayList::new);
             newImps.add(impCustomizer.apply(Imp.builder()).build());
             return built.toBuilder().imp(newImps);
         };
+    }
+
+    private BidRequestCustomizer withImpWithExt(UnaryOperator<ExtImpRichaudienceBuilder> extCustomizer) {
+        final ExtImpRichaudience extImpRichaudience = extCustomizer.apply(ExtImpRichaudience.builder()).build();
+        final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpRichaudience));
+        return withImp(withBanner().andThen(customizer -> customizer.ext(ext)));
     }
 
     private UnaryOperator<Imp.ImpBuilder> withBanner(UnaryOperator<Banner.BannerBuilder> bannerCustomizer) {
@@ -285,20 +364,6 @@ public class RichaudienceBidderTest extends VertxTest {
         return withBanner(bannerCustomizer -> bannerCustomizer.w(W).h(H));
     }
 
-    private UnaryOperator<Imp.ImpBuilder> withExt(UnaryOperator<ExtImpRichaudienceBuilder> extCustomizer) {
-        final ExtImpRichaudience extImpRichaudience = extCustomizer.apply(ExtImpRichaudience.builder()).build();
-        final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpRichaudience));
-        return customizer -> customizer.ext(ext);
-    }
-
-    private interface BidRequestCustomizer extends UnaryOperator<BidRequest.BidRequestBuilder> {
-        static BidRequestCustomizer identity() {
-            return t -> t;
-        }
-
-        default BidRequestCustomizer andThen(BidRequestCustomizer after) {
-            Objects.requireNonNull(after);
-            return t -> after.apply(apply(t));
-        }
+    private interface BidRequestCustomizer extends UnaryOperator<BidRequestBuilder> {
     }
 }
