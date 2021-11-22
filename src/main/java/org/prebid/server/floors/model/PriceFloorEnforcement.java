@@ -17,8 +17,4 @@ public class PriceFloorEnforcement {
 
     @JsonProperty("bidAdjustment")
     Boolean bidAdjustment;
-
-
-
-
 }

@@ -22,5 +22,4 @@ public class PriceFloorRules {
     PriceFloorEndpoint endpoint;
 
     PriceFloorData data;
-
 }

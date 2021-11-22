@@ -10,6 +10,4 @@ public class PriceFloorSchema {
     String delimiter;
 
     List<String> fields;
-
-
 }
