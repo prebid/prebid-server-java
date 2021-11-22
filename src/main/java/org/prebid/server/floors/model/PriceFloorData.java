@@ -29,10 +29,5 @@ public class PriceFloorData {
 
     PriceFloorSchema schema;
 
-    // Should be?
     Map<String, BigDecimal> values;
-
-    // Should be?
-    @JsonProperty("default")
-    BigDecimal defaultFloor;
 }
