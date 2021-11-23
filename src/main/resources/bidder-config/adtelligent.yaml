@@ -22,6 +22,19 @@ adapters:
           url:
           redirect-url:
           cookie-family-name: viewdeos
+      streamkey:
+        endpoint: http://ghb.hb.streamkey.net/pbs/ortb
+        meta-info:
+          maintainer-email: contact@streamkey.tv
+          app-media-types:
+            - video
+          site-media-types:
+            - video
+          vendor-id: 0
+        usersync:
+          url:
+          redirect-url:
+          cookie-family-name: streamkey
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
