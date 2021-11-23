@@ -2,17 +2,30 @@ package org.prebid.server.functional.pg
 
 import org.prebid.server.functional.model.deals.lineitem.LineItem
 import org.prebid.server.functional.model.deals.lineitem.Price
+import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.PbsPgConfig
+import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class CurrencySpec extends BasePgSpec {
 
+    private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer, mapper).tap {
+        setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse)
+    }
+
+    private static final Map<String, String> pgCurrencyConverterPbsConfig = externalCurrencyConverterConfig +
+            PbsPgConfig.getPgConfig(networkServiceContainer)
+    private static final PrebidServerService pgCurrencyConverterPbsService = pbsServiceFactory.getService(pgCurrencyConverterPbsConfig)
+
     def setup() {
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
+        pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
     def "PBS should convert non-default line item currency to the default one during the bidder auction"() {
@@ -37,10 +50,10 @@ class CurrencySpec extends BasePgSpec {
         def nonDefaultCurrencyLineItemIds = nonDefaultCurrencyLineItems.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         when: "Auction is requested"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+        def auctionResponse = pgCurrencyConverterPbsService.sendAuctionRequest(bidRequest)
 
         then: "All line items are ready to be served"
         assert auctionResponse.ext?.debug?.pgmetrics?.readyToServe?.size() == plansResponse.lineItems.size()
@@ -70,14 +83,22 @@ class CurrencySpec extends BasePgSpec {
         def defaultCurrencyLineItemId = defaultCurrencyLineItem.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         when: "Auction is requested"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+        def auctionResponse = pgCurrencyConverterPbsService.sendAuctionRequest(bidRequest)
 
         then: "Only line item with the default currency is ready to be served and was sent to bidder"
         assert auctionResponse.ext?.debug?.pgmetrics?.readyToServe == defaultCurrencyLineItemId as Set
         assert auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value) ==
                 defaultCurrencyLineItemId as Set
+    }
+
+    private static Map<String, String> getExternalCurrencyConverterConfig() {
+        ["currency-converter.external-rates.enabled"           : "true",
+         "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
+         "currency-converter.external-rates.default-timeout-ms": "4000",
+         "currency-converter.external-rates.refresh-period-ms" : "900000"
+        ]
     }
 }
