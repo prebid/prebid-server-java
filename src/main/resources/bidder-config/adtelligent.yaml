@@ -35,7 +35,6 @@ adapters:
           url:
           redirect-url:
           cookie-family-name: streamkey
-          type: iframe
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
