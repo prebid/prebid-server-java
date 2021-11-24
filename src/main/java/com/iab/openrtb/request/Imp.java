@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Value;
-import lombok.experimental.Wither;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -91,7 +90,6 @@ public class Imp {
      * the auction. This can be useful for debugging of any issues, or for
      * optimization by the buyer.
      */
-    @Wither
     String tagid;
 
     /** Minimum bid for this impression expressed in CPM. */

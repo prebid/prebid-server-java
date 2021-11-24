@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -15,12 +15,12 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -31,9 +31,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public final class AdfBidder implements Bidder<BidRequest> {
+public class AdfBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ExtImpAdf>> ADF_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpAdf>> ADF_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -47,12 +47,18 @@ public final class AdfBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> modifiedImps = bidRequest.getImp().stream()
-                .filter(Objects::nonNull)
-                .map(imp -> modifyImp(imp, errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+
+        for (Imp imp : bidRequest.getImp()) {
+            try {
+                final ExtImpAdf adfImp = parseExt(imp);
+                final Imp modifiedImp = imp.toBuilder().tagid(adfImp.getMid()).build();
+                modifiedImps.add(modifiedImp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
 
         if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
@@ -62,27 +68,16 @@ public final class AdfBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
-    private Imp modifyImp(Imp imp, List<BidderError> errors) {
-        final ExtPrebid<?, ExtImpAdf> ext;
+    private ExtImpAdf parseExt(Imp imp) throws PreBidException {
         try {
-            ext = ObjectUtil.getIfNotNull(imp.getExt(), this::parseExt);
+            return mapper.mapper().convertValue(imp.getExt(), ADF_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
+            throw new PreBidException(e.getMessage());
         }
-
-        final ExtImpAdf adfImp = ObjectUtil.getIfNotNull(ext, ExtPrebid::getBidder);
-        if (adfImp == null) {
-            final String bidderErrorMessage = String.format("Failed to parse impression %s", imp.getId());
-            errors.add(BidderError.badInput(bidderErrorMessage));
-            return null;
-        }
-
-        return imp.withTagid(adfImp.getMid());
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps) {
-        final BidRequest outgoingRequest = bidRequest.withImp(imps);
+        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -110,11 +105,6 @@ public final class AdfBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        if (bidResponse.getCur() == null) {
-            errors.add(BidderError.badServerResponse("Currency is null."));
-            return Collections.emptyList();
-        }
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -127,26 +117,26 @@ public final class AdfBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, List<BidderError> errors) {
-        final ExtPrebid<ExtBidPrebid, ?> ext;
+        final JsonNode prebidNode = ObjectUtil.getIfNotNull(bid.getExt(), node -> node.get("prebid"));
+        final JsonNode typeNode = ObjectUtil.getIfNotNull(prebidNode, node -> node.get("type"));
+        final BidType bidType;
         try {
-            ext = ObjectUtil.getIfNotNull(bid.getExt(), this::parseExt);
+            bidType = mapper.mapper().convertValue(typeNode, BidType.class);
         } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
+            addMediaTypeParseError(errors, bid.getImpid());
             return null;
         }
 
-        final ExtBidPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtPrebid::getPrebid);
-        final BidType bidType = ObjectUtil.getIfNotNull(prebid, ExtBidPrebid::getType);
         if (bidType == null) {
-            final String bidderErrorMessage = String.format("Failed to parse bid %s mediatype", bid.getImpid());
-            errors.add(BidderError.badServerResponse(bidderErrorMessage));
+            addMediaTypeParseError(errors, bid.getImpid());
             return null;
         }
 
         return BidderBid.of(bid, bidType, bidCurrency);
     }
 
-    private ExtPrebid<ExtBidPrebid, ExtImpAdf> parseExt(ObjectNode ext) throws IllegalArgumentException {
-        return mapper.mapper().convertValue(ext, ADF_EXT_TYPE_REFERENCE);
+    private void addMediaTypeParseError(List<BidderError> errors, String impId) {
+        final String errorMessage = String.format("Failed to parse impression %s mediatype", impId);
+        errors.add(BidderError.badServerResponse(errorMessage));
     }
 }
