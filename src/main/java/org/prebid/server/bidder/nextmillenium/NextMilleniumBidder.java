@@ -49,11 +49,9 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<ExtImpNextMillenium> impExts = getImpExts(bidRequest, errors);
 
-        if (errors.size() > 0) {
-            return Result.withErrors(errors);
-        }
-
-        return Result.withValues(makeRequests(bidRequest, impExts));
+        return errors.isEmpty()
+                ? Result.withValues(makeRequests(bidRequest, impExts))
+                : Result.withErrors(errors);
     }
 
     private List<ExtImpNextMillenium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
@@ -72,7 +70,6 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillenium> extImps) {
-
         return extImps.stream()
                 .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
                 .collect(Collectors.toList());
@@ -100,7 +97,6 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
     }
 
     private static MultiMap headers() {
-
         return HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
     }
