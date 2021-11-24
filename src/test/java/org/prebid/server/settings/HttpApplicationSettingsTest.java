@@ -44,7 +44,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class HttpApplicationSettingsTest extends VertxTest {
 
@@ -208,7 +208,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.result().getErrors()).isEmpty();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -223,7 +223,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.result().getStoredIdToImp()).isEmpty();
         assertThat(future.result().getErrors())
                 .containsOnly("Error fetching stored requests for ids [id1] via HTTP: Timeout has been exceeded");
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test

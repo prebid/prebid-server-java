@@ -113,7 +113,7 @@ public class CachedDebugLogTest extends VertxTest {
     public void setExtBidResponseShouldThrowPrebidException() {
         // given
         cachedDebugLog = new CachedDebugLog(true, 2000, Pattern.compile("[<>]"), jacksonMapperMock);
-        given(jacksonMapperMock.encode(any())).willThrow(new EncodeException("encode exception"));
+        given(jacksonMapperMock.encodeToString(any())).willThrow(new EncodeException("encode exception"));
 
         // when and then
         assertThatThrownBy(() -> cachedDebugLog.setExtBidResponse(

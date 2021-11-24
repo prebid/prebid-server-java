@@ -190,7 +190,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(mapper.encode(body))
+                .body(mapper.encodeToBytes(body))
                 .payload(body)
                 .build();
     }

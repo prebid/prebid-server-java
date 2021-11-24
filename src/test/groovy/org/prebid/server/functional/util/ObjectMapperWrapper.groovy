@@ -35,7 +35,7 @@ class ObjectMapperWrapper {
     }
 
     Map<String, String> toMap(Object object) {
-        mapper.convertValue(object, Map.class)
+        mapper.convertValue(object, Map)
     }
 
     JsonNode toJsonNode(String jsonString) {

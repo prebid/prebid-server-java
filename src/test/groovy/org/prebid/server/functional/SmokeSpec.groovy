@@ -8,7 +8,7 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
@@ -23,7 +23,7 @@ import static org.prebid.server.functional.model.response.status.Status.OK
 class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {
-        given: "Default basic  BidRequest with generic bidder"
+        given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
 
         when: "PBS processes auction request"
@@ -60,11 +60,11 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain targeting and httpcalls"
         assert response.targeting
-        assert response.debug.httpcalls
+        assert response.ext?.debug?.httpcalls
 
         and: "httpcalls should send request for bidders from storedRequest"
         def storedRequestBidders = ampStoredRequest.requestBidders
-        def responseBidders = response.debug?.bidders
+        def responseBidders = response.ext?.debug?.bidders
         assert responseBidders.keySet() == storedRequestBidders.toSet()
     }
 
@@ -107,8 +107,11 @@ class SmokeSpec extends BaseSpec {
         def response = defaultPbsService.sendSetUidRequest(request, uidsCookie)
 
         then: "Response should contain uids cookie"
-        assert response.uidsCookie
-        assert !response.responseBody?.isEmpty()
+        assert response.uidsCookie.bday
+        assert !response.uidsCookie.tempUIDs
+        assert !response.uidsCookie.uids
+        assert response.responseBody ==
+                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
     }
 
     def "PBS should get uids cookie"() {

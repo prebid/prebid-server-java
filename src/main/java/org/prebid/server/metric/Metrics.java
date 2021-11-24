@@ -542,9 +542,9 @@ public class Metrics extends UpdatableMetrics {
         forAccount(accountId).cache().requests().updateTimer(MetricName.err, timeElapsed);
     }
 
-    public void updateCacheCreativeSize(String accountId, int creativeSize) {
-        cache().updateHistogram(MetricName.creative_size, creativeSize);
-        forAccount(accountId).cache().updateHistogram(MetricName.creative_size, creativeSize);
+    public void updateCacheCreativeSize(String accountId, int creativeSize, MetricName creativeType) {
+        cache().creativeSize().updateHistogram(creativeType, creativeSize);
+        forAccount(accountId).cache().creativeSize().updateHistogram(creativeType, creativeSize);
     }
 
     public void updateTimeoutNotificationMetric(boolean success) {

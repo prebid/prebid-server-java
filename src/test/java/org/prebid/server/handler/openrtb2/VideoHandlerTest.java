@@ -35,6 +35,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -54,7 +55,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class VideoHandlerTest extends VertxTest {
 
@@ -75,8 +76,6 @@ public class VideoHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private Clock clock;
-
-    private VideoHandler videoHandler;
     @Mock
     private RoutingContext routingContext;
     @Mock
@@ -85,6 +84,10 @@ public class VideoHandlerTest extends VertxTest {
     private HttpServerResponse httpResponse;
     @Mock
     private UidsCookie uidsCookie;
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
+
+    private VideoHandler videoHandler;
 
     private Timeout timeout;
 
@@ -101,22 +104,30 @@ public class VideoHandlerTest extends VertxTest {
         given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
+
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
         timeout = new TimeoutFactory(clock).create(2000L);
 
-        given(exchangeService.holdAuction(any())).willReturn(Future.succeededFuture(BidResponse.builder().build()));
-
-        videoHandler = new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, cacheService,
-                analyticsReporterDelegator, metrics, clock, jacksonMapper);
+        videoHandler = new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService, cacheService,
+                analyticsReporterDelegator,
+                metrics,
+                clock,
+                prebidVersionProvider,
+                jacksonMapper);
     }
 
     @Test
     public void shouldUseTimeoutFromAuctionContext() {
         // given
+        final WithPodErrors<AuctionContext> auctionContext = givenAuctionContext(identity(), emptyList());
         given(videoRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+                .willReturn(Future.succeededFuture(auctionContext));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         // when
         videoHandler.handle(routingContext);
@@ -126,13 +137,34 @@ public class VideoHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddPrebidVersionResponseHeader() {
+        // given
+        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
+
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("x-prebid", "pbs-java/1.00"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         final Instant now = Instant.now();
         given(clock.millis()).willReturn(now.toEpochMilli()).willReturn(now.plusMillis(50L).toEpochMilli());
@@ -168,7 +200,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        verifyZeroInteractions(exchangeService);
+        verifyNoInteractions(exchangeService);
         verify(httpResponse).setStatusCode(eq(401));
         verify(httpResponse).end(eq("Unauthorised: Account id is not provided"));
     }
@@ -211,22 +243,22 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
 
-        given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+        givenHoldAuction(BidResponse.builder().build());
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
-                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+                .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
         videoHandler.handle(routingContext);
 
         // then
-        verify(exchangeService).holdAuction(any());
         verify(videoResponseFactory).toVideoResponse(any(), any(), any());
 
-        assertThat(httpResponse.headers()).hasSize(1)
+        assertThat(httpResponse.headers()).hasSize(2)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple("Content-Type", "application/json"));
+                .containsExactlyInAnyOrder(
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"adPods\":[]}"));
     }
 
@@ -272,10 +304,12 @@ public class VideoHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
         given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
         given(exchangeService.holdAuction(any()))
-                .willReturn(Future.succeededFuture(BidResponse.builder().build()));
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
 
         given(videoResponseFactory.toVideoResponse(any(), any(), any()))
-                .willReturn(VideoResponse.of(emptyList(), null, null, null));
+                .willReturn(VideoResponse.of(emptyList(), null));
 
         // when
         videoHandler.handle(routingContext);
@@ -292,6 +326,13 @@ public class VideoHandlerTest extends VertxTest {
         final ArgumentCaptor<AuctionContext> captor = ArgumentCaptor.forClass(AuctionContext.class);
         verify(exchangeService).holdAuction(captor.capture());
         return captor.getValue();
+    }
+
+    private void givenHoldAuction(BidResponse bidResponse) {
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(bidResponse)
+                        .build()));
     }
 
     private WithPodErrors<AuctionContext> givenAuctionContext(

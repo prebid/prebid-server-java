@@ -56,7 +56,7 @@ class BidRequest {
     @JsonIgnore
     List<String> getRequestBidders() {
         def bidderList = []
-        def bidder = imp[0]?.ext?.prebid?.bidder
+        def bidder = imp?.first()?.ext?.prebid?.bidder
         if (bidder) {
             bidderList = bidder.configuredBidders
         }
@@ -69,6 +69,9 @@ class BidRequest {
         }
         if (ext.prebid == null) {
             ext.prebid = new Prebid()
+        }
+        if (ext.prebid.targeting == null) {
+            ext.prebid.targeting = new Targeting()
         }
         if (ext.prebid.cache == null) {
             ext.prebid.cache = new PrebidCache()

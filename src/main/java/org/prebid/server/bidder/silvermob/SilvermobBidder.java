@@ -75,7 +75,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImp))
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

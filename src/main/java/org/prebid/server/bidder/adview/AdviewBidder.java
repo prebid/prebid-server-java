@@ -61,7 +61,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(resolveEndpoint(extImpAdview.getAccountId()))
                         .headers(HttpUtil.headers())
-                        .body(mapper.encode(modifiedRequest))
+                        .body(mapper.encodeToBytes(modifiedRequest))
                         .payload(modifiedRequest)
                         .build());
     }

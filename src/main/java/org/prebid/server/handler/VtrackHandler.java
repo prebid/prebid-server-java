@@ -211,7 +211,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             respondWithServerError(routingContext, "Error occurred while sending request to cache", async.cause());
         } else {
             try {
-                respondWith(routingContext, HttpResponseStatus.OK, mapper.encode(async.result()));
+                respondWith(routingContext, HttpResponseStatus.OK, mapper.encodeToString(async.result()));
             } catch (EncodeException e) {
                 respondWithServerError(routingContext, "Error occurred while encoding response", e);
             }

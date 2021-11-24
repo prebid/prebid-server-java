@@ -78,6 +78,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
+- `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
@@ -206,6 +207,11 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
+
+- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 

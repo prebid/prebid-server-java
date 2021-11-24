@@ -70,15 +70,13 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(url)
                                 .headers(HttpUtil.headers())
                                 .payload(outgoingRequest)
-                                .body(body)
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .build()),
                 errors);
     }

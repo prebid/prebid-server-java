@@ -51,7 +51,7 @@ public class CachedDebugLog {
 
     public void setExtBidResponse(ExtBidResponse response) {
         try {
-            this.extBidResponse = response != null ? jacksonMapper.encode(response) : StringUtils.EMPTY;
+            this.extBidResponse = response != null ? jacksonMapper.encodeToString(response) : StringUtils.EMPTY;
         } catch (EncodeException ex) {
             final String errorMessage = String.format("Unable to marshal response ext for debugging with a reason: %s",
                     ex.getMessage());

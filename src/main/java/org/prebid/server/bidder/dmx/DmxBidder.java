@@ -118,7 +118,7 @@ public class DmxBidder implements Bidder<BidRequest> {
                                 .method(HttpMethod.POST)
                                 .uri(uri)
                                 .headers(HttpUtil.headers())
-                                .body(mapper.encode(outgoingRequest))
+                                .body(mapper.encodeToBytes(outgoingRequest))
                                 .payload(outgoingRequest)
                                 .build()),
                 errors);

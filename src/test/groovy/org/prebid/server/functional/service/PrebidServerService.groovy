@@ -2,11 +2,11 @@ package org.prebid.server.functional.service
 
 import com.fasterxml.jackson.core.type.TypeReference
 import io.qameta.allure.Step
-import io.restassured.RestAssured
 import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
 import io.restassured.specification.RequestSpecification
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -15,10 +15,11 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.request.setuid.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.response.amp.AmpResponse
+import org.prebid.server.functional.model.response.amp.RawAmpResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
@@ -37,7 +38,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 import static io.restassured.RestAssured.given
-import static io.restassured.parsing.Parser.JSON
 import static java.time.ZoneOffset.UTC
 
 class PrebidServerService {
@@ -77,35 +77,39 @@ class PrebidServerService {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest) {
-        def payload = mapper.encode(bidRequest)
-
-        def response = given(requestSpecification).body(payload)
-                                                  .post(AUCTION_ENDPOINT)
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(BidResponse)
     }
 
-    @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers) {
-        def payload = mapper.encode(bidRequest)
+    @Step("[POST RAW] /openrtb2/auction")
+    RawAuctionResponse sendAuctionRequestRaw(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def response = postAuction(bidRequest, headers)
 
-        def response = given(requestSpecification).headers(headers)
-                                                  .body(payload)
-                                                  .post(AUCTION_ENDPOINT)
-
-        checkResponseStatusCode(response)
-        response.as(BidResponse)
+        new RawAuctionResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[GET] /openrtb2/amp")
-    AmpResponse sendAmpRequest(AmpRequest ampRequest) {
-        def response = given(requestSpecification).queryParams(mapper.toMap(ampRequest))
-                                                  .get(AMP_ENDPOINT)
+    AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
 
         checkResponseStatusCode(response)
         response.as(AmpResponse)
+    }
+
+    @Step("[GET RAW] /openrtb2/amp")
+    RawAmpResponse sendAmpRequestRaw(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        def response = getAmp(ampRequest, headers)
+
+        new RawAmpResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[POST] /cookie_sync without cookie")
@@ -143,8 +147,8 @@ class PrebidServerService {
         checkResponseStatusCode(response)
 
         def setuidResponse = new SetuidResponse()
-        setuidResponse.uidsCookie = response.detailedCookie("uids")
-        setuidResponse.responseBody = response.asString()
+        setuidResponse.uidsCookie = getDecodedUidsCookie(response)
+        setuidResponse.responseBody = response.asByteArray()
         setuidResponse
     }
 
@@ -215,7 +219,6 @@ class PrebidServerService {
 
     @Step("[GET] /bidders/params")
     BiddersParamsResponse sendBiddersParamsRequest() {
-        RestAssured.defaultParser = JSON
         def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -247,12 +250,39 @@ class PrebidServerService {
         mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
+    private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
+        def payload = mapper.encode(bidRequest)
+
+        given(requestSpecification).headers(headers)
+                                   .body(payload)
+                                   .post(AUCTION_ENDPOINT)
+    }
+
+    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+        given(requestSpecification).headers(headers)
+                                   .queryParams(mapper.toMap(ampRequest))
+                                   .get(AMP_ENDPOINT)
+    }
+
     private void checkResponseStatusCode(Response response) {
         def statusCode = response.statusCode
         if (statusCode != 200) {
             def responseBody = response.body.asString()
             log.error(responseBody)
-            throw new PrebidServerException(statusCode, responseBody)
+            throw new PrebidServerException(statusCode, responseBody, getHeaders(response))
+        }
+    }
+
+    private static Map<String, String> getHeaders(Response response) {
+        response.headers().collectEntries { [it.name, it.value] }
+    }
+
+    private UidsCookie getDecodedUidsCookie(Response response) {
+        def uids = response.detailedCookie("uids")?.value
+        if (uids) {
+            return mapper.decode(new String(Base64.urlDecoder.decode(uids)), UidsCookie)
+        } else {
+            throw new IllegalStateException("uids cookie is missing in response")
         }
     }
 

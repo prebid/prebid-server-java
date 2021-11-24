@@ -4,7 +4,7 @@
 
     <groupId>org.prebid</groupId>
     <artifactId>prebid-server-aggregator</artifactId>
-    <version>1.79.0-SNAPSHOT</version>
+    <version>1.80.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <scm>
