@@ -120,7 +120,7 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(bidRequest)
-                .body(mapper.encode(bidRequest))
+                .body(mapper.encodeToBytes(bidRequest))
                 .build();
     }
 
