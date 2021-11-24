@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.richaudience;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -10,17 +9,16 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -34,8 +32,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class RichaudienceBidder implements Bidder<BidRequest> {
@@ -48,9 +44,9 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public RichaudienceBidder(@NonNull String endpointUrl, @NonNull JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
-        this.mapper = mapper;
+    public RichaudienceBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -66,40 +62,39 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Problem with Request.Site: " + e.getMessage()));
         }
 
+        final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        boolean isTest = false;
 
-        final List<Pair<Imp, ExtImpRichaudience>> impsWithExt = request.getImp().stream()
-                .filter(Objects::nonNull)
-                .filter(correctBannerFilter(errors::add))
-                .map(imp -> Pair.of(imp, parseImpExt(imp, errors::add)))
-                .filter(pair -> pair.getRight() != null)
-                .collect(Collectors.toList());
+        for (Imp imp : request.getImp()) {
+            if (!isBannerCorrect(imp.getBanner())) {
+                final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
+                errors.add(BidderError.badInput(errorMessage));
+                continue;
+            }
 
-        final List<Imp> modifiedImps = impsWithExt.stream()
-                .map(pair -> modifyImp(pair.getLeft(), pair.getRight(), isSecure))
-                .collect(Collectors.toList());
+            final ExtImpRichaudience richaudienceImp;
+            try {
+                richaudienceImp = parseImpExt(imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+                continue;
+            }
+            if (!isTest && BooleanUtils.isTrue(richaudienceImp.getTest())) {
+                isTest = true;
+            }
 
-        final boolean isTest = impsWithExt.stream()
-                .map(pair -> pair.getRight().getTest())
-                .anyMatch(Boolean.TRUE::equals);
+            modifiedImps.add(modifyImp(imp, richaudienceImp, isSecure));
+        }
 
         final BidRequest modifiedRequest = modifyBidRequest(request, modifiedImps, isTest);
-        return Result.of(List.of(createHttpRequest(modifiedRequest)), errors);
+        return Result.of(Collections.singletonList(createHttpRequest(modifiedRequest)), errors);
     }
 
     private static boolean isDeviseIpPresent(Device device) {
-        return device != null && (StringUtils.isNotBlank(device.getIp()) || StringUtils.isNotBlank(device.getIpv6()));
-    }
-
-    private static Predicate<Imp> correctBannerFilter(Consumer<BidderError> onBrokenBanner) {
-        return imp -> {
-            final boolean isCorrect = isBannerCorrect(imp.getBanner());
-            if (!isCorrect) {
-                final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
-                onBrokenBanner.accept(BidderError.badInput(errorMessage));
-            }
-            return isCorrect;
-        };
+        return device != null
+                && (StringUtils.isNotBlank(device.getIp())
+                || StringUtils.isNotBlank(device.getIpv6()));
     }
 
     private static boolean isBannerCorrect(Banner banner) {
@@ -108,25 +103,17 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 || CollectionUtils.isNotEmpty(banner.getFormat()));
     }
 
-    private ExtImpRichaudience parseImpExt(Imp imp, Consumer<BidderError> onError) {
-        final ObjectNode ext = imp.getExt();
-        if (ext == null) {
-            final String errorMessage = String.format("Ext not found. ImpId: %s", imp.getId());
-            onError.accept(BidderError.badInput(errorMessage));
-            return null;
-        }
-
+    private ExtImpRichaudience parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            onError.accept(BidderError.badInput(e.getMessage()));
-            return null;
+            throw new PreBidException(e.getMessage());
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpRichaudience richaudienceExt, boolean isSecure) {
-        final String tagId = richaudienceExt.getPid();
-        final String bidFloorCur = richaudienceExt.getBidFloorCur();
+    private static Imp modifyImp(Imp imp, ExtImpRichaudience richaudienceImp, boolean isSecure) {
+        final String tagId = richaudienceImp.getPid();
+        final String bidFloorCur = richaudienceImp.getBidFloorCur();
 
         return imp.toBuilder()
                 .secure(BooleanUtils.toInteger(isSecure))
@@ -155,15 +142,11 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = parseBidResponse(httpCall);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    private BidResponse parseBidResponse(HttpCall<BidRequest> httpCall) throws DecodeException {
-        return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {

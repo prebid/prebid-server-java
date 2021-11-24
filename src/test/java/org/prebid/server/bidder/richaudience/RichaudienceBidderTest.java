@@ -130,24 +130,6 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfSomeImpHaveIncorrectExt() {
-        // given
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withImpWithoutExt)
-                        .andThen(withImpWithExt)); // success
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp()).hasSize(1);
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(EXT_ERROR));
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetImpBidFloorCurIfImpExtBidFloorCurExistsOrDefault() {
         final BidRequest bidRequest =
                 givenBidRequest(withDevice
@@ -301,7 +283,6 @@ public class RichaudienceBidderTest extends VertxTest {
     private static final String DEVICE_ERROR = "Device IP is required.";
     private static final String URL_ERROR = "Problem with Request.Site: URL supplied is not valid: ";
     private static final String BANNER_ERROR = "Banner W/H/Format is required. ImpId: null";
-    private static final String EXT_ERROR = "Ext not found. ImpId: null";
 
     private static final String INCORRECT_BODY = "Incorrect body";
     private static final String EMPTY_BODY = "null";
@@ -328,7 +309,6 @@ public class RichaudienceBidderTest extends VertxTest {
 
     private final BidRequestCustomizer withEmptyImp = withImp(identity());
     private final BidRequestCustomizer withImpWithEmptyBanner = withImp(withBanner(identity()));
-    private final BidRequestCustomizer withImpWithoutExt = withImp(withBanner());
     private final BidRequestCustomizer withImpWithEmptyExt = withImpWithExt(identity());
     private final BidRequestCustomizer withImpWithExtWithTest = withImpWithExt(c -> c.test(true));
     private final BidRequestCustomizer withImpWithExt = withImpWithExt(c -> c.pid(PID).bidFloorCur(CUR));
