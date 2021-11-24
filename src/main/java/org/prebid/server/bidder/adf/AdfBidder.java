@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -23,14 +22,13 @@ import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public final class AdfBidder implements Bidder<BidRequest> {
@@ -42,11 +40,9 @@ public final class AdfBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public AdfBidder(@NonNull String endpointUrl,
-                     @NonNull JacksonMapper mapper) {
-
-        this.endpointUrl = HttpUtil.validateUrl(endpointUrl);
-        this.mapper = mapper;
+    public AdfBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -54,7 +50,7 @@ public final class AdfBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> modifiedImps = bidRequest.getImp().stream()
                 .filter(Objects::nonNull)
-                .map(imp -> modifyImp(imp, errors::add))
+                .map(imp -> modifyImp(imp, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
@@ -63,27 +59,26 @@ public final class AdfBidder implements Bidder<BidRequest> {
         }
 
         final HttpRequest<BidRequest> httpRequest = makeRequest(bidRequest, modifiedImps);
-        return Result.of(List.of(httpRequest), errors);
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
-    private Imp modifyImp(Imp imp, Consumer<BidderError> onError) {
-        final Optional<ExtImpAdf> optionalAdfImp;
+    private Imp modifyImp(Imp imp, List<BidderError> errors) {
+        final ExtPrebid<?, ExtImpAdf> ext;
         try {
-            optionalAdfImp = Optional.ofNullable(imp.getExt())
-                    .map(this::parseExt)
-                    .map(ExtPrebid::getBidder);
+            ext = ObjectUtil.getIfNotNull(imp.getExt(), this::parseExt);
         } catch (IllegalArgumentException e) {
-            onError.accept(BidderError.badInput(e.getMessage()));
+            errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
 
-        if (optionalAdfImp.isEmpty()) {
+        final ExtImpAdf adfImp = ObjectUtil.getIfNotNull(ext, ExtPrebid::getBidder);
+        if (adfImp == null) {
             final String bidderErrorMessage = String.format("Failed to parse impression %s", imp.getId());
-            onError.accept(BidderError.badInput(bidderErrorMessage));
+            errors.add(BidderError.badInput(bidderErrorMessage));
             return null;
         }
 
-        return imp.withTagid(optionalAdfImp.orElseThrow().getMid());
+        return imp.withTagid(adfImp.getMid());
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps) {
@@ -101,26 +96,22 @@ public final class AdfBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = parseBidResponse(httpCall);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
-            final List<BidderBid> bidderBids = extractBids(bidResponse, errors::add);
+            final List<BidderBid> bidderBids = extractBids(bidResponse, errors);
             return Result.of(bidderBids, errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private BidResponse parseBidResponse(HttpCall<BidRequest> httpCall) throws DecodeException {
-        return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-    }
-
-    private List<BidderBid> extractBids(BidResponse bidResponse, Consumer<BidderError> onError) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
         if (bidResponse.getCur() == null) {
-            onError.accept(BidderError.badServerResponse("Currency is null."));
+            errors.add(BidderError.badServerResponse("Currency is null."));
             return Collections.emptyList();
         }
 
@@ -130,30 +121,29 @@ public final class AdfBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), onError))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private BidderBid makeBidderBid(Bid bid, String bidCurrency, Consumer<BidderError> onError) {
-        final Optional<BidType> optionalBidType;
+    private BidderBid makeBidderBid(Bid bid, String bidCurrency, List<BidderError> errors) {
+        final ExtPrebid<ExtBidPrebid, ?> ext;
         try {
-            optionalBidType = Optional.ofNullable(bid.getExt())
-                    .map(this::parseExt)
-                    .map(ExtPrebid::getPrebid)
-                    .map(ExtBidPrebid::getType);
+            ext = ObjectUtil.getIfNotNull(bid.getExt(), this::parseExt);
         } catch (IllegalArgumentException e) {
-            onError.accept(BidderError.badServerResponse(e.getMessage()));
+            errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
 
-        if (optionalBidType.isEmpty()) {
+        final ExtBidPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtPrebid::getPrebid);
+        final BidType bidType = ObjectUtil.getIfNotNull(prebid, ExtBidPrebid::getType);
+        if (bidType == null) {
             final String bidderErrorMessage = String.format("Failed to parse bid %s mediatype", bid.getImpid());
-            onError.accept(BidderError.badServerResponse(bidderErrorMessage));
+            errors.add(BidderError.badServerResponse(bidderErrorMessage));
             return null;
         }
 
-        return BidderBid.of(bid, optionalBidType.orElseThrow(), bidCurrency);
+        return BidderBid.of(bid, bidType, bidCurrency);
     }
 
     private ExtPrebid<ExtBidPrebid, ExtImpAdf> parseExt(ObjectNode ext) throws IllegalArgumentException {
