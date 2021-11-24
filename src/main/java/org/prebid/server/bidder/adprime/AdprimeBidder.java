@@ -53,17 +53,13 @@ public class AdprimeBidder implements Bidder<BidRequest> {
         final List<Imp> imps = bidRequest.getImp();
 
         for (Imp imp : imps) {
-            final ExtImpAdprime extImpAdprime;
-            final BidRequest modifiedBidRequest;
             try {
-                extImpAdprime = mapper.mapper()
+                final ExtImpAdprime extImpAdprime = mapper.mapper()
                         .convertValue(imp.getExt(), ADPRIME_EXT_TYPE_REFERENCE)
                         .getBidder();
 
-                final Imp modifiedImp = modifyImp(imp, extImpAdprime);
-                modifiedBidRequest = modifyBidRequest(bidRequest, extImpAdprime, modifiedImp);
-
-                httpRequests.add(makeHttpRequest(modifiedBidRequest));
+                httpRequests.add(makeHttpRequest(
+                        modifyBidRequest(bidRequest, extImpAdprime, modifyImp(imp, extImpAdprime))));
             } catch (IllegalArgumentException e) {
                 return Result.withError(BidderError.badInput(
                         String.format("Unable to decode the impression ext for id: '%s'", imp.getId())));
@@ -102,11 +98,9 @@ public class AdprimeBidder implements Bidder<BidRequest> {
             return user;
         }
 
-        final String customData = String.join(",", audiences);
+        final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
 
-        return Objects.isNull(user)
-                ? User.builder().customdata(customData).build()
-                : user.toBuilder().customdata(customData).build();
+        return userBuilder.customdata(String.join(",", audiences)).build();
     }
 
     private Site resolveSite(BidRequest bidRequest, ExtImpAdprime extImpAdprime) {
@@ -157,6 +151,7 @@ public class AdprimeBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
