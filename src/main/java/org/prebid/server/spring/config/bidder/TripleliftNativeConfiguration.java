@@ -40,10 +40,11 @@ public class TripleliftNativeConfiguration {
     }
 
     @Bean
-    BidderDeps tripleliftNativeBidderDeps(TripleliftNativeConfigurationProperties tripleliftNativeConfigurationProperties,
-                                          @NotBlank @Value("${external-url}") String externalUrl,
-                                          JacksonMapper mapper) {
-        final List<String> whitelist = configurationProperties.getWhitelist();
+    BidderDeps tripleliftNativeBidderDeps(
+            TripleliftNativeConfigurationProperties tripleliftNativeConfigurationProperties,
+            @NotBlank @Value("${external-url}") String externalUrl,
+            JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(configurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
