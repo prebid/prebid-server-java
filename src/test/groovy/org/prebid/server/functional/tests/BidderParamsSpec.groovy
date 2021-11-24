@@ -155,8 +155,8 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundFractionalNumber(lat, 2)
-        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundFractionalNumber(lon, 2)
+        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundedFractionalNumber(lat, 2)
+        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundedFractionalNumber(lon, 2)
 
         where:
         adapterDefault | generic

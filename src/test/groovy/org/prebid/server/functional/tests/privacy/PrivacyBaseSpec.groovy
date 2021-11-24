@@ -51,10 +51,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static Geo getMaskedGeo(BidRequest bidRequest) {
-        def geo = bidRequest.device.geo
-        geo.lat = PBSUtils.getRoundFractionalNumber(geo.lat, GEO_PRECISION)
-        geo.lon = PBSUtils.getRoundFractionalNumber(geo.lon, GEO_PRECISION)
+    protected static Geo maskGeo(BidRequest bidRequest, int precision = GEO_PRECISION) {
+        def geo = bidRequest.device.geo.clone()
+        geo.lat = PBSUtils.getRoundedFractionalNumber(bidRequest.device.geo.lat, precision)
+        geo.lon = PBSUtils.getRoundedFractionalNumber(bidRequest.device.geo.lon, precision)
         geo
     }
 }
