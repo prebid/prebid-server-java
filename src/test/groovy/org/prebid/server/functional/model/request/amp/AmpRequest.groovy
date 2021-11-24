@@ -1,12 +1,12 @@
 package org.prebid.server.functional.model.request.amp
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class AmpRequest {
 
     String tagId
