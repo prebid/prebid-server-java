@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
-    private static final String UNKONWN_PUBLSIHER_ID = "unknown";
+    private static final String UNKNOWN_PUBLISHER_ID = "unknown";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
             new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
@@ -117,14 +117,14 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     }
 
     private String effectivePublisherId(BidRequest bidRequest) {
-        String publisherId = UNKONWN_PUBLSIHER_ID;
+        String publisherId = UNKNOWN_PUBLISHER_ID;
 
         final Publisher publisher = findPublisher(bidRequest);
         if (publisher == null) {
             return publisherId;
         }
         final String id = publisher.getId();
-        publisherId = StringUtils.isBlank(id) ? UNKONWN_PUBLSIHER_ID : id;
+        publisherId = StringUtils.isBlank(id) ? UNKNOWN_PUBLISHER_ID : id;
 
         final ExtPublisher publisherExt = publisher.getExt();
         final ExtPublisherPrebid extPublisherPrebid = publisherExt != null ? publisherExt.getPrebid() : null;
