@@ -30,7 +30,6 @@ public class TripleliftNativeTest extends IntegrationTest {
         // when
         final Response response = responseFor("openrtb2/tripleliftnative/test-auction-triplelift-native-request.json",
                 Endpoint.openrtb2_auction);
-        response.prettyPrint();
 
         // then
         assertJsonEquals("openrtb2/tripleliftnative/test-auction-triplelift-native-response.json", response,
