@@ -15,4 +15,4 @@ adapters:
       cookie-family-name: triplelift_native
       type: redirect
       support-cors: false
-    whitelist:
+    whitelist: test
