@@ -48,6 +48,7 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -1255,6 +1256,8 @@ public class ExchangeService {
         return auctionParticipations.stream()
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> applyBidPriceChanges(auctionParticipation, auctionContext.getBidRequest()))
+                .map(auctionParticipation ->
+                        PriceFloorEnforcer.enforce(auctionParticipation, auctionContext.getAccount()))
                 .collect(Collectors.toList());
     }
 
