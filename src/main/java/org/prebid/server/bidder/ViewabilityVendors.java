@@ -3,7 +3,6 @@ package org.prebid.server.bidder;
 public enum ViewabilityVendors {
 
     activeview("doubleclickbygoogle.com"),
-    adform("adform.com"),
     comscore("comscore.com"),
     doubleverify("doubleverify.com"),
     integralads("integralads.com"),
