@@ -178,7 +178,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidRequest, bidResponse, errors), errors);
-        } catch (DecodeException e) {
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -192,22 +192,25 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest,
                                              List<BidderError> errors) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .flatMap(Collection::stream)
-                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        try {
+            return bidResponse.getSeatbid().stream()
+                    .filter(Objects::nonNull)
+                    .map(SeatBid::getBid)
+                    .flatMap(Collection::stream)
+                    .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp()))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } catch (PreBidException e) {
+            throw e;
+        }
     }
 
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
+    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps) {
         final BidType bidType;
         try {
             bidType = getBidType(bid.getImpid(), imps);
         } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return null;
+            throw e;
         }
         return BidderBid.of(bid, bidType, currency);
     }
