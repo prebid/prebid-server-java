@@ -102,6 +102,8 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        price-floors:
+          enabled: false
       privacy:
         ccpa:
           enabled: true
@@ -259,6 +261,9 @@ example:
     },
     "events": {
       "enabled": true
+    },
+    "price-floors": {
+      "enabled": false
     }
   },
   "privacy": {
