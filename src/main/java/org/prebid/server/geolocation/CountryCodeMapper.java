@@ -38,7 +38,7 @@ public class CountryCodeMapper {
     }
 
     private static Pair<String, String> parseCountryCodesCsvRow(String row) {
-        String[] subTokens = row.replaceAll("[^a-zA-Z,.]", "").split(",");
+        String[] subTokens = row.replaceAll("[^a-zA-Z,]", "").split(",");
         if (subTokens.length != 2 || subTokens[0].length() != 2 || subTokens[1].length() != 3) {
             throw new IllegalArgumentException(
                     String.format(
