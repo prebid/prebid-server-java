@@ -51,9 +51,6 @@ import static org.mockito.BDDMockito.given;
 
 public class ImpactifyBidderTest extends VertxTest {
 
-    private static final String TEST_ENDPOINT = "https://test.endpoint.com";
-    private static final String INCORRECT_TEST_ENDPOINT = "incorrect.endpoint";
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
@@ -64,12 +61,13 @@ public class ImpactifyBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        impactifyBidder = new ImpactifyBidder(TEST_ENDPOINT, jacksonMapper, currencyConversionService);
+        impactifyBidder =
+                new ImpactifyBidder("https://test.endpoint.com", jacksonMapper, currencyConversionService);
     }
 
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ImpactifyBidder(INCORRECT_TEST_ENDPOINT,
+        assertThatIllegalArgumentException().isThrownBy(() -> new ImpactifyBidder("incorrect.endpoint",
                 jacksonMapper, currencyConversionService));
     }
 

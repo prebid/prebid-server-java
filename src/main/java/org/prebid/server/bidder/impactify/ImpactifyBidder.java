@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -63,7 +62,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp, imp.getBidfloor());
+                final BigDecimal resolvedBidFloor = resolveBidFloor(request, imp);
                 updatedImps.add(updateImp(imp, resolvedBidFloor));
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
@@ -81,9 +80,9 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .build());
     }
 
-    private BigDecimal resolveBidFloor(BidRequest request, Imp imp, BigDecimal bidFloor) {
-        return shouldConvertBidFloor(bidFloor, imp.getBidfloorcur())
-                ? convertBidFloorCurrency(bidFloor, request, imp.getId(), imp.getBidfloorcur())
+    private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
+        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
+                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
                 : imp.getBidfloor();
     }
 
@@ -91,8 +90,10 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCur, BIDDER_CURRENCY);
     }
 
-    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor, BidRequest bidRequest,
-                                               String impId, String bidFloorCur) {
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
+                                               BidRequest bidRequest,
+                                               String impId,
+                                               String bidFloorCur) {
         try {
             return currencyConversionService
                     .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
@@ -136,7 +137,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest updateBidRequest(BidRequest request, List<Imp> updatedImps) {
-
         return request.toBuilder()
                 .imp(updatedImps)
                 .cur(List.of(BIDDER_CURRENCY))
@@ -151,8 +151,10 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         final Device device = bidRequest.getDevice();
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
-            if (device.getIp() != null) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+
+            final String deviceIp = device.getIp();
+            if (deviceIp != null) {
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
             } else {
                 HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
             }
@@ -177,42 +179,27 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         try {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidRequest, bidResponse, errors), errors);
+            return Result.of(extractBids(bidRequest, bidResponse), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, bidRequest, errors);
+        return bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest,
-                                             List<BidderError> errors) {
-        try {
-            return bidResponse.getSeatbid().stream()
-                    .filter(Objects::nonNull)
-                    .map(SeatBid::getBid)
-                    .flatMap(Collection::stream)
-                    .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp()))
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        } catch (PreBidException e) {
-            throw e;
-        }
-    }
-
-    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps) {
-        final BidType bidType;
-        try {
-            bidType = getBidType(bid.getImpid(), imps);
-        } catch (PreBidException e) {
-            throw e;
-        }
-        return BidderBid.of(bid, bidType, currency);
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
