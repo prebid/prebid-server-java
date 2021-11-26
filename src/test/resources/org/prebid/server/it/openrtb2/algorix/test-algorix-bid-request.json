@@ -13,7 +13,8 @@
           "sid": "testSid",
           "token": "testToken",
           "placementId": "testPlacementId",
-          "appId": "testAppId"
+          "appId": "testAppId",
+          "region": "APAC"
         }
       }
     }
