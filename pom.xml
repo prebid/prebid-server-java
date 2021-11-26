@@ -495,14 +495,9 @@
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-spock</artifactId>
+            <artifactId>allure-java-commons</artifactId>
             <version>${allure.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.spockframework</groupId>
-                    <artifactId>spock-core</artifactId>
-                </exclusion>
-            </exclusions>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
