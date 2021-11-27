@@ -1,4 +1,4 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
 import org.prebid.server.functional.model.bidder.BidderName

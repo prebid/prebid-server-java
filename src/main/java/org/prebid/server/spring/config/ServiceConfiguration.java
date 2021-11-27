@@ -46,6 +46,7 @@ import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorFetcher;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
@@ -786,6 +787,32 @@ public class ServiceConfiguration {
                 httpClient,
                 metrics,
                 clock,
+                mapper);
+    }
+
+    @Bean
+    PriceFloorFetcher priceFloorFetcher(
+            @Value("${price-floor.fetch.timeout-ms}") long defaultTimeoutMs,
+            @Value("${price-floor.fetch.max-age-sec}") int defaultMaxAgeSec,
+            @Value("${price-floor.fetch.period-sec}") long defaultPeriodSec,
+            @Value("${price-floor.fetch.max-rules}") int defaultMaxRules,
+            @Value("${price-floor.fetch.max-file-size-kb}") long defaultMaxFileSizeKb,
+            ApplicationSettings applicationSettings,
+            Vertx vertx,
+            TimeoutFactory timeoutFactory,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
+
+        return new PriceFloorFetcher(
+                defaultTimeoutMs,
+                defaultMaxAgeSec,
+                defaultPeriodSec,
+                defaultMaxRules,
+                defaultMaxFileSizeKb,
+                applicationSettings,
+                vertx,
+                timeoutFactory,
+                httpClient,
                 mapper);
     }
 

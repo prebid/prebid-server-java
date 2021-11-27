@@ -168,7 +168,26 @@ settings:
     pool-size: 20
   targeting:
     truncate-attr-chars: 20
-  default-account-config:
+  default-account-config: >
+    {
+      "auction": {
+        "price-floors": {
+          "enabled": true,
+          "fetch": {
+            "enabled": false,
+            "timeout-ms": 5000,
+            "max-rules": 0,
+            "max-file-size-kb": 200,
+            "max-age-sec": 86400,
+            "period-sec": 3600
+          },
+          "enforce-floors-rate": 100,
+          "adjust-for-bid-adjustment": true,
+          "enforce-deal-floors": true,
+          "use-dynamic-data": true
+        }
+      }
+    }
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -245,6 +264,13 @@ geolocation:
       http-client:
         connect-timeout-ms: 2500
         max-redirects: 3
+price-floor:
+  fetch:
+    timeout-ms: 3000
+    max-file-size-kb: 100
+    max-rules: 1000
+    max-age-sec: 86400
+    period-sec: 3600
 health-check:
   database:
     enabled: false

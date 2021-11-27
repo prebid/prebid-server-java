@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum ErrorType {
 
-    GENERAL, GENERIC, RUBICON, APPNEXUS, PREBID
+    GENERAL, GENERIC, RUBICON, APPNEXUS, PREBID, CACHE
 
     @JsonValue
     String getValue() {

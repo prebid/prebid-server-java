@@ -6,7 +6,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
@@ -27,21 +29,25 @@ public class BasicHttpClient implements HttpClient {
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
-                                              long timeoutMs) {
-        return request(method, url, headers, timeoutMs, body,
-                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body));
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                              String body, long timeoutMs, long maxResponseSize,
+                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
+        return request(method, url, headers, timeoutMs, maxResponseSize, body,
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body), timeoutHandler);
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body,
-                                              long timeoutMs) {
-        return request(method, url, headers, timeoutMs, body,
-                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)));
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                              byte[] body, long timeoutMs, long maxResponseSize,
+                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
+        return request(method, url, headers, timeoutMs, maxResponseSize, body,
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)), timeoutHandler);
     }
 
-    private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, long timeoutMs,
-                                                   T body, Consumer<HttpClientRequest> requestBodySetter) {
+    private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                                   long timeoutMs, long maxResponseSize, T body,
+                                                   Consumer<HttpClientRequest> requestBodySetter,
+                                                   Consumer<Promise<HttpClientResponse>> timeoutHandler) {
         final Promise<HttpClientResponse> promise = Promise.promise();
 
         if (timeoutMs <= 0) {
@@ -57,11 +63,13 @@ public class BasicHttpClient implements HttpClient {
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
             // but remaining part is delayed. So, overall request/response timeout is involved to fix it.
-            final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(promise, timeoutMs, httpClientRequest));
+            final long timerId = vertx.setTimer(timeoutMs,
+                    id -> (timeoutHandler != null ? timeoutHandler : failTimeoutHandler(timeoutMs, httpClientRequest))
+                            .accept(promise));
 
             httpClientRequest
                     .setFollowRedirects(true)
-                    .handler(response -> handleResponse(response, promise, timerId))
+                    .handler(response -> handleResponse(response, promise, timerId, maxResponseSize))
                     .exceptionHandler(exception -> failResponse(exception, promise, timerId));
 
             if (headers != null) {
@@ -90,8 +98,29 @@ public class BasicHttpClient implements HttpClient {
         }
     }
 
+    private Consumer<Promise<HttpClientResponse>> failTimeoutHandler(Long timeoutMs,
+                                                                     HttpClientRequest httpClientRequest) {
+        return promise -> {
+            if (!promise.future().isComplete()) {
+                failResponse(new TimeoutException(
+                        String.format("Timeout period of %dms has been exceeded", timeoutMs)), promise);
+
+                // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
+                httpClientRequest.reset();
+            }
+        };
+    }
+
     private void handleResponse(io.vertx.core.http.HttpClientResponse response,
-                                Promise<HttpClientResponse> promise, long timerId) {
+                                Promise<HttpClientResponse> promise, long timerId, long maxResponseSize) {
+        final String contentLength = response.getHeader(HttpHeaders.CONTENT_LENGTH);
+        final long responseBodySize = contentLength != null ? Long.parseLong(contentLength) : 0;
+        if (responseBodySize > maxResponseSize) {
+            failResponse(new PreBidException(String.format("Response size %d exceeded %d bytes limit",
+                    responseBodySize, maxResponseSize)), promise, timerId);
+            return;
+        }
+
         response
                 .bodyHandler(buffer -> successResponse(buffer.toString(), response, promise, timerId))
                 .exceptionHandler(exception -> failResponse(exception, promise, timerId));

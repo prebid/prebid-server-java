@@ -30,4 +30,7 @@ public class AccountAuctionConfig {
     AccountBidValidationConfig bidValidations;
 
     AccountEventsConfig events;
+
+    @JsonProperty("price-floors")
+    AccountPriceFloorsConfig priceFloors;
 }

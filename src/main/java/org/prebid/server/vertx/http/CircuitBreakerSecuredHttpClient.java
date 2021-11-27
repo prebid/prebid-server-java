@@ -3,6 +3,7 @@ package org.prebid.server.vertx.http;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
@@ -19,6 +20,7 @@ import java.time.Clock;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -65,17 +67,28 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
                                               String url,
                                               MultiMap headers,
                                               String body,
-                                              long timeoutMs) {
+                                              long timeoutMs,
+                                              long maxResponseSize,
+                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
 
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(promise));
+                .execute(promise ->
+                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize, timeoutHandler)
+                                .setHandler(promise));
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body,
-                                              long timeoutMs) {
+    public Future<HttpClientResponse> request(HttpMethod method,
+                                              String url,
+                                              MultiMap headers,
+                                              byte[] body,
+                                              long timeoutMs,
+                                              long maxResponseSize,
+                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
         return circuitBreakerByName.computeIfAbsent(nameFrom(url), circuitBreakerCreator)
-                .execute(promise -> httpClient.request(method, url, headers, body, timeoutMs).setHandler(promise));
+                .execute(promise ->
+                        httpClient.request(method, url, headers, body, timeoutMs, maxResponseSize, timeoutHandler)
+                                .setHandler(promise));
     }
 
     private CircuitBreaker createCircuitBreaker(String name,
