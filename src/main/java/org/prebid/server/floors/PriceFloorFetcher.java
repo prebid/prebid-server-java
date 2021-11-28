@@ -60,7 +60,7 @@ public class PriceFloorFetcher {
     private final JacksonMapper mapper;
 
     private final Set<String> fetchInProgress;
-    private final Map<String, org.prebid.server.floors.PriceFloorFetcher.AccountFetchContext> rulesCache;
+    private final Map<String, AccountFetchContext> rulesCache;
 
     public PriceFloorFetcher(long defaultTimeoutMs,
                              int defaultMaxAgeSec,
@@ -83,7 +83,7 @@ public class PriceFloorFetcher {
         this.mapper = Objects.requireNonNull(mapper);
         this.fetchInProgress = new ConcurrentHashSet<>();
         this.rulesCache = Caffeine.newBuilder()
-                .<String, org.prebid.server.floors.PriceFloorFetcher.AccountFetchContext>build()
+                .<String, AccountFetchContext>build()
                 .asMap();
     }
 
@@ -174,7 +174,7 @@ public class PriceFloorFetcher {
         }
     }
 
-    private long getCacheTimeToLive(AccountPriceFloorsFetchConfig fetchConfig) {
+    private int getCacheTimeToLive(AccountPriceFloorsFetchConfig fetchConfig) {
         final Integer accountMaxAgeSec =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxAgeSec);
 

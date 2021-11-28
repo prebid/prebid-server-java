@@ -85,19 +85,6 @@ public class BasicHttpClient implements HttpClient {
         return promise.future();
     }
 
-    private void handleTimeout(Promise<HttpClientResponse> promise,
-                               long timeoutMs,
-                               HttpClientRequest httpClientRequest) {
-
-        if (!promise.future().isComplete()) {
-            failResponse(new TimeoutException(
-                    String.format("Timeout period of %dms has been exceeded", timeoutMs)), promise);
-
-            // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
-            httpClientRequest.reset();
-        }
-    }
-
     private Consumer<Promise<HttpClientResponse>> failTimeoutHandler(Long timeoutMs,
                                                                      HttpClientRequest httpClientRequest) {
         return promise -> {
