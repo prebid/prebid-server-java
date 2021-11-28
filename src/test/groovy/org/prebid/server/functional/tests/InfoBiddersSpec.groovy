@@ -1,4 +1,4 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils

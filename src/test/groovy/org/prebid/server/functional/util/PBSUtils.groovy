@@ -22,7 +22,7 @@ class PBSUtils {
         new Random().nextFloat() * (max - min) + min
     }
 
-    static float getRoundFractionalNumber(float number, int numberDecimalPlaces) {
+    static float getRoundedFractionalNumber(float number, int numberDecimalPlaces) {
         def stringBuilder = new StringBuilder().append("##.")
         IntStream.range(0, numberDecimalPlaces).forEach { index -> stringBuilder.append("#") }
         def format = new DecimalFormat(stringBuilder.toString())

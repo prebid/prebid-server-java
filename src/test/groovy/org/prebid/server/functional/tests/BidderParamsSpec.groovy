@@ -1,4 +1,4 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.BidderName
@@ -16,10 +16,12 @@ import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.CcpaConsent
 import spock.lang.PendingFeature
 import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 @PBSTest
@@ -142,8 +144,8 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        def valid_ccpa = "1YYY"
-        bidRequest.regs.ext = new RegsExt(gdpr: 0, usPrivacy: valid_ccpa)
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
         def lat = PBSUtils.getFractionalRandomNumber(0, 90)
         def lon = PBSUtils.getFractionalRandomNumber(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
@@ -153,8 +155,8 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundFractionalNumber(lat, 2)
-        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundFractionalNumber(lon, 2)
+        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundedFractionalNumber(lat, 2)
+        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundedFractionalNumber(lon, 2)
 
         where:
         adapterDefault | generic
@@ -170,8 +172,8 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        def valid_ccpa = "1YYY"
-        bidRequest.regs.ext = new RegsExt(gdpr: 0, usPrivacy: valid_ccpa)
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
         def lat = PBSUtils.getFractionalRandomNumber(0, 90)
         def lon = PBSUtils.getFractionalRandomNumber(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
