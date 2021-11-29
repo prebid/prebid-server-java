@@ -119,17 +119,6 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return auctionParticipation.with(resultBidderResponse);
     }
 
-    private static boolean isAllowedByEnforceRate(ExtRequestPrebidFloors floors,
-                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
-
-        final Integer requestEnforceRate = floors.getEnforceRate();
-        final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
-        final Integer enforceRate = ObjectUtils.defaultIfNull(requestEnforceRate, accountEnforceRate);
-
-        return (enforceRate == null || enforceRate < 0 || enforceRate > 100)
-                || ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0;
-    }
-
     private static boolean isEnforcedDealFloors(ExtRequestPrebidFloors floors,
                                                 AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
@@ -147,6 +136,17 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 // Should never occur. See ResponseBidValidator
                 .orElseThrow(() -> new PreBidException(
                         String.format("Bid with impId %s doesn't have matched imp", impId)));
+    }
+
+    private static boolean isAllowedByEnforceRate(ExtRequestPrebidFloors floors,
+                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
+
+        final Integer requestEnforceRate = floors.getEnforceRate();
+        final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
+        final Integer enforceRate = ObjectUtils.defaultIfNull(requestEnforceRate, accountEnforceRate);
+
+        return (enforceRate == null || enforceRate < 0 || enforceRate > 100)
+                || ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0;
     }
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {
