@@ -122,8 +122,8 @@ public class RubiconBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
-    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "adform",
-            "comscore", "doubleverify", "integralads", "moat", "sizmek", "whiteops");
+    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "comscore",
+            "doubleverify", "integralads", "moat", "sizmek", "whiteops");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
