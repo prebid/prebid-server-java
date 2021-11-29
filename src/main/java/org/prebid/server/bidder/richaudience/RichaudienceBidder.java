@@ -105,10 +105,10 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) throws PreBidException {
         final Banner banner = imp.getBanner();
-        final boolean isBannerValid = banner != null
+        final boolean isBannerSizesPresent = banner != null
                 && (banner.getW() != null || banner.getH() != null
                 || CollectionUtils.isNotEmpty(banner.getFormat()));
-        if (!isBannerValid) {
+        if (!isBannerSizesPresent) {
             final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
             throw new PreBidException(errorMessage);
         }
@@ -118,18 +118,25 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Imp.Id: %s. Invalid ext.", imp.getId()));
+            throw new PreBidException(String.format("Invalid ext. Imp.Id: %s", imp.getId()));
         }
     }
 
     private static Imp modifyImp(Imp imp, ExtImpRichaudience richaudienceImp, boolean isSecure) {
         final String tagId = richaudienceImp.getPid();
-        final String bidFloorCur = richaudienceImp.getBidFloorCur();
+        final String extBidFloorCur = richaudienceImp.getBidFloorCur();
+        final String impBidFloorCur = imp.getBidfloorcur();
+
+        final String bidFloorCur = StringUtils.isNotBlank(extBidFloorCur)
+                ? extBidFloorCur
+                : StringUtils.isNotBlank(impBidFloorCur)
+                ? impBidFloorCur
+                : DEFAULT_CURRENCY;
 
         return imp.toBuilder()
                 .secure(BooleanUtils.toInteger(isSecure))
                 .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
-                .bidfloorcur(StringUtils.isNotBlank(bidFloorCur) ? bidFloorCur : DEFAULT_CURRENCY)
+                .bidfloorcur(bidFloorCur)
                 .build();
     }
 
