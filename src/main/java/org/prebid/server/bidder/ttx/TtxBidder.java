@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.ttx;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -10,6 +11,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -53,6 +56,7 @@ public class TtxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
+        final MultiValuedMap<String, Imp> impsMap = new ArrayListValuedHashMap<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
@@ -60,22 +64,27 @@ public class TtxBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpTtx extImpTtx = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpTtx);
-                requests.add(createRequest(request, updatedImp));
+                impsMap.put(computeKey(updatedImp), updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
+
+        for (Collection<Imp> imps : impsMap.asMap().values()) {
+            requests.add(createRequest(request, List.copyOf(imps)));
+        }
+
         return Result.of(requests, errors);
     }
 
-    private void validateImp(Imp imp) {
+    private void validateImp(Imp imp) throws PreBidException {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(
                     String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
         }
     }
 
-    private ExtImpTtx parseImpExt(Imp imp) {
+    private ExtImpTtx parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), TTX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -83,7 +92,7 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpTtx extImpTtx) {
+    private Imp updateImp(Imp imp, ExtImpTtx extImpTtx) throws PreBidException {
         final String productId = extImpTtx.getProductId();
         return imp.toBuilder()
                 .video(updatedVideo(imp.getVideo(), productId))
@@ -91,7 +100,12 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Video updatedVideo(Video video, String productId) {
+    private String computeKey(Imp imp) {
+        final JsonNode ttx = imp.getExt().get("ttx");
+        return ttx.get("prod").asText() + ttx.get("zoneid").asText();
+    }
+
+    private static Video updatedVideo(Video video, String productId) throws PreBidException {
         if (video == null) {
             return null;
         }
@@ -135,9 +149,9 @@ public class TtxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request, Imp requestImp) {
+    private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
         final BidRequest modifiedRequest = request.toBuilder()
-                .imp(Collections.singletonList(requestImp))
+                .imp(requestImps)
                 .build();
 
         return HttpRequest.<BidRequest>builder()
