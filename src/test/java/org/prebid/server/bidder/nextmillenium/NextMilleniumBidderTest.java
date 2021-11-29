@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
@@ -21,6 +22,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.nextmillenium.ExtImpNextMillenium;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -99,11 +101,15 @@ public class NextMilleniumBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = nextMilleniumBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value of type");
+        assertThat(result.getErrors()).isNotEmpty()
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value of type");
+                });
     }
 
     @Test
-    public void makeBidsGivenCorrectBidResponseContainsCorrectBidder() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
@@ -124,7 +130,7 @@ public class NextMilleniumBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
                 mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(List.of())
+                        .seatbid(Collections.emptyList())
                         .build()));
 
         // when
@@ -146,7 +152,12 @@ public class NextMilleniumBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = nextMilleniumBidder.makeBids(httpCall, bidRequest);
 
         // then
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode:");
+        assertThat(result.getErrors()).isNotEmpty()
+                .allSatisfy(bidderError -> {
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
+                });
+
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -160,7 +171,7 @@ public class NextMilleniumBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .id("1500")
                         .test(100)
-                        .imp(List.of(givenImp(impCustomizer))))
+                        .imp(Collections.singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -174,8 +185,8 @@ public class NextMilleniumBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(List.of(SeatBid.builder()
-                        .bid(List.of(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(Collections.singletonList(SeatBid.builder()
+                        .bid(Collections.singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .cur("USD")
                 .build();

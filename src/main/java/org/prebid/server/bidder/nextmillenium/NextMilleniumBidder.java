@@ -63,7 +63,7 @@ public class NextMilleniumBidder implements Bidder<BidRequest> {
                         .convertValue(imp.getExt(), NEXTMILLENIUM_EXT_TYPE_REFERENCE)
                         .getBidder());
             } catch (IllegalArgumentException e) {
-                errors.add(BidderError.of(e.getMessage(), BidderError.Type.bad_input));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
         return impExts;
