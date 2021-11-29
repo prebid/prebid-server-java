@@ -61,6 +61,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -185,7 +186,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -222,6 +222,8 @@ public class ExchangeServiceTest extends VertxTest {
     private ApplicationEventService applicationEventService;
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+    @Mock
+    private PriceFloorEnforcer priceFloorEnforcer;
     @Mock
     private Metrics metrics;
     @Mock
@@ -286,8 +288,10 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any())).willAnswer(
-                inv -> inv.getArgument(0));
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+                .willAnswer(inv -> inv.getArgument(0));
+
+        given(priceFloorEnforcer.enforce(any(), any())).willAnswer(inv -> inv.getArgument(0));
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -311,6 +315,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorEnforcer,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -336,6 +341,7 @@ public class ExchangeServiceTest extends VertxTest {
                         hookStageExecutor,
                         applicationEventService,
                         httpInteractionLogger,
+                        priceFloorEnforcer,
                         metrics,
                         clock,
                         jacksonMapper,
@@ -608,6 +614,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorEnforcer,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -1306,7 +1313,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .allSatisfy(map -> assertThat(map).isNull());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldTolerateResponseBidValidationErrors() {
         // given
@@ -1345,7 +1351,6 @@ public class ExchangeServiceTest extends VertxTest {
                         BidderError.generic("bid validation error"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldTolerateResponseBidValidationWarnings() {
         // given
@@ -2548,6 +2553,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorEnforcer,
                 metrics,
                 clock,
                 jacksonMapper,
@@ -2651,7 +2657,6 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldDropBidIfPrebidExceptionWasThrownDuringCurrencyConversion() {
         // given
@@ -2679,7 +2684,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndPriceAdjustmentFactor() {
         // given
@@ -3232,6 +3236,60 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid)
                 .extracting(Bid::getPrice)
                 .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void shouldReturnNoBidsIfPriceFloorEnforcerRemoveThem() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").build(), "USD"))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                identity());
+
+        given(priceFloorEnforcer.enforce(any(), any()))
+                .willReturn(AuctionParticipation.builder()
+                        .bidder("bidder1")
+                        .bidderResponse(BidderResponse.of("bidder1", BidderSeatBid.empty(), 0))
+                        .build());
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
+        assertThat(capturedParticipations)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .isEmpty();
+    }
+
+    @Test
+    public void shouldReturnBidsIfPriceFloorEnforcerAcceptThem() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBid(Bid.builder().id("bidId1").impid("impId1").build(), "USD"))));
+
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                identity());
+
+        given(priceFloorEnforcer.enforce(any(), any())).willAnswer(inv -> inv.getArgument(0));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
+        assertThat(capturedParticipations)
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .isEmpty();
     }
 
     @Test

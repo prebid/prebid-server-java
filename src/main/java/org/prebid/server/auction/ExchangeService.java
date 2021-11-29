@@ -162,6 +162,7 @@ public class ExchangeService {
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final HookStageExecutor hookStageExecutor;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final PriceFloorEnforcer priceFloorEnforcer;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -182,6 +183,7 @@ public class ExchangeService {
                            HookStageExecutor hookStageExecutor,
                            ApplicationEventService applicationEventService,
                            HttpInteractionLogger httpInteractionLogger,
+                           PriceFloorEnforcer priceFloorEnforcer,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -205,6 +207,7 @@ public class ExchangeService {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.applicationEventService = applicationEventService;
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -1257,7 +1260,7 @@ public class ExchangeService {
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> applyBidPriceChanges(auctionParticipation, auctionContext.getBidRequest()))
                 .map(auctionParticipation ->
-                        PriceFloorEnforcer.enforce(auctionParticipation, auctionContext.getAccount()))
+                        priceFloorEnforcer.enforce(auctionParticipation, auctionContext.getAccount()))
                 .collect(Collectors.toList());
     }
 

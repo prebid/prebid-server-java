@@ -321,3 +321,5 @@ deals:
       pbs-planner-empty-response-error: 15
       pbs-register-client-error: 15
       pbs-delivery-stats-client-error: 15
+price-floors:
+  enabled: false

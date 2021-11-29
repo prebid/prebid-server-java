@@ -1,23 +1,53 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.floors.model.PriceFloorRules;
+
+import java.math.BigDecimal;
 
 /**
  * Defines the contract for bidrequest.ext.prebid.floors
  */
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class ExtRequestPrebidFloors {
 
-    /**
-     * Defines the contract for bidrequest.ext.prebid.floors.enforcement
-     */
-    ExtRequestPrebidFloorsEnforcement enforcement;
+    Boolean enabled;
 
-    /**
-     * Defines the contract for bidrequest.ext.prebid.floors.data
-     */
-    PriceFloorRules data;
+    @JsonProperty("floorCurrency")
+    String floorCurrency;
+
+    @JsonProperty("floorProvider")
+    String floorProvider;
+
+    @JsonProperty("floorMin")
+    BigDecimal floorMin;
+
+    String location;
+
+    @JsonProperty("modelVersion")
+    String modelVersion;
+
+    @JsonProperty("modelWeight")
+    Integer modelWeight;
+
+    @JsonProperty("modelTimestamp")
+    Long modelTimestamp;
+
+    @JsonProperty("skipRate")
+    Integer skipRate;
+
+    Boolean skipped;
+
+    String country;
+
+    @JsonProperty("enforceRate")
+    Integer enforceRate;
+
+    @JsonProperty("enforceDeals")
+    Boolean enforceDeals;
+
+    @JsonProperty("enforcePBS")
+    Boolean enforcePbs;
 }
