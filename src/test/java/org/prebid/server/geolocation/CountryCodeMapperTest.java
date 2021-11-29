@@ -17,6 +17,7 @@ public class CountryCodeMapperTest {
 
     @Test
     public void creationShouldThrowErrorInvalidResourceFile() {
+        // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> new CountryCodeMapper("invalid_resouce"));
     }
 

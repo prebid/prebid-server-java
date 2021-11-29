@@ -107,7 +107,7 @@ public class PrivacyEnforcementService {
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
         final Device device = bidRequest.getDevice();
-        final String alpha2CountryCode = resolveCountryCode(device);
+        final String alpha2CountryCode = resolveAlpha2CountryCode(device);
         final String effectiveIpAddress = resolveIpAddress(device, privacy);
 
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
@@ -126,9 +126,10 @@ public class PrivacyEnforcementService {
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
-    private String resolveCountryCode(Device device) {
+    private String resolveAlpha2CountryCode(Device device) {
         final Geo geo = device != null ? device.getGeo() : null;
         final String alpha3CountryCode = geo != null ? geo.getCountry() : null;
+
         return countryCodeMapper.mapToAlpha2(alpha3CountryCode);
     }
 

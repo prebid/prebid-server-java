@@ -407,9 +407,8 @@ public class Ortb2RequestFactory {
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
         final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
-        final String alpha3CountryCode = resolveCountryCode(privacyContext);
-        final boolean shouldUpdateCountry =
-                alpha3CountryCode != null && !Objects.equals(countryInRequest, alpha3CountryCode);
+        final String alpha3CountryCode = resolveAlpha3CountryCode(privacyContext);
+        final boolean shouldUpdateCountry = alpha3CountryCode != null && !alpha3CountryCode.equals(countryInRequest);
 
         if (shouldUpdateIpV4 || shouldUpdateIpV6 || shouldUpdateCountry) {
             final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
@@ -434,9 +433,10 @@ public class Ortb2RequestFactory {
         return null;
     }
 
-    private String resolveCountryCode(PrivacyContext privacyContext) {
+    private String resolveAlpha3CountryCode(PrivacyContext privacyContext) {
         final String alpha2CountryCode = ObjectUtil.getIfNotNull(
                 privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+
         return countryCodeMapper.mapToAlpha3(alpha2CountryCode);
     }
 
