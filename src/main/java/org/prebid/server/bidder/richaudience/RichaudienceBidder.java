@@ -27,6 +27,8 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -51,63 +53,72 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (!isDeviseIpPresent(request.getDevice())) {
-            return Result.withError(BidderError.badInput("Device IP is required."));
-        }
-
-        final boolean isSecure;
         try {
-            isSecure = HttpUtil.isSecure(ObjectUtil.getIfNotNull(request.getSite(), Site::getPage));
-        } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput("Problem with Request.Site: " + e.getMessage()));
+            validateRequest(request);
+
+            final URL url = extractUrl(request);
+            final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
+            final List<Imp> modifiedImps = new ArrayList<>();
+            boolean isTest = false;
+
+            for (Imp imp : request.getImp()) {
+                validateImp(imp);
+
+                final ExtImpRichaudience richaudienceImp = parseImpExt(imp);
+                modifiedImps.add(modifyImp(imp, richaudienceImp, isSecure));
+
+                if (!isTest && BooleanUtils.isTrue(richaudienceImp.getTest())) {
+                    isTest = true;
+                }
+            }
+
+            final BidRequest modifiedRequest = modifyBidRequest(request, url, modifiedImps, isTest);
+            return Result.withValues(Collections.singletonList(HttpRequest.<BidRequest>builder()
+                    .method(HttpMethod.POST)
+                    .headers(HttpUtil.headers())
+                    .uri(endpointUrl)
+                    .body(mapper.encodeToBytes(modifiedRequest))
+                    .payload(modifiedRequest)
+                    .build()));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        final List<Imp> modifiedImps = new ArrayList<>();
-        final List<BidderError> errors = new ArrayList<>();
-        boolean isTest = false;
-
-        for (Imp imp : request.getImp()) {
-            if (!isBannerCorrect(imp.getBanner())) {
-                final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
-                errors.add(BidderError.badInput(errorMessage));
-                continue;
-            }
-
-            final ExtImpRichaudience richaudienceImp;
-            try {
-                richaudienceImp = parseImpExt(imp);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                continue;
-            }
-            if (!isTest && BooleanUtils.isTrue(richaudienceImp.getTest())) {
-                isTest = true;
-            }
-
-            modifiedImps.add(modifyImp(imp, richaudienceImp, isSecure));
-        }
-
-        final BidRequest modifiedRequest = modifyBidRequest(request, modifiedImps, isTest);
-        return Result.of(Collections.singletonList(createHttpRequest(modifiedRequest)), errors);
     }
 
-    private static boolean isDeviseIpPresent(Device device) {
-        return device != null
+    private static void validateRequest(BidRequest bidRequest) throws PreBidException {
+        final Device device = bidRequest.getDevice();
+        final boolean isDeviceValid = device != null
                 && (StringUtils.isNotBlank(device.getIp())
                 || StringUtils.isNotBlank(device.getIpv6()));
+        if (!isDeviceValid) {
+            throw new PreBidException("Device IP is required.");
+        }
     }
 
-    private static boolean isBannerCorrect(Banner banner) {
-        return banner != null
+    private static URL extractUrl(BidRequest bidRequest) {
+        try {
+            return new URL(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
+        } catch (MalformedURLException e) {
+            return null;
+        }
+    }
+
+    private static void validateImp(Imp imp) throws PreBidException {
+        final Banner banner = imp.getBanner();
+        final boolean isBannerValid = banner != null
                 && (banner.getW() != null || banner.getH() != null
                 || CollectionUtils.isNotEmpty(banner.getFormat()));
+        if (!isBannerValid) {
+            final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
+            throw new PreBidException(errorMessage);
+        }
     }
 
-    private ExtImpRichaudience parseImpExt(Imp imp) {
+    private ExtImpRichaudience parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), RICHAUDIENCE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException(String.format("Imp.Id: %s. Invalid ext.", imp.getId()));
         }
     }
 
@@ -122,21 +133,17 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, boolean isTest) {
-        return bidRequest.toBuilder()
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, URL url, List<Imp> imps, boolean isTest) {
+        final BidRequest.BidRequestBuilder builder = bidRequest.toBuilder()
                 .imp(imps)
-                .test(BooleanUtils.toInteger(isTest))
-                .build();
-    }
+                .test(BooleanUtils.toInteger(isTest));
 
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        final Site site = bidRequest.getSite();
+        if (url != null && StringUtils.isBlank(site.getDomain())) {
+            builder.site(site.toBuilder().domain(url.getHost()).build());
+        }
+
+        return builder.build();
     }
 
     @Override

@@ -4,18 +4,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
+
 @Builder
 @Value(staticConstructor = "of")
 public class ExtImpRichaudience {
 
     String pid;
 
+    @JsonProperty("supplyType")
     String supplyType;
 
-    @JsonProperty(value = "bidfloor")
-    Double bidFloor;
+    @JsonProperty("bidfloor")
+    BigDecimal bidFloor;
 
-    @JsonProperty(value = "bidfloorcur")
+    @JsonProperty("bidfloorcur")
     String bidFloorCur;
 
     Boolean test;
