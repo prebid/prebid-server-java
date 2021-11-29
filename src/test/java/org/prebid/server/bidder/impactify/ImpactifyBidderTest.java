@@ -2,7 +2,6 @@ package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -38,7 +37,6 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
@@ -158,12 +156,14 @@ public class ImpactifyBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedExtNode = mapper.createObjectNode()
+                .set("impactify", mapper.valueToTree(ExtImpImpactify.of("appId", "format", "style")));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(createObjectNode());
+                .containsExactly(expectedExtNode);
     }
 
     @Test
@@ -307,7 +307,6 @@ public class ImpactifyBidderTest extends VertxTest {
                 .containsOnly(Bid.builder()
                         .impid("123")
                         .build());
-
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
@@ -351,7 +350,7 @@ public class ImpactifyBidderTest extends VertxTest {
         return deviceCustomizer.apply(Device.builder()).build();
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -372,15 +371,5 @@ public class ImpactifyBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
-    }
-
-    private static ObjectNode createObjectNode() {
-        final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
-
-        modifiedImpExtBidder.set("appId", TextNode.valueOf("appId"));
-        modifiedImpExtBidder.set("format", TextNode.valueOf("format"));
-        modifiedImpExtBidder.set("style", TextNode.valueOf("style"));
-
-        return mapper.createObjectNode().set("impactify", modifiedImpExtBidder);
     }
 }

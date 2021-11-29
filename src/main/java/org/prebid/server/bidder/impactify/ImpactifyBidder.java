@@ -1,8 +1,6 @@
 package org.prebid.server.bidder.impactify;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -105,12 +103,11 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, BigDecimal bidFloor) {
-        final ObjectNode modifiedImpExtBidder = createImpExtObjectNode(parseExtImp(imp));
-
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
-                .ext(mapper.mapper().createObjectNode().set("impactify", modifiedImpExtBidder))
+                .ext(mapper.mapper().createObjectNode()
+                        .set("impactify", mapper.mapper().valueToTree(parseExtImp(imp))))
                 .build();
     }
 
@@ -124,29 +121,15 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode createImpExtObjectNode(ExtImpImpactify impExt) {
-        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-
-        if (impExt != null) {
-            modifiedImpExtBidder.set("appId", TextNode.valueOf(impExt.getAppId()));
-            modifiedImpExtBidder.set("format", TextNode.valueOf(impExt.getFormat()));
-            modifiedImpExtBidder.set("style", TextNode.valueOf(impExt.getStyle()));
-        }
-
-        return modifiedImpExtBidder;
-    }
-
     private static BidRequest updateBidRequest(BidRequest request, List<Imp> updatedImps) {
         return request.toBuilder()
                 .imp(updatedImps)
-                .cur(List.of(BIDDER_CURRENCY))
+                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 
     private static MultiMap constructHeaders(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers();
-
-        headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
+        final MultiMap headers = HttpUtil.headers().set(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPENRTB_VERSION);
 
         final Device device = bidRequest.getDevice();
         if (device != null) {
@@ -167,7 +150,7 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
 
         final User user = bidRequest.getUser();
         final String userUid = user != null ? user.getBuyeruid() : null;
-        if (StringUtils.isNotEmpty(userUid)) {
+        if (StringUtils.isNotBlank(userUid)) {
             headers.set(HttpUtil.COOKIE_HEADER, "uids=" + userUid);
         }
 
@@ -198,7 +181,6 @@ public class ImpactifyBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
