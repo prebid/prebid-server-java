@@ -9,19 +9,24 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adview.ExtImpAdview;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,13 +40,18 @@ public class AdviewBidder implements Bidder<BidRequest> {
             new TypeReference<ExtPrebid<?, ExtImpAdview>>() {
             };
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final CurrencyConversionService currencyConversionService;
 
-    public AdviewBidder(String endpointUrl, JacksonMapper mapper) {
+    public AdviewBidder(String endpointUrl,
+                        JacksonMapper mapper,
+                        CurrencyConversionService currencyConversionService) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
     @Override
@@ -64,6 +74,30 @@ public class AdviewBidder implements Bidder<BidRequest> {
                         .body(mapper.encodeToBytes(modifiedRequest))
                         .payload(modifiedRequest)
                         .build());
+    }
+
+    private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
+        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
+                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
+                : imp.getBidfloor();
+    }
+
+    private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
+        return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCur, BIDDER_CURRENCY);
+    }
+
+    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
+                                               BidRequest bidRequest,
+                                               String impId,
+                                               String bidFloorCur) {
+        try {
+            return currencyConversionService
+                    .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
+        } catch (PreBidException e) {
+            throw new PreBidException(String.format(
+                    "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
+                    bidFloorCur, BIDDER_CURRENCY, impId));
+        }
     }
 
     private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId) {
