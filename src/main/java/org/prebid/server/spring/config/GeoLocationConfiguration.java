@@ -97,7 +97,7 @@ public class GeoLocationConfiguration {
         public CountryCodeMapper countryCodeMapper(
                 @Value("classpath:country-codes.csv") Resource resource) throws IOException {
 
-            Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+            final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
             final String countryCodesCsvAsString = FileCopyUtils.copyToString(reader);
             reader.close();
 

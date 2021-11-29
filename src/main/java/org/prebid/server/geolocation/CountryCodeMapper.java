@@ -1,44 +1,38 @@
 package org.prebid.server.geolocation;
 
+import org.apache.commons.collections4.BidiMap;
+import org.apache.commons.collections4.bidimap.DualHashBidiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class CountryCodeMapper {
 
-    private final Map<String, String> alpha2ToAlpha3CountryCodes;
-    private final Map<String, String> alpha3ToAlpha2CountryCodes;
+    private final BidiMap<String, String> alpha2ToAlpha3CountryCodes;
 
     public CountryCodeMapper(String resource) {
-        alpha2ToAlpha3CountryCodes = new HashMap<>();
-        alpha3ToAlpha2CountryCodes = new HashMap<>();
-
-        populateCountryCodesMappings(resource);
+        alpha2ToAlpha3CountryCodes = new DualHashBidiMap<>(populateAlpha2ToAlpha3Mapping(resource));
     }
 
     public String mapToAlpha3(String alpha2Code) {
-        return StringUtils.isNotEmpty(alpha2Code)
-                ? alpha2ToAlpha3CountryCodes.get(alpha2Code.toUpperCase())
-                : null;
+        return alpha2ToAlpha3CountryCodes.get(StringUtils.upperCase(alpha2Code));
     }
 
     public String mapToAlpha2(String alpha3Code) {
-        return StringUtils.isNotEmpty(alpha3Code)
-                ? alpha3ToAlpha2CountryCodes.get(alpha3Code.toUpperCase())
-                : null;
+        return alpha2ToAlpha3CountryCodes.inverseBidiMap().get(StringUtils.upperCase(alpha3Code));
     }
 
-    private void populateCountryCodesMappings(String countryCodesCsvAsString) {
-        Arrays.stream(countryCodesCsvAsString.split("\n"))
+    private Map<String, String> populateAlpha2ToAlpha3Mapping(String countryCodesCsvAsString) {
+        return Arrays.stream(countryCodesCsvAsString.split("\n"))
                 .map(CountryCodeMapper::parseCountryCodesCsvRow)
-                .forEach(this::putCountryCodeMapping);
+                .collect(Collectors.toMap(Pair::getKey, Pair::getValue, (o1, o2) -> o1));
     }
 
     private static Pair<String, String> parseCountryCodesCsvRow(String row) {
-        String[] subTokens = row.replaceAll("[^a-zA-Z,]", "").split(",");
+        final String[] subTokens = row.replaceAll("[^a-zA-Z,]", "").split(",");
         if (subTokens.length != 2 || subTokens[0].length() != 2 || subTokens[1].length() != 3) {
             throw new IllegalArgumentException(
                     String.format(
@@ -47,10 +41,5 @@ public class CountryCodeMapper {
         }
 
         return Pair.of(subTokens[0].toUpperCase(), subTokens[1].toUpperCase());
-    }
-
-    private void putCountryCodeMapping(Pair<String, String> alpha2ToAlpha3Mapping) {
-        alpha2ToAlpha3CountryCodes.put(alpha2ToAlpha3Mapping.getLeft(), alpha2ToAlpha3Mapping.getRight());
-        alpha3ToAlpha2CountryCodes.put(alpha2ToAlpha3Mapping.getRight(), alpha2ToAlpha3Mapping.getLeft());
     }
 }

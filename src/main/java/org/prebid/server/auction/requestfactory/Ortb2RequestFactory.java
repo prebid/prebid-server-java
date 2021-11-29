@@ -407,11 +407,7 @@ public class Ortb2RequestFactory {
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
         final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
-        final String alpha2CountryCode = ObjectUtil.getIfNotNull(privacyContext.getTcfContext().getGeoInfo(),
-                GeoInfo::getCountry);
-        final String alpha3CountryCode = alpha2CountryCode != null
-                ? countryCodeMapper.mapToAlpha3(alpha2CountryCode)
-                : null;
+        final String alpha3CountryCode = resolveCountryCode(privacyContext);
         final boolean shouldUpdateCountry =
                 alpha3CountryCode != null && !Objects.equals(countryInRequest, alpha3CountryCode);
 
@@ -436,6 +432,12 @@ public class Ortb2RequestFactory {
         }
 
         return null;
+    }
+
+    private String resolveCountryCode(PrivacyContext privacyContext) {
+        final String alpha2CountryCode = ObjectUtil.getIfNotNull(
+                privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+        return countryCodeMapper.mapToAlpha3(alpha2CountryCode);
     }
 
     private static String accountDefaultIntegration(Account account) {
