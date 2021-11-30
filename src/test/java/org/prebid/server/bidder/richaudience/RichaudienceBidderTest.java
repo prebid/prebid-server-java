@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -19,12 +18,8 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudience;
-import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudience.ExtImpRichaudienceBuilder;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
@@ -37,132 +32,81 @@ public class RichaudienceBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        bidder = new RichaudienceBidder(ENDPOINT_URL, jacksonMapper);
+        bidder = new RichaudienceBidder("https://test.domain.dm/uri", jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RichaudienceBidder(INCORRECT_URL, jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new RichaudienceBidder("incorrect_url", jacksonMapper));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfDeviceAbsent() {
+    public void makeHttpRequestsShouldReturnErrorIfDeviceIsAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(DEVICE_ERROR));
+        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput("Device IP is required."));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfDeviceIpAbsent() {
+    public void makeHttpRequestsShouldReturnErrorIfDeviceIpIsAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(withEmptyDevice);
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(DEVICE_ERROR));
+        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput("Device IP is required."));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfSiteAbsent() {
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpBannerIsAbsent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(withDevice);
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(imp -> imp.banner(null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(URL_ERROR + "null"));
+        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: null"));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfSitePageAbsent() {
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpBannerIsInvalid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(withDevice.andThen(withEmptySite));
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
+                givenImp(imp -> imp.banner(Banner.builder().build())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(URL_ERROR + "null"));
+        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: null"));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfSitePageIncorrect() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(withDevice.andThen(withIncorrectSite));
+    public void makeHttpRequestsShouldSetImpSecureToFalseIfSitePageIsInsecure() {
+        final BidRequest bidRequest = givenBidRequest("http://insecure.site.st/uri",
+                givenImp(identity()), givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(URL_ERROR + INCORRECT_URL));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfSomeImpHaveIncorrectBanner() {
-        // given
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withEmptyImp)
-                        .andThen(withImpWithEmptyBanner)
-                        .andThen(withImpWithExt)); // success
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp()).hasSize(1);
-        assertThat(result.getErrors()).hasSize(2).allMatch(BidderError.badInput(BANNER_ERROR)::equals);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpBidFloorCurIfImpExtBidFloorCurExistsOrDefault() {
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withImpWithEmptyExt)
-                        .andThen(withImpWithExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp())
-                .hasSize(2)
-                .extracting(Imp::getBidfloorcur)
-                .containsExactly(DEFAULT_CUR, CUR);
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpSecureToFalseIfSitePageUnsecure() {
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withUnsecureSite)
-                        .andThen(withImpWithEmptyExt)
-                        .andThen(withImpWithExt));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp())
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .hasSize(2)
                 .extracting(Imp::getSecure)
                 .allMatch(Integer.valueOf(0)::equals);
@@ -170,19 +114,17 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpSecureToTrueIfSitePageSecure() {
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withImpWithEmptyExt)
-                        .andThen(withImpWithExt));
+    public void makeHttpRequestsShouldSetImpSecureToTrueIfSitePageIsSecure() {
+        final BidRequest bidRequest = givenBidRequest("https://secure.site.st/uri",
+                givenImp(identity()), givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp())
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .hasSize(2)
                 .extracting(Imp::getSecure)
                 .allMatch(Integer.valueOf(1)::equals);
@@ -190,47 +132,79 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetTestToTrueIfSomeImpExtTestIsTrue() {
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withImpWithEmptyExt)
-                        .andThen(withImpWithExtWithTest)
-                        .andThen(withImpWithExt));
+    public void makeHttpRequestsShouldSetImpTagIdIfImpExtPidIsPresent() {
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
+                givenImp(ext -> ext.pid("123"), identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getTest()).isEqualTo(1);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(2)
+                .extracting(Imp::getTagid)
+                .containsExactly(null, "123");
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpTagIdIfImpExtPidExists() {
-        final BidRequest bidRequest =
-                givenBidRequest(withDevice
-                        .andThen(withSecureSite)
-                        .andThen(withImpWithEmptyExt)
-                        .andThen(withImpWithExt));
+    public void makeHttpRequestsShouldSetCorrectImpBidFloorCur() {
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
+                givenImp(imp -> imp.bidfloorcur("RUB")),
+                givenImp(ext -> ext.bidFloorCur("UAH"), identity()),
+                givenImp(ext -> ext.bidFloorCur("BYN"), imp -> imp.bidfloorcur("RUB")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getPayload().getImp())
-                .hasSize(2)
-                .extracting(Imp::getTagid)
-                .containsExactly(null, PID);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(4)
+                .extracting(Imp::getBidfloorcur)
+                .containsExactly("USD", "RUB", "UAH", "BYN");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetTestToTrueIfSomeImpExtTestIsTrue() {
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
+                givenImp(ext -> ext.test(true), identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getTest)
+                .containsExactly(1);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSiteDomainIfItIsAbsentAndSitePageIsPresent() {
+        final BidRequest bidRequest = givenBidRequest("https://domain.dm/uri", givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getDomain)
+                .containsExactly("domain.dm");
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(INCORRECT_BODY);
+        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -239,14 +213,16 @@ public class RichaudienceBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .hasSize(1)
-                .allMatch(error -> error.getType().equals(BidderError.Type.bad_server_response))
-                .allMatch(error -> error.getMessage().startsWith(DECODE_ERROR));
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
     }
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(EMPTY_BODY);
+        final HttpCall<BidRequest> httpCall = givenHttpCall("null");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -259,7 +235,7 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(EMPTY_OBJECT);
+        final HttpCall<BidRequest> httpCall = givenHttpCall("{}");
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -269,81 +245,37 @@ public class RichaudienceBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
     }
 
-    private static final String ENDPOINT_URL = "http://test.domain.dm/uri";
-    private static final String INCORRECT_URL = "incorrect_url";
-    private static final String DEVICE_IP = "device_ip";
-    private static final String UNSECURE_SITE_URL = "http://site.st/uri";
-    private static final String SECURE_SITE_URL = "https://site.st/uri";
-    private static final Integer W = 21;
-    private static final Integer H = 9;
-    private static final String PID = "123";
-    private static final String CUR = "UAH";
-    private static final String DEFAULT_CUR = "USD";
+    private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        final BidRequest.BidRequestBuilder builder = BidRequest.builder()
+                .device(Device.builder().ip("Some ip.").build());
+        return bidRequestCustomizer.apply(builder).build();
+    }
 
-    private static final String DEVICE_ERROR = "Device IP is required.";
-    private static final String URL_ERROR = "Problem with Request.Site: URL supplied is not valid: ";
-    private static final String BANNER_ERROR = "Banner W/H/Format is required. ImpId: null";
+    private BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(request -> request.imp(List.of(imps)));
+    }
 
-    private static final String INCORRECT_BODY = "Incorrect body";
-    private static final String EMPTY_BODY = "null";
-    private static final String EMPTY_OBJECT = "{}";
+    private BidRequest givenBidRequest(String url, Imp... imps) {
+        return givenBidRequest(request -> request.site(Site.builder().page(url).build()).imp(List.of(imps)));
+    }
 
-    private static final String DECODE_ERROR = "Failed to decode: Unrecognized token";
+    private Imp givenImp(UnaryOperator<ExtImpRichaudience.ExtImpRichaudienceBuilder> extCustomizer,
+                         UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-    private BidRequest givenBidRequest(Function<BidRequestBuilder, BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()).build();
+        final ExtImpRichaudience extImpRichaudience = extCustomizer.apply(ExtImpRichaudience.builder()).build();
+        final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpRichaudience));
+        final Imp.ImpBuilder builder = Imp.builder()
+                .banner(Banner.builder().w(21).h(9).build())
+                .ext(ext);
+        return impCustomizer.apply(builder).build();
+    }
+
+    private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenImp(identity(), impCustomizer);
     }
 
     private HttpCall<BidRequest> givenHttpCall(String body) {
         final HttpResponse response = HttpResponse.of(200, null, body);
         return HttpCall.success(null, response, null);
-    }
-
-    private final BidRequestCustomizer withEmptyDevice = withDevice(null);
-    private final BidRequestCustomizer withDevice = withDevice(DEVICE_IP);
-
-    private final BidRequestCustomizer withEmptySite = withSite(null);
-    private final BidRequestCustomizer withIncorrectSite = withSite(INCORRECT_URL);
-    private final BidRequestCustomizer withUnsecureSite = withSite(UNSECURE_SITE_URL);
-    private final BidRequestCustomizer withSecureSite = withSite(SECURE_SITE_URL);
-
-    private final BidRequestCustomizer withEmptyImp = withImp(identity());
-    private final BidRequestCustomizer withImpWithEmptyBanner = withImp(withBanner(identity()));
-    private final BidRequestCustomizer withImpWithEmptyExt = withImpWithExt(identity());
-    private final BidRequestCustomizer withImpWithExtWithTest = withImpWithExt(c -> c.test(true));
-    private final BidRequestCustomizer withImpWithExt = withImpWithExt(c -> c.pid(PID).bidFloorCur(CUR));
-
-    private BidRequestCustomizer withDevice(String ip) {
-        return customizer -> customizer.device(Device.builder().ip(ip).build());
-    }
-
-    private BidRequestCustomizer withSite(String url) {
-        return customizer -> customizer.site(Site.builder().page(url).build());
-    }
-
-    private BidRequestCustomizer withImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return customizer -> {
-            final BidRequest built = customizer.build();
-            final List<Imp> newImps = Objects.requireNonNullElseGet(built.getImp(), ArrayList::new);
-            newImps.add(impCustomizer.apply(Imp.builder()).build());
-            return built.toBuilder().imp(newImps);
-        };
-    }
-
-    private BidRequestCustomizer withImpWithExt(UnaryOperator<ExtImpRichaudienceBuilder> extCustomizer) {
-        final ExtImpRichaudience extImpRichaudience = extCustomizer.apply(ExtImpRichaudience.builder()).build();
-        final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpRichaudience));
-        return withImp(withBanner().andThen(customizer -> customizer.ext(ext)));
-    }
-
-    private UnaryOperator<Imp.ImpBuilder> withBanner(UnaryOperator<Banner.BannerBuilder> bannerCustomizer) {
-        return customizer -> customizer.banner(bannerCustomizer.apply(Banner.builder()).build());
-    }
-
-    private UnaryOperator<Imp.ImpBuilder> withBanner() {
-        return withBanner(bannerCustomizer -> bannerCustomizer.w(W).h(H));
-    }
-
-    private interface BidRequestCustomizer extends UnaryOperator<BidRequestBuilder> {
     }
 }

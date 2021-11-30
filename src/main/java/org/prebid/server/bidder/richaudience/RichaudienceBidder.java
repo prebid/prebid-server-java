@@ -11,6 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -53,43 +54,32 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final URL url = extractUrl(request);
+        final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
+        final List<Imp> modifiedImps = new ArrayList<>();
+        boolean isTest = false;
+
         try {
             validateRequest(request);
-
-            final URL url = extractUrl(request);
-            final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
-            final List<Imp> modifiedImps = new ArrayList<>();
-            boolean isTest = false;
-
             for (Imp imp : request.getImp()) {
                 validateImp(imp);
 
-                final ExtImpRichaudience richaudienceImp = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, richaudienceImp, isSecure));
+                final ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
+                modifiedImps.add(modifyImp(imp, extImpRichaudience, isSecure));
 
-                if (!isTest && BooleanUtils.isTrue(richaudienceImp.getTest())) {
-                    isTest = true;
-                }
+                isTest |= BooleanUtils.isTrue(extImpRichaudience.getTest());
             }
-
-            final BidRequest modifiedRequest = modifyBidRequest(request, url, modifiedImps, isTest);
-            return Result.withValues(Collections.singletonList(HttpRequest.<BidRequest>builder()
-                    .method(HttpMethod.POST)
-                    .headers(HttpUtil.headers())
-                    .uri(endpointUrl)
-                    .body(mapper.encodeToBytes(modifiedRequest))
-                    .payload(modifiedRequest)
-                    .build()));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
+
+        final BidRequest modifiedRequest = modifyBidRequest(request, url, modifiedImps, isTest);
+        return Result.withValues(Collections.singletonList(createHttpRequest(modifiedRequest)));
     }
 
     private static void validateRequest(BidRequest bidRequest) throws PreBidException {
         final Device device = bidRequest.getDevice();
-        final boolean isDeviceValid = device != null
-                && (StringUtils.isNotBlank(device.getIp())
-                || StringUtils.isNotBlank(device.getIpv6()));
+        final boolean isDeviceValid = device != null && !StringUtils.isAllBlank(device.getIp(), device.getIpv6());
         if (!isDeviceValid) {
             throw new PreBidException("Device IP is required.");
         }
@@ -106,7 +96,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static void validateImp(Imp imp) throws PreBidException {
         final Banner banner = imp.getBanner();
         final boolean isBannerSizesPresent = banner != null
-                && (banner.getW() != null || banner.getH() != null
+                && (ObjectUtils.anyNotNull(banner.getW(), banner.getH())
                 || CollectionUtils.isNotEmpty(banner.getFormat()));
         if (!isBannerSizesPresent) {
             final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
@@ -122,20 +112,17 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpRichaudience richaudienceImp, boolean isSecure) {
-        final String tagId = richaudienceImp.getPid();
-        final String extBidFloorCur = richaudienceImp.getBidFloorCur();
+    private static Imp modifyImp(Imp imp, ExtImpRichaudience extImpRichaudience, boolean isSecure) {
+        final String tagId = extImpRichaudience.getPid();
+        final String extBidFloorCur = extImpRichaudience.getBidFloorCur();
         final String impBidFloorCur = imp.getBidfloorcur();
 
-        final String bidFloorCur = StringUtils.isNotBlank(extBidFloorCur)
-                ? extBidFloorCur
-                : StringUtils.isNotBlank(impBidFloorCur)
-                ? impBidFloorCur
-                : DEFAULT_CURRENCY;
+        final String bidFloorCur = StringUtils.defaultIfBlank(extBidFloorCur,
+                StringUtils.defaultIfBlank(impBidFloorCur, DEFAULT_CURRENCY));
 
         return imp.toBuilder()
                 .secure(BooleanUtils.toInteger(isSecure))
-                .tagid(StringUtils.isNotBlank(tagId) ? tagId : imp.getTagid())
+                .tagid(StringUtils.defaultIfBlank(tagId, imp.getTagid()))
                 .bidfloorcur(bidFloorCur)
                 .build();
     }
@@ -151,6 +138,16 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
 
         return builder.build();
+    }
+
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build();
     }
 
     @Override

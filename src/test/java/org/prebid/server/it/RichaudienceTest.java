@@ -23,7 +23,8 @@ public class RichaudienceTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/richaudience-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/richaudience/test-richaudience-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/richaudience/test-richaudience-bid-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom(
+                        "openrtb2/richaudience/test-richaudience-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/richaudience/test-auction-richaudience-request.json",
