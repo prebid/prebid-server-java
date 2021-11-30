@@ -60,20 +60,28 @@ public class AdviewBidder implements Bidder<BidRequest> {
         final ExtImpAdview extImpAdview;
 
         try {
-            extImpAdview = mapper.mapper().convertValue(firstImp.getExt(), ADVIEW_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput("invalid imp.ext"));
+            extImpAdview = parseExtImp(firstImp);
+            request = modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final BidRequest modifiedRequest = modifyRequest(request, extImpAdview.getMasterTagId());
         return Result.withValue(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(resolveEndpoint(extImpAdview.getAccountId()))
                         .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(modifiedRequest))
-                        .payload(modifiedRequest)
+                        .body(mapper.encodeToBytes(request))
+                        .payload(request)
                         .build());
+    }
+
+    private ExtImpAdview parseExtImp(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ADVIEW_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("invalid imp.ext");
+        }
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
@@ -100,21 +108,24 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId) {
+    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, BigDecimal resolvedBidFloor) {
         return bidRequest.toBuilder()
-                .imp(modifyImps(bidRequest.getImp(), masterTagId))
+                .imp(modifyImps(bidRequest.getImp(), masterTagId, resolvedBidFloor))
+                .cur(Collections.singletonList("USD"))
                 .build();
     }
 
-    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId) {
+    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId, BigDecimal resolvedBidFloor) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId));
+        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, resolvedBidFloor));
         return modifiedImps;
     }
 
-    private static Imp modifyImp(Imp imp, String masterTagId) {
+    private static Imp modifyImp(Imp imp, String masterTagId, BigDecimal resolvedBidFloor) {
         return imp.toBuilder()
                 .tagid(masterTagId)
+                .bidfloor(resolvedBidFloor)
+                .bidfloorcur(BIDDER_CURRENCY)
                 .banner(resolveBanner(imp.getBanner()))
                 .build();
     }
