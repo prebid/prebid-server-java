@@ -30,6 +30,7 @@ class Alert extends NetworkScaffolding {
         getLastRecordedRequestHeaders(request)
     }
 
+    @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint))
                         .respond(response().withStatusCode(OK_200.code()))
