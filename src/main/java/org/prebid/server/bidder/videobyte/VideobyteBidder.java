@@ -1,0 +1,150 @@
+package org.prebid.server.bidder.videobyte;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.videobyte.ExtImpVideobyte;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
+
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+public class VideobyteBidder implements Bidder<BidRequest> {
+
+    private static final String DEFAULT_CURRENCY = "USD";
+    private static final TypeReference<ExtPrebid<?, ExtImpVideobyte>> VIDEOBYTE_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
+
+    public VideobyteBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+
+        for (Imp imp : request.getImp()) {
+            try {
+                final ExtImpVideobyte extImpVideobyte = parseImpExt(imp);
+                requests.add(createRequest(request, imp, extImpVideobyte));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        return Result.of(requests, errors);
+    }
+
+    private ExtImpVideobyte parseImpExt(Imp imp) throws PreBidException {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), VIDEOBYTE_EXT_TYPE_REFERENCE).getBidder();
+        } catch (DecodeException e) {
+            final String errorMessage = "Ignoring imp id=%s, error while decoding, err: %s";
+            throw new PreBidException(String.format(errorMessage, imp.getId(), e.getMessage()));
+        }
+    }
+
+    private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpVideobyte extImpVideobyte)
+            throws PreBidException {
+
+        final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(createUri(extImpVideobyte))
+                .headers(headers(modifiedBidRequest))
+                .body(mapper.encodeToBytes(modifiedBidRequest))
+                .payload(modifiedBidRequest)
+                .build();
+    }
+
+    private String createUri(ExtImpVideobyte extImpVideobyte) throws PreBidException {
+        try {
+            final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
+                    .addParameter("source", "pbs")
+                    .addParameter("pid", extImpVideobyte.getPublisherId());
+            letIfNotBlank(extImpVideobyte.getPlacementId(), it -> uriBuilder.addParameter("placementId", it));
+            letIfNotBlank(extImpVideobyte.getNetworkId(), it -> uriBuilder.addParameter("nid", it));
+
+            return uriBuilder.build().toString();
+        } catch (URISyntaxException e) { // shouldn't really happen
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private static MultiMap headers(BidRequest bidRequest) {
+        final MultiMap headers = HttpUtil.headers();
+
+        final Site site = bidRequest.getSite();
+        if (site != null) {
+            letIfNotBlank(site.getDomain(), it -> headers.add(HttpUtil.ORIGIN_HEADER, it));
+            letIfNotBlank(site.getRef(), it -> headers.add(HttpUtil.REFERER_HEADER, it));
+        }
+
+        return headers;
+    }
+
+    private static void letIfNotBlank(String value, Consumer<String> action) {
+        if (StringUtils.isNotBlank(value)) {
+            action.accept(value);
+        }
+    }
+
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+        } catch (DecodeException e) {
+            return Result.withError(BidderError.badServerResponse("Bad server response."));
+        }
+    }
+
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        final Map<String, BidType> impIdToMediaType = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, VideobyteBidder::resolveMediaType));
+
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, impIdToMediaType.get(bid.getImpid()), DEFAULT_CURRENCY))
+                .collect(Collectors.toList());
+    }
+
+    private static BidType resolveMediaType(Imp imp) {
+        return imp.getBanner() != null ? BidType.banner : BidType.video;
+    }
+}
