@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 108
     usersync:
-      url:
-      redirect-url:
+      url: https://sync.richaudience.com/74889303289e27f327ad0c6de7be7264/?consentString={{gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=richaudience&gdpr={{gdpr}}&gdpr_consent{{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[PDID]
       cookie-family-name: richaudience
-      type: redirect
+      type: iframe
       support-cors: false
