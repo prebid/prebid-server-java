@@ -2,11 +2,8 @@ package org.prebid.server.vertx.http;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
-
-import java.util.function.Consumer;
 
 /**
  * Interface describes HTTP interactions.
@@ -14,26 +11,23 @@ import java.util.function.Consumer;
 public interface HttpClient {
 
     Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
-                                       String body, long timeoutMs, long maxResponseSize,
-                                       Consumer<Promise<HttpClientResponse>> timeoutHandler);
+                                       String body, long timeoutMs, long maxResponseSize);
 
     Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
-                                       byte[] body, long timeoutMs, long maxResponseSize,
-                                       Consumer<Promise<HttpClientResponse>> timeoutHandler);
+                                       byte[] body, long timeoutMs, long maxResponseSize);
 
     default Future<HttpClientResponse> request(HttpMethod method, String url,
                                                MultiMap headers, String body, long timeoutMs) {
-        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE, null);
+        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE);
     }
 
     default Future<HttpClientResponse> request(HttpMethod method, String url,
                                                MultiMap headers, byte[] body, long timeoutMs) {
-        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE, null);
+        return request(method, url, headers, body, timeoutMs, Long.MAX_VALUE);
     }
 
-    default Future<HttpClientResponse> get(String url, long timeoutMs, long maxResponseSize,
-                                           Consumer<Promise<HttpClientResponse>> timeoutHandler) {
-        return request(HttpMethod.GET, url, null, (String) null, timeoutMs, maxResponseSize, timeoutHandler);
+    default Future<HttpClientResponse> get(String url, long timeoutMs, long maxResponseSize) {
+        return request(HttpMethod.GET, url, null, (String) null, timeoutMs, maxResponseSize);
     }
 
     default Future<HttpClientResponse> get(String url, MultiMap headers, long timeoutMs) {

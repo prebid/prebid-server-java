@@ -793,10 +793,6 @@ public class ServiceConfiguration {
     @Bean
     PriceFloorFetcher priceFloorFetcher(
             @Value("${price-floor.fetch.timeout-ms}") long defaultTimeoutMs,
-            @Value("${price-floor.fetch.max-age-sec}") int defaultMaxAgeSec,
-            @Value("${price-floor.fetch.period-sec}") long defaultPeriodSec,
-            @Value("${price-floor.fetch.max-rules}") int defaultMaxRules,
-            @Value("${price-floor.fetch.max-file-size-kb}") long defaultMaxFileSizeKb,
             ApplicationSettings applicationSettings,
             Vertx vertx,
             TimeoutFactory timeoutFactory,
@@ -805,10 +801,6 @@ public class ServiceConfiguration {
 
         return new PriceFloorFetcher(
                 defaultTimeoutMs,
-                defaultMaxAgeSec,
-                defaultPeriodSec,
-                defaultMaxRules,
-                defaultMaxFileSizeKb,
                 applicationSettings,
                 vertx,
                 timeoutFactory,

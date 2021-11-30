@@ -81,7 +81,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any());
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong());
 
         assertThat(future.succeeded()).isTrue();
     }
@@ -95,7 +95,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any());
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -113,7 +113,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         // invoked only on 1 call
-        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any());
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong());
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -135,7 +135,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong()); // invoked only on 1 & 3 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -160,7 +160,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong()); // invoked only on 1 & 3 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -185,7 +185,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong(), any()); // invoked on 1 & 2 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong(), anyLong()); // invoked on 1 & 2 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception1");
@@ -250,7 +250,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     private <T> void givenHttpClientReturning(T... results) {
         BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
                 given(wrappedHttpClient.request(any(), anyString(), any(),
-                        (String) any(), anyLong(), anyLong(), any()));
+                        (String) any(), anyLong(), anyLong()));
         for (T result : results) {
             if (result instanceof Exception) {
                 stubbing = stubbing.willReturn(Future.failedFuture((Throwable) result));

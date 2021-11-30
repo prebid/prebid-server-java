@@ -30,24 +30,21 @@ public class BasicHttpClient implements HttpClient {
 
     @Override
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
-                                              String body, long timeoutMs, long maxResponseSize,
-                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
+                                              String body, long timeoutMs, long maxResponseSize) {
         return request(method, url, headers, timeoutMs, maxResponseSize, body,
-                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body), timeoutHandler);
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body));
     }
 
     @Override
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
-                                              byte[] body, long timeoutMs, long maxResponseSize,
-                                              Consumer<Promise<HttpClientResponse>> timeoutHandler) {
+                                              byte[] body, long timeoutMs, long maxResponseSize) {
         return request(method, url, headers, timeoutMs, maxResponseSize, body,
-                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)), timeoutHandler);
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)));
     }
 
     private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
                                                    long timeoutMs, long maxResponseSize, T body,
-                                                   Consumer<HttpClientRequest> requestBodySetter,
-                                                   Consumer<Promise<HttpClientResponse>> timeoutHandler) {
+                                                   Consumer<HttpClientRequest> requestBodySetter) {
         final Promise<HttpClientResponse> promise = Promise.promise();
 
         if (timeoutMs <= 0) {
@@ -63,9 +60,7 @@ public class BasicHttpClient implements HttpClient {
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
             // but remaining part is delayed. So, overall request/response timeout is involved to fix it.
-            final long timerId = vertx.setTimer(timeoutMs,
-                    id -> (timeoutHandler != null ? timeoutHandler : failTimeoutHandler(timeoutMs, httpClientRequest))
-                            .accept(promise));
+            final long timerId = vertx.setTimer(timeoutMs, id -> handleTimeout(promise, timeoutMs, httpClientRequest));
 
             httpClientRequest
                     .setFollowRedirects(true)
@@ -85,17 +80,17 @@ public class BasicHttpClient implements HttpClient {
         return promise.future();
     }
 
-    private Consumer<Promise<HttpClientResponse>> failTimeoutHandler(Long timeoutMs,
-                                                                     HttpClientRequest httpClientRequest) {
-        return promise -> {
-            if (!promise.future().isComplete()) {
-                failResponse(new TimeoutException(
-                        String.format("Timeout period of %dms has been exceeded", timeoutMs)), promise);
+    private void handleTimeout(Promise<HttpClientResponse> promise,
+                               long timeoutMs,
+                               HttpClientRequest httpClientRequest) {
 
-                // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
-                httpClientRequest.reset();
-            }
-        };
+        if (!promise.future().isComplete()) {
+            failResponse(new TimeoutException(
+                    String.format("Timeout period of %dms has been exceeded", timeoutMs)), promise);
+
+            // Explicitly close connection, inspired by https://github.com/eclipse-vertx/vert.x/issues/2745
+            httpClientRequest.reset();
+        }
     }
 
     private void handleResponse(io.vertx.core.http.HttpClientResponse response,
