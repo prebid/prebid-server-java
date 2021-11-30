@@ -1,4 +1,4 @@
-package org.prebid.server.functional
+package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid

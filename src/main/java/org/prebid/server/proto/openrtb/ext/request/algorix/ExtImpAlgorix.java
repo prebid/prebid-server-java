@@ -20,4 +20,7 @@ public class ExtImpAlgorix {
 
     @JsonProperty("appId")
     String appId;
+
+    @JsonProperty("region")
+    String region;
 }
