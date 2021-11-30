@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.request.Imp;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor
-@Value
+@Value(staticConstructor = "of")
 public class ImpWithExt<T> {
 
     Imp imp;

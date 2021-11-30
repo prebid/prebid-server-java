@@ -3,16 +3,17 @@
   "imp": [
     {
       "id": "imp_id",
-      "tagid": "tag_id",
       "banner": {
-        "w": 300,
+        "w": 320,
         "h": 250
       },
-      "instl": 1,
+      "bidfloor": 10,
+      "bidfloorcur": "USD",
       "ext": {
-        "smaato": {
-          "publisherId": "11000",
-          "adspaceId": "130563103"
+        "impactify": {
+          "appId": "appId",
+          "format": "format",
+          "style": "style"
         }
       }
     }

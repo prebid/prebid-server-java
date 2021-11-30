@@ -4,30 +4,28 @@
     {
       "bid": [
         {
-          "id": "imp_id",
+          "id": "bid_id",
           "impid": "imp_id",
-          "price": 0.5,
-          "adm": "banner",
-          "crid": "crid12",
-          "w": 400,
-          "h": 300,
+          "price": 0.01,
+          "adid": "2068416",
+          "cid": "8048",
+          "crid": "24080",
           "ext": {
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 0.5,
-            "origbidcur": "USD"
+            "origbidcpm": 0.01
           }
         }
       ],
-      "seat": "adform",
+      "seat": "impactify",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "adform": "{{ adform.response_time_ms }}"
+      "impactify": "{{ impactify.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
