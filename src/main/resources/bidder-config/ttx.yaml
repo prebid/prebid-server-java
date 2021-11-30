@@ -13,7 +13,7 @@ adapters:
       supported-vendors:
       vendor-id: 58
     usersync:
-      url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&id=zzz000000000002zzz
+      url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru=
       redirect-url: /setuid?bidder=33across&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=33XUSERID33X
       cookie-family-name: 33across
       type: iframe
