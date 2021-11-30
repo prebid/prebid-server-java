@@ -50,11 +50,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
         final BidRequest bidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
         final ExtRequestPrebidFloors floors = getFloors(bidRequest);
-        if (floors == null) {
-            return false;
-        }
-
-        return BooleanUtils.isNotFalse(floors.getEnforcePbs());
+        return floors == null || BooleanUtils.isNotFalse(floors.getEnforcePbs());
     }
 
     private static ExtRequestPrebidFloors getFloors(BidRequest bidRequest) {
@@ -113,15 +109,15 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             return auctionParticipation;
         }
 
-        final BidderResponse resultBidderResponse =
-                bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
-        return auctionParticipation.with(resultBidderResponse);
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors);
+        return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 
     private static boolean isEnforcedDealFloors(ExtRequestPrebidFloors floors,
                                                 AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
-        final Boolean requestEnforceDealFloors = floors.getEnforceDeals();
+        final Boolean requestEnforceDealFloors = ObjectUtil.getIfNotNull(floors,
+                ExtRequestPrebidFloors::getEnforceDeals);
         final Boolean accountEnforceDealFloors = accountPriceFloorsConfig.getEnforceDealFloors();
 
         return BooleanUtils.isTrue(requestEnforceDealFloors) && BooleanUtils.isTrue(accountEnforceDealFloors);
@@ -140,7 +136,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     private static boolean isAllowedByEnforceRate(ExtRequestPrebidFloors floors,
                                                   AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
-        final Integer requestEnforceRate = floors.getEnforceRate();
+        final Integer requestEnforceRate = ObjectUtil.getIfNotNull(floors, ExtRequestPrebidFloors::getEnforceRate);
         final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
 
         return isSatisfiedEnforceRate(requestEnforceRate) && isSatisfiedEnforceRate(accountEnforceRate);
