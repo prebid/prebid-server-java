@@ -11,8 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MultiValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -35,7 +33,9 @@ import org.prebid.server.util.HttpUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -56,7 +56,7 @@ public class TtxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final MultiValuedMap<String, Imp> impsMap = new ArrayListValuedHashMap<>();
+        final Map<String, List<Imp>> impsMap = new HashMap<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
@@ -64,14 +64,14 @@ public class TtxBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpTtx extImpTtx = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpTtx);
-                impsMap.put(computeKey(updatedImp), updatedImp);
+                impsMap.computeIfAbsent(computeKey(updatedImp), k -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        for (Collection<Imp> imps : impsMap.asMap().values()) {
-            requests.add(createRequest(request, List.copyOf(imps)));
+        for (List<Imp> imps : impsMap.values()) {
+            requests.add(createRequest(request, imps));
         }
 
         return Result.of(requests, errors);
