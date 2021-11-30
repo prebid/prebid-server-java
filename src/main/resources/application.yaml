@@ -267,10 +267,6 @@ geolocation:
 price-floor:
   fetch:
     timeout-ms: 3000
-    max-file-size-kb: 100
-    max-rules: 1000
-    max-age-sec: 86400
-    period-sec: 3600
 health-check:
   database:
     enabled: false

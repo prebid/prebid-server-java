@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class Metrics extends UpdatableMetrics {
 
     private static final String ALL_REQUEST_BIDDERS = "all";
+    private static final String FETCH = "fetch";
 
     private final AccountMetricsVerbosity accountMetricsVerbosity;
 
@@ -32,6 +33,7 @@ public class Metrics extends UpdatableMetrics {
     private final Function<String, AccountMetrics> accountMetricsCreator;
     private final Function<String, AdapterTypeMetrics> adapterMetricsCreator;
     private final Function<String, AnalyticsReporterMetrics> analyticMetricsCreator;
+    private final Function<String, PriceFloorMetrics> priceFloorsMetricsCreator;
     private final Function<Integer, BidderCardinalityMetrics> bidderCardinalityMetricsCreator;
     private final Function<MetricName, CircuitBreakerMetrics> circuitBreakerMetricsCreator;
     private final Function<MetricName, SettingsCacheMetrics> settingsCacheMetricsCreator;
@@ -42,6 +44,7 @@ public class Metrics extends UpdatableMetrics {
     private final Map<String, AccountMetrics> accountMetrics;
     private final Map<String, AdapterTypeMetrics> adapterMetrics;
     private final Map<String, AnalyticsReporterMetrics> analyticMetrics;
+    private final Map<String, PriceFloorMetrics> priceFloorsMetrics;
     private final Map<Integer, BidderCardinalityMetrics> bidderCardinailtyMetrics;
     private final UserSyncMetrics userSyncMetrics;
     private final CookieSyncMetrics cookieSyncMetrics;
@@ -67,12 +70,15 @@ public class Metrics extends UpdatableMetrics {
                 metricRegistry, counterType, cardinality);
         analyticMetricsCreator = analyticCode -> new AnalyticsReporterMetrics(
                 metricRegistry, counterType, analyticCode);
+        priceFloorsMetricsCreator = moduleType -> new PriceFloorMetrics(
+                metricRegistry, counterType, moduleType);
         circuitBreakerMetricsCreator = type -> new CircuitBreakerMetrics(metricRegistry, counterType, type);
         settingsCacheMetricsCreator = type -> new SettingsCacheMetrics(metricRegistry, counterType, type);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
         adapterMetrics = new HashMap<>();
         analyticMetrics = new HashMap<>();
+        priceFloorsMetrics = new HashMap<>();
         bidderCardinailtyMetrics = new HashMap<>();
         userSyncMetrics = new UserSyncMetrics(metricRegistry, counterType);
         cookieSyncMetrics = new CookieSyncMetrics(metricRegistry, counterType);
@@ -104,6 +110,10 @@ public class Metrics extends UpdatableMetrics {
 
     AnalyticsReporterMetrics forAnalyticReporter(String analyticCode) {
         return analyticMetrics.computeIfAbsent(analyticCode, analyticMetricsCreator);
+    }
+
+    PriceFloorMetrics forPriceFloorFetch() {
+        return priceFloorsMetrics.computeIfAbsent(FETCH, priceFloorsMetricsCreator);
     }
 
     UserSyncMetrics userSync() {
@@ -287,6 +297,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updateAnalyticEventMetric(String analyticCode, MetricName eventType, MetricName result) {
         forAnalyticReporter(analyticCode).forEventType(eventType).incCounter(result);
+    }
+
+    public void updatePriceFloorFetchMetric(MetricName result) {
+        forPriceFloorFetch().incCounter(result);
     }
 
     public void updateSizeValidationMetrics(String bidder, String accountId, MetricName type) {
