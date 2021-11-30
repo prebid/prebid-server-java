@@ -7,9 +7,11 @@ import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Value;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
@@ -39,6 +41,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class SetuidHandler implements Handler<RoutingContext> {
@@ -239,49 +242,52 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private void respondWithCookie(SetuidContext setuidContext) {
         final RoutingContext routingContext = setuidContext.getRoutingContext();
         final String uid = routingContext.request().getParam(UID_PARAM);
-        final UidsCookie updatedUidsCookie;
-        boolean successfullyUpdated = false;
-
         final String bidder = setuidContext.getCookieName();
-        final UidsCookie uidsCookie = setuidContext.getUidsCookie();
-        if (StringUtils.isBlank(uid)) {
-            updatedUidsCookie = uidsCookie.deleteUid(bidder);
-        } else if (UidsCookie.isFacebookSentinel(bidder, uid)) {
-            // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
-            // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
-            updatedUidsCookie = uidsCookie;
-        } else {
-            updatedUidsCookie = uidsCookie.updateUid(bidder, uid);
-            successfullyUpdated = true;
-            metrics.updateUserSyncSetsMetric(bidder);
-        }
 
-        final Cookie cookie = uidsCookieService.toCookie(updatedUidsCookie);
-        addCookie(routingContext, cookie);
+        final UidsCookieUpdateResult uidsCookieUpdateResult = updateUidsCookie(
+                setuidContext.getUidsCookie(), bidder, uid);
 
-        final HttpResponseStatus status = HttpResponseStatus.OK;
+        final Cookie updatedUidsCookie = uidsCookieService.toCookie(uidsCookieUpdateResult.getUidsCookie());
+        addCookie(routingContext, updatedUidsCookie);
 
-        final String format = routingContext.request().getParam(UsersyncUtil.FORMAT_PARAMETER);
-        if (shouldRespondWithPixel(format, setuidContext.getSyncType())) {
-            HttpUtil.executeSafely(routingContext, Endpoint.setuid,
-                    response -> response
-                            .sendFile(PIXEL_FILE_PATH));
-        } else {
-            HttpUtil.executeSafely(routingContext, Endpoint.setuid,
-                    response -> response
-                            .setStatusCode(status.code())
-                            .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
-                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
-                            .end());
-        }
+        final int statusCode = HttpResponseStatus.OK.code();
+        HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-        analyticsDelegator.processEvent(SetuidEvent.builder()
-                .status(status.code())
+        final SetuidEvent setuidEvent = SetuidEvent.builder()
+                .status(statusCode)
                 .bidder(bidder)
                 .uid(uid)
-                .success(successfullyUpdated)
-                .build(), tcfContext);
+                .success(uidsCookieUpdateResult.isSuccessfullyUpdated())
+                .build();
+        analyticsDelegator.processEvent(setuidEvent, tcfContext);
+    }
+
+    private UidsCookieUpdateResult updateUidsCookie(UidsCookie uidsCookie, String bidderName, String uid) {
+        if (StringUtils.isBlank(uid)) {
+            return UidsCookieUpdateResult.unaltered(uidsCookie.deleteUid(bidderName));
+        } else if (UidsCookie.isFacebookSentinel(bidderName, uid)) {
+            // At the moment, Facebook calls /setuid with a UID of 0 if the user isn't logged into Facebook.
+            // They shouldn't be sending us a sentinel value... but since they are, we're refusing to save that ID.
+            return UidsCookieUpdateResult.unaltered(uidsCookie);
+        } else {
+            final UidsCookie updatedCookie = uidsCookie.updateUid(bidderName, uid);
+            metrics.updateUserSyncSetsMetric(bidderName);
+            return UidsCookieUpdateResult.updated(updatedCookie);
+        }
+    }
+
+    private Consumer<HttpServerResponse> buildCookieResponseConsumer(SetuidContext setuidContext,
+                                                                     int responseStatusCode) {
+
+        final String format = setuidContext.getRoutingContext().request().getParam(UsersyncUtil.FORMAT_PARAMETER);
+        return shouldRespondWithPixel(format, setuidContext.getSyncType())
+                ? response -> response.sendFile(PIXEL_FILE_PATH)
+                : response -> response
+                .setStatusCode(responseStatusCode)
+                .putHeader(HttpHeaders.CONTENT_LENGTH, "0")
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpHeaders.TEXT_HTML)
+                .end();
     }
 
     private boolean shouldRespondWithPixel(String format, String syncType) {
@@ -323,5 +329,21 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private void addCookie(RoutingContext routingContext, Cookie cookie) {
         routingContext.response().headers().add(HttpUtil.SET_COOKIE_HEADER, HttpUtil.toSetCookieHeaderValue(cookie));
+    }
+
+    @Value(staticConstructor = "of")
+    private static class UidsCookieUpdateResult {
+
+        private static UidsCookieUpdateResult updated(UidsCookie uidsCookie) {
+            return of(true, uidsCookie);
+        }
+
+        private static UidsCookieUpdateResult unaltered(UidsCookie uidsCookie) {
+            return of(false, uidsCookie);
+        }
+
+        boolean successfullyUpdated;
+
+        UidsCookie uidsCookie;
     }
 }
