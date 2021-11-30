@@ -6,7 +6,6 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
@@ -143,10 +142,13 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final Integer requestEnforceRate = floors.getEnforceRate();
         final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
-        final Integer enforceRate = ObjectUtils.defaultIfNull(requestEnforceRate, accountEnforceRate);
 
-        return (enforceRate == null || enforceRate < 0 || enforceRate > 100)
-                || ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0;
+        return isSatisfiedEnforceRate(requestEnforceRate) && isSatisfiedEnforceRate(accountEnforceRate);
+    }
+
+    private static boolean isSatisfiedEnforceRate(Integer enforceRate) {
+        return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
+                && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
     }
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {
