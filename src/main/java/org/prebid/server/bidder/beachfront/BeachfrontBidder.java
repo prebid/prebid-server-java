@@ -157,16 +157,10 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<BeachfrontSlot> slots = new ArrayList<>();
 
         for (Imp imp : bannerImps) {
-            final String bidFloorCur = imp.getBidfloorcur();
-            if (bidFloorCur != null && !DEFAULT_BID_CURRENCY.equalsIgnoreCase(bidFloorCur)) {
-                final String errorMessage = "Unsupported bid currency, %s. bids are currently accepted in USD only.";
-                errors.add(BidderError.badInput(String.format(errorMessage, imp.getBidfloorcur())));
-                continue;
-            }
-
             final ExtImpBeachfront extImpBeachfront;
             final String appId;
             try {
+                validateImp(imp);
                 extImpBeachfront = parseImpExt(imp);
                 appId = getAppId(extImpBeachfront, true);
             } catch (PreBidException e) {
@@ -225,6 +219,14 @@ public class BeachfrontBidder implements Bidder<Void> {
         }
 
         return requestBuilder.build();
+    }
+
+    private static void validateImp(Imp imp) throws PreBidException {
+        final String bidFloorCur = imp.getBidfloorcur();
+        if (bidFloorCur != null && !DEFAULT_BID_CURRENCY.equalsIgnoreCase(bidFloorCur)) {
+            final String errorMessage = "Unsupported bid currency, %s. bids are currently accepted in USD only.";
+            throw new PreBidException(String.format(errorMessage, bidFloorCur));
+        }
     }
 
     private ExtImpBeachfront parseImpExt(Imp imp) {
@@ -331,16 +333,10 @@ public class BeachfrontBidder implements Bidder<Void> {
                                                           List<BidderError> errors) {
         final List<BeachfrontVideoRequest> videoRequests = new ArrayList<>();
         for (Imp imp : videoImps) {
-            final String bidFloorCur = imp.getBidfloorcur();
-            if (bidFloorCur != null && !DEFAULT_BID_CURRENCY.equalsIgnoreCase(bidFloorCur)) {
-                final String errorMessage = "Unsupported bid currency, %s. bids are currently accepted in USD only.";
-                errors.add(BidderError.badInput(String.format(errorMessage, imp.getBidfloorcur())));
-                continue;
-            }
-
             final ExtImpBeachfront extImpBeachfront;
             final String appId;
             try {
+                validateImp(imp);
                 extImpBeachfront = parseImpExt(imp);
                 appId = getAppId(extImpBeachfront, false);
             } catch (PreBidException e) {
