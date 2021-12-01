@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 public class Metrics extends UpdatableMetrics {
 
     private static final String ALL_REQUEST_BIDDERS = "all";
-    private static final String FETCH = "fetch";
 
     private final AccountMetricsVerbosity accountMetricsVerbosity;
 
@@ -113,7 +112,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     PriceFloorMetrics forPriceFloorFetch() {
-        return priceFloorsMetrics.computeIfAbsent(FETCH, priceFloorsMetricsCreator);
+        return priceFloorsMetrics.computeIfAbsent("fetch", priceFloorsMetricsCreator);
     }
 
     UserSyncMetrics userSync() {

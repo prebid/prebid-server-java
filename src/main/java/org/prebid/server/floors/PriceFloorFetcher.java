@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -42,6 +43,8 @@ public class PriceFloorFetcher {
     private static final Logger logger = LoggerFactory.getLogger(org.prebid.server.floors.PriceFloorFetcher.class);
 
     private static final int BYTES_IN_KBYTES = 1024;
+    private static final String MAX_AGE = "max-age";
+    private static final String EQUAL_SIGN = "=";
 
     private final long defaultTimeoutMs;
 
@@ -106,14 +109,14 @@ public class PriceFloorFetcher {
         fetchInProgress.add(accountId);
         return httpClient.get(fetchConfig.getUrl(), timeout, kBytesToBytes(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(fetchConfig, accountId, httpClientResponse))
-                .map(priceFloorRules -> updateCache(fetchConfig, priceFloorRules, accountId))
+                .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .recover(throwable -> recoverFromFailedFetching(accountId, throwable))
                 .map(priceFloorRules -> createPeriodicTimer(priceFloorRules, fetchConfig, accountId));
     }
 
-    private PriceFloorRules parseFloorResponse(AccountPriceFloorsFetchConfig fetchConfig,
-                                               String accountId,
-                                               HttpClientResponse httpClientResponse) {
+    private ResponseCacheInfo parseFloorResponse(AccountPriceFloorsFetchConfig fetchConfig,
+                                                 String accountId,
+                                                 HttpClientResponse httpClientResponse) {
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpStatus.SC_OK) {
             throw new PreBidException(String.format("Failed to request and cache price floor for account %s,"
@@ -125,7 +128,7 @@ public class PriceFloorFetcher {
                 final PriceFloorRules priceFloorRules = mapper.decodeValue(body, PriceFloorRules.class);
                 validatePriceFloorRules(priceFloorRules, fetchConfig);
 
-                return priceFloorRules;
+                return ResponseCacheInfo.of(priceFloorRules, cacheTtlFromResponse(httpClientResponse));
             } catch (DecodeException e) {
                 throw new PreBidException(String.format("Failed to parse price floor response for account %s,"
                         + " provider respond with body %s", accountId, body));
@@ -163,19 +166,42 @@ public class PriceFloorFetcher {
         }
     }
 
-    private PriceFloorRules updateCache(AccountPriceFloorsFetchConfig fetchConfig,
-                                        PriceFloorRules rules,
+    private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse) {
+        final String cacheMaxAge = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+        if (StringUtils.isNotBlank(cacheMaxAge) && cacheMaxAge.contains("max-age")) {
+            final String[] maxAgeRecord = cacheMaxAge.split("=");
+            if (maxAgeRecord.length == 2) {
+                try {
+                    return Long.parseLong(maxAgeRecord[1]);
+                } catch (NumberFormatException ex) {
+                    logger.warn("Can't parse Cache Control header '{}'", cacheMaxAge);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private PriceFloorRules updateCache(ResponseCacheInfo cacheInfo,
+                                        AccountPriceFloorsFetchConfig fetchConfig,
                                         String accountId) {
-        // TODO: Add resolving of max-age from header
-        final long cacheTtl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxAgeSec);
+        long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
 
-        long maxAgeTimerId = createMaxAgeTimer(accountId, cacheTtl);
-
-        final AccountFetchContext fetchContext = AccountFetchContext.of(rules, maxAgeTimerId, LocalDateTime.now());
+        final AccountFetchContext fetchContext =
+                AccountFetchContext.of(cacheInfo.getRules(), maxAgeTimerId, LocalDateTime.now());
         rulesCache.put(accountId, fetchContext);
         fetchInProgress.remove(accountId);
 
         return fetchContext.rules;
+    }
+
+    private long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
+        final Long responseTtl = cacheInfo.getCacheTtl();
+        if (responseTtl != null) {
+            return responseTtl;
+        }
+
+        return ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxAgeSec);
     }
 
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {
@@ -250,5 +276,13 @@ public class PriceFloorFetcher {
         public AccountFetchContext with(LocalDateTime lastFetchTime) {
             return AccountFetchContext.of(this.rules, this.maxAgeTimerId, lastFetchTime);
         }
+    }
+
+    @Value(staticConstructor = "of")
+    private static class ResponseCacheInfo {
+
+        PriceFloorRules rules;
+
+        Long cacheTtl;
     }
 }
