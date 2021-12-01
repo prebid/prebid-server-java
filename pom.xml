@@ -69,7 +69,7 @@
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
         <checkstyle.version>8.29</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
+        <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
