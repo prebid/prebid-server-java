@@ -46,6 +46,10 @@ import static io.qameta.allure.util.ResultsUtils.getStatusDetails
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.Comparator.comparing
 
+/**
+ * This is a temporary port of https://github.com/allure-framework/allure-java/tree/master/allure-spock to add support
+ * for Spock 2.0.
+ * **/
 class AllureReporter extends AbstractRunListener implements IGlobalExtension {
 
     private static final String FRAMEWORK = "spock"
@@ -126,7 +130,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     private static void processDescription(FeatureInfo feature, TestResult item) {
         List<Description> annotationsOnFeature = getFeatureAnnotations(feature, Description)
         if (!annotationsOnFeature.isEmpty()) {
-            item.setDescription(annotationsOnFeature.get(0).value())
+            item.setDescription(annotationsOnFeature[0].value())
         }
     }
 
