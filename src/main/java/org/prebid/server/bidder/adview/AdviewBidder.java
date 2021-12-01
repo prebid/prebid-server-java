@@ -58,10 +58,11 @@ public class AdviewBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final Imp firstImp = request.getImp().get(0);
         final ExtImpAdview extImpAdview;
+        final BidRequest modifiedBidRequest;
 
         try {
             extImpAdview = parseExtImp(firstImp);
-            request = modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
+            modifiedBidRequest = modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -71,8 +72,8 @@ public class AdviewBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(resolveEndpoint(extImpAdview.getAccountId()))
                         .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(request))
-                        .payload(request)
+                        .body(mapper.encodeToBytes(modifiedBidRequest))
+                        .payload(modifiedBidRequest)
                         .build());
     }
 
