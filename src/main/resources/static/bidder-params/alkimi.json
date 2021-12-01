@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Alkimi Adapter Params",
+  "description": "A schema which validates params accepted by the Alkimi adapter",
+  "type": "object",
+
+  "properties": {
+    "placement_id": {
+      "type": "string",
+      "description": "Placement ID"
+    }
+  },
+
+  "required": ["placement_id"]
+}
