@@ -220,7 +220,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall("null");
 
@@ -233,7 +233,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall("{}");
 

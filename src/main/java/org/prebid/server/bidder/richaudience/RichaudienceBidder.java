@@ -74,7 +74,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest modifiedRequest = modifyBidRequest(request, url, modifiedImps, isTest);
-        return Result.withValues(Collections.singletonList(createHttpRequest(modifiedRequest)));
+        return Result.withValue(createHttpRequest(modifiedRequest));
     }
 
     private static void validateRequest(BidRequest bidRequest) throws PreBidException {
@@ -170,7 +170,6 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
