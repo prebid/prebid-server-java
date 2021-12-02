@@ -21,6 +21,7 @@ import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeoutException;
 public class PriceFloorFetcher {
 
     private static final Logger logger = LoggerFactory.getLogger(org.prebid.server.floors.PriceFloorFetcher.class);
+    private static final ConditionalLogger samplingLogger = new ConditionalLogger(logger);
 
     private final long defaultTimeoutMs;
 
@@ -115,12 +117,16 @@ public class PriceFloorFetcher {
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
 
         fetchInProgress.add(accountId);
-        httpClient.get(fetchConfig.getUrl(), timeout, kBytesToBytes(maxFetchFileSizeKb))
+        httpClient.get(fetchConfig.getUrl(), timeout, resolveMaxFileSize(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(fetchConfig, accountId, httpClientResponse))
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .recover(throwable -> recoverFromFailedFetching(accountId, throwable))
                 .map(priceFloorRules -> createPeriodicTimer(priceFloorRules, fetchConfig, accountId));
 
+    }
+
+    private static long resolveMaxFileSize(Long maxSizeInKBytes) {
+        return Objects.equals(maxSizeInKBytes, 0L) ? Long.MAX_VALUE : maxSizeInKBytes * 1024;
     }
 
     private ResponseCacheInfo parseFloorResponse(AccountPriceFloorsFetchConfig fetchConfig,
@@ -156,11 +162,15 @@ public class PriceFloorFetcher {
             throw new PreBidException("Price floor rules data must be present");
         }
 
-        final Integer accountMaxRules =
-                ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxRules);
+        final Integer maxRules =
+                resolveMaxRules(ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxRules));
 
         CollectionUtils.emptyIfNull(data.getModelGroups())
-                .forEach(modelGroup -> validateModelGroup(modelGroup, accountMaxRules));
+                .forEach(modelGroup -> validateModelGroup(modelGroup, maxRules));
+    }
+
+    private static int resolveMaxRules(Integer accountMaxRules) {
+        return Objects.equals(accountMaxRules, 0L) ? Integer.MAX_VALUE : accountMaxRules;
     }
 
     private void validateModelGroup(PriceFloorModelGroup modelGroup, Integer maxRules) {
@@ -184,7 +194,7 @@ public class PriceFloorFetcher {
                 try {
                     return Long.parseLong(maxAgeRecord[1]);
                 } catch (NumberFormatException ex) {
-                    logger.warn("Can't parse Cache Control header '{}'", cacheMaxAge);
+                    samplingLogger.warn(String.format("Can't parse Cache Control header '%s'", cacheMaxAge), 0.01);
                 }
             }
         }
@@ -229,10 +239,12 @@ public class PriceFloorFetcher {
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
-            logger.warn("Fetch price floor request timeout for account {0} exceeded.", accountId);
+            samplingLogger.warn(
+                    String.format("Fetch price floor request timeout for account %s exceeded.", accountId), 0.01);
         } else if (throwable instanceof PreBidException) {
-            logger.warn("Failed to fetch price floor from provider for account = {0} with a reason {1}: ",
-                    accountId, throwable.getMessage());
+            samplingLogger.warn(
+                    String.format("Failed to fetch price floor from provider for account = %s with a reason :%s ",
+                            accountId, throwable.getMessage()), 0.01);
         }
         fetchInProgress.remove(accountId);
 
@@ -258,10 +270,6 @@ public class PriceFloorFetcher {
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeoutFactory.create(defaultTimeoutMs))
                 .otherwise(Account.empty(accountId));
-    }
-
-    private static long kBytesToBytes(long kBytes) {
-        return kBytes * 1024;
     }
 
     @Value(staticConstructor = "of")
