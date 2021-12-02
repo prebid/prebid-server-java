@@ -8,6 +8,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
@@ -28,6 +29,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,7 +71,7 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     private ExtImpVideobyte parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), VIDEOBYTE_EXT_TYPE_REFERENCE).getBidder();
-        } catch (DecodeException e) {
+        } catch (IllegalArgumentException e) {
             final String errorMessage = "Ignoring imp id=%s, error while decoding, err: %s";
             throw new PreBidException(String.format(errorMessage, imp.getId(), e.getMessage()));
         }
@@ -131,8 +133,15 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> impIdToMediaType = bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, VideobyteBidder::resolveMediaType));
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+
+        final Map<String, BidType> impIdToMediaType = new HashMap<>();
+        for (Imp imp : bidRequest.getImp()) {
+            final BidType bidType = imp.getBanner() != null ? BidType.banner : BidType.video;
+            impIdToMediaType.put(imp.getId(), bidType);
+        }
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -142,9 +151,5 @@ public class VideobyteBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, impIdToMediaType.get(bid.getImpid()), DEFAULT_CURRENCY))
                 .collect(Collectors.toList());
-    }
-
-    private static BidType resolveMediaType(Imp imp) {
-        return imp.getBanner() != null ? BidType.banner : BidType.video;
     }
 }
