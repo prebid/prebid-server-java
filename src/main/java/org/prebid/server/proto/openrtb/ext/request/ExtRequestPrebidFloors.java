@@ -42,12 +42,5 @@ public class ExtRequestPrebidFloors {
 
     String country;
 
-    @JsonProperty("enforceRate")
-    Integer enforceRate;
-
-    @JsonProperty("enforceDeals")
-    Boolean enforceDeals;
-
-    @JsonProperty("enforcePBS")
-    Boolean enforcePbs;
+    ExtRequestPrebidFloorsEnforcement enforcement;
 }
