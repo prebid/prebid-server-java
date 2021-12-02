@@ -21,6 +21,8 @@ import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -45,6 +47,7 @@ public class PriceFloorFetcher {
     private final long defaultTimeoutMs;
 
     private final ApplicationSettings applicationSettings;
+    private final Metrics metrics;
     private final Vertx vertx;
     private final TimeoutFactory timeoutFactory;
     private final HttpClient httpClient;
@@ -55,11 +58,13 @@ public class PriceFloorFetcher {
 
     public PriceFloorFetcher(long defaultTimeoutMs,
                              ApplicationSettings applicationSettings,
+                             Metrics metrics,
                              Vertx vertx,
                              TimeoutFactory timeoutFactory, HttpClient httpClient,
                              JacksonMapper mapper) {
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.applicationSettings = applicationSettings;
+        this.metrics = metrics;
         this.vertx = Objects.requireNonNull(vertx);
         this.timeoutFactory = timeoutFactory;
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -230,6 +235,8 @@ public class PriceFloorFetcher {
     }
 
     private Future<PriceFloorRules> recoverFromFailedFetching(String accountId, Throwable throwable) {
+        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
             logger.warn("Fetch price floor request timeout for account {0} exceeded.", accountId);
         } else if (throwable instanceof PreBidException) {

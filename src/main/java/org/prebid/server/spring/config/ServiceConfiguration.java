@@ -794,6 +794,7 @@ public class ServiceConfiguration {
     PriceFloorFetcher priceFloorFetcher(
             @Value("${price-floor.fetch.timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
+            Metrics metrics,
             Vertx vertx,
             TimeoutFactory timeoutFactory,
             HttpClient httpClient,
@@ -802,6 +803,7 @@ public class ServiceConfiguration {
         return new PriceFloorFetcher(
                 defaultTimeoutMs,
                 applicationSettings,
+                metrics,
                 vertx,
                 timeoutFactory,
                 httpClient,
