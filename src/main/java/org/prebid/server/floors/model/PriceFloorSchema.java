@@ -4,10 +4,10 @@ import lombok.Value;
 
 import java.util.List;
 
-@Value
+@Value(staticConstructor = "of")
 public class PriceFloorSchema {
 
     String delimiter;
 
-    List<String> fields;
+    List<PriceFloorField> fields;
 }

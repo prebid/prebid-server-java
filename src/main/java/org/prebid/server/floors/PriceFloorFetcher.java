@@ -33,7 +33,6 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -81,12 +80,14 @@ public class PriceFloorFetcher {
 
         return cachedPriceFloorRules != null
                 ? Future.succeededFuture(cachedPriceFloorRules)
-                : fetchPriceFloorRules(account);
+                : fetchPriceFloorRules(getFetchConfig(account), account.getId());
     }
 
-    private Future<PriceFloorRules> fetchPriceFloorRules(Account account) {
+    private AccountPriceFloorsFetchConfig getFetchConfig(Account account) {
+        final AccountPriceFloorsConfig priceFloorsConfig =
+                ObjectUtil.getIfNotNull(account.getAuction(), AccountAuctionConfig::getPriceFloors);
 
-        return fetchPriceFloorRules(getFetchConfig(account), account.getId());
+        return ObjectUtil.getIfNotNull(priceFloorsConfig, AccountPriceFloorsConfig::getFetch);
     }
 
     private Future<PriceFloorRules> fetchPriceFloorRules(
@@ -103,12 +104,12 @@ public class PriceFloorFetcher {
             return Future.succeededFuture();
         }
 
-        vertx.runOnContext(ignored -> fetchFloorRules(fetchConfig, accountId));
+        fetchPriceFloorRulesAsynchronous(fetchConfig, accountId);
 
         return Future.succeededFuture();
     }
 
-    private void fetchFloorRules(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
+    private void fetchPriceFloorRulesAsynchronous(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
         final Long timeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
         final Long maxFetchFileSizeKb =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
@@ -132,15 +133,16 @@ public class PriceFloorFetcher {
         }
         final String body = httpClientResponse.getBody();
         if (StringUtils.isNotBlank(body)) {
+            final PriceFloorRules priceFloorRules;
             try {
-                final PriceFloorRules priceFloorRules = mapper.decodeValue(body, PriceFloorRules.class);
-                validatePriceFloorRules(priceFloorRules, fetchConfig);
-
-                return ResponseCacheInfo.of(priceFloorRules, cacheTtlFromResponse(httpClientResponse));
+                priceFloorRules = mapper.decodeValue(body, PriceFloorRules.class);
             } catch (DecodeException e) {
                 throw new PreBidException(String.format("Failed to parse price floor response for account %s,"
                         + " provider respond with body %s", accountId, body));
             }
+            validatePriceFloorRules(priceFloorRules, fetchConfig);
+
+            return ResponseCacheInfo.of(priceFloorRules, cacheTtlFromResponse(httpClientResponse));
         } else {
             throw new PreBidException(String.format("Failed to parse price floor response for account %s, "
                     + "response body can't be empty or null", accountId));
@@ -196,11 +198,11 @@ public class PriceFloorFetcher {
         long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
 
         final AccountFetchContext fetchContext =
-                AccountFetchContext.of(cacheInfo.getRules(), maxAgeTimerId, LocalDateTime.now());
+                AccountFetchContext.of(cacheInfo.getRules(), maxAgeTimerId);
         rulesCache.put(accountId, fetchContext);
         fetchInProgress.remove(accountId);
 
-        return fetchContext.rules;
+        return fetchContext.getRules();
     }
 
     private long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
@@ -215,23 +217,12 @@ public class PriceFloorFetcher {
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {
         final Long previousTimerId =
                 ObjectUtil.getIfNotNull(rulesCache.get(accountId), AccountFetchContext::getMaxAgeTimerId);
+
         if (previousTimerId != null) {
             vertx.cancelTimer(previousTimerId);
         }
 
         return vertx.setTimer(TimeUnit.SECONDS.toMillis(cacheTtl), id -> rulesCache.remove(accountId));
-    }
-
-    private AccountPriceFloorsFetchConfig getFetchConfig(Account account) {
-        final AccountPriceFloorsConfig priceFloorsConfig =
-                ObjectUtil.getIfNotNull(account.getAuction(), AccountAuctionConfig::getPriceFloors);
-
-        return ObjectUtil.getIfNotNull(priceFloorsConfig, AccountPriceFloorsConfig::getFetch);
-    }
-
-    private void periodicFetch(String accountId) {
-
-        accountById(accountId).compose(account -> fetchPriceFloorRules(getFetchConfig(account), accountId));
     }
 
     private Future<PriceFloorRules> recoverFromFailedFetching(String accountId, Throwable throwable) {
@@ -244,12 +235,6 @@ public class PriceFloorFetcher {
                     accountId, throwable.getMessage());
         }
         fetchInProgress.remove(accountId);
-        final AccountFetchContext fetchContext = rulesCache.get(accountId);
-        if (fetchContext != null) {
-            rulesCache.put(accountId, fetchContext.with(LocalDateTime.now()));
-        } else {
-            rulesCache.put(accountId, AccountFetchContext.of(null, null, LocalDateTime.now()));
-        }
 
         return Future.succeededFuture();
     }
@@ -261,6 +246,11 @@ public class PriceFloorFetcher {
         vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), id -> periodicFetch(accountId));
 
         return priceFloorRules;
+    }
+
+    private void periodicFetch(String accountId) {
+
+        accountById(accountId).compose(account -> fetchPriceFloorRules(getFetchConfig(account), accountId));
     }
 
     private Future<Account> accountById(String accountId) {
@@ -280,12 +270,6 @@ public class PriceFloorFetcher {
         PriceFloorRules rules;
 
         Long maxAgeTimerId;
-
-        LocalDateTime lastFetchTime;
-
-        public AccountFetchContext with(LocalDateTime lastFetchTime) {
-            return AccountFetchContext.of(this.rules, this.maxAgeTimerId, lastFetchTime);
-        }
     }
 
     @Value(staticConstructor = "of")
