@@ -37,7 +37,7 @@ public class AdviewConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(adviewConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AdviewBidder(config.getEndpoint(), mapper, currencyConversionService))
+                .bidderCreator(config -> new AdviewBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }

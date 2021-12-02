@@ -47,11 +47,11 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private final CurrencyConversionService currencyConversionService;
 
     public AdviewBidder(String endpointUrl,
-                        JacksonMapper mapper,
-                        CurrencyConversionService currencyConversionService) {
+                        CurrencyConversionService currencyConversionService,
+                        JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.mapper = Objects.requireNonNull(mapper);
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
@@ -86,9 +86,12 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
-        return shouldConvertBidFloor(imp.getBidfloor(), imp.getBidfloorcur())
-                ? convertBidFloorCurrency(imp.getBidfloor(), request, imp.getId(), imp.getBidfloorcur())
-                : imp.getBidfloor();
+        final BigDecimal bidFloor = imp.getBidfloor();
+        final String bidFloorCur = imp.getBidfloorcur();
+
+        return shouldConvertBidFloor(bidFloor, bidFloorCur)
+                ? convertBidFloorCurrency(bidFloor, bidFloorCur, imp.getId(), request)
+                : bidFloor;
     }
 
     private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
@@ -96,9 +99,9 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
-                                               BidRequest bidRequest,
+                                               String bidFloorCur,
                                                String impId,
-                                               String bidFloorCur) {
+                                               BidRequest bidRequest) {
         try {
             return currencyConversionService
                     .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
@@ -112,7 +115,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, BigDecimal resolvedBidFloor) {
         return bidRequest.toBuilder()
                 .imp(modifyImps(bidRequest.getImp(), masterTagId, resolvedBidFloor))
-                .cur(Collections.singletonList("USD"))
+                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 

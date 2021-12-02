@@ -29,14 +29,15 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adview.ExtImpAdview;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -58,13 +59,13 @@ public class AdviewBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        adviewBidder = new AdviewBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
+        adviewBidder = new AdviewBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
-                new AdviewBidder("invalid_url", jacksonMapper, currencyConversionService));
+                new AdviewBidder("invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
@@ -104,7 +105,7 @@ public class AdviewBidderTest extends VertxTest {
         final Banner banner = Banner.builder()
                 .w(2)
                 .h(2)
-                .format(Collections.singletonList(Format.builder().w(1).h(1).build()))
+                .format(singletonList(Format.builder().w(1).h(1).build()))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(banner));
@@ -137,12 +138,13 @@ public class AdviewBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getCur)
-                .containsExactly(Collections.singletonList("USD"));
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.TEN, "USD"));
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .containsOnly(Collections.singletonList(
+                .containsOnly(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .bidfloorcur("USD")
                                 .bidfloor(BigDecimal.TEN)
@@ -192,7 +194,7 @@ public class AdviewBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyFirstImpBannerIfFirstFormatIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.banner(Banner.builder().format(Collections.singletonList(null)).w(2).h(2).build()));
+                impBuilder.banner(Banner.builder().format(singletonList(null)).w(2).h(2).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adviewBidder.makeHttpRequests(bidRequest);
@@ -203,7 +205,7 @@ public class AdviewBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsExactly(Banner.builder().format(Collections.singletonList(null)).w(2).h(2).build());
+                .containsExactly(Banner.builder().format(singletonList(null)).w(2).h(2).build());
     }
 
     @Test
@@ -348,7 +350,7 @@ public class AdviewBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), Collections.singletonList(impCustomizer));
+        return givenBidRequest(identity(), singletonList(impCustomizer));
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -362,8 +364,8 @@ public class AdviewBidderTest extends VertxTest {
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .seatbid(Collections.singletonList(SeatBid.builder()
-                        .bid(Collections.singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }
