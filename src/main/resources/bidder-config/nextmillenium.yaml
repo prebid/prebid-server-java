@@ -1,21 +1,17 @@
 adapters:
-  adprime:
-    endpoint: http://delta.adprime.com/pserver
+  nextmillenium:
+    endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
     meta-info:
-      maintainer-email: prebid@adprime.com
+      maintainer-email: appdevs@nextmillennium.io
       app-media-types:
         - banner
-        - video
-        - native
       site-media-types:
         - banner
-        - video
-        - native
       supported-vendors:
-      vendor-id: 0
+      vendor-id: 1060
     usersync:
       url:
       redirect-url:
-      cookie-family-name: adprime
+      cookie-family-name: nextmillennium
       type: redirect
       support-cors: false

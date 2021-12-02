@@ -13,7 +13,7 @@ adapters:
       supported-vendors:
       vendor-id: 58
     usersync:
-      url: https://ic.tynt.com/r/d?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru=
+      url: https://ssc-cms.33across.com/ps/?m=xch&rt=html&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&id=zzz000000000002zzz&ru=
       redirect-url: /setuid?bidder=33across&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=33XUSERID33X
       cookie-family-name: 33across
       type: iframe

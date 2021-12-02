@@ -4,17 +4,12 @@
     {
       "id": "imp_id",
       "banner": {
-        "format": [
-          {
-            "w": 300,
-            "h": 250
-          }
-        ]
+        "w": 300,
+        "h": 250
       },
       "ext": {
-        "beachfront": {
-          "appId": "beachfrontAppId",
-          "bidfloor": 3
+        "nextmillenium": {
+          "placement_id": "placement_id"
         }
       }
     }
