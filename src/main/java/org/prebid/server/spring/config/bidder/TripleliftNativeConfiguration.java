@@ -19,6 +19,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
@@ -57,6 +58,7 @@ public class TripleliftNativeConfiguration {
     @AllArgsConstructor
     public static class TripleliftNativeConfigurationProperties extends BidderConfigurationProperties {
 
+        @NotNull
         private List<String> whitelist;
     }
 }
