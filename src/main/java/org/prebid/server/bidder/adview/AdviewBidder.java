@@ -62,7 +62,8 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
         try {
             extImpAdview = parseExtImp(firstImp);
-            modifiedBidRequest = modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
+            modifiedBidRequest =
+                    modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
