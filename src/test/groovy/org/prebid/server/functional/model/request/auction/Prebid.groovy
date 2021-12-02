@@ -21,4 +21,5 @@ class Prebid {
     Map<BidderName, Map<String, Integer>> bidderParams
     List<AdServerTargeting> adServerTargeting
     Map<String, BidderName> aliases
+    BidAdjustmentFactors bidAdjustmentFactors
 }

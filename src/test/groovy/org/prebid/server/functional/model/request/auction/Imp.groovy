@@ -29,8 +29,14 @@ class Imp {
     ImpExt ext
 
     static Imp getDefaultImpression() {
-        getDefaultImp().tap {
-            banner = Banner.getDefaultBanner()
+        defaultImp.tap {
+            banner = Banner.defaultBanner
+        }
+    }
+
+    static Imp getVideoImpression() {
+        defaultImp.tap {
+            video = Video.defaultVideo
         }
     }
 
