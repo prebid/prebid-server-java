@@ -42,10 +42,6 @@ public class PriceFloorFetcher {
 
     private static final Logger logger = LoggerFactory.getLogger(org.prebid.server.floors.PriceFloorFetcher.class);
 
-    private static final int BYTES_IN_KBYTES = 1024;
-    private static final String MAX_AGE = "max-age";
-    private static final String EQUAL_SIGN = "=";
-
     private final long defaultTimeoutMs;
 
     private final ApplicationSettings applicationSettings;
@@ -102,16 +98,23 @@ public class PriceFloorFetcher {
             return Future.succeededFuture();
         }
 
+        vertx.runOnContext(ignored -> fetchFloorRules(fetchConfig, accountId));
+
+        return Future.succeededFuture();
+    }
+
+    private void fetchFloorRules(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
         final Long timeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
         final Long maxFetchFileSizeKb =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
 
         fetchInProgress.add(accountId);
-        return httpClient.get(fetchConfig.getUrl(), timeout, kBytesToBytes(maxFetchFileSizeKb))
+        httpClient.get(fetchConfig.getUrl(), timeout, kBytesToBytes(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(fetchConfig, accountId, httpClientResponse))
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .recover(throwable -> recoverFromFailedFetching(accountId, throwable))
                 .map(priceFloorRules -> createPeriodicTimer(priceFloorRules, fetchConfig, accountId));
+
     }
 
     private ResponseCacheInfo parseFloorResponse(AccountPriceFloorsFetchConfig fetchConfig,
@@ -261,7 +264,7 @@ public class PriceFloorFetcher {
     }
 
     private static long kBytesToBytes(long kBytes) {
-        return kBytes * BYTES_IN_KBYTES;
+        return kBytes * 1024;
     }
 
     @Value(staticConstructor = "of")
