@@ -1,7 +1,11 @@
 package org.prebid.server.functional.model.request.auction
 
+import groovy.transform.AutoClone
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
+@AutoClone
+@EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
 class Geo {
 

@@ -75,7 +75,7 @@ LIMIT 1
     }
 
     PrebidServerContainer withDebug() {
-        withEnv("JAVA_TOOL_OPTIONS", "-agentlib:jdwp=transport=dt_socket,address=$DEBUG_PORT,server=y,suspend=n")
+        withEnv("JAVA_TOOL_OPTIONS", "-agentlib:jdwp=transport=dt_socket,address=*:$DEBUG_PORT,server=y,suspend=n")
     }
 
     void withMysql(String host, int port, String dbname, String user, String password) {

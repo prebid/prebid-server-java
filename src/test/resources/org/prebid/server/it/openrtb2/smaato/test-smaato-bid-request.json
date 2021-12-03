@@ -3,6 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
+      "instl": 1,
       "banner": {
         "w": 300,
         "h": 250

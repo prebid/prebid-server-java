@@ -316,22 +316,14 @@ public class VideoStoredRequestProcessor {
 
         final Site site = videoRequest.getSite();
         if (site != null) {
-            final Content content = videoRequest.getContent();
-            if (content != null) {
-                bidRequestBuilder.site(site.toBuilder()
-                        .content(content)
-                        .build());
-            }
+            final Site updatedSite = updateSite(site, videoRequest);
+            bidRequestBuilder.site(updatedSite);
         }
 
         final App app = videoRequest.getApp();
         if (app != null) {
-            final Content content = videoRequest.getContent();
-            if (content != null) {
-                bidRequestBuilder.app(app.toBuilder()
-                        .content(content)
-                        .build());
-            }
+            final App updatedApp = updateApp(app, videoRequest);
+            bidRequestBuilder.app(updatedApp);
         }
 
         final Device device = videoRequest.getDevice();
@@ -370,6 +362,28 @@ public class VideoStoredRequestProcessor {
                 .ext(createExtRequest(videoRequest))
                 .test(videoRequest.getTest())
                 .build();
+    }
+
+    private static Site updateSite(Site site, BidRequestVideo videoRequest) {
+        final Content content = videoRequest.getContent();
+        if (content != null) {
+            return site.toBuilder()
+                    .content(content)
+                    .build();
+        }
+
+        return site;
+    }
+
+    private static App updateApp(App app, BidRequestVideo videoRequest) {
+        final Content content = videoRequest.getContent();
+        if (content != null) {
+            return app.toBuilder()
+                    .content(content)
+                    .build();
+        }
+
+        return app;
     }
 
     private void addRequiredOpenRtbFields(BidRequest.BidRequestBuilder bidRequestBuilder) {

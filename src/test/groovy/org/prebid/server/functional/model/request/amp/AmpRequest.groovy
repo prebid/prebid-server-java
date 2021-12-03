@@ -1,12 +1,13 @@
 package org.prebid.server.functional.model.request.amp
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.ConsentString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class AmpRequest {
 
     String tagId
@@ -20,7 +21,7 @@ class AmpRequest {
     String slot
     String curl
     Integer account
-    String gdprConsent
+    ConsentString gdprConsent
     String targeting
     Integer consentType
     Boolean gdprApplies

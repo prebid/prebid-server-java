@@ -42,6 +42,6 @@ CREATE TABLE stored_imps
 CREATE TABLE stored_responses
 (
     id     SERIAL PRIMARY KEY,
-    uuid   varchar(40) NOT NULL,
-    config varchar(1024)
+    resid   varchar(40) NOT NULL,
+    responseData varchar(1024)
 );

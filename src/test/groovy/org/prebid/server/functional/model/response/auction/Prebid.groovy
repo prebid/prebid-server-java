@@ -5,4 +5,5 @@ class Prebid {
     MediaType type
     Map<String, String> targeting
     String targetbiddercode
+    Cache cache
 }
