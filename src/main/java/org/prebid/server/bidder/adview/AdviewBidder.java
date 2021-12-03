@@ -127,12 +127,23 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, String masterTagId, BigDecimal resolvedBidFloor) {
-        return imp.toBuilder()
-                .tagid(masterTagId)
-                .bidfloor(resolvedBidFloor)
-                .bidfloorcur(BIDDER_CURRENCY)
-                .banner(resolveBanner(imp.getBanner()))
-                .build();
+        final Banner banner = imp.getBanner();
+
+        if (resolvedBidFloor != null) {
+            return imp.toBuilder()
+                    .tagid(masterTagId)
+                    .bidfloor(resolvedBidFloor)
+                    .bidfloorcur(resolvedBidFloor.compareTo(imp.getBidfloor()) != 0
+                            ? BIDDER_CURRENCY
+                            : imp.getBidfloorcur())
+                    .banner(resolveBanner(banner))
+                    .build();
+        } else {
+            return imp.toBuilder()
+                    .tagid(masterTagId)
+                    .banner(resolveBanner(banner))
+                    .build();
+        }
     }
 
     private static Banner resolveBanner(Banner banner) {
