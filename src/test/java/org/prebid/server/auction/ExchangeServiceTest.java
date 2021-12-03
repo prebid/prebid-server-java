@@ -3239,7 +3239,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnNoBidsIfPriceFloorEnforcerRemoveThem() {
+    public void shouldReturnBidsAcceptedByPriceFloorEnforcer() {
         // given
         final BidderBid bid1 = givenBid(Bid.builder().id("bidId1").impid("impId1").price(ONE).build(), "USD");
         final BidderBid bid2 = givenBid(Bid.builder().id("bidId2").impid("impId2").price(TEN).build(), "USD");
@@ -3268,29 +3268,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
                 .containsExactly(bid1);
-    }
-
-    @Test
-    public void shouldReturnBidsIfPriceFloorEnforcerAcceptThem() {
-        // given
-        final BidderBid bid = givenBid(Bid.builder().id("bidId1").impid("impId1").price(ONE).build(), "USD");
-        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(bid)));
-
-        final BidRequest bidRequest = givenBidRequest(singletonList(
-                        // imp ids are not really used for matching, included them here for clarity
-                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
-                identity());
-
-        // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
-
-        // then
-        final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
-        assertThat(capturedParticipations)
-                .extracting(AuctionParticipation::getBidderResponse)
-                .extracting(BidderResponse::getSeatBid)
-                .flatExtracting(BidderSeatBid::getBids)
-                .hasSize(1);
     }
 
     @Test
