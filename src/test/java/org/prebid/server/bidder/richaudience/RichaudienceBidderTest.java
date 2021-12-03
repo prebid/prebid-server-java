@@ -266,6 +266,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final Imp.ImpBuilder builder = Imp.builder()
                 .banner(Banner.builder().w(21).h(9).build())
                 .ext(ext);
+
         return impCustomizer.apply(builder).build();
     }
 

@@ -79,8 +79,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     private static void validateRequest(BidRequest bidRequest) throws PreBidException {
         final Device device = bidRequest.getDevice();
-        final boolean isDeviceValid = device != null && !StringUtils.isAllBlank(device.getIp(), device.getIpv6());
-        if (!isDeviceValid) {
+        if (device == null || StringUtils.isAllBlank(device.getIp(), device.getIpv6())) {
             throw new PreBidException("Device IP is required.");
         }
     }
@@ -94,14 +93,14 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     }
 
     private static void validateImp(Imp imp) throws PreBidException {
-        final Banner banner = imp.getBanner();
-        final boolean isBannerSizesPresent = banner != null
-                && (ObjectUtils.anyNotNull(banner.getW(), banner.getH())
-                || CollectionUtils.isNotEmpty(banner.getFormat()));
-        if (!isBannerSizesPresent) {
-            final String errorMessage = String.format("Banner W/H/Format is required. ImpId: %s", imp.getId());
-            throw new PreBidException(errorMessage);
+        if (!isBannerSizesPresent(imp.getBanner())) {
+            throw new PreBidException(String.format("Banner W/H/Format is required. ImpId: %s", imp.getId()));
         }
+    }
+
+    private static boolean isBannerSizesPresent(Banner banner) {
+        return banner != null && (ObjectUtils.anyNotNull(banner.getW(), banner.getH())
+                || CollectionUtils.isNotEmpty(banner.getFormat()));
     }
 
     private ExtImpRichaudience parseImpExt(Imp imp) throws PreBidException {
