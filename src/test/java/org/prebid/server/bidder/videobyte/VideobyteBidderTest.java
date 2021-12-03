@@ -246,8 +246,7 @@ public class VideobyteBidderTest extends VertxTest {
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        final BidRequest.BidRequestBuilder builder = BidRequest.builder();
-        return bidRequestCustomizer.apply(builder).build();
+        return bidRequestCustomizer.apply(BidRequest.builder()).build();
     }
 
     private BidRequest givenBidRequest(Imp... imps) {
@@ -263,8 +262,7 @@ public class VideobyteBidderTest extends VertxTest {
 
         final ExtImpVideobyte extImpVideobyte = extCustomizer.apply(ExtImpVideobyte.builder()).build();
         final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpVideobyte));
-        final Imp.ImpBuilder builder = Imp.builder().ext(ext);
-        return impCustomizer.apply(builder).build();
+        return impCustomizer.apply(Imp.builder().ext(ext)).build();
     }
 
     private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
