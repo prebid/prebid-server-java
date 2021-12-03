@@ -1,1 +1,2 @@
 org.prebid.server.functional.testcontainers.TestcontainersExtension
+org.prebid.server.functional.util.AllureReporter
