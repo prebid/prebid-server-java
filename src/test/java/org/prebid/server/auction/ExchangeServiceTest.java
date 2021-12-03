@@ -3271,14 +3271,12 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnBidsIfPriceFloorEnforcerAcceptThem() {
         // given
         givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
-                givenBid(Bid.builder().id("bidId1").impid("impId1").build(), "USD"))));
+                givenBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.ONE).build(), "USD"))));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
                         // imp ids are not really used for matching, included them here for clarity
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
                 identity());
-
-        given(priceFloorEnforcer.enforce(any(), any())).willAnswer(inv -> inv.getArgument(0));
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
@@ -3289,7 +3287,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
-                .isEmpty();
+                .hasSize(1);
     }
 
     @Test

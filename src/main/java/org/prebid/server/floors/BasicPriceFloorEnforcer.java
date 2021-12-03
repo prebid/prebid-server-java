@@ -63,6 +63,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     private static ExtRequestPrebidFloors getFloors(BidRequest bidRequest) {
         final ExtRequest ext = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt);
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
+
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 

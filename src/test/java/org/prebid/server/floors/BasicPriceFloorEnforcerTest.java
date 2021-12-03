@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertSame;
@@ -235,9 +236,9 @@ public class BasicPriceFloorEnforcerTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids, BidderSeatBid::getErrors)
                 .containsExactly(
-                        List.of(BidderBid.of(
+                        singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
-                        List.of(BidderError.of(
+                        singletonList(BidderError.of(
                                 "Bid with id 'bidId1' was rejected: price 0 is below the floor 1",
                                 BidderError.Type.generic)));
     }
