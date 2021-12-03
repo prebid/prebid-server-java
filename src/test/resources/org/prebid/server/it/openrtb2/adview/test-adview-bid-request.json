@@ -8,7 +8,6 @@
         "h": 250
       },
       "tagid": "placementId",
-      "bidfloorcur": "USD",
       "ext": {
         "bidder": {
           "placementId": "placementId",

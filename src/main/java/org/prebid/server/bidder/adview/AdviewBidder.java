@@ -129,7 +129,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static Imp modifyImp(Imp imp, String masterTagId, BigDecimal resolvedBidFloor) {
         final Banner banner = imp.getBanner();
 
-        if (resolvedBidFloor != null) {
+        if (imp.getBidfloor() != null && resolvedBidFloor != null) {
             return imp.toBuilder()
                     .tagid(masterTagId)
                     .bidfloor(resolvedBidFloor)
