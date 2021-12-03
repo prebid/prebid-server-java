@@ -109,22 +109,18 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
 
     private ExtImpTriplelift parseExtImpTriplelift(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(),
-                    TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), TRIPLELIFT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
     private String effectivePublisherId(BidRequest bidRequest) {
-        String publisherId = UNKNOWN_PUBLISHER_ID;
-
         final Publisher publisher = findPublisher(bidRequest);
         if (publisher == null) {
-            return publisherId;
+            return UNKNOWN_PUBLISHER_ID;
         }
         final String id = publisher.getId();
-        publisherId = StringUtils.isBlank(id) ? UNKNOWN_PUBLISHER_ID : id;
 
         final ExtPublisher publisherExt = publisher.getExt();
         final ExtPublisherPrebid extPublisherPrebid = publisherExt != null ? publisherExt.getPrebid() : null;
@@ -132,7 +128,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
             return extPublisherPrebid.getParentAccount();
         }
 
-        return publisherId;
+        return StringUtils.isBlank(id) ? UNKNOWN_PUBLISHER_ID : id;
     }
 
     private static Publisher findPublisher(BidRequest bidRequest) {

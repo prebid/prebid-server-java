@@ -91,7 +91,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, List.of(), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -112,7 +112,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenAppPublisherIdIsNotInWhitelist() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, List.of(), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -133,7 +133,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenNoPublisherIdIsSpecified() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, List.of(), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.xNative(Native.builder().build()),
