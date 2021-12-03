@@ -8,7 +8,7 @@ import org.testcontainers.lifecycle.Startables
 
 class Dependencies {
 
-    static final Boolean IS_LAUNCH_CONTAINERS = Boolean.valueOf(System.getProperty("launchContainers"))
+    private static final Boolean IS_LAUNCH_CONTAINERS = Boolean.valueOf(System.getProperty("launchContainers"))
 
     static final ObjectMapperWrapper objectMapperWrapper = new ObjectMapperWrapper()
 
