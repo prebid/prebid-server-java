@@ -14,22 +14,18 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 @Value
 public class BidderBid {
 
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
-        return BidderBid.of(bid, bidType, bidCurrency, null, null);
-    }
-
     /**
-     * bid.ext will become "response.seatbid[i].bid.ext.bidder" in the final OpenRTB response
+     * bid.ext will become response.seatbid[i].bid.ext.bidder in the final OpenRTB response.
      */
     Bid bid;
 
     /**
-     * This will become response.seatbid[i].bid.ext.prebid.type" in the final OpenRTB response
+     * Will become response.seatbid[i].bid.ext.prebid.type in the final OpenRTB response.
      */
     BidType type;
 
     /**
-     * Will be used for converting to ad server currency
+     * Will be used for converting to ad server currency.
      */
     String bidCurrency;
 
@@ -43,7 +39,30 @@ public class BidderBid {
      */
     ExtBidPrebidVideo videoInfo;
 
+    /**
+     * Used by price floor enforcement. The only bidder is responsible to populate this info
+     * if bidder overrides any of request.imp[i].bidfloor or request.imp[i].bidfloorcur fields.
+     * <p>
+     * Note: Use {@link org.prebid.server.util.BidderUtil#resolvePriceFloor} helper method
+     * to fill this info if bidder is OpenRTB-compatible.
+     */
+    PriceFloorInfo priceFloorInfo;
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return of(bid, bidType, bidCurrency, null, null);
+    }
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency,
+                               Integer dealPriority, ExtBidPrebidVideo videoInfo) {
+
+        return of(bid, bidType, bidCurrency, dealPriority, videoInfo, null);
+    }
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency, PriceFloorInfo priceFloorInfo) {
+        return of(bid, bidType, bidCurrency, null, null, priceFloorInfo);
+    }
+
     public BidderBid with(Bid bid) {
-        return BidderBid.of(bid, this.type, this.bidCurrency);
+        return of(bid, type, bidCurrency, dealPriority, videoInfo, priceFloorInfo);
     }
 }
