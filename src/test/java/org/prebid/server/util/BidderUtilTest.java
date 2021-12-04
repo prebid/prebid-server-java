@@ -119,7 +119,7 @@ public class BidderUtilTest {
     }
 
     @Test
-    public void enrichWithPriceFloorShouldFillPriceFloorInfoIfImpFloorIsDefined() {
+    public void resolvePriceFloorShouldReturnPriceFloorInfoIfImpFloorIsDefined() {
         // given
         final Bid bid = givenBid(identity());
         final BidRequest bidRequest = givenBidRequest(
@@ -133,7 +133,7 @@ public class BidderUtilTest {
     }
 
     @Test
-    public void enrichWithPriceFloorShouldFillPriceFloorInfoIfImpFloorCurrencyIsDefined() {
+    public void resolvePriceFloorShouldReturnPriceFloorInfoIfImpFloorCurrencyIsDefined() {
         // given
         final Bid bid = givenBid(identity());
         final BidRequest bidRequest = givenBidRequest(
@@ -144,6 +144,21 @@ public class BidderUtilTest {
 
         // then
         assertThat(result).isEqualTo(PriceFloorInfo.of(null, "JPY"));
+    }
+
+    @Test
+    public void resolvePriceFloorShouldReturnPriceFloorInfoIfBothImpFloorAndCurrencyAreDefined() {
+        // given
+        final Bid bid = givenBid(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.imp(givenImps(
+                        impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("USD"))));
+
+        // when
+        final PriceFloorInfo result = BidderUtil.resolvePriceFloor(bid, bidRequest);
+
+        // then
+        assertThat(result).isEqualTo(PriceFloorInfo.of(BigDecimal.ONE, "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer) {
