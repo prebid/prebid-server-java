@@ -23,9 +23,10 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
@@ -363,11 +364,9 @@ public class BasicPriceFloorEnforcerTest {
         if (impCustomizers == null) {
             return emptyList();
         }
-        final List<Imp> imps = new ArrayList<>();
-        for (UnaryOperator<Imp.ImpBuilder> impCustomizer : impCustomizers) {
-            imps.add(impCustomizer.apply(Imp.builder().id("impId")).build());
-        }
-        return imps;
+        return Arrays.stream(impCustomizers)
+                .map(impCustomizer -> impCustomizer.apply(Imp.builder().id("impId")).build())
+                .collect(Collectors.toList());
     }
 
     @SafeVarargs
@@ -375,10 +374,10 @@ public class BasicPriceFloorEnforcerTest {
         if (bidCustomizers == null) {
             return BidderSeatBid.empty();
         }
-        final List<BidderBid> bidderBids = new ArrayList<>();
-        for (UnaryOperator<Bid.BidBuilder> bidCustomizer : bidCustomizers) {
-            bidderBids.add(BidderBid.of(bidCustomizer.apply(Bid.builder().impid("impId")).build(), null, null));
-        }
+        final List<BidderBid> bidderBids = Arrays.stream(bidCustomizers)
+                .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
+                .map(bid -> BidderBid.of(bid, null, null))
+                .collect(Collectors.toList());
         return BidderSeatBid.of(bidderBids, emptyList(), emptyList());
     }
 }
