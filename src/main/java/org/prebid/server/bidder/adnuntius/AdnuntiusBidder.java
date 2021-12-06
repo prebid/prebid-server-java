@@ -45,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
@@ -88,12 +87,12 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
+        final AdnuntiusMetaData metaData = createMetaData(request.getUser());
         final String page = extractPage(request.getSite());
-        final String userId = ObjectUtil.getIfNotNull(request.getUser(), User::getId);
         final String uri = createUri(request);
 
         for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
-            final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.of(adUnits, AdnuntiusMetaData.of(userId), page);
+            final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.of(adUnits, metaData, page);
             adnuntiusRequests.add(createHttpRequest(adnuntiusRequest, uri));
         }
 
@@ -112,6 +111,11 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Unmarshalling error: %s", e.getMessage()));
         }
+    }
+
+    private static AdnuntiusMetaData createMetaData(User user) {
+        final String userId = ObjectUtil.getIfNotNull(user, User::getId);
+        return StringUtils.isNotBlank(userId) ? AdnuntiusMetaData.of(userId) : null;
     }
 
     private static String extractPage(Site site) {
@@ -177,19 +181,17 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         }
 
         final List<AdnuntiusAdsUnit> adsUnits = bidResponse.getAdUnits().stream()
-                .filter(AdnuntiusBidder::adsUnitFilter).collect(Collectors.toList());
+                .filter(AdnuntiusBidder::validateAdsUnit).collect(Collectors.toList());
 
         if (adsUnits.isEmpty()) {
             return Collections.emptyList();
         }
 
         final String currency = extractCurrency(adsUnits);
-        return adsUnits.stream()
-                .map(adsUnit -> makeBid(adsUnit.getAds().get(0), extractImpId(adsUnit), adsUnit.getHtml(), currency))
-                .collect(Collectors.toList());
+        return adsUnits.stream().map(adsUnit -> makeBid(adsUnit, currency)).collect(Collectors.toList());
     }
 
-    private static boolean adsUnitFilter(AdnuntiusAdsUnit adsUnit) {
+    private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
         if (adsUnit == null) {
             return false;
         }
@@ -201,6 +203,25 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static String extractCurrency(List<AdnuntiusAdsUnit> adsUnits) {
         final AdnuntiusBid bid = adsUnits.get(adsUnits.size() - 1).getAds().get(0).getBid();
         return ObjectUtil.getIfNotNull(bid, AdnuntiusBid::getCurrency);
+    }
+
+    private static BidderBid makeBid(AdnuntiusAdsUnit adsUnit, String currency) throws PreBidException {
+        final AdnuntiusAd ad = adsUnit.getAds().get(0);
+        final String adId = ad.getAdId();
+        final Bid bid = Bid.builder()
+                .id(adId)
+                .impid(extractImpId(adsUnit))
+                .w(parseMeasure(ad.getCreativeWidth()))
+                .h(parseMeasure(ad.getCreativeHeight()))
+                .adid(adId)
+                .cid(ad.getLineItemId())
+                .crid(ad.getCreativeId())
+                .price(extractPrice(ad))
+                .adm(adsUnit.getHtml())
+                .adomain(extractDomain(ad))
+                .build();
+
+        return BidderBid.of(bid, BidType.banner, currency);
     }
 
     private static String extractImpId(AdnuntiusAdsUnit adsUnit) {
@@ -218,30 +239,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return targetId.substring(auId.length() + TARGET_ID_DELIMITER.length());
     }
 
-    private static BidderBid makeBid(AdnuntiusAd ad, String impId, String html, String currency)
-            throws PreBidException {
-
-        final String adId = ad.getAdId();
-        final Bid bid = Bid.builder()
-                .id(adId)
-                .impid(impId)
-                .w(extractMeasure(ad, AdnuntiusAd::getCreativeWidth))
-                .h(extractMeasure(ad, AdnuntiusAd::getCreativeHeight))
-                .adid(adId)
-                .cid(ad.getLineItemId())
-                .crid(ad.getCreativeId())
-                .price(extractPrice(ad))
-                .adm(html)
-                .adomain(extractDomain(ad))
-                .build();
-
-        return BidderBid.of(bid, BidType.banner, currency);
-    }
-
-    private static Integer extractMeasure(AdnuntiusAd ad, Function<AdnuntiusAd, String> measureExtractor)
-            throws PreBidException {
-
-        final String measure = measureExtractor.apply(ad);
+    private static Integer parseMeasure(String measure) throws PreBidException {
         try {
             return Integer.valueOf(measure);
         } catch (NumberFormatException e) {
