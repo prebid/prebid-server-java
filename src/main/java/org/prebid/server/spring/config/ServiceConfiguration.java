@@ -792,7 +792,6 @@ public class ServiceConfiguration {
 
     @Bean
     PriceFloorFetcher priceFloorFetcher(
-            @Value("${price-floor.fetch.timeout-ms}") long defaultTimeoutMs,
             ApplicationSettings applicationSettings,
             Metrics metrics,
             Vertx vertx,
@@ -801,7 +800,6 @@ public class ServiceConfiguration {
             JacksonMapper mapper) {
 
         return new PriceFloorFetcher(
-                defaultTimeoutMs,
                 applicationSettings,
                 metrics,
                 vertx,

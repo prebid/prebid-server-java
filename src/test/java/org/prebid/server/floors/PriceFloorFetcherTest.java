@@ -67,7 +67,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     @Before
     public void setUp() {
-        priceFloorFetcher = new PriceFloorFetcher(3600, applicationSettings, metrics,
+        priceFloorFetcher = new PriceFloorFetcher(applicationSettings, metrics,
                 vertx, timeoutFactory, httpClient, jacksonMapper);
     }
 
@@ -82,7 +82,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         final Future<PriceFloorRules> priceFloorRules = priceFloorFetcher.fetch(givenAccount);
 
         // then
-        verify(httpClient).get("fetchUrl", 1300, 10240);
+        verify(httpClient).get("http://test.host.com", 1300, 10240);
         assertThat(priceFloorRules.succeeded()).isTrue();
 
         verify(vertx).setTimer(eq(1700000L), any());
@@ -129,7 +129,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
-                        MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
+                        MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "invalid"),
                         jacksonMapper.encodeToString(givenPriceFloorRules()))));
 
         // when
@@ -141,11 +141,22 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     @Test
     public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotDefined() {
-        // given
-
         // when
         final Future<PriceFloorRules> priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(config -> config.url(null)));
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(priceFloorRules.succeeded()).isTrue();
+        assertThat(priceFloorRules.result()).isNull();
+        verifyNoInteractions(vertx);
+    }
+
+    @Test
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsMalformed() {
+        // when
+        final Future<PriceFloorRules> priceFloorRules =
+                priceFloorFetcher.fetch(givenAccount(config -> config.url("MalformedURl")));
 
         // then
         verifyNoInteractions(httpClient);
@@ -305,7 +316,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         return configCustomizer.apply(AccountPriceFloorsFetchConfig.builder()
                         .enabled(true)
-                        .url("fetchUrl")
+                        .url("http://test.host.com")
                         .maxRules(10)
                         .maxFileSize(10L)
                         .timeout(1300L)

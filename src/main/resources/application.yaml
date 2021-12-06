@@ -264,9 +264,6 @@ geolocation:
       http-client:
         connect-timeout-ms: 2500
         max-redirects: 3
-price-floor:
-  fetch:
-    timeout-ms: 3000
 health-check:
   database:
     enabled: false
