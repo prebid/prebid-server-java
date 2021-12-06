@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -139,8 +138,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                                 .w(firstFormat.getW())
                                 .h(firstFormat.getH())
                                 .pos(position)
-                                .build()
-                        );
+                                .build());
             }
         }
 
