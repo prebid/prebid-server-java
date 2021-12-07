@@ -4,7 +4,7 @@ import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value
+@Value(staticConstructor = "of")
 public class AdnuntiusBid {
 
     BigDecimal amount;

@@ -51,7 +51,6 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static final int SECONDS_IN_MINUTE = 60;
     private static final String TARGET_ID_DELIMITER = "-";
-    private static final String DEFAULT_NETWORK = "default";
     private static final String DEFAULT_PAGE = "unknown";
     private static final BigDecimal PRICE_MULTIPLIER = BigDecimal.valueOf(1000);
     private static final TypeReference<ExtPrebid<?, ExtImpAdnuntius>> ADNUNTIUS_EXT_TYPE_REFERENCE =
@@ -79,7 +78,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
                 final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
 
-                final String key = StringUtils.defaultIfBlank(extImpAdnuntius.getNetwork(), DEFAULT_NETWORK);
+                final String key = StringUtils.stripToEmpty(extImpAdnuntius.getNetwork());
                 final String auId = extImpAdnuntius.getAuId();
                 networkToAdUnits.computeIfAbsent(key, k -> new ArrayList<>())
                         .add(AdnuntiusAdUnit.of(auId, auId + TARGET_ID_DELIMITER + imp.getId()));
@@ -177,11 +176,11 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private static List<BidderBid> extractBids(AdnuntiusResponse bidResponse) throws PreBidException {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getAdUnits())) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getAdsUnits())) {
             return Collections.emptyList();
         }
 
-        final List<AdnuntiusAdsUnit> adsUnits = bidResponse.getAdUnits().stream()
+        final List<AdnuntiusAdsUnit> adsUnits = bidResponse.getAdsUnits().stream()
                 .filter(AdnuntiusBidder::validateAdsUnit).collect(Collectors.toList());
 
         if (adsUnits.isEmpty()) {
@@ -215,7 +214,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .crid(ad.getCreativeId())
                 .price(extractPrice(ad))
                 .adm(adsUnit.getHtml())
-                .adomain(extractDomain(ad))
+                .adomain(extractDomain(ad.getDestinationUrls()))
                 .build();
 
         return BidderBid.of(bid, BidType.banner, currency);
@@ -245,8 +244,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return amount != null ? amount.multiply(PRICE_MULTIPLIER) : BigDecimal.ZERO;
     }
 
-    private static List<String> extractDomain(AdnuntiusAd ad) {
-        return ad.getDestinationUrls().values().stream()
+    private static List<String> extractDomain(Map<String, String> destinationUrls) {
+        return destinationUrls == null ? Collections.emptyList() : destinationUrls.values().stream()
                 .map(url -> url.split("/")[2].replaceAll("www\\.", ""))
                 .collect(Collectors.toList());
     }

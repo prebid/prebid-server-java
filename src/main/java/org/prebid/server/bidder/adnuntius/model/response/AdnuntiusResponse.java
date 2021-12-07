@@ -1,11 +1,13 @@
 package org.prebid.server.bidder.adnuntius.model.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
 
-@Value
+@Value(staticConstructor = "of")
 public class AdnuntiusResponse {
 
-    List<AdnuntiusAdsUnit> adUnits;
+    @JsonProperty("ad_units")
+    List<AdnuntiusAdsUnit> adsUnits;
 }
