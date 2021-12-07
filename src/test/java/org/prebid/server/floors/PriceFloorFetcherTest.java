@@ -181,6 +181,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(priceFloorRules.succeeded()).isTrue();
         assertThat(priceFloorRules.result()).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
     }
 
@@ -200,6 +201,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(priceFloorRules.succeeded()).isTrue();
         assertThat(priceFloorRules.result()).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
     }
 
@@ -219,6 +221,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(priceFloorRules.succeeded()).isTrue();
         assertThat(priceFloorRules.result()).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
     }
 
@@ -238,6 +241,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(priceFloorRules.succeeded()).isTrue();
         assertThat(priceFloorRules.result()).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
     }
 
@@ -295,6 +299,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         assertThat(priceFloorRules.succeeded()).isTrue();
         assertThat(priceFloorRules.result()).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
     }
 
