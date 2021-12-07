@@ -368,10 +368,10 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     @PendingFeature
-    @Unroll
-    def "PBS should emit error when validate-media-types = #description and site-media-types is empty in bidder config"() {
+    def "PBS should emit error when validate-media-types = true and site-media-types is empty in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(pbsConfig)
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "true",
+                                                       "adapters.generic.meta-info.site-media-types"    : ""])
 
         and: "Default basic BidRequest with zoneId = null"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -388,12 +388,28 @@ class BidderParamsSpec extends BaseSpec {
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
         assert response.ext?.errors[ErrorType.GENERIC]*.message ==
                 ["Site for bidder is not supported, request will be skipped"]
+    }
 
-        where:
-        pbsConfig                                               | description
-        ["adapters.generic.meta-info.validate-media-types": "true",
-         "adapters.generic.meta-info.site-media-types"    : ""] | "true"
-        ["adapters.generic.meta-info.site-media-types": ""]     | "not specified"
+    @PendingFeature
+    def "PBS should emit error when validate-media-types not specified and site-media-types is empty in bidder config"() {
+        given: "Pbs config"
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.site-media-types": ""])
+
+        and: "Default basic BidRequest with zoneId = null"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain empty seatbid"
+        assert response.seatbid.isEmpty()
+
+        and: "Response should contain error"
+        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
+        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+                ["Site for bidder is not supported, request will be skipped"]
     }
 
     def "PBS should not validate request when validate-media-types = false and site-media-types is empty in bidder config"() {

@@ -13,6 +13,10 @@ class Native {
     List<Integer> api
     List<Integer> battr
 
+    static Native getDefaultNative(){
+        new Native(request: Request.request)
+    }
+
     @JsonGetter("request")
     String getRequest() {
         Dependencies.objectMapperWrapper.encode(request)
@@ -22,4 +26,5 @@ class Native {
     void getRequest(String request) {
         this.request = Dependencies.objectMapperWrapper.decode(request, Request)
     }
+
 }
