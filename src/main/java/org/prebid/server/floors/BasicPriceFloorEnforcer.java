@@ -88,19 +88,22 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         for (BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
-            final Imp imp = correspondingImp(bid, ListUtils.emptyIfNull(imps));
-
-            final BigDecimal price = bid.getPrice();
-            final BigDecimal floor = imp.getBidfloor();
 
             // skip enforcement for deals if not allowed
             if (StringUtils.isNotEmpty(bid.getDealid()) && !enforcedDealFloors) {
                 continue;
             }
 
-            if (!isAllowedByEnforceRate(floors, accountPriceFloorsConfig)) {
+            // TODO: clarify if this should be applied per request or per bid
+            //  If per request - it should be moved to Signaling, so should
+            //  set ext.prebid.floors.enforcement.enforcePBS flag instead.
+            if (!isSatisfiedByEnforceRate(floors, accountPriceFloorsConfig)) {
                 continue;
             }
+
+            final BigDecimal price = bid.getPrice();
+            final Imp imp = correspondingImp(bid, ListUtils.emptyIfNull(imps));
+            final BigDecimal floor = imp.getBidfloor();
 
             if (isPriceBelowFloor(price, floor)) {
                 errors.add(BidderError.generic(
@@ -143,8 +146,8 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                         String.format("Bid with impId %s doesn't have matched imp", impId)));
     }
 
-    private static boolean isAllowedByEnforceRate(ExtRequestPrebidFloors floors,
-                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
+    private static boolean isSatisfiedByEnforceRate(ExtRequestPrebidFloors floors,
+                                                    AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
         final ExtRequestPrebidFloorsEnforcement enforcement = ObjectUtil.getIfNotNull(floors,
                 ExtRequestPrebidFloors::getEnforcement);
@@ -152,10 +155,10 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 ExtRequestPrebidFloorsEnforcement::getEnforceRate);
         final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
 
-        return isSatisfiedEnforceRate(requestEnforceRate) && isSatisfiedEnforceRate(accountEnforceRate);
+        return isSatisfiedByEnforceRate(requestEnforceRate) && isSatisfiedByEnforceRate(accountEnforceRate);
     }
 
-    private static boolean isSatisfiedEnforceRate(Integer enforceRate) {
+    private static boolean isSatisfiedByEnforceRate(Integer enforceRate) {
         return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
                 && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
     }
