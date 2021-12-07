@@ -96,12 +96,9 @@ public class PriceFloorFetcher {
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         final String accountId = account.getId();
 
-        if (!shouldFetchRules(fetchEnabled, fetchUrl, accountId)) {
-
-            return Future.succeededFuture();
+        if (shouldFetchRules(fetchEnabled, fetchUrl, accountId)) {
+            fetchPriceFloorRulesAsynchronous(fetchConfig, accountId);
         }
-
-        fetchPriceFloorRulesAsynchronous(fetchConfig, accountId);
 
         return Future.succeededFuture();
     }
@@ -142,7 +139,6 @@ public class PriceFloorFetcher {
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .recover(throwable -> recoverFromFailedFetching(throwable, accountId))
                 .map(priceFloorRules -> createPeriodicTimerForRulesFetch(priceFloorRules, fetchConfig, accountId));
-
     }
 
     private static long resolveMaxFileSize(Long maxSizeInKBytes) {
@@ -161,7 +157,7 @@ public class PriceFloorFetcher {
 
         if (StringUtils.isBlank(body)) {
             throw new PreBidException(String.format("Failed to parse price floor response for account %s, "
-                    + "response body can't be empty or null", accountId));
+                    + "response body can not be empty", accountId));
         }
 
         final PriceFloorRules priceFloorRules;
