@@ -37,8 +37,8 @@ import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +51,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static final int SECONDS_IN_MINUTE = 60;
     private static final String TARGET_ID_DELIMITER = "-";
+    private static final String DEFAULT_NETWORK = "default";
     private static final String DEFAULT_PAGE = "unknown";
     private static final BigDecimal PRICE_MULTIPLIER = BigDecimal.valueOf(1000);
     private static final TypeReference<ExtPrebid<?, ExtImpAdnuntius>> ADNUNTIUS_EXT_TYPE_REFERENCE =
@@ -58,12 +59,12 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             };
 
     private final String endpointUrl;
-    private final ZoneId zoneId;
+    private final Clock clock;
     private final JacksonMapper mapper;
 
-    public AdnuntiusBidder(String endpointUrl, ZoneId zoneId, JacksonMapper mapper) {
+    public AdnuntiusBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
-        this.zoneId = Objects.requireNonNull(zoneId);
+        this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -78,7 +79,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
                 final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
 
-                final String key = StringUtils.stripToEmpty(extImpAdnuntius.getNetwork());
+                final String key = StringUtils.defaultIfBlank(extImpAdnuntius.getNetwork(), DEFAULT_NETWORK);
                 final String auId = extImpAdnuntius.getAuId();
                 networkToAdUnits.computeIfAbsent(key, k -> new ArrayList<>())
                         .add(AdnuntiusAdUnit.of(auId, auId + TARGET_ID_DELIMITER + imp.getId()));
@@ -142,7 +143,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private String getTimeZoneOffset() {
-        return String.valueOf(-OffsetDateTime.now(zoneId).getOffset().getTotalSeconds() / SECONDS_IN_MINUTE);
+        return String.valueOf(-OffsetDateTime.now(clock).getOffset().getTotalSeconds() / SECONDS_IN_MINUTE);
     }
 
     private static String extractGdpr(Regs regs) {
@@ -192,11 +193,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
-        if (adsUnit == null) {
-            return false;
-        }
-
-        final List<AdnuntiusAd> ads = adsUnit.getAds();
+        final List<AdnuntiusAd> ads = ObjectUtil.getIfNotNull(adsUnit, AdnuntiusAdsUnit::getAds);
         return CollectionUtils.isNotEmpty(ads) && ads.get(0) != null;
     }
 
@@ -228,11 +225,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final String targetId = adsUnit.getTargetId();
         final String auId = adsUnit.getAuId();
 
-        if (targetId == null || auId == null) {
-            return null;
-        }
-
-        if (!targetId.startsWith(auId + TARGET_ID_DELIMITER)) {
+        if (targetId == null || auId == null || !targetId.startsWith(auId + TARGET_ID_DELIMITER)) {
             return null;
         }
 
@@ -254,7 +247,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static List<String> extractDomain(AdnuntiusAd ad) {
         return ad.getDestinationUrls().values().stream()
-                .map(url -> url.split("/")[3].replaceAll("www\\.", ""))
+                .map(url -> url.split("/")[2].replaceAll("www\\.", ""))
                 .collect(Collectors.toList());
     }
 }
