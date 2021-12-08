@@ -31,20 +31,19 @@ public class BidderUtil {
             return null;
         }
 
-        final Imp correspondingImp = imps.stream()
+        return imps.stream()
                 .filter(imp -> Objects.equals(bidImpId, imp.getId()))
                 .findFirst()
+                .map(BidderUtil::createFloorInfo)
                 .orElse(null);
-        if (correspondingImp == null) {
-            return null;
-        }
+    }
 
-        final BigDecimal floor = correspondingImp.getBidfloor();
-        final String currency = correspondingImp.getBidfloorcur();
-        if (floor == null && currency == null) {
-            return null;
-        }
+    private static PriceFloorInfo createFloorInfo(Imp imp) {
+        final BigDecimal floor = imp.getBidfloor();
+        final String currency = imp.getBidfloorcur();
 
-        return PriceFloorInfo.of(floor, currency);
+        return floor != null || currency != null
+                ? PriceFloorInfo.of(floor, currency)
+                : null;
     }
 }

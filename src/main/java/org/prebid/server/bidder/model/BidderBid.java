@@ -55,11 +55,11 @@ public class BidderBid {
         return of(bid, bidType, bidCurrency, dealPriority, videoInfo, null);
     }
 
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency, PriceFloorInfo priceFloorInfo) {
-        return of(bid, bidType, bidCurrency, null, null, priceFloorInfo);
+    public BidderBid with(Bid bid) {
+        return of(bid, type, bidCurrency, dealPriority, videoInfo, priceFloorInfo);
     }
 
-    public BidderBid with(Bid bid) {
+    public BidderBid with(PriceFloorInfo priceFloorInfo) {
         return of(bid, type, bidCurrency, dealPriority, videoInfo, priceFloorInfo);
     }
 }

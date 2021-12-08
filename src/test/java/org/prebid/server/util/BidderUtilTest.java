@@ -7,12 +7,11 @@ import org.junit.Test;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -161,20 +160,14 @@ public class BidderUtilTest {
         assertThat(result).isEqualTo(PriceFloorInfo.of(BigDecimal.ONE, "USD"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> customizer) {
-        return customizer.apply(BidRequest.builder()
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(givenImps(identity())))
                 .build();
     }
 
-    @SafeVarargs
-    private static List<Imp> givenImps(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        if (impCustomizers == null) {
-            return emptyList();
-        }
-        return Arrays.stream(impCustomizers)
-                .map(impCustomizer -> impCustomizer.apply(Imp.builder().id("impId")).build())
-                .collect(Collectors.toList());
+    private static List<Imp> givenImps(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return singletonList(impCustomizer.apply(Imp.builder().id("impId")).build());
     }
 
     private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
