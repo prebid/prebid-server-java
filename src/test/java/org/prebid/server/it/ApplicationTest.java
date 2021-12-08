@@ -62,7 +62,6 @@ import static org.assertj.core.api.Assertions.within;
 @RunWith(SpringRunner.class)
 public class ApplicationTest extends IntegrationTest {
 
-    private static final String ADFORM = "adform";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String RUBICON = "rubicon";
@@ -349,7 +348,7 @@ public class ApplicationTest extends IntegrationTest {
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.builder()
-                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .bidders(asList(RUBICON, APPNEXUS))
                         .gdpr(1)
                         .gdprConsent(gdprConsent)
                         .usPrivacy("1YNN")
@@ -365,7 +364,7 @@ public class ApplicationTest extends IntegrationTest {
         // then
         assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
         assertThat(cookieSyncResponse.getBidderStatus())
-                .hasSize(3)
+                .hasSize(2)
                 .containsOnly(BidderUsersyncStatus.builder()
                                 .bidder(RUBICON)
                                 .noCookie(true)
@@ -387,10 +386,6 @@ public class ApplicationTest extends IntegrationTest {
                                                 + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
-                                .build(),
-                        BidderUsersyncStatus.builder()
-                                .bidder(ADFORM)
-                                .error("Rejected by TCF")
                                 .build());
     }
 

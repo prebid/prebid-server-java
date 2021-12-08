@@ -10,7 +10,6 @@ adapters:
         - video
       supported-vendors:
         - activeview
-        - adform
         - comscore
         - doubleverify
         - integralads

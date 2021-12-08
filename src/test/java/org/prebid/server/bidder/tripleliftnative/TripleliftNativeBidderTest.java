@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.triplelift.ExtImpTriplelift;
 
@@ -28,12 +27,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -47,21 +44,13 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Before
     public void setUp() {
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, singletonMap("publisher_whitelist", "[\"foo\",\"bar\",\"baz\"]"), jacksonMapper);
+                ENDPOINT_URL, List.of("foo", "bar", "foobar"), jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new TripleliftNativeBidder("invalid_url", emptyMap(), jacksonMapper));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidJsonPublisherWhiteList() {
-        assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> new TripleliftNativeBidder(
-                        ENDPOINT_URL, singletonMap("publisher_whitelist", "bad"), jacksonMapper))
-                .withMessage("TripleliftNativeBidder could not unmarshal config json");
+                .isThrownBy(() -> new TripleliftNativeBidder("invalid_url", emptyList(), jacksonMapper));
     }
 
     @Test
@@ -102,7 +91,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -123,7 +112,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenAppPublisherIdIsNotInWhitelist() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder
@@ -144,7 +133,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsWhenNoPublisherIdIsSpecified() {
         // given
         tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, singletonMap("publisher_whitelist", "[]"), jacksonMapper);
+                ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.xNative(Native.builder().build()),

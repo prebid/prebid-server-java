@@ -1,0 +1,17 @@
+adapters:
+  nextmillenium:
+    endpoint: https://pbs.nextmillmedia.com/openrtb2/auction
+    meta-info:
+      maintainer-email: appdevs@nextmillennium.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 1060
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: nextmillennium
+      type: redirect
+      support-cors: false
