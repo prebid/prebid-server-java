@@ -79,18 +79,17 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
                         jacksonMapper.encodeToString(givenPriceFloorRules()))));
         // when
-        final Future<PriceFloorRules> priceFloorRules = priceFloorFetcher.fetch(givenAccount);
+        final PriceFloorRules priceFloorRules = priceFloorFetcher.fetch(givenAccount);
 
         // then
         verify(httpClient).get("http://test.host.com", 1300, 10240);
-        assertThat(priceFloorRules.succeeded()).isTrue();
 
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(httpClient);
-        final Future<PriceFloorRules> priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
-        assertThat(priceFloorRulesCached.succeeded()).isTrue();
-        assertThat(priceFloorRulesCached.result()).isEqualTo(givenPriceFloorRules());
+
+        final PriceFloorRules priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
+        assertThat(priceFloorRulesCached).isEqualTo(givenPriceFloorRules());
     }
 
     @Test
@@ -100,12 +99,11 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.failedFuture(new PreBidException("failed")));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
     }
 
@@ -142,26 +140,24 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Test
     public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotDefined() {
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(config -> config.url(null)));
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verifyNoInteractions(vertx);
     }
 
     @Test
     public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsMalformed() {
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(config -> config.url("MalformedURl")));
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verifyNoInteractions(vertx);
     }
 
@@ -173,13 +169,12 @@ public class PriceFloorFetcherTest extends VertxTest {
                         jacksonMapper.encodeToString(PriceFloorRules.builder().build()))));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
@@ -193,13 +188,12 @@ public class PriceFloorFetcherTest extends VertxTest {
                         "{")));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
@@ -213,13 +207,12 @@ public class PriceFloorFetcherTest extends VertxTest {
                         null)));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
@@ -233,13 +226,12 @@ public class PriceFloorFetcherTest extends VertxTest {
                         null)));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);
@@ -253,25 +245,21 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(fetchPromise.future());
 
         // when
-        final Future<PriceFloorRules> firstFetch = priceFloorFetcher.fetch(givenAccount(identity()));
-        final Future<PriceFloorRules> secondFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        final PriceFloorRules firstFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        final PriceFloorRules secondFetch = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         verifyNoMoreInteractions(httpClient);
 
-        assertThat(secondFetch.succeeded()).isTrue();
-        assertThat(secondFetch.result()).isNull();
+        assertThat(secondFetch).isNull();
 
         fetchPromise.tryComplete(HttpClientResponse.of(200,
                 MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
                 jacksonMapper.encodeToString(givenPriceFloorRules())));
 
-        assertThat(firstFetch.succeeded()).isTrue();
-
-        final Future<PriceFloorRules> thirdFetch = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(thirdFetch.succeeded()).isTrue();
-        assertThat(thirdFetch.result()).isEqualTo(givenPriceFloorRules());
+        final PriceFloorRules thirdFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(thirdFetch).isEqualTo(givenPriceFloorRules());
     }
 
     @Test
@@ -291,13 +279,12 @@ public class PriceFloorFetcherTest extends VertxTest {
                                         .build()))));
 
         // when
-        final Future<PriceFloorRules> priceFloorRules =
+        final PriceFloorRules priceFloorRules =
                 priceFloorFetcher.fetch(givenAccount(account -> account.maxRules(1)));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules.succeeded()).isTrue();
-        assertThat(priceFloorRules.result()).isNull();
+        assertThat(priceFloorRules).isNull();
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(vertx);

@@ -46,7 +46,9 @@ public class PriceFloorFetcher {
 
     private static final Logger logger = LoggerFactory.getLogger(PriceFloorFetcher.class);
     private static final ConditionalLogger samplingLogger = new ConditionalLogger(logger);
-    private static final int ACCOUNT_FETCH_TIMEOUT = 10;
+
+    private static final int ACCOUNT_FETCH_TIMEOUT_MS = 5000;
+    private static final int MAXIMUM_CACHE_SIZE = 300;
 
     private final ApplicationSettings applicationSettings;
     private final Metrics metrics;
@@ -73,21 +75,22 @@ public class PriceFloorFetcher {
 
         fetchInProgress = new ConcurrentHashSet<>();
         fetchedData = Caffeine.newBuilder()
+                .maximumSize(MAXIMUM_CACHE_SIZE)
                 .<String, AccountFetchContext>build()
                 .asMap();
     }
 
-    public Future<PriceFloorRules> fetch(Account account) {
+    public PriceFloorRules fetch(Account account) {
         final AccountFetchContext accountFetchContext = fetchedData.get(account.getId());
 
         return accountFetchContext != null
-                ? Future.succeededFuture(accountFetchContext.getRules())
+                ? accountFetchContext.getRules()
                 : fetchPriceFloorRules(account);
     }
 
-    private Future<PriceFloorRules> fetchPriceFloorRules(Account account) {
+    private PriceFloorRules fetchPriceFloorRules(Account account) {
         if (account == null) {
-            return Future.succeededFuture();
+            return null;
         }
 
         final AccountPriceFloorsFetchConfig fetchConfig = getFetchConfig(account);
@@ -99,7 +102,7 @@ public class PriceFloorFetcher {
             fetchPriceFloorRulesAsynchronous(fetchConfig, accountId);
         }
 
-        return Future.succeededFuture();
+        return null;
     }
 
     private boolean shouldFetchRules(Boolean fetchEnabled, String fetchUrl, String accountId) {
@@ -135,8 +138,8 @@ public class PriceFloorFetcher {
         fetchInProgress.add(accountId);
         httpClient.get(fetchConfig.getUrl(), timeout, resolveMaxFileSize(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(httpClientResponse, fetchConfig, accountId))
-                .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .recover(throwable -> recoverFromFailedFetching(throwable, accountId, fetchConfig))
+                .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .map(priceFloorRules -> createPeriodicTimerForRulesFetch(priceFloorRules, fetchConfig, accountId));
     }
 
@@ -225,12 +228,15 @@ public class PriceFloorFetcher {
     private PriceFloorRules updateCache(ResponseCacheInfo cacheInfo,
                                         AccountPriceFloorsFetchConfig fetchConfig,
                                         String accountId) {
-        long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
 
+        long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRules(), maxAgeTimerId);
-        fetchedData.put(accountId, fetchContext);
-        fetchInProgress.remove(accountId);
+
+        if (cacheInfo.getRules() != null || fetchedData.get(accountId) == null) {
+            fetchedData.put(accountId, fetchContext);
+            fetchInProgress.remove(accountId);
+        }
 
         return fetchContext.getRules();
     }
@@ -255,9 +261,9 @@ public class PriceFloorFetcher {
         return vertx.setTimer(TimeUnit.SECONDS.toMillis(cacheTtl), id -> fetchedData.remove(accountId));
     }
 
-    private Future<PriceFloorRules> recoverFromFailedFetching(Throwable throwable,
-                                                              String accountId,
-                                                              AccountPriceFloorsFetchConfig fetchConfig) {
+    private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable,
+                                                                String accountId,
+                                                                AccountPriceFloorsFetchConfig fetchConfig) {
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
@@ -268,11 +274,8 @@ public class PriceFloorFetcher {
                     String.format("Failed to fetch price floor from provider for account = %s with a reason : %s ",
                             accountId, throwable.getMessage()), 0.01);
         }
-        fetchInProgress.remove(accountId);
-        fetchedData.putIfAbsent(accountId, AccountFetchContext.of(null,
-                createMaxAgeTimer(accountId, fetchConfig.getMaxAgeSec())));
 
-        return Future.succeededFuture();
+        return Future.succeededFuture(ResponseCacheInfo.empty());
     }
 
     private PriceFloorRules createPeriodicTimerForRulesFetch(PriceFloorRules priceFloorRules,
@@ -286,14 +289,14 @@ public class PriceFloorFetcher {
 
     private void periodicFetch(String accountId) {
 
-        accountById(accountId).compose(this::fetchPriceFloorRules);
+        accountById(accountId).map(this::fetchPriceFloorRules);
     }
 
     private Future<Account> accountById(String accountId) {
         return StringUtils.isBlank(accountId)
                 ? Future.succeededFuture()
                 : applicationSettings
-                .getAccountById(accountId, timeoutFactory.create(TimeUnit.SECONDS.toMillis(ACCOUNT_FETCH_TIMEOUT)))
+                .getAccountById(accountId, timeoutFactory.create(ACCOUNT_FETCH_TIMEOUT_MS))
                 .recover(ignored -> Future.succeededFuture());
     }
 
@@ -311,5 +314,9 @@ public class PriceFloorFetcher {
         PriceFloorRules rules;
 
         Long cacheTtl;
+
+        public static ResponseCacheInfo empty() {
+            return ResponseCacheInfo.of(null, null);
+        }
     }
 }
