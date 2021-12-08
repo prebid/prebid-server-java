@@ -157,15 +157,19 @@ public class BeachfrontBidder implements Bidder<Void> {
         final List<BeachfrontSlot> slots = new ArrayList<>();
 
         for (Imp imp : bannerImps) {
+            final ExtImpBeachfront extImpBeachfront;
+            final String appId;
             try {
-                final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
-                final String appId = getAppId(extImpBeachfront, true);
-
-                slots.add(BeachfrontSlot.of(imp.getId(), appId, getBidFloor(
-                        extImpBeachfront.getBidfloor(), imp.getBidfloor()), makeBeachfrontSizes(imp.getBanner())));
+                validateImp(imp);
+                extImpBeachfront = parseImpExt(imp);
+                appId = getAppId(extImpBeachfront, true);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+
+            final BigDecimal bidFloor = getBidFloor(extImpBeachfront.getBidfloor(), imp.getBidfloor());
+            slots.add(BeachfrontSlot.of(imp.getId(), appId, bidFloor, makeBeachfrontSizes(imp.getBanner())));
         }
         if (slots.isEmpty()) {
             return null;
@@ -215,6 +219,14 @@ public class BeachfrontBidder implements Bidder<Void> {
         }
 
         return requestBuilder.build();
+    }
+
+    private static void validateImp(Imp imp) throws PreBidException {
+        final String bidFloorCur = imp.getBidfloorcur();
+        if (bidFloorCur != null && !DEFAULT_BID_CURRENCY.equalsIgnoreCase(bidFloorCur)) {
+            final String errorMessage = "Unsupported bid currency, %s. bids are currently accepted in USD only.";
+            throw new PreBidException(String.format(errorMessage, bidFloorCur));
+        }
     }
 
     private ExtImpBeachfront parseImpExt(Imp imp) {
@@ -323,8 +335,8 @@ public class BeachfrontBidder implements Bidder<Void> {
         for (Imp imp : videoImps) {
             final ExtImpBeachfront extImpBeachfront;
             final String appId;
-
             try {
+                validateImp(imp);
                 extImpBeachfront = parseImpExt(imp);
                 appId = getAppId(extImpBeachfront, false);
             } catch (PreBidException e) {
