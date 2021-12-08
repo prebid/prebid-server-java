@@ -40,11 +40,8 @@ public class BidderBid {
     ExtBidPrebidVideo videoInfo;
 
     /**
-     * Used by price floor enforcement. The only bidder is responsible to populate this info
+     * Will be used by price floor enforcement. The only bidder is responsible to populate this info
      * if bidder overrides any of request.imp[i].bidfloor or request.imp[i].bidfloorcur fields.
-     * <p>
-     * Note: Use {@link org.prebid.server.util.BidderUtil#resolvePriceFloor} helper method
-     * to fill this info if bidder is OpenRTB-compatible.
      */
     PriceFloorInfo priceFloorInfo;
 
