@@ -47,6 +47,7 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
@@ -237,6 +238,7 @@ public class ServiceConfiguration {
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) DealsProcessor dealsProcessor,
+            CountryCodeMapper countryCodeMapper,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -253,6 +255,7 @@ public class ServiceConfiguration {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                countryCodeMapper,
                 clock);
     }
 
@@ -666,6 +669,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
+            CountryCodeMapper countryCodeMapper,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
@@ -676,6 +680,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 metrics,
+                countryCodeMapper,
                 ccpaEnforce,
                 lmtEnforce);
     }

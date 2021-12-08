@@ -1,0 +1,10 @@
+{
+  "id": "request_id",
+  "ext": {
+    "prebid": {
+      "storedrequest": {
+        "id": "placement_id"
+      }
+    }
+  }
+}

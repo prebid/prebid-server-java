@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.01,
+          "adid": "adid001",
+          "cid": "cid001",
+          "crid": "crid001",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 0.01
+          }
+        }
+      ],
+      "seat": "nextmillenium",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "nextmillenium": "{{ nextmillenium.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

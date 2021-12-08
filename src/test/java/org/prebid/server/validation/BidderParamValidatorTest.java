@@ -9,7 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
@@ -20,7 +20,6 @@ import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
-import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -41,7 +40,6 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String ADFORM = "adform";
     private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
@@ -65,7 +63,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 RUBICON,
                 APPNEXUS,
                 APPNEXUS_ALIAS,
-                ADFORM,
                 BRIGHTROLL,
                 SOVRN,
                 ADTELLIGENT,
@@ -180,32 +177,6 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // then
         assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
-        // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross", null, null, null, null, null);
-
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenAdformImpExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
     }
 
     @Test
