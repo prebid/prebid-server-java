@@ -22,7 +22,6 @@ import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -45,7 +44,6 @@ import java.util.concurrent.TimeoutException;
 public class PriceFloorFetcher {
 
     private static final Logger logger = LoggerFactory.getLogger(PriceFloorFetcher.class);
-    private static final ConditionalLogger samplingLogger = new ConditionalLogger(logger);
 
     private static final int ACCOUNT_FETCH_TIMEOUT_MS = 5000;
     private static final int MAXIMUM_CACHE_SIZE = 300;
@@ -116,7 +114,7 @@ public class PriceFloorFetcher {
         try {
             HttpUtil.validateUrl(fetchUrl);
         } catch (IllegalArgumentException e) {
-            samplingLogger.warn(String.format("Malformed fetch.url passed for account %s", accountId), 0.01);
+            logger.warn(String.format("Malformed fetch.url passed for account %s", accountId));
             return false;
         }
 
@@ -217,7 +215,7 @@ public class PriceFloorFetcher {
                 try {
                     return Long.parseLong(maxAgeRecord[1]);
                 } catch (NumberFormatException ex) {
-                    samplingLogger.warn(String.format("Can't parse Cache Control header '%s'", cacheMaxAge), 0.01);
+                    logger.warn(String.format("Can't parse Cache Control header '%s'", cacheMaxAge));
                 }
             }
         }
@@ -267,12 +265,12 @@ public class PriceFloorFetcher {
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
-            samplingLogger.warn(
-                    String.format("Fetch price floor request timeout for account %s exceeded.", accountId), 0.01);
+            logger.warn(
+                    String.format("Fetch price floor request timeout for account %s exceeded.", accountId));
         } else if (throwable instanceof PreBidException) {
-            samplingLogger.warn(
+            logger.warn(
                     String.format("Failed to fetch price floor from provider for account = %s with a reason : %s ",
-                            accountId, throwable.getMessage()), 0.01);
+                            accountId, throwable.getMessage()));
         }
 
         return Future.succeededFuture(ResponseCacheInfo.empty());
