@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -92,6 +93,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -126,6 +128,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String LIVERAMP_EID = "liveramp.com";
 
+    private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
     private static final String FPD_PAGECAT_FIELD = "pagecat";
     private static final String FPD_PAGE_FIELD = "page";
@@ -133,9 +136,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String FPD_SEARCH_FIELD = "search";
     private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
+    private static final String FPD_DATA_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
     private static final String FPD_ADSERVER_NAME_GAM = "gam";
     private static final String FPD_KEYWORDS_FIELD = "keywords";
+    private static final String DFP_ADUNIT_CODE_FIELD = "dfp_ad_unit_code";
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
@@ -505,6 +510,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                      Site site,
                                      App app,
                                      ExtRequest extRequest) {
+
         final ExtImpContext context = extImpContext(imp);
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
@@ -513,7 +519,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()),
                 getMaxBids(extRequest),
-                getAdSlot(imp, context));
+                getGpid(imp.getExt()));
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, ExtImpContext context) {
@@ -576,7 +582,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                             ExtImpRubicon rubiconImpExt,
                                             ExtImpContext context,
                                             ObjectNode result) {
-        final JsonNode data = imp.getExt().get(FPD_DATA_FIELD);
 
         mergeFirstPartyDataFromData(imp, context, result);
         mergeFirstPartyDataKeywords(imp, context, result);
@@ -591,22 +596,36 @@ public class RubiconBidder implements Bidder<BidRequest> {
         // merge OPENRTB.imp[].ext.data.search to XAPI.imp[].ext.rp.target.search
         mergeStringAttributeIntoArray(
                 result,
-                data,
+                imp.getExt().get(FPD_DATA_FIELD),
                 node -> getTextValueFromNodeByPath(node, FPD_SEARCH_FIELD),
                 FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromData(Imp imp, ExtImpContext context, ObjectNode result) {
+        final ObjectNode contextDataNode = toObjectNode(
+                ObjectUtil.getIfNotNull(context, ExtImpContext::getData));
         // merge OPENRTB.imp[].ext.context.data.* to XAPI.imp[].ext.rp.target.*
-        final ObjectNode contextDataNode = context != null ? context.getData() : null;
-        if (contextDataNode != null) {
-            populateFirstPartyDataAttributes(contextDataNode, result);
-        }
+        populateFirstPartyDataAttributes(contextDataNode, result);
 
+        final ObjectNode dataNode = toObjectNode(imp.getExt().get(FPD_DATA_FIELD));
         // merge OPENRTB.imp[].ext.data.* to XAPI.imp[].ext.rp.target.*
-        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
-        if (dataNode != null && dataNode.isObject()) {
-            populateFirstPartyDataAttributes((ObjectNode) dataNode, result);
+        populateFirstPartyDataAttributes(dataNode, result);
+
+        // override XAPI.imp[].ext.rp.target.* with OPENRTB.imp[].ext.data.*
+        overrideFirstPartyDataAttributes(contextDataNode, dataNode, result);
+    }
+
+    private void overrideFirstPartyDataAttributes(ObjectNode contextDataNode, ObjectNode dataNode, ObjectNode result) {
+        final JsonNode pbadslotNode = dataNode.get(FPD_DATA_PBADSLOT_FIELD);
+        if (pbadslotNode != null && pbadslotNode.isTextual()) {
+            // copy imp[].ext.data.pbadslot to XAPI.imp[].ext.rp.target.pbadslot
+            result.set(FPD_DATA_PBADSLOT_FIELD, pbadslotNode);
+        } else {
+            // copy adserver.adslot value to XAPI field imp[].ext.rp.target.dfp_ad_unit_code
+            final String resolvedDfpAdUnitCode = getAdSlot(contextDataNode, dataNode);
+            if (resolvedDfpAdUnitCode != null) {
+                result.set(DFP_ADUNIT_CODE_FIELD, TextNode.valueOf(resolvedDfpAdUnitCode));
+            }
         }
     }
 
@@ -744,10 +763,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return multibidMaxBids != null ? multibidMaxBids : 1;
     }
 
+    private String getGpid(ObjectNode impExt) {
+        final JsonNode gpidNode = impExt.get(FPD_GPID_FIELD);
+        return gpidNode != null && gpidNode.isTextual() ? gpidNode.asText() : null;
+    }
+
     private String getAdSlot(Imp imp, ExtImpContext context) {
         final ObjectNode contextDataNode = context != null ? context.getData() : null;
-        final JsonNode dataNode = imp.getExt().get(FPD_DATA_FIELD);
+        final ObjectNode dataNode = toObjectNode(imp.getExt().get(FPD_DATA_FIELD));
 
+        return getAdSlot(contextDataNode, dataNode);
+    }
+
+    private String getAdSlot(ObjectNode contextDataNode, ObjectNode dataNode) {
         return ObjectUtils.firstNonNull(
                 // or imp[].ext.context.data.adserver.adslot
                 getAdSlotFromAdServer(contextDataNode),
@@ -1425,5 +1453,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static BidType bidType(BidRequest bidRequest) {
         return isVideo(bidRequest.getImp().get(0)) ? BidType.video : BidType.banner;
+    }
+
+    private ObjectNode toObjectNode(JsonNode node) {
+        return node != null && node.isObject()
+                ? (ObjectNode) node
+                : mapper.mapper().createObjectNode();
     }
 }

@@ -407,6 +407,19 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpBidFloorCurIsUnsupported() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.bidfloorcur("unsupported"));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final String errorMessage = "Unsupported bid currency, unsupported. bids are currently accepted in USD only.";
+        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(errorMessage));
+    }
+
+    @Test
     public void makeHttpRequestsShouldUseDefaultBidFloorIfNoInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -458,7 +471,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
 
@@ -471,7 +484,7 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
 
@@ -819,8 +832,7 @@ public class BeachfrontBidderTest extends VertxTest {
         return givenHttpCall(mapper.writeValueAsBytes(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
     }
 
-    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody)
-            throws JsonProcessingException {
+    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
                 HttpResponse.of(200, null, responseBody), null);

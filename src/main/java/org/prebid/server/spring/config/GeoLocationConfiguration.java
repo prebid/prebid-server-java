@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
 import org.prebid.server.metric.Metrics;
@@ -11,12 +12,19 @@ import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.Resource;
+import org.springframework.util.FileCopyUtils;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 
 public class GeoLocationConfiguration {
@@ -79,6 +87,21 @@ public class GeoLocationConfiguration {
 
             remoteFileSyncer.syncForFilepath(maxMindGeoLocationService);
             return maxMindGeoLocationService;
+        }
+    }
+
+    @Configuration
+    static class CountryCodeMapperConfiguration {
+
+        @Bean
+        public CountryCodeMapper countryCodeMapper(
+                @Value("classpath:country-codes.csv") Resource resource) throws IOException {
+
+            final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+            final String countryCodesCsvAsString = FileCopyUtils.copyToString(reader);
+            reader.close();
+
+            return new CountryCodeMapper(countryCodesCsvAsString);
         }
     }
 }

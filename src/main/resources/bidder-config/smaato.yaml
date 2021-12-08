@@ -12,7 +12,7 @@ adapters:
       supported-vendors:
       vendor-id: 82
     usersync:
-      url: https://s.ad.smaato.net/c/?adExInit=n&redir=
+      url: https://s.ad.smaato.net/c/?adExInit=p&redir=
       redirect-url: /setuid?bidder=smaato&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: smaato
       type: redirect
