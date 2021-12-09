@@ -109,8 +109,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusRequest::getAdUnits)
                 .allSatisfy(adUnits -> assertThat(adUnits).hasSize(2)
                         .extracting(AdnuntiusAdUnit::getAuId)
-                        .containsExactly("auId1", "auId2")
-                );
+                        .containsExactly("auId1", "auId2"));
         assertThat(result.getErrors()).hasSize(0);
     }
 
@@ -391,7 +390,6 @@ public class AdnuntiusBidderTest extends VertxTest {
         final HttpResponse response = HttpResponse.of(200, null, body);
         return HttpCall.success(request, response, null);
     }
-
 
     private HttpCall<AdnuntiusRequest> givenHttpCall(AdnuntiusAdsUnit... adsUnits) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsString(AdnuntiusResponse.of(List.of(adsUnits))));
