@@ -85,6 +85,10 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.privacy.ccpa.Ccpa;
+import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -157,6 +161,7 @@ import static java.math.BigDecimal.TEN;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.Function.identity;
@@ -185,7 +190,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -250,6 +254,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .map(bidderAndUser -> BidderPrivacyResult.builder()
                                         .requestBidder(bidderAndUser.getKey())
                                         .user(bidderAndUser.getValue())
+                                        .debugLog(emptySet())
                                         .build())
                                 .collect(Collectors.toList())));
 
@@ -977,7 +982,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         BidResponse.builder()
                                 .ext(ExtBidResponse.builder()
-                                        .debug(ExtResponseDebug.of(null, null, null, null))
+                                        .debug(ExtResponseDebug.of(null, null, null, null, null))
                                         .build())
                                 .build()));
 
@@ -1006,7 +1011,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         BidResponse.builder()
                                 .ext(ExtBidResponse.builder()
-                                        .debug(ExtResponseDebug.of(null, null, null, null))
+                                        .debug(ExtResponseDebug.of(null, null, null, null, null))
                                         .build())
                                 .build()));
 
@@ -3892,6 +3897,10 @@ public class ExchangeServiceTest extends VertxTest {
                 .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
                 .debugContext(DebugContext.empty())
                 .txnLog(TxnLog.create())
+                .privacyContext(
+                        PrivacyContext.of(
+                                Privacy.of("gdpr", "consentString", Ccpa.EMPTY, 5),
+                                TcfContext.empty()))
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .build();
     }

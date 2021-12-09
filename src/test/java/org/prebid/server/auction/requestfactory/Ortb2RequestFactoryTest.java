@@ -793,7 +793,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.of("", "", Ccpa.EMPTY, 0),
                 TcfContext.empty(),
-                "ip");
+                "ip",
+                null);
 
         final String integration = "integration";
         final Account account = Account.builder()
@@ -829,8 +830,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 Privacy.of("", "", Ccpa.EMPTY, 0),
                 TcfContext.builder()
                         .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
-                        .build(),
-                null);
+                        .build());
 
         final Account account = Account.empty("id");
 
@@ -860,7 +860,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.of("", "", Ccpa.EMPTY, 0),
                 TcfContext.builder().build(),
-                "ipv4");
+                "ipv4",
+                null);
 
         final Account account = Account.empty("id");
 
@@ -888,7 +889,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.of("", "", Ccpa.EMPTY, 0),
                 TcfContext.builder().build(),
-                "ipv6");
+                "ipv6",
+                null);
 
         final Account account = Account.empty("id");
 

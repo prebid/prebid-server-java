@@ -69,6 +69,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -478,8 +479,8 @@ public class ExchangeService {
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
 
-        return makeAuctionParticipation(bidders, context, aliases, impBidderToStoredBidResponse,
-                imps, bidderToMultiBid);
+        return makeAuctionParticipation(
+                bidders, context, aliases, impBidderToStoredBidResponse, imps, bidderToMultiBid);
     }
 
     private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
@@ -526,14 +527,12 @@ public class ExchangeService {
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
         final Map<String, List<String>> eidPermissions = getEidPermissions(prebid);
         final Map<String, User> bidderToUser =
-                prepareUsers(bidders, context, aliases, bidRequest, extUser, uidsBody, biddersToConfigs,
-                        eidPermissions);
+                prepareUsers(bidders, context, aliases, extUser, uidsBody, biddersToConfigs, eidPermissions);
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
-                .map(bidderToPrivacyResult ->
-                        getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs, aliases, context.getDebugWarnings()));
+                .map(bidderToPrivacyResult -> makeAuctionParticipation(bidderToPrivacyResult, context,
+                        impBidderToStoredResponse, imps, bidderToMultiBid, biddersToConfigs, aliases));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -596,12 +595,12 @@ public class ExchangeService {
     private Map<String, User> prepareUsers(List<String> bidders,
                                            AuctionContext context,
                                            BidderAliases aliases,
-                                           BidRequest bidRequest,
                                            ExtUser extUser,
                                            Map<String, String> uidsBody,
                                            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                            Map<String, List<String>> eidPermissions) {
 
+        final BidRequest bidRequest = context.getBidRequest();
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
 
         final Map<String, User> bidderToUser = new HashMap<>();
@@ -610,8 +609,10 @@ public class ExchangeService {
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
-            final User preparedUser = prepareUser(bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
+            final User preparedUser = prepareUser(
+                    bidRequest.getUser(), extUser, bidder, aliases, uidsBody,
                     context.getUidsCookie(), useFirstPartyData, fpdConfig, eidPermissions);
+
             bidderToUser.put(bidder, preparedUser);
         }
         return bidderToUser;
@@ -734,19 +735,21 @@ public class ExchangeService {
     /**
      * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
      */
-    private List<AuctionParticipation> getAuctionParticipation(
+    private List<AuctionParticipation> makeAuctionParticipation(
             List<BidderPrivacyResult> bidderPrivacyResults,
-            BidRequest bidRequest,
+            AuctionContext auctionContext,
             Map<String, Map<String, String>> impBidderToStoredBidResponse,
             List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-            BidderAliases aliases,
-            List<String> debugWarnings) {
+            BidderAliases aliases) {
 
+        final BidRequest bidRequest = auctionContext.getBidRequest();
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
 
         final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
+                .map(bidderPrivacyResult -> updatePrivacyDebugLog(
+                        bidderPrivacyResult, auctionContext.getPrivacyContext().getPrivacyDebugLog()))
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
@@ -759,7 +762,7 @@ public class ExchangeService {
                         biddersToConfigs,
                         bidderToPrebidBidders,
                         aliases,
-                        debugWarnings))
+                        auctionContext.getDebugWarnings()))
                 // Can't be removed after we prepare workflow to filter blocked
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
@@ -767,6 +770,15 @@ public class ExchangeService {
         Collections.shuffle(bidderRequests);
 
         return bidderRequests;
+    }
+
+    private BidderPrivacyResult updatePrivacyDebugLog(BidderPrivacyResult bidderPrivacyResult,
+                                                      PrivacyDebugLog privacyDebugLog) {
+
+        if (privacyDebugLog != null) {
+            privacyDebugLog.addBidderLog(bidderPrivacyResult.getRequestBidder(), bidderPrivacyResult.getDebugLog());
+        }
+        return bidderPrivacyResult;
     }
 
     /**
@@ -795,7 +807,8 @@ public class ExchangeService {
     private AuctionParticipation createAuctionParticipation(
             BidderPrivacyResult bidderPrivacyResult,
             BidRequest bidRequest,
-            Map<String, Map<String, String>> impBidderToStoredBidResponse, List<Imp> imps,
+            Map<String, Map<String, String>> impBidderToStoredBidResponse,
+            List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,

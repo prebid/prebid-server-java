@@ -59,6 +59,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.PrivacyAnonymizationService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -659,9 +660,18 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    PrivacyAnonymizationService privacyAnonymizationService(@Value("${lmt.enforce}") boolean lmtEnforce,
+                                                            IpAddressHelper ipAddressHelper,
+                                                            Metrics metrics) {
+
+        return new PrivacyAnonymizationService(lmtEnforce, ipAddressHelper, metrics);
+    }
+
+    @Bean
     PrivacyEnforcementService privacyEnforcementService(
             BidderCatalog bidderCatalog,
             PrivacyExtractor privacyExtractor,
+            PrivacyAnonymizationService privacyAnonymizationService,
             TcfDefinerService tcfDefinerService,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
@@ -673,6 +683,7 @@ public class ServiceConfiguration {
         return new PrivacyEnforcementService(
                 bidderCatalog,
                 privacyExtractor,
+                privacyAnonymizationService,
                 tcfDefinerService,
                 implicitParametersExtractor,
                 ipAddressHelper,

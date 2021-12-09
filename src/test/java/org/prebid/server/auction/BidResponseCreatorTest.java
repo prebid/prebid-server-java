@@ -2818,9 +2818,8 @@ public class BidResponseCreatorTest extends VertxTest {
                         singletonList(ExtHttpCall.builder().status(200).build()), null), 100));
 
         // when
-        final BidResponse bidResponse =
-                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                        auctionContext, cacheInfo, MULTI_BIDS).result();
+        final BidResponse bidResponse = bidResponseCreator.create(
+                toAuctionParticipant(bidderResponses), auctionContext, cacheInfo, MULTI_BIDS).result();
 
         // then
         final ExtBidResponse responseExt = bidResponse.getExt();

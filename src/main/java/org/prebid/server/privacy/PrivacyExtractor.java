@@ -10,10 +10,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
+import org.prebid.server.privacy.model.PrivacyExtractionResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -41,8 +43,15 @@ public class PrivacyExtractor {
      * </ul><p>
      * And construct {@link Privacy} from them. Use default values in case of invalid value.
      */
-    public Privacy validPrivacyFrom(BidRequest bidRequest, List<String> errors) {
-        return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
+    public PrivacyExtractionResult validPrivacyFrom(BidRequest bidRequest) {
+        final List<String> errors = new ArrayList<>();
+        final Privacy originPrivacy = extractOriginPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
+
+        return PrivacyExtractionResult.builder()
+                .originPrivacy(originPrivacy)
+                .validPrivacy(toValidPrivacy(originPrivacy, errors))
+                .errors(errors)
+                .build();
     }
 
     public Privacy validPrivacyFrom(CookieSyncRequest request) {
@@ -61,7 +70,16 @@ public class PrivacyExtractor {
         return toValidPrivacy(gdpr, gdprConsent, null, null, null);
     }
 
-    private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
+    private static Privacy toValidPrivacy(Privacy originPrivacy, List<String> errors) {
+        return toValidPrivacy(
+                originPrivacy.getGdpr(),
+                originPrivacy.getConsentString(),
+                originPrivacy.getCcpa().getUsPrivacy(),
+                originPrivacy.getCoppa(),
+                errors);
+    }
+
+    private Privacy extractOriginPrivacy(Regs regs, User user, List<String> errors) {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 
@@ -71,7 +89,7 @@ public class PrivacyExtractor {
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
         final Integer coppa = regs != null ? regs.getCoppa() : null;
 
-        return toValidPrivacy(gdpr, consent, usPrivacy, coppa, errors);
+        return Privacy.of(gdpr, consent, Ccpa.of(usPrivacy), coppa);
     }
 
     private static Privacy toValidPrivacy(String gdpr,
@@ -79,6 +97,7 @@ public class PrivacyExtractor {
                                           String usPrivacy,
                                           Integer coppa,
                                           List<String> errors) {
+
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;

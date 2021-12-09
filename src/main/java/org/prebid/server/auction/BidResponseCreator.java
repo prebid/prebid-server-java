@@ -58,6 +58,8 @@ import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.IdGeneratorType;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -762,8 +764,6 @@ public class BidResponseCreator {
                                                        CacheServiceResult cacheResult,
                                                        boolean debugEnabled) {
 
-        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
-
         final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled
                 ? toExtHttpCalls(bidderResponseInfos, cacheResult, auctionContext.getDebugHttpCalls())
                 : null;
@@ -772,10 +772,15 @@ public class BidResponseCreator {
 
         final ExtDebugPgmetrics extDebugPgmetrics = debugEnabled ? toExtDebugPgmetrics(
                 auctionContext.getTxnLog()) : null;
+
+        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
         final ExtDebugTrace extDebugTrace = deepDebugLog.isDeepDebugEnabled() ? toExtDebugTrace(deepDebugLog) : null;
 
-        return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
-                ? ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
+        final PrivacyContext privacyContext = debugEnabled ? auctionContext.getPrivacyContext() : null;
+        final PrivacyDebugLog privacyDebugLog = privacyContext != null ? privacyContext.getPrivacyDebugLog() : null;
+
+        return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace, privacyDebugLog)
+                ? ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace, privacyDebugLog)
                 : null;
     }
 

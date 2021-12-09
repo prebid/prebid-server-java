@@ -1,8 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.iab.openrtb.request.BidRequest;
-import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.privacy.model.PrivacyDebugLog;
 
 import java.util.List;
 import java.util.Map;
@@ -10,8 +10,7 @@ import java.util.Map;
 /**
  * Defines the contract for bidresponse.ext.debug
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtResponseDebug {
 
     /**
@@ -33,4 +32,6 @@ public class ExtResponseDebug {
      * Defines the contract for bidresponse.ext.debug.trace
      */
     ExtDebugTrace trace;
+
+    PrivacyDebugLog privacy;
 }

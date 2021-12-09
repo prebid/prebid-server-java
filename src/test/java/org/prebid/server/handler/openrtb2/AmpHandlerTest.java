@@ -455,7 +455,7 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null, null))
                         .prebid(ExtBidResponsePrebid.of(1000L, null))
                                 .build()));
 
