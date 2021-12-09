@@ -3,8 +3,6 @@ package org.prebid.server.privacy.model;
 import lombok.Value;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 
-import java.util.Collections;
-
 @Value(staticConstructor = "of")
 public class PrivacyContext {
 

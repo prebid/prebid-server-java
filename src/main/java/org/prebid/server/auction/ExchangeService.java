@@ -535,6 +535,46 @@ public class ExchangeService {
                         impBidderToStoredResponse, imps, bidderToMultiBid, biddersToConfigs, aliases));
     }
 
+    /**
+     * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
+     */
+    private List<AuctionParticipation> makeAuctionParticipation(
+            List<BidderPrivacyResult> bidderPrivacyResults,
+            AuctionContext auctionContext,
+            Map<String, Map<String, String>> impBidderToStoredBidResponse,
+            List<Imp> imps,
+            Map<String, MultiBidConfig> bidderToMultiBid,
+            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
+            BidderAliases aliases) {
+
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
+
+        final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
+                .map(bidderPrivacyResult -> updatePrivacyDebugLog(
+                        bidderPrivacyResult, auctionContext.getPrivacyContext().getPrivacyDebugLog()))
+                // for each bidder create a new request that is a copy of original request except buyerid, imp
+                // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
+                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
+                .map(bidderPrivacyResult -> createAuctionParticipation(
+                        bidderPrivacyResult,
+                        bidRequest,
+                        impBidderToStoredBidResponse,
+                        imps,
+                        bidderToMultiBid,
+                        biddersToConfigs,
+                        bidderToPrebidBidders,
+                        aliases,
+                        auctionContext.getDebugWarnings()))
+                // Can't be removed after we prepare workflow to filter blocked
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .collect(Collectors.toList());
+
+        Collections.shuffle(bidderRequests);
+
+        return bidderRequests;
+    }
+
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
         final List<ExtRequestPrebidBidderConfig> bidderConfigs = prebid == null ? null : prebid.getBidderconfig();
 
@@ -730,46 +770,6 @@ public class ExchangeService {
      */
     private String resolveCookieFamilyName(String bidder) {
         return bidderCatalog.isActive(bidder) ? bidderCatalog.usersyncerByName(bidder).getCookieFamilyName() : null;
-    }
-
-    /**
-     * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
-     */
-    private List<AuctionParticipation> makeAuctionParticipation(
-            List<BidderPrivacyResult> bidderPrivacyResults,
-            AuctionContext auctionContext,
-            Map<String, Map<String, String>> impBidderToStoredBidResponse,
-            List<Imp> imps,
-            Map<String, MultiBidConfig> bidderToMultiBid,
-            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-            BidderAliases aliases) {
-
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
-
-        final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
-                .map(bidderPrivacyResult -> updatePrivacyDebugLog(
-                        bidderPrivacyResult, auctionContext.getPrivacyContext().getPrivacyDebugLog()))
-                // for each bidder create a new request that is a copy of original request except buyerid, imp
-                // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
-                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
-                .map(bidderPrivacyResult -> createAuctionParticipation(
-                        bidderPrivacyResult,
-                        bidRequest,
-                        impBidderToStoredBidResponse,
-                        imps,
-                        bidderToMultiBid,
-                        biddersToConfigs,
-                        bidderToPrebidBidders,
-                        aliases,
-                        auctionContext.getDebugWarnings()))
-                // Can't be removed after we prepare workflow to filter blocked
-                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toList());
-
-        Collections.shuffle(bidderRequests);
-
-        return bidderRequests;
     }
 
     private BidderPrivacyResult updatePrivacyDebugLog(BidderPrivacyResult bidderPrivacyResult,

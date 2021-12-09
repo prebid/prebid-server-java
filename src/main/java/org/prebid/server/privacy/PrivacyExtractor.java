@@ -79,19 +79,6 @@ public class PrivacyExtractor {
                 errors);
     }
 
-    private Privacy extractOriginPrivacy(Regs regs, User user, List<String> errors) {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
-        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
-        final String consent = extUser != null ? extUser.getConsent() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
-        final Integer coppa = regs != null ? regs.getCoppa() : null;
-
-        return Privacy.of(gdpr, consent, Ccpa.of(usPrivacy), coppa);
-    }
-
     private static Privacy toValidPrivacy(String gdpr,
                                           String consent,
                                           String usPrivacy,
@@ -106,6 +93,19 @@ public class PrivacyExtractor {
         final Integer validCoppa = coppa == null ? DEFAULT_COPPA_VALUE : coppa;
 
         return Privacy.of(validGdpr, validConsent, validCcpa, validCoppa);
+    }
+
+    private Privacy extractOriginPrivacy(Regs regs, User user, List<String> errors) {
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+
+        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        final Integer coppa = regs != null ? regs.getCoppa() : null;
+
+        return Privacy.of(gdpr, consent, Ccpa.of(usPrivacy), coppa);
     }
 
     private static Ccpa toValidCcpa(String usPrivacy, List<String> errors) {

@@ -138,7 +138,6 @@ public class PrivacyExtractorTest extends VertxTest {
         final PrivacyExtractionResult privacyExtractionResult = privacyExtractor.validPrivacyFrom(
                 BidRequest.builder().regs(regs).build());
 
-
         // then
         assertThat(privacyExtractionResult.getValidPrivacy().getCcpa()).isEqualTo(Ccpa.EMPTY);
         assertThat(privacyExtractionResult.getErrors()).containsExactly(

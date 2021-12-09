@@ -237,8 +237,6 @@ public class PrivacyEnforcementService {
         return tcfResult.map(gdprResult -> merge(ccpaResult.values(), gdprResult));
     }
 
-
-    // -------------------------- Ccpa masking service ------------
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
         final boolean shouldEnforceCcpa = isCcpaEnabled(account);
         return shouldEnforceCcpa && ccpa.isEnforced();
@@ -293,6 +291,16 @@ public class PrivacyEnforcementService {
                 : Collections.emptyMap();
     }
 
+    private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
+                                                      Device device,
+                                                      Map<String, User> bidderToUser) {
+
+        return biddersToMask.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(),
+                        bidder -> privacyAnonymizationService.maskCcpa(bidderToUser.get(bidder), device, bidder)));
+    }
+
     private Set<String> extractCcpaEnforcedBidders(List<String> bidders,
                                                    BidRequest bidRequest,
                                                    BidderAliases aliases) {
@@ -321,19 +329,6 @@ public class PrivacyEnforcementService {
         metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isEnforced());
     }
 
-    private Map<String, BidderPrivacyResult> maskCcpa(Set<String> biddersToMask,
-                                                      Device device,
-                                                      Map<String, User> bidderToUser) {
-
-        return biddersToMask.stream()
-                .collect(Collectors.toMap(
-                        Function.identity(),
-                        bidder -> privacyAnonymizationService.maskCcpa(bidderToUser.get(bidder), device, bidder)));
-    }
-    // ---------------------------------------------------------------
-
-
-    // -------------------------------- Coppa masking Service -------------------------------------
     private static boolean isCoppaMaskingRequired(Privacy privacy) {
         return privacy.getCoppa() == 1;
     }
@@ -346,10 +341,7 @@ public class PrivacyEnforcementService {
                         privacyAnonymizationService.maskCoppa(bidderAndUser.getValue(), device, bidderAndUser.getKey()))
                 .collect(Collectors.toList());
     }
-    // ----------------------------------------------------------------------------------------------
 
-
-    // ----------------------------- Tcf masking Service----------------------------
     private Future<List<BidderPrivacyResult>> maskTcf(TcfContext tcfContext,
                                                       Set<String> biddersToApplyTcf,
                                                       BidderAliases aliases,
@@ -415,9 +407,6 @@ public class PrivacyEnforcementService {
                         bidderToEnforcement.get(bidderUserEntry.getKey())))
                 .collect(Collectors.toList());
     }
-
-    // ---------------------------------------------------------------------------------------
-
 
     public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
                                                                              TcfContext tcfContext) {
