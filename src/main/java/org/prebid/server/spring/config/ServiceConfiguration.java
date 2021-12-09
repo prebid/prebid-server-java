@@ -47,7 +47,6 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.CountryCodeMapper;
-import org.prebid.server.floors.PriceFloorFetcher;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
@@ -792,24 +791,6 @@ public class ServiceConfiguration {
                 httpClient,
                 metrics,
                 clock,
-                mapper);
-    }
-
-    @Bean
-    PriceFloorFetcher priceFloorFetcher(
-            ApplicationSettings applicationSettings,
-            Metrics metrics,
-            Vertx vertx,
-            TimeoutFactory timeoutFactory,
-            HttpClient httpClient,
-            JacksonMapper mapper) {
-
-        return new PriceFloorFetcher(
-                applicationSettings,
-                metrics,
-                vertx,
-                timeoutFactory,
-                httpClient,
                 mapper);
     }
 
