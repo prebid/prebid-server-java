@@ -93,7 +93,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldReturnSucceededFutureForTheFirstInvocation() {
+    public void fetchShouldReturnNullForTheFirstInvocation() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.failedFuture(new PreBidException("failed")));
@@ -162,7 +162,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotReturnFailedFutureAndCreatePeriodicTimerWhenResponseIsNot200Ok() {
+    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseIsNot200Ok() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(400, MultiMap.caseInsensitiveMultiMap(),
@@ -181,7 +181,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotReturnFailedFutureAndCreatePeriodicTimerWhenResponseHasInvalidFormat() {
+    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseHasInvalidFormat() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
@@ -200,7 +200,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotReturnFailedFutureAndCreatePeriodicTimerWhenResponseBodyIsEmpty() {
+    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseBodyIsEmpty() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
@@ -219,7 +219,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotReturnFailedFutureAndCreatePeriodicTimerWhenCantResolveRules() {
+    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenCantResolveRules() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
@@ -245,7 +245,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(fetchPromise.future());
 
         // when
-        final PriceFloorRules firstFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        priceFloorFetcher.fetch(givenAccount(identity()));
         final PriceFloorRules secondFetch = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
