@@ -256,6 +256,34 @@
             }
           ]
         }
+      },
+      "privacy": {
+        "origin_privacy": {
+          "tcf": {
+            "tcf_consent_string": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA"
+          },
+          "ccpa": {},
+          "coppa": {}
+        },
+        "resolved_privacy": {
+          "tcf": {
+            "gdpr": "1",
+            "tcf_consent_string": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+            "tcf_consent_version": 2
+          },
+          "ccpa": {},
+          "coppa": {
+            "coppa": 0
+          }
+        },
+        "privacy_actions_per_bidder": {
+          "rubicon": [
+            "Geolocation was masked in request to bidder according to TCF policy.",
+            "Bidder rubicon analytics was deprecated by TCF privacy policy.",
+            "Device IPs were masked in request to bidder according to TCF policy."
+          ]
+        },
+        "errors": []
       }
     },
     "responsetimemillis": {
