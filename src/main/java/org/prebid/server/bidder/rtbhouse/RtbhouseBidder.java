@@ -12,7 +12,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -51,7 +50,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
