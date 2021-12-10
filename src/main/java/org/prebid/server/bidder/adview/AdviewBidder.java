@@ -62,8 +62,10 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
         try {
             extImpAdview = parseExtImp(firstImp);
+            final BigDecimal resolvedBidFloor = resolveBidFloor(request, firstImp);
             modifiedBidRequest =
-                    modifyRequest(request, extImpAdview.getMasterTagId(), resolveBidFloor(request, firstImp));
+                    modifyRequest(request, extImpAdview.getMasterTagId(), resolvedBidFloor,
+                            resolveBidFloorCurrency(firstImp, resolvedBidFloor));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -84,6 +86,16 @@ public class AdviewBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("invalid imp.ext");
         }
+    }
+
+    private String resolveBidFloorCurrency(Imp firstImp, BigDecimal resolvedBidFloor) {
+        final BigDecimal impBidFloor = firstImp.getBidfloor();
+
+        if (impBidFloor != null && resolvedBidFloor != null && resolvedBidFloor.compareTo(impBidFloor) != 0) {
+            return BIDDER_CURRENCY;
+        }
+
+        return firstImp.getBidfloorcur();
     }
 
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
@@ -113,34 +125,35 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, BigDecimal resolvedBidFloor) {
+    private static BidRequest modifyRequest(BidRequest bidRequest,
+                                            String masterTagId,
+                                            BigDecimal resolvedBidFloor,
+                                            String resolvedBidFloorCur) {
         return bidRequest.toBuilder()
-                .imp(modifyImps(bidRequest.getImp(), masterTagId, resolvedBidFloor))
+                .imp(modifyImps(bidRequest.getImp(), masterTagId, resolvedBidFloor, resolvedBidFloorCur))
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 
-    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId, BigDecimal resolvedBidFloor) {
+    private static List<Imp> modifyImps(List<Imp> imps,
+                                        String masterTagId,
+                                        BigDecimal resolvedBidFloor,
+                                        String resolvedBidFloorCur) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, resolvedBidFloor));
+        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, resolvedBidFloor, resolvedBidFloorCur));
         return modifiedImps;
     }
 
-    private static Imp modifyImp(Imp imp, String masterTagId, BigDecimal resolvedBidFloor) {
-        final Banner banner = imp.getBanner();
-        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+    private static Imp modifyImp(Imp imp,
+                                 String masterTagId,
+                                 BigDecimal resolvedBidFloor,
+                                 String resolvedBidFloorCur) {
+        return imp.toBuilder()
                 .tagid(masterTagId)
-                .banner(resolveBanner(banner));
-
-        if (imp.getBidfloor() != null && resolvedBidFloor != null) {
-            impBuilder
-                    .bidfloor(resolvedBidFloor)
-                    .bidfloorcur(resolvedBidFloor.compareTo(imp.getBidfloor()) != 0
-                            ? BIDDER_CURRENCY
-                            : imp.getBidfloorcur());
-        }
-
-        return impBuilder.build();
+                .bidfloor(resolvedBidFloor)
+                .bidfloorcur(resolvedBidFloorCur)
+                .banner(resolveBanner(imp.getBanner()))
+                .build();
     }
 
     private static Banner resolveBanner(Banner banner) {
