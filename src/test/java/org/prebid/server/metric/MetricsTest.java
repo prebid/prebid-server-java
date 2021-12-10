@@ -486,6 +486,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateFetchWithFetchResultShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.fetch.failure").getCount()).isOne();
+    }
+
+    @Test
     public void updateAdapterResponseTimeShouldUpdateMetrics() {
         // when
         metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
