@@ -11,7 +11,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -124,12 +123,12 @@ public class AmpHandlerTest extends VertxTest {
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.getParam(anyString())).willReturn("tagId1");
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         httpRequest.headers().add("Origin", "http://example.com");
 
         given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(uidsCookie.hasLiveUids()).willReturn(true);
 
@@ -455,9 +454,9 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                                .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                        .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
                         .prebid(ExtBidResponsePrebid.of(1000L, null))
-                                .build()));
+                        .build()));
 
         // when
         ampHandler.handle(routingContext);
@@ -478,14 +477,14 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .prebid(ExtBidResponsePrebid.of(
-                                        1000L,
-                                        ExtModules.of(
-                                                singletonMap(
-                                                        "module1", singletonMap("hook1", singletonList("error1"))),
-                                                singletonMap(
-                                                        "module1", singletonMap("hook1", singletonList("warning1"))),
-                                                ExtModulesTrace.of(2L, emptyList()))))
-                                .build()));
+                                1000L,
+                                ExtModules.of(
+                                        singletonMap(
+                                                "module1", singletonMap("hook1", singletonList("error1"))),
+                                        singletonMap(
+                                                "module1", singletonMap("hook1", singletonList("warning1"))),
+                                        ExtModulesTrace.of(2L, emptyList()))))
+                        .build()));
 
         // when
         ampHandler.handle(routingContext);
@@ -773,13 +772,13 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         final BidResponse expectedBidResponse = BidResponse.builder().seatbid(singletonList(SeatBid.builder()
-                .bid(singletonList(Bid.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(
-                                ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
-                                        .build(),
-                                null)))
+                        .bid(singletonList(Bid.builder()
+                                .ext(mapper.valueToTree(ExtPrebid.of(
+                                        ExtBidPrebid.builder().targeting(singletonMap("hb_cache_id_bidder1", "value1"))
+                                                .build(),
+                                        null)))
+                                .build()))
                         .build()))
-                .build()))
                 .build();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .requestTypeMetric(MetricName.amp)

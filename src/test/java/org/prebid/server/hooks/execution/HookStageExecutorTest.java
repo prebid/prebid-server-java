@@ -281,7 +281,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -455,7 +455,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -570,7 +570,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -671,7 +671,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -762,7 +762,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -842,7 +842,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -945,7 +945,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.entrypoint,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("http-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -1288,7 +1288,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.raw_auction_request,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("auction-request");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
@@ -2538,7 +2538,7 @@ public class HookStageExecutorTest extends VertxTest {
                             Stage.auction_response,
                             stageOutcomes -> assertThat(stageOutcomes)
                                     .hasSize(1)
-                                    .hasOnlyOneElementSatisfying(stageOutcome -> {
+                                    .allSatisfy(stageOutcome -> {
                                         assertThat(stageOutcome.getEntity()).isEqualTo("auction-response");
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
