@@ -131,7 +131,6 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
         }
 
-        // just for optimization
         if (bidderBids.size() == updatedBidderBids.size() && seatBid.getErrors().size() == errors.size()) {
             return auctionParticipation;
         }
