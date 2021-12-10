@@ -40,6 +40,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -134,6 +135,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.auction.model.DebugWarning.Code.invalid_tracking_url_for_vastxml;
 import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -2789,7 +2791,9 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
-        final List<String> warnings = asList("warning1", "warning2");
+        final List<DebugWarning> warnings = asList(
+                DebugWarning.of(invalid_tracking_url_for_vastxml.getCode(), "warning1"),
+                DebugWarning.of(invalid_tracking_url_for_vastxml.getCode(), "warning2"));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
                 builder -> builder

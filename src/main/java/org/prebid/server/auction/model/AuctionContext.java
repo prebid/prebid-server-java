@@ -46,7 +46,7 @@ public class AuctionContext {
 
     List<String> prebidErrors;
 
-    List<String> debugWarnings;
+    List<DebugWarning> debugWarnings;
 
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 

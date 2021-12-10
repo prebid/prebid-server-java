@@ -43,6 +43,7 @@ import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
@@ -185,7 +186,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.auction.model.DebugWarning.Code.bidrequest_contains_both_app_and_site;
+import static org.prebid.server.auction.model.DebugWarning.Code.invalid_price_in_bid;
+import static org.prebid.server.auction.model.DebugWarning.Code.multibid;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -1182,16 +1185,25 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .auctionParticipations(auctionParticipations)
                 .debugWarnings(asList(
-                        "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
-                                + " Only bidder bidder2 will be used.",
-                        "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
-                                + " Only bidder bidder3 will be used.",
-                        "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped.",
-                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
-                        "Invalid MultiBid: CodePrefix bi1_3 that was specified for bidders [bidder1] will be skipped.",
-                        "Invalid MultiBid: Bidder bidder1 specified multiple times.",
-                        "Invalid MultiBid: CodePrefix ignored that was specified for bidders [bidder4, bidder5]"
-                                + " will be skipped."))
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
+                                        + " Only bidder bidder2 will be used."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
+                                        + " Only bidder bidder3 will be used."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: Bidder bidder1 specified multiple times."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: CodePrefix bi1_3 that was "
+                                        + "specified for bidders [bidder1] will be skipped."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: Bidder bidder1 specified multiple times."),
+                        DebugWarning.of(multibid.getCode(),
+                                "Invalid MultiBid: CodePrefix ignored that "
+                                        + "was specified for bidders [bidder4, bidder5] will be skipped.")
+                ))
                 .build();
         assertThat(contextArgumentCaptor.getValue()).isEqualTo(expectedAuctionContext);
     }
@@ -2512,7 +2524,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         assertThat(givenContext)
                 .extracting(AuctionContext::getDebugWarnings)
-                .isEqualTo(singletonList("BidRequest contains app and site. Removed site object"));
+                .isEqualTo(singletonList(DebugWarning.of(bidrequest_contains_both_app_and_site.getCode(),
+                        "BidRequest contains app and site. Removed site object")));
     }
 
     @Test
@@ -2644,11 +2657,15 @@ public class ExchangeServiceTest extends VertxTest {
                 .flatExtracting(SeatBid::getBid).hasSize(1);
         assertThat(givenContext.getDebugWarnings())
                 .containsExactlyInAnyOrder(
-                        "Dropped bid 'invalid_bid_1'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        "Dropped bid 'invalid_bid_2'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        "Dropped bid 'invalid_bid_3'. Does not contain a positive (or zero if there is a deal) 'price'"
+                        DebugWarning.of(invalid_price_in_bid.getCode(), "Dropped bid 'invalid_bid_1'. "
+                                + "Does not contain a positive (or zero if there is a deal) 'price'"),
+                        DebugWarning.of(invalid_price_in_bid.getCode(), "Dropped bid 'invalid_bid_2'. "
+                                + "Does not contain a positive (or zero if there is a deal) 'price'"),
+                        DebugWarning.of(invalid_price_in_bid.getCode(), "Dropped bid 'invalid_bid_3'. "
+                                + "Does not contain a positive (or zero if there is a deal) 'price'")
                 );
-        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
+        verify(metrics, times(3))
+                .updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
     @SuppressWarnings("unchecked")

@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
@@ -25,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.prebid.server.auction.model.DebugWarning.Code.invalid_tracking_url_for_vastxml;
 
 public class VastModifierTest {
 
@@ -298,14 +300,15 @@ public class VastModifierTest {
     public void createBidVastXmlShouldNotBeModifiedIfNoParentTagsPresent() {
         // when
         final String adm = "<Impression>http:/test.com</Impression>";
-        final List<String> warnings = new ArrayList<>();
+        final List<DebugWarning> warnings = new ArrayList<>();
         final String result = target
                 .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings, LINEITEM_ID);
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
-        assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
+        assertThat(warnings).containsExactly(DebugWarning.of(invalid_tracking_url_for_vastxml.getCode(),
+                "VastXml does not contain neither InLine nor Wrapper for bidder response"));
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }
 

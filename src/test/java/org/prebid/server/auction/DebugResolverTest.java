@@ -9,6 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
@@ -24,6 +25,8 @@ import java.util.function.UnaryOperator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.prebid.server.auction.model.DebugWarning.Code.account_level_debug_disabled;
+import static org.prebid.server.auction.model.DebugWarning.Code.bidder_level_debug_disabled;
 
 public class DebugResolverTest {
 
@@ -89,7 +92,7 @@ public class DebugResolverTest {
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, null));
         assertThat(auctionContext.getDebugWarnings()).hasSize(1)
-                .containsOnly("Debug turned off for account");
+                .containsOnly(DebugWarning.of(account_level_debug_disabled.getCode(), "Debug turned off for account"));
     }
 
     @Test
@@ -149,7 +152,9 @@ public class DebugResolverTest {
         // then
         assertThat(result).isFalse();
         assertThat(auctionContext.getDebugWarnings()).hasSize(1)
-                .containsOnly("Debug turned off for bidder: bidder");
+                .containsOnly(
+                        DebugWarning.of(bidder_level_debug_disabled.getCode(),
+                                "Debug turned off for bidder: bidder"));
     }
 
     @Test

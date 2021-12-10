@@ -32,6 +32,7 @@ import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -247,7 +248,7 @@ public class BidResponseCreator {
                           String lineItemId) {
 
         final Account account = auctionContext.getAccount();
-        final List<String> debugWarnings = auctionContext.getDebugWarnings();
+        final List<DebugWarning> debugWarnings = auctionContext.getDebugWarnings();
 
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
@@ -282,7 +283,7 @@ public class BidResponseCreator {
                                 Account account,
                                 EventsContext eventsContext,
                                 String effectiveBidId,
-                                List<String> debugWarnings,
+                                List<DebugWarning> debugWarnings,
                                 String lineItemId) {
 
         final String bidAdm = bid.getAdm();
@@ -770,8 +771,9 @@ public class BidResponseCreator {
 
         final BidRequest bidRequest = debugEnabled ? auctionContext.getBidRequest() : null;
 
-        final ExtDebugPgmetrics extDebugPgmetrics = debugEnabled ? toExtDebugPgmetrics(
-                auctionContext.getTxnLog()) : null;
+        final ExtDebugPgmetrics extDebugPgmetrics = debugEnabled
+                ? toExtDebugPgmetrics(auctionContext.getTxnLog())
+                : null;
         final ExtDebugTrace extDebugTrace = deepDebugLog.isDeepDebugEnabled() ? toExtDebugTrace(deepDebugLog) : null;
 
         return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
@@ -1043,7 +1045,7 @@ public class BidResponseCreator {
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
         final List<ExtBidderError> contextWarnings = auctionContext.getDebugWarnings().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                .map(debugWarning -> ExtBidderError.of(BidderError.Type.generic.getCode(), debugWarning.getMessage()))
                 .collect(Collectors.toList());
 
         return contextWarnings.isEmpty()

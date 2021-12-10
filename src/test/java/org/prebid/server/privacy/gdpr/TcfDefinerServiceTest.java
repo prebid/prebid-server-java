@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
+import static org.prebid.server.auction.model.DebugWarning.Code.invalid_privacy_consent;
 
 public class TcfDefinerServiceTest {
 
@@ -208,7 +210,7 @@ public class TcfDefinerServiceTest {
                 .enabled(true)
                 .consentStringMeansInScope(true)
                 .build();
-        final List<String> debugWarnings = new ArrayList<>();
+        final List<DebugWarning> debugWarnings = new ArrayList<>();
 
         tcfDefinerService = new TcfDefinerService(
                 gdprConfig,
@@ -230,8 +232,9 @@ public class TcfDefinerServiceTest {
         assertThat(result).isSucceeded();
         assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
         assertThat(debugWarnings)
-                .containsExactly("Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
-                        + "TCF version 1 is deprecated and treated as corrupted TCF version 2");
+                .containsExactly(DebugWarning.of(invalid_privacy_consent.getCode(),
+                        "Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
+                                + "TCF version 1 is deprecated and treated as corrupted TCF version 2"));
     }
 
     @Test

@@ -14,6 +14,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
@@ -102,7 +103,7 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
-        final List<String> debugWarnings = auctionContext.getDebugWarnings();
+        final List<DebugWarning> debugWarnings = auctionContext.getDebugWarnings();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 

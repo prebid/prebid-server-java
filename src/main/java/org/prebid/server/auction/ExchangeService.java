@@ -31,6 +31,7 @@ import org.prebid.server.auction.model.BidRequestCacheInfo;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
@@ -237,7 +238,7 @@ public class ExchangeService {
         final BidRequest bidRequest = receivedContext.getBidRequest();
         final Timeout timeout = receivedContext.getTimeout();
         final Account account = receivedContext.getAccount();
-        final List<String> debugWarnings = receivedContext.getDebugWarnings();
+        final List<DebugWarning> debugWarnings = receivedContext.getDebugWarnings();
         final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
@@ -353,7 +354,8 @@ public class ExchangeService {
         return requestExt != null ? requestExt.getPrebid() : null;
     }
 
-    private static Map<String, MultiBidConfig> bidderToMultiBids(BidRequest bidRequest, List<String> debugWarnings) {
+    private static Map<String, MultiBidConfig> bidderToMultiBids(BidRequest bidRequest,
+                                                                 List<DebugWarning> debugWarnings) {
         final ExtRequestPrebid extRequestPrebid = extRequestPrebid(bidRequest);
         final Collection<ExtRequestPrebidMultiBid> multiBids = extRequestPrebid != null
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
@@ -367,8 +369,9 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                debugWarnings.add(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+                debugWarnings.add(DebugWarning.of(DebugWarning.Code.multibid.getCode(),
+                        String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
+                                + "Only bidder %s will be used.", bidder, bidders, bidder)));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
@@ -378,14 +381,17 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    debugWarnings.add(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
-                            + "will be skipped.", codePrefix, bidders));
+                    debugWarnings.add(DebugWarning.of(DebugWarning.Code.multibid.getCode(),
+                            String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
+                                    + "will be skipped.", codePrefix, bidders)));
                 }
 
                 bidders.forEach(currentBidder ->
                         tryAddBidderWithMultiBid(currentBidder, maxBids, null, bidderToMultiBid, debugWarnings));
             } else {
-                debugWarnings.add("Invalid MultiBid: Bidder and bidders was not specified.");
+                debugWarnings.add(DebugWarning.of(
+                        DebugWarning.Code.multibid.getCode(),
+                        "Invalid MultiBid: Bidder and bidders was not specified."));
             }
         }
 
@@ -396,15 +402,17 @@ public class ExchangeService {
                                                  Integer maxBids,
                                                  String codePrefix,
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
-                                                 List<String> debugWarnings) {
+                                                 List<DebugWarning> debugWarnings) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            debugWarnings.add(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            debugWarnings.add(DebugWarning.of(DebugWarning.Code.multibid.getCode(),
+                    String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder)));
             return;
         }
 
         if (maxBids == null) {
-            debugWarnings.add(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
-                    + "will be skipped.", bidder));
+            debugWarnings.add(DebugWarning.of(DebugWarning.Code.multibid.getCode(),
+                    String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
+                            + "will be skipped.", bidder)));
             return;
         }
 
@@ -742,7 +750,7 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             BidderAliases aliases,
-            List<String> debugWarnings) {
+            List<DebugWarning> debugWarnings) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
 
@@ -800,7 +808,7 @@ public class ExchangeService {
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,
             BidderAliases bidderAliases,
-            List<String> debugWarnings) {
+            List<DebugWarning> debugWarnings) {
 
         final boolean blockedRequestByTcf = bidderPrivacyResult.isBlockedRequestByTcf();
         final boolean blockedAnalyticsByTcf = bidderPrivacyResult.isBlockedAnalyticsByTcf();
@@ -822,7 +830,8 @@ public class ExchangeService {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         if (app != null && site != null) {
-            debugWarnings.add("BidRequest contains app and site. Removed site object");
+            debugWarnings.add(DebugWarning.of(DebugWarning.Code.bidrequest_contains_both_app_and_site.getCode(),
+                    "BidRequest contains app and site. Removed site object"));
         }
         final Site resolvedSite = app == null ? site : null;
 
@@ -1212,7 +1221,7 @@ public class ExchangeService {
     }
 
     private List<AuctionParticipation> dropZeroNonDealBids(List<AuctionParticipation> auctionParticipations,
-                                                           List<String> debugWarnings) {
+                                                           List<DebugWarning> debugWarnings) {
 
         return auctionParticipations.stream()
                 .map(auctionParticipation -> dropZeroNonDealBids(auctionParticipation, debugWarnings))
@@ -1220,7 +1229,7 @@ public class ExchangeService {
     }
 
     private AuctionParticipation dropZeroNonDealBids(AuctionParticipation auctionParticipation,
-                                                     List<String> debugWarnings) {
+                                                     List<DebugWarning> debugWarnings) {
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderBid> bidderBids = seatBid.getBids();
@@ -1230,9 +1239,9 @@ public class ExchangeService {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
-                debugWarnings.add(String.format(
+                debugWarnings.add(DebugWarning.of(DebugWarning.Code.invalid_price_in_bid.getCode(), String.format(
                         "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        bid.getId()));
+                        bid.getId())));
             } else {
                 validBids.add(bidderBid);
             }

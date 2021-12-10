@@ -8,6 +8,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
@@ -91,7 +92,7 @@ public class TcfDefinerService {
                                                 MetricName requestType,
                                                 RequestLogInfo requestLogInfo,
                                                 Timeout timeout,
-                                                List<String> debugWarnings) {
+                                                List<DebugWarning> debugWarnings) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());
@@ -177,7 +178,7 @@ public class TcfDefinerService {
                                             String ipAddress,
                                             RequestLogInfo requestLogInfo,
                                             Timeout timeout,
-                                            List<String> debugWarnings) {
+                                            List<DebugWarning> debugWarnings) {
         final String consentString = privacy.getConsentString();
         final TCString consent = parseConsentString(consentString, requestLogInfo, debugWarnings);
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
@@ -350,7 +351,7 @@ public class TcfDefinerService {
      */
     private TCString parseConsentString(String consentString,
                                         RequestLogInfo requestLogInfo,
-                                        List<String> debugWarnings) {
+                                        List<DebugWarning> debugWarnings) {
         if (StringUtils.isBlank(consentString)) {
             metrics.updatePrivacyTcfMissingMetric();
             return TCStringEmpty.create();
@@ -367,9 +368,10 @@ public class TcfDefinerService {
         // disable TCF1 support
         if (version == 1) {
             if (debugWarnings != null) {
-                debugWarnings.add(
+                debugWarnings.add(DebugWarning.of(DebugWarning.Code.invalid_privacy_consent.getCode(),
                         String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
-                                + "deprecated and treated as corrupted TCF version 2", consentString));
+                                + "deprecated and treated as corrupted TCF version 2", consentString))
+                );
             }
             return TCStringEmpty.create();
         }
