@@ -89,16 +89,6 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String resolveBidFloorCurrency(Imp firstImp, BigDecimal resolvedBidFloor) {
-        final BigDecimal impBidFloor = firstImp.getBidfloor();
-
-        if (impBidFloor != null && resolvedBidFloor != null && resolvedBidFloor.compareTo(impBidFloor) != 0) {
-            return BIDDER_CURRENCY;
-        }
-
-        return firstImp.getBidfloorcur();
-    }
-
     private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = imp.getBidfloorcur();
@@ -124,6 +114,16 @@ public class AdviewBidder implements Bidder<BidRequest> {
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
                     bidFloorCur, BIDDER_CURRENCY, impId));
         }
+    }
+
+    private String resolveBidFloorCurrency(Imp firstImp, BigDecimal resolvedBidFloor) {
+        final BigDecimal impBidFloor = firstImp.getBidfloor();
+
+        if (impBidFloor != null && resolvedBidFloor != null && resolvedBidFloor.compareTo(impBidFloor) != 0) {
+            return BIDDER_CURRENCY;
+        }
+
+        return firstImp.getBidfloorcur();
     }
 
     private static BidRequest modifyRequest(BidRequest bidRequest,
