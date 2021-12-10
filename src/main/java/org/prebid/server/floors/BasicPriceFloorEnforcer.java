@@ -158,9 +158,10 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                                     BidRequest bidRequest,
                                     List<BidderError> errors) {
 
+        final PriceFloorInfo priceFloorInfo = bidderBid.getPriceFloorInfo();
+        final BigDecimal customBidderFloor = ObjectUtil.getIfNotNull(priceFloorInfo, PriceFloorInfo::getFloor);
+
         try {
-            final PriceFloorInfo priceFloorInfo = bidderBid.getPriceFloorInfo();
-            final BigDecimal customBidderFloor = ObjectUtil.getIfNotNull(priceFloorInfo, PriceFloorInfo::getFloor);
             if (customBidderFloor != null) {
                 return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
             }
