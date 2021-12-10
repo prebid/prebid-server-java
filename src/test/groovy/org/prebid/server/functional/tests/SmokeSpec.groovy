@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -11,6 +12,7 @@ import org.prebid.server.functional.model.request.logging.httpinteraction.HttpIn
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
@@ -24,7 +26,12 @@ class SmokeSpec extends BaseSpec {
 
     def "PBS should return BidResponse when there are valid bids"() {
         given: "Default basic BidRequest with generic bidder"
-        def bidRequest = BidRequest.defaultBidRequest
+        def alias = "genericAlias"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(alias): GENERIC]
+            imp[0].ext.prebid.bidder.genericAlias = new Generic(firstParam: PBSUtils.randomNumber)
+            imp[0].ext.prebid.bidder.generic.firstParam = PBSUtils.randomNumber
+        }
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
@@ -47,13 +54,31 @@ class SmokeSpec extends BaseSpec {
 
     def "PBS should return AMP response"() {
         given: "Default AmpRequest"
+        def alias = "genericAlias"
         def ampRequest = AmpRequest.defaultAmpRequest
-        def ampStoredRequest = BidRequest.defaultBidRequest
-        ampStoredRequest.site.publisher.id = ampRequest.account
+        def bidderParam  = PBSUtils.randomNumber
+        def bidderAliasParam  = PBSUtils.randomNumber
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.aliases = [(alias): GENERIC]
+            imp[0].ext.prebid.bidder.genericAlias = new Generic(firstParam: bidderParam)
+            imp[0].ext.prebid.bidder.generic.firstParam = bidderAliasParam
+            site.publisher.id = ampRequest.account
+        }
 
         and: "Save storedRequest into DB"
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
+
+        and: "Bid response with 2 bids"
+        def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
+            seatbid.first().bid.first().price = 12
+        }
+        bidder.setResponse(bidder.getRequest("imp[0].ext.bidder.firstParam", bidderParam as String), bidResponse)
+
+        def bidResponse2 = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
+            seatbid.first().bid.first().price = 13
+        }
+        bidder.setResponse(bidder.getRequest("imp[0].ext.bidder.firstParam", bidderAliasParam as String), bidResponse2)
 
         when: "PBS processes amp request"
         def response = defaultPbsService.sendAmpRequest(ampRequest)

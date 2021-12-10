@@ -2,6 +2,7 @@ package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
+import org.prebid.server.bidder.grid.model.ExtImpGridData
 import org.prebid.server.functional.model.bidder.AppNexus
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Rubicon
@@ -10,6 +11,7 @@ import org.prebid.server.functional.model.bidder.Rubicon
 class ImpExt {
 
     ImpExtPrebid prebid
+    ImpExtData data
     Generic generic
     @Deprecated
     Rubicon rubicon

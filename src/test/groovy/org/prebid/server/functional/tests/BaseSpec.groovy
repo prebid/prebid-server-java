@@ -56,8 +56,12 @@ abstract class BaseSpec extends Specification {
         response[name] ?: 0
     }
 
-    protected static void flushMetrics() {
+    protected static void flushMetrics(PrebidServerService pbsService = defaultPbsService) {
         // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
-        defaultPbsService.sendCollectedMetricsRequest()
+        pbsService.sendCollectedMetricsRequest()
+    }
+
+    protected static List<String> getLogsByText(List<String> logs, String text) {
+        logs.findAll { it.contains(text) }
     }
 }

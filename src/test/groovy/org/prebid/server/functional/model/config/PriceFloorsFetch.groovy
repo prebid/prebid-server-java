@@ -6,15 +6,16 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class AccountAuctionConfig {
+class PriceFloorsFetch {
 
-    String priceGranularity
-    Integer bannerCacheTtl
-    Integer videoCacheTtl
-    Integer truncateTargetAttr
-    String defaultIntegration
-    AccountBidValidationConfig bidValidations
-    AccountEventsConfig events
-    Boolean debugAllow
-    AccountPriceFloorsConfig priceFloors
+    Boolean enabled
+    String url
+    Long timeoutMs
+    Long minTimeoutMs
+    Long maxTimeoutMs
+    Long maxFileSizeKb
+    Integer maxRules
+    Integer maxAgeSec
+    Integer minMaxAgeSec
+    Integer periodSec
 }

@@ -30,4 +30,12 @@ class Video {
     List<Banner> companionad
     List<Integer> api
     List<Integer> companiontype
+
+    static Video getDefaultVideo() {
+        new Video().tap {
+            mimes = ["video/mp4"]
+            w = 300
+            h = 200
+        }
+    }
 }

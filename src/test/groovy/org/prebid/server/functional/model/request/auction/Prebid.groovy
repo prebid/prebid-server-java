@@ -20,4 +20,8 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Map<BidderName, Map<String, Integer>> bidderParams
+    BidAdjustmentFactors bidAdjustmentFactors
+    PrebidCurrency currency
+    Map<String, BidderName> aliases
+    ExtPrebidFloors floors
 }

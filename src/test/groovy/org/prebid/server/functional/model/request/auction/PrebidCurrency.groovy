@@ -3,14 +3,12 @@ package org.prebid.server.functional.model.request.auction
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
-import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.pricefloors.Currency
 
-@ToString(includeNames = true, ignoreNulls = false)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class MultiBid {
+@ToString(includeNames = true, ignoreNulls = true)
+class PrebidCurrency {
 
-    BidderName bidder
-    List<String> bidders
-    Integer maxBids
-    String targetBidderCodePrefix
+    Map<Currency, Map<Currency, BigDecimal>> rates
+    Boolean usePbsRates
 }

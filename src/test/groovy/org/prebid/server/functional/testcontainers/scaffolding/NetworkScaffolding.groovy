@@ -3,6 +3,7 @@ package org.prebid.server.functional.testcontainers.scaffolding
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
+import org.mockserver.model.Header
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
@@ -49,6 +50,48 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
+    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
+        def expectedCountReached = false
+        def startTime = System.currentTimeMillis()
+        def elapsedTime = 0
+
+        while (elapsedTime < pollTime) {
+            def requestCount = getRequestCount()
+            if (requestCount == expectedCount) {
+                expectedCountReached = true
+                break
+            } else if (requestCount > expectedCount) {
+                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
+            } else {
+                elapsedTime += System.currentTimeMillis() - startTime
+                Thread.sleep(pollFrequency)
+            }
+        }
+
+        expectedCountReached
+    }
+
+    boolean checkRequestCount(String value, int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
+        def expectedCountReached = false
+        def startTime = System.currentTimeMillis()
+        def elapsedTime = 0
+
+        while (elapsedTime < pollTime) {
+            def requestCount = getRequestCount(value)
+            if (requestCount == expectedCount) {
+                expectedCountReached = true
+                break
+            } else if (requestCount > expectedCount) {
+                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
+            } else {
+                elapsedTime += System.currentTimeMillis() - startTime
+                Thread.sleep(pollFrequency)
+            }
+        }
+
+        expectedCountReached
+    }
+
     void setResponse(HttpRequest httpRequest,
                      ResponseModel responseModel,
                      HttpStatusCode statusCode = OK_200,
@@ -59,8 +102,16 @@ abstract class NetworkScaffolding {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, ResponseModel responseModel) {
+    void setResponse(String value, ResponseModel responseModel, Map<String, String> headers = [:]) {
+        def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = mapper.encode(responseModel)
+        mockServerClient.when(getRequest(value), Times.exactly(1))
+                        .respond(response().withStatusCode(OK_200.code())
+                                           .withBody(mockResponse, APPLICATION_JSON)
+                                           .withHeaders(responseHeaders))
+    }
+
+    void setResponse(String value, String mockResponse) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
                         .respond(response().withStatusCode(OK_200.code())
                                            .withBody(mockResponse, APPLICATION_JSON))
@@ -73,20 +124,20 @@ abstract class NetworkScaffolding {
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
-    void setResponse(String value, int httpStatusCode) {
+    void setResponse(String value, HttpStatusCode httpStatusCode) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode))
+                        .respond(response().withStatusCode(httpStatusCode.code()))
     }
 
-    void setResponse(String value, int httpStatusCode, String errorText) {
+    void setResponse(String value, HttpStatusCode httpStatusCode, String errorText) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withStatusCode(httpStatusCode)
+                        .respond(response().withStatusCode(httpStatusCode.code())
                                            .withBody(errorText, APPLICATION_JSON))
     }
 
-    void setResponseWithTimeout(String value) {
+    void setResponseWithTimeout(String value, int timeoutSec = 5) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
-                        .respond(response().withDelay(SECONDS, 5))
+                        .respond(response().withDelay(SECONDS, timeoutSec))
     }
 
     List<String> getRecordedRequestsBody(HttpRequest httpRequest) {

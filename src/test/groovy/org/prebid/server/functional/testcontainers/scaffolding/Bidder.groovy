@@ -37,6 +37,11 @@ class Bidder extends NetworkScaffolding {
         request().withPath(AUCTION_ENDPOINT)
     }
 
+    HttpRequest getRequest(String requestMatchPath, String bidRequestId) {
+        request().withPath(AUCTION_ENDPOINT)
+                 .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
+    }
+
     @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
