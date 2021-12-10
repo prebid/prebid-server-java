@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloors;
@@ -237,9 +238,8 @@ public class BasicPriceFloorEnforcerTest {
                 .containsExactly(
                         singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
-                        singletonList(BidderError.of(
-                                "Bid with id 'bidId1' was rejected: price 0 is below the floor 1",
-                                BidderError.Type.generic)));
+                        singletonList(BidderError.of("Bid with id 'bidId1' was rejected by floor enforcement: "
+                                + "price 0 is below the floor 1", BidderError.Type.generic)));
     }
 
     @Test
@@ -359,6 +359,39 @@ public class BasicPriceFloorEnforcerTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids)
                 .hasSize(1);
+    }
+
+    @Test
+    public void shouldRemainBidsEvenCurrencyConversionForFloorIsFailed() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .willThrow(new PreBidException("error"));
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.cur(singletonList("EUR")));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(builder -> builder
+                        .cur(singletonList("USD"))
+                        .imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        verify(currencyConversionService)
+                .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("USD"), eq("EUR"));
+
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids, BidderSeatBid::getErrors)
+                .containsExactly(
+                        singletonList(BidderBid.of(
+                                Bid.builder().impid("impId").price(BigDecimal.TEN).build(), null, null)),
+                        singletonList(BidderError.badServerResponse("Price floors enforcement failed: error")));
     }
 
     @Test

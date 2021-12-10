@@ -6,7 +6,9 @@ import org.prebid.server.settings.model.Account;
 
 public interface PriceFloorEnforcer {
 
-    AuctionParticipation enforce(BidRequest bidRequest, AuctionParticipation auctionParticipation, Account account);
+    AuctionParticipation enforce(BidRequest bidRequest,
+                                 AuctionParticipation auctionParticipation,
+                                 Account account);
 
     static NoOpPriceFloorEnforcer noOp() {
         return new NoOpPriceFloorEnforcer();

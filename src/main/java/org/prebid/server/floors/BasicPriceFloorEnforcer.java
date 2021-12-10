@@ -118,12 +118,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
 
             final BigDecimal price = bid.getPrice();
-            final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest);
+            final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
                 errors.add(BidderError.generic(
-                        String.format("Bid with id '%s' was rejected: price %s is below the floor %s",
-                                bid.getId(), price, floor)));
+                        String.format("Bid with id '%s' was rejected by floor enforcement: "
+                                + "price %s is below the floor %s", bid.getId(), price, floor)));
 
                 // TODO: create a record for analytics adapters to be aware of this rejection and reason
 
@@ -131,7 +131,8 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
         }
 
-        if (bidderBids.size() == updatedBidderBids.size()) {
+        // just for optimization
+        if (bidderBids.size() == updatedBidderBids.size() && seatBid.getErrors().size() == errors.size()) {
             return auctionParticipation;
         }
 
@@ -154,16 +155,23 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private BigDecimal resolveFloor(BidderBid bidderBid,
                                     BidRequest bidderBidRequest,
-                                    BidRequest bidRequest) {
+                                    BidRequest bidRequest,
+                                    List<BidderError> errors) {
 
-        final PriceFloorInfo priceFloorInfo = bidderBid.getPriceFloorInfo();
-        final BigDecimal customBidderFloor = ObjectUtil.getIfNotNull(priceFloorInfo, PriceFloorInfo::getFloor);
-        if (customBidderFloor != null) {
-            return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
+        try {
+            final PriceFloorInfo priceFloorInfo = bidderBid.getPriceFloorInfo();
+            final BigDecimal customBidderFloor = ObjectUtil.getIfNotNull(priceFloorInfo, PriceFloorInfo::getFloor);
+            if (customBidderFloor != null) {
+                return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
+            }
+
+            final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
+            return convertIfRequired(imp.getBidfloor(), imp.getBidfloorcur(), bidderBidRequest, bidRequest);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(
+                    String.format("Price floors enforcement failed: %s", e.getMessage())));
+            return null;
         }
-
-        final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
-        return convertIfRequired(imp.getBidfloor(), imp.getBidfloorcur(), bidderBidRequest, bidRequest);
     }
 
     /**
