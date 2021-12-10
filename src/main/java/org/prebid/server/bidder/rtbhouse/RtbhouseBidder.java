@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class RtbhouseBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
-    protected final JacksonMapper mapper;
+    private final JacksonMapper mapper;
 
     public RtbhouseBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -76,14 +76,10 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveBidType(Imp imp) {
-        return imp.getBanner() != null
-                ? BidType.banner
-                : imp.getVideo() != null
-                ? BidType.video
-                : imp.getXNative() != null
-                ? BidType.xNative
-                : imp.getAudio() != null
-                ? BidType.audio
+        return imp.getBanner() != null ? BidType.banner
+                : imp.getVideo() != null ? BidType.video
+                : imp.getXNative() != null ? BidType.xNative
+                : imp.getAudio() != null ? BidType.audio
                 : BidType.banner;
     }
 }
