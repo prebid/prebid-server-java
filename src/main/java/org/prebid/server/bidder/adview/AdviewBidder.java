@@ -43,12 +43,13 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
-    private final JacksonMapper mapper;
     private final CurrencyConversionService currencyConversionService;
+    private final JacksonMapper mapper;
 
     public AdviewBidder(String endpointUrl,
                         CurrencyConversionService currencyConversionService,
                         JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -63,9 +64,9 @@ public class AdviewBidder implements Bidder<BidRequest> {
         try {
             extImpAdview = parseExtImp(firstImp);
             final BigDecimal resolvedBidFloor = resolveBidFloor(request, firstImp);
+            final String resolvedBidFloorCurrency = resolveBidFloorCurrency(firstImp, resolvedBidFloor);
             modifiedBidRequest =
-                    modifyRequest(request, extImpAdview.getMasterTagId(), resolvedBidFloor,
-                            resolveBidFloorCurrency(firstImp, resolvedBidFloor));
+                    modifyRequest(request, extImpAdview.getMasterTagId(), resolvedBidFloor, resolvedBidFloorCurrency);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
