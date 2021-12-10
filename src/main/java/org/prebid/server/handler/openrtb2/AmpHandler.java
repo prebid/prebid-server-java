@@ -132,7 +132,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
                 .compose(context -> prepareAmpResponse(context, routingContext))
                 .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+                .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

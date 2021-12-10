@@ -60,7 +60,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
                                       Function<ResultSet, T> mapper,
                                       Timeout timeout) {
 
-        return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).setHandler(promise));
+        return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).onComplete(promise));
     }
 
     private void circuitOpened() {

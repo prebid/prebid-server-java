@@ -89,7 +89,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
 
         applicationSettings.getAccountById(accountId, timeout)
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId))
-                .setHandler(async -> handleAccountResult(async, routingContext, vtrackPuts, accountId, integration,
+                .onComplete(async -> handleAccountResult(async, routingContext, vtrackPuts, accountId, integration,
                         timeout));
     }
 
@@ -176,7 +176,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
             final Boolean isEventEnabled = accountEventsEnabled(asyncAccount.result());
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
             cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
-                    .setHandler(asyncCache -> handleCacheResult(asyncCache, routingContext));
+                    .onComplete(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }
 

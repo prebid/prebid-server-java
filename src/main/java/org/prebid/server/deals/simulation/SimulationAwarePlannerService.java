@@ -73,7 +73,7 @@ public class SimulationAwarePlannerService extends PlannerService {
 
     public void initiateLineItemsFetching(ZonedDateTime now) {
         fetchLineItemMetaData(planEndpoint, headers(now))
-                .setHandler(this::handleInitializationResult);
+                .onComplete(this::handleInitializationResult);
     }
 
     /**

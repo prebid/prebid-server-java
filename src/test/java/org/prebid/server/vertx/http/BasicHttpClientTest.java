@@ -166,7 +166,7 @@ public class BasicHttpClientTest {
         // when
         final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         // then
@@ -188,7 +188,7 @@ public class BasicHttpClientTest {
         // when
         final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         // then
