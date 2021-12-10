@@ -1259,8 +1259,10 @@ public class ExchangeService {
         return auctionParticipations.stream()
                 .map(auctionParticipation -> validBidderResponse(auctionParticipation, auctionContext, aliases))
                 .map(auctionParticipation -> applyBidPriceChanges(auctionParticipation, auctionContext.getBidRequest()))
-                .map(auctionParticipation ->
-                        priceFloorEnforcer.enforce(auctionParticipation, auctionContext.getAccount()))
+                .map(auctionParticipation -> priceFloorEnforcer.enforce(
+                        auctionContext.getBidRequest(),
+                        auctionParticipation,
+                        auctionContext.getAccount()))
                 .collect(Collectors.toList());
     }
 

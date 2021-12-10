@@ -6,6 +6,7 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
@@ -13,6 +14,8 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.PriceFloorInfo;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -31,13 +34,22 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
+    private final CurrencyConversionService currencyConversionService;
+
+    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService) {
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+    }
+
     @Override
-    public AuctionParticipation enforce(AuctionParticipation auctionParticipation, Account account) {
+    public AuctionParticipation enforce(BidRequest bidRequest,
+                                        AuctionParticipation auctionParticipation,
+                                        Account account) {
+
         final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
                 AccountAuctionConfig::getPriceFloors);
 
         return shouldApplyEnforcement(auctionParticipation, accountPriceFloorsConfig)
-                ? applyEnforcement(auctionParticipation, accountPriceFloorsConfig)
+                ? applyEnforcement(bidRequest, auctionParticipation, accountPriceFloorsConfig)
                 : auctionParticipation;
     }
 
@@ -49,15 +61,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         }
 
         final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
-        final BidRequest bidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
-        final ExtRequestPrebidFloors floors = getFloors(bidRequest);
-
+        final BidRequest bidderBidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
+        final ExtRequestPrebidFloors floors = getFloors(bidderBidRequest);
         final ExtRequestPrebidFloorsEnforcement enforcement = ObjectUtil.getIfNotNull(floors,
                 ExtRequestPrebidFloors::getEnforcement);
-        final Boolean enforcePbs = ObjectUtil.getIfNotNull(enforcement,
-                ExtRequestPrebidFloorsEnforcement::getEnforcePbs);
 
-        return BooleanUtils.isNotFalse(enforcePbs);
+        return isEnforcedByRequest(enforcement) && isSatisfiedByEnforceRate(enforcement);
     }
 
     private static ExtRequestPrebidFloors getFloors(BidRequest bidRequest) {
@@ -67,8 +76,24 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private static AuctionParticipation applyEnforcement(AuctionParticipation auctionParticipation,
-                                                         AccountPriceFloorsConfig accountPriceFloorsConfig) {
+    private static boolean isEnforcedByRequest(ExtRequestPrebidFloorsEnforcement enforcement) {
+        final Boolean enforcePbs = ObjectUtil.getIfNotNull(enforcement,
+                ExtRequestPrebidFloorsEnforcement::getEnforcePbs);
+
+        return BooleanUtils.isNotFalse(enforcePbs);
+    }
+
+    private static boolean isSatisfiedByEnforceRate(ExtRequestPrebidFloorsEnforcement enforcement) {
+        final Integer enforceRate = ObjectUtil.getIfNotNull(enforcement,
+                ExtRequestPrebidFloorsEnforcement::getEnforceRate);
+
+        return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
+                && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
+    }
+
+    private AuctionParticipation applyEnforcement(BidRequest bidRequest,
+                                                  AuctionParticipation auctionParticipation,
+                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
@@ -80,30 +105,20 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids);
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
 
-        final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
-        final BidRequest bidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
-        final List<Imp> imps = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getImp);
-        final ExtRequestPrebidFloors floors = getFloors(bidRequest);
+        final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
+        final ExtRequestPrebidFloors floors = getFloors(bidderBidRequest);
         final boolean enforcedDealFloors = isEnforcedDealFloors(floors, accountPriceFloorsConfig);
 
         for (BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
 
-            // skip enforcement for deals if not allowed
+            // skip bid enforcement for deals if not allowed
             if (StringUtils.isNotEmpty(bid.getDealid()) && !enforcedDealFloors) {
                 continue;
             }
 
-            // TODO: clarify if this should be applied per request or per bid
-            //  If per request - it should be moved to Signaling, so should
-            //  set ext.prebid.floors.enforcement.enforcePBS flag instead.
-            if (!isSatisfiedByEnforceRate(floors, accountPriceFloorsConfig)) {
-                continue;
-            }
-
             final BigDecimal price = bid.getPrice();
-            final Imp imp = correspondingImp(bid, ListUtils.emptyIfNull(imps));
-            final BigDecimal floor = imp.getBidfloor();
+            final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest);
 
             if (isPriceBelowFloor(price, floor)) {
                 errors.add(BidderError.generic(
@@ -131,36 +146,65 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 ExtRequestPrebidFloors::getEnforcement);
         final Boolean requestEnforceDealFloors = ObjectUtil.getIfNotNull(enforcement,
                 ExtRequestPrebidFloorsEnforcement::getFloorDeals);
+
         final Boolean accountEnforceDealFloors = accountPriceFloorsConfig.getEnforceDealFloors();
 
         return BooleanUtils.isTrue(requestEnforceDealFloors) && BooleanUtils.isTrue(accountEnforceDealFloors);
     }
 
+    private BigDecimal resolveFloor(BidderBid bidderBid,
+                                    BidRequest bidderBidRequest,
+                                    BidRequest bidRequest) {
+
+        final PriceFloorInfo priceFloorInfo = bidderBid.getPriceFloorInfo();
+        final BigDecimal customBidderFloor = ObjectUtil.getIfNotNull(priceFloorInfo, PriceFloorInfo::getFloor);
+        if (customBidderFloor != null) {
+            return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
+        }
+
+        final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
+        return convertIfRequired(imp.getBidfloor(), imp.getBidfloorcur(), bidderBidRequest, bidRequest);
+    }
+
+    /**
+     * Converts floor according to incoming auction request currency (since response bid is already converted).
+     * <p>
+     * Floor currency resolved in order: floor currency -> bidder request currency -> auction request currency.
+     */
+    private BigDecimal convertIfRequired(BigDecimal floor,
+                                         String floorCurrency,
+                                         BidRequest bidderBidRequest,
+                                         BidRequest bidRequest) {
+
+        final String resolvedFloorCurrency = ObjectUtils.defaultIfNull(floorCurrency,
+                resolveBidRequestCurrency(bidderBidRequest));
+
+        final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
+
+        if (resolvedFloorCurrency != null && !resolvedFloorCurrency.equals(bidRequestCurrency)) {
+            return currencyConversionService.convertCurrency(
+                    floor,
+                    bidRequest,
+                    resolvedFloorCurrency,
+                    bidRequestCurrency);
+        }
+
+        return floor;
+    }
+
+    private static String resolveBidRequestCurrency(BidRequest bidRequest) {
+        final List<String> currencies = bidRequest.getCur();
+        return CollectionUtils.isEmpty(currencies) ? null : currencies.get(0);
+    }
+
     private static Imp correspondingImp(Bid bid, List<Imp> imps) {
         final String impId = bid.getImpid();
-        return imps.stream()
+        return ListUtils.emptyIfNull(imps).stream()
                 .filter(imp -> Objects.equals(impId, imp.getId()))
                 .findFirst()
-                // Should never occur. See ResponseBidValidator
+                // Should never happen, see ResponseBidValidator usage.
                 .orElseThrow(() -> new PreBidException(
                         String.format("Bid with impId %s doesn't have matched imp", impId)));
-    }
-
-    private static boolean isSatisfiedByEnforceRate(ExtRequestPrebidFloors floors,
-                                                    AccountPriceFloorsConfig accountPriceFloorsConfig) {
-
-        final ExtRequestPrebidFloorsEnforcement enforcement = ObjectUtil.getIfNotNull(floors,
-                ExtRequestPrebidFloors::getEnforcement);
-        final Integer requestEnforceRate = ObjectUtil.getIfNotNull(enforcement,
-                ExtRequestPrebidFloorsEnforcement::getEnforceRate);
-        final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
-
-        return isSatisfiedByEnforceRate(requestEnforceRate) && isSatisfiedByEnforceRate(accountEnforceRate);
-    }
-
-    private static boolean isSatisfiedByEnforceRate(Integer enforceRate) {
-        return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
-                && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
     }
 
     private static boolean isPriceBelowFloor(BigDecimal price, BigDecimal bidFloor) {

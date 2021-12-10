@@ -291,7 +291,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
 
-        given(priceFloorEnforcer.enforce(any(), any())).willAnswer(inv -> inv.getArgument(0));
+        given(priceFloorEnforcer.enforce(any(), any(), any()))
+                .willAnswer(inv -> inv.getArgument(1));
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -3251,7 +3252,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId2"))),
                 identity());
 
-        given(priceFloorEnforcer.enforce(any(), any()))
+        given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willReturn(AuctionParticipation.builder()
                         .bidder("bidder1")
                         .bidderResponse(BidderResponse.of(

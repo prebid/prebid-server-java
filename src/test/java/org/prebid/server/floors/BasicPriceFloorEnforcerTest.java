@@ -6,6 +6,7 @@ import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -14,6 +15,8 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.PriceFloorInfo;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloors;
@@ -34,17 +37,24 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class BasicPriceFloorEnforcerTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private BasicPriceFloorEnforcer enforcer;
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private BasicPriceFloorEnforcer priceFloorEnforcer;
 
     @Before
     public void setUp() {
-        enforcer = new BasicPriceFloorEnforcer();
+        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService);
     }
 
     @Test
@@ -58,7 +68,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(builder -> builder.enabled(false));
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -75,7 +85,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -92,7 +102,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -109,7 +119,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -126,7 +136,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(builder -> builder.enforceDealFloors(false));
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -135,6 +145,8 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldNotEnforceIfRequestImpHasNoBidFloorDefined() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 builder -> builder.imp(givenImps(identity())),
                 ExtRequestPrebidFloorsEnforcement.of(null, null, true),
@@ -143,7 +155,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -160,24 +172,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(builder -> builder.enforceFloorsRate(100));
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
-
-        // then
-        assertSame(result, auctionParticipation);
-    }
-
-    @Test
-    public void shouldNotEnforceIfAccountEnforceFloorsRateIsZero() {
-        // given
-        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                builder -> builder.imp(givenImps(identity())),
-                ExtRequestPrebidFloorsEnforcement.of(100, null, true),
-                givenBidderSeatBid(identity()));
-
-        final Account account = givenAccount(builder -> builder.enforceFloorsRate(0));
-
-        // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -194,7 +189,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -207,10 +202,11 @@ public class BasicPriceFloorEnforcerTest {
                 builder -> builder.imp(givenImps(identity())),
                 ExtRequestPrebidFloorsEnforcement.of(101, null, true),
                 givenBidderSeatBid(identity()));
+
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
 
         // then
         assertSame(result, auctionParticipation);
@@ -219,6 +215,8 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRejectBidsHavingPriceBelowFloor() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE))),
                 ExtRequestPrebidFloorsEnforcement.of(null, null, true),
@@ -229,7 +227,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
 
         // then
         assertThat(singleton(result))
@@ -247,6 +245,8 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRejectBidsHavingPriceBelowFloorAndRequestEnforceFloorsRateIs100() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.TEN))),
                 ExtRequestPrebidFloorsEnforcement.of(100, null, true),
@@ -255,28 +255,7 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
-
-        // then
-        assertThat(singleton(result))
-                .extracting(AuctionParticipation::getBidderResponse)
-                .extracting(BidderResponse::getSeatBid)
-                .flatExtracting(BidderSeatBid::getBids)
-                .isEmpty();
-    }
-
-    @Test
-    public void shouldRejectBidsHavingPriceBelowFloorAndAccountEnforceFloorsRateIs100() {
-        // given
-        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.TEN))),
-                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
-                givenBidderSeatBid(builder -> builder.price(BigDecimal.ONE)));
-
-        final Account account = givenAccount(builder -> builder.enforceFloorsRate(100));
-
-        // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
 
         // then
         assertThat(singleton(result))
@@ -289,14 +268,17 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRemainBidsHavingPriceEqualToFloor() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE))),
                 ExtRequestPrebidFloorsEnforcement.of(null, null, true),
                 givenBidderSeatBid(builder -> builder.price(BigDecimal.ONE)));
+
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
 
         // then
         assertThat(singleton(result))
@@ -309,6 +291,8 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRemainBidsHavingPriceGreaterThenFloor() {
         // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE))),
                 ExtRequestPrebidFloorsEnforcement.of(null, null, true),
@@ -317,9 +301,179 @@ public class BasicPriceFloorEnforcerTest {
         final Account account = givenAccount(identity());
 
         // when
-        final AuctionParticipation result = enforcer.enforce(auctionParticipation, account);
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
 
         // then
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+    }
+
+    @Test
+    public void shouldRejectBidsHavingPriceBelowCustomBidderFloor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO))),
+                ExtRequestPrebidFloorsEnforcement.of(100, null, true),
+                givenBidderSeatBid(
+                        PriceFloorInfo.of(BigDecimal.TEN, null),
+                        builder -> builder.price(BigDecimal.ONE)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .isEmpty();
+    }
+
+    @Test
+    public void shouldRemainBidsHavingPriceGreaterThenCustomBidderFloor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                builder -> builder.imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(
+                        PriceFloorInfo.of(BigDecimal.ONE, null),
+                        builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+    }
+
+    @Test
+    public void shouldRemainBidsHavingPriceGreaterThenConvertedFloor() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.cur(singletonList("EUR")));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(builder -> builder
+                        .cur(singletonList("USD"))
+                        .imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        verify(currencyConversionService)
+                .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("USD"), eq("EUR"));
+
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+    }
+
+    @Test
+    public void shouldRemainBidsHavingPriceGreaterThenConvertedFloorInAnotherCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.cur(singletonList("EUR")));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(builder -> builder
+                        .cur(singletonList("USD"))
+                        .imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("JPY"))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        verify(currencyConversionService)
+                .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("JPY"), eq("EUR"));
+
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+    }
+
+    @Test
+    public void shouldRemainBidsHavingPriceGreaterThenConvertedCustomBidderFloor() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.cur(singletonList("EUR")));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(builder -> builder
+                        .cur(singletonList("USD"))
+                        .imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(
+                        PriceFloorInfo.of(BigDecimal.ONE, null),
+                        builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        verify(currencyConversionService)
+                .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("USD"), eq("EUR"));
+
+        assertThat(singleton(result))
+                .extracting(AuctionParticipation::getBidderResponse)
+                .extracting(BidderResponse::getSeatBid)
+                .flatExtracting(BidderSeatBid::getBids)
+                .hasSize(1);
+    }
+
+    @Test
+    public void shouldRemainBidsHavingPriceGreaterThenConvertedCustomBidderFloorInAnotherCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(builder -> builder.cur(singletonList("EUR")));
+
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(builder -> builder
+                        .cur(singletonList("USD"))
+                        .imp(givenImps(impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO))),
+                ExtRequestPrebidFloorsEnforcement.of(null, null, true),
+                givenBidderSeatBid(
+                        PriceFloorInfo.of(BigDecimal.ONE, "JPY"),
+                        builder -> builder.price(BigDecimal.TEN)));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(bidRequest, auctionParticipation, account);
+
+        // then
+        verify(currencyConversionService)
+                .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("JPY"), eq("EUR"));
+
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
@@ -359,6 +513,10 @@ public class BasicPriceFloorEnforcerTest {
                 .build();
     }
 
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()).build();
+    }
+
     @SafeVarargs
     private static List<Imp> givenImps(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         if (impCustomizers == null) {
@@ -371,12 +529,19 @@ public class BasicPriceFloorEnforcerTest {
 
     @SafeVarargs
     private BidderSeatBid givenBidderSeatBid(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+        return givenBidderSeatBid(null, bidCustomizers);
+    }
+
+    @SafeVarargs
+    private BidderSeatBid givenBidderSeatBid(PriceFloorInfo priceFloorInfo,
+                                             UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+
         if (bidCustomizers == null) {
             return BidderSeatBid.empty();
         }
         final List<BidderBid> bidderBids = Arrays.stream(bidCustomizers)
                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
-                .map(bid -> BidderBid.of(bid, null, null))
+                .map(bid -> BidderBid.of(bid, null, null, null, null, priceFloorInfo))
                 .collect(Collectors.toList());
         return BidderSeatBid.of(bidderBids, emptyList(), emptyList());
     }
