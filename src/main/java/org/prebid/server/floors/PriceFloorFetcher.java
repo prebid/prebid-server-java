@@ -92,18 +92,19 @@ public class PriceFloorFetcher {
         }
 
         final AccountPriceFloorsFetchConfig fetchConfig = getFetchConfig(account);
-        final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
-        final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         final String accountId = account.getId();
 
-        if (shouldFetchRules(fetchEnabled, fetchUrl, accountId)) {
+        if (shouldFetchRules(fetchConfig, accountId)) {
             fetchPriceFloorRulesAsynchronous(fetchConfig, accountId);
         }
 
         return null;
     }
 
-    private boolean shouldFetchRules(Boolean fetchEnabled, String fetchUrl, String accountId) {
+    private boolean shouldFetchRules(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
+        final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
+        final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
+
         if (BooleanUtils.isFalse(fetchEnabled)
                 || StringUtils.isBlank(fetchUrl)
                 || fetchInProgress.contains(accountId)) {
@@ -231,7 +232,7 @@ public class PriceFloorFetcher {
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRules(), maxAgeTimerId);
 
-        if (cacheInfo.getRules() != null || fetchedData.get(accountId) == null) {
+        if (cacheInfo.getRules() != null || !fetchedData.containsKey(accountId)) {
             fetchedData.put(accountId, fetchContext);
             fetchInProgress.remove(accountId);
         }
