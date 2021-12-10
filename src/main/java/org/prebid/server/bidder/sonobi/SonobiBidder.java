@@ -44,7 +44,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
@@ -86,7 +86,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
