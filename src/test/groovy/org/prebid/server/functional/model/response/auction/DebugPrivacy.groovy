@@ -6,7 +6,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class DebugPrivacy {
 
     Privacy originPrivacy
