@@ -10,7 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PriceFloorsConfiguration {
 
-
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService) {
