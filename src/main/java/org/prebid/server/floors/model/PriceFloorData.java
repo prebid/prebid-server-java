@@ -1,11 +1,13 @@
 package org.prebid.server.floors.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
 @Value
+@Builder
 public class PriceFloorData {
 
     @JsonProperty("floorProvider")
