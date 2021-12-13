@@ -125,7 +125,7 @@ public class SettingsConfiguration {
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
             final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
-            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().setHandler(promise));
+            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().onComplete(promise));
 
             return basicJdbcClient;
         }

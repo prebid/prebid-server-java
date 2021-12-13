@@ -186,7 +186,7 @@ public class PlannerService implements Suspendable {
         final MultiMap headers = headers();
         fetchLineItemMetaData(planEndpoint, headers)
                 .recover(ignored -> startRecoveryProcess(planEndpoint, headers))
-                .setHandler(this::handleInitializationResult);
+                .onComplete(this::handleInitializationResult);
     }
 
     private Future<List<LineItemMetaData>> startRecoveryProcess(String planEndpoint, MultiMap headers) {

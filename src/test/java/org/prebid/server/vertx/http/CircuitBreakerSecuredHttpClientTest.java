@@ -265,7 +265,7 @@ public class CircuitBreakerSecuredHttpClientTest {
                 0L);
 
         final Async async = context.async();
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         return future;
