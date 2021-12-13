@@ -4,10 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Imp.ImpBuilder;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
@@ -15,13 +13,11 @@ import io.vertx.core.file.FileSystem;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.InvalidRequestException;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JsonMerger;
@@ -36,15 +32,12 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 
 import java.io.IOException;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -76,13 +69,15 @@ public class StoredRequestProcessorTest extends VertxTest {
     private IdGenerator idGenerator;
     @Mock
     private Metrics metrics;
+    @Mock
+    private TimeoutFactory timeoutFactory;
 
     private StoredRequestProcessor storedRequestProcessor;
 
     @Before
     public void setUp() {
         given(idGenerator.generateId()).willReturn("generated-stored-id");
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
+
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 null,
@@ -178,9 +173,14 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void shouldReturnMergedDefaultAndBidRequest() throws IOException {
         // given
         given(fileSystem.readFileBlocking(anyString()))
-                .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
+                .willReturn(Buffer.buffer(mapper.writeValueAsString(
+                        BidRequest.builder()
+                                .id("default-request-id")
+                                .at(1)
+                                .test(0)
+                                .tmax(2500L)
+                                .build())));
 
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
@@ -194,12 +194,14 @@ public class StoredRequestProcessorTest extends VertxTest {
                 new JsonMerger(jacksonMapper));
 
         final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .id("request-id")
+                .test(1)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .storedrequest(ExtStoredRequest.of("123"))
                         .build())));
 
         final String storedRequestBidRequestJson = mapper.writeValueAsString(BidRequest.builder()
-                .id("test-request-id")
+                .id("stored-request-id")
                 .tmax(1000L)
                 .imp(singletonList(Imp.builder().build()))
                 .build());
@@ -214,8 +216,9 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result()).isEqualTo(BidRequest.builder()
-                .id("test-request-id")
+                .id("request-id")
                 .at(1)
+                .test(1)
                 .tmax(1000L)
                 .imp(singletonList(Imp.builder().build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build()))
@@ -233,7 +236,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 metrics,
-                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                timeoutFactory,
                 jacksonMapper,
                 new JsonMerger(jacksonMapper));
 
@@ -319,7 +322,6 @@ public class StoredRequestProcessorTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
 
-        final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         storedRequestProcessor = StoredRequestProcessor.create(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
@@ -360,7 +362,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 applicationSettings,
                 idGenerator,
                 metrics,
-                new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())),
+                timeoutFactory,
                 jacksonMapper,
                 new JsonMerger(jacksonMapper));
 
@@ -457,7 +459,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
-                .isInstanceOf(InvalidRequestException.class).hasMessage("Id is not found in storedRequest");
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Id is not found in storedRequest");
     }
 
     @Test
@@ -507,7 +510,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
-                .isInstanceOf(InvalidRequestException.class).hasMessage("Id is not found in storedRequest");
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Id is not found in storedRequest");
     }
 
     @Test
@@ -529,7 +533,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
-                .isInstanceOf(InvalidRequestException.class).hasMessage("No config found for id: 123");
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("No config found for id: 123");
     }
 
     @Test
@@ -599,7 +604,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
-                .isInstanceOf(InvalidRequestException.class).hasMessage("Id is not found in storedRequest");
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Id is not found in storedRequest");
     }
 
     @Test
@@ -702,9 +708,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                 .tmax(1000L)));
 
         // then
-        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
-        verify(applicationSettings).getStoredData(any(), anySet(), anySet(), timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(1000L);
+        verify(timeoutFactory).create(eq(1000L));
     }
 
     @Test
@@ -720,9 +724,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .build()))));
 
         // then
-        final ArgumentCaptor<Timeout> timeoutCaptor = ArgumentCaptor.forClass(Timeout.class);
-        verify(applicationSettings).getStoredData(any(), anySet(), anySet(), timeoutCaptor.capture());
-        assertThat(timeoutCaptor.getValue().remaining()).isEqualTo(500);
+        verify(timeoutFactory).create(eq(500L));
     }
 
     @Test
@@ -761,11 +763,11 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .storedrequest(ExtStoredRequest.of("123"))
                         .build()))
                 .imp(asList(givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
-                        ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("321")).build(), null)))),
+                                ExtImp.of(ExtImpPrebid.builder().storedrequest(
+                                        ExtStoredRequest.of("321")).build(), null)))),
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
-                                ExtImp.of(
-                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("not_found")).build(),
-                                        null)))))));
+                                ExtImp.of(ExtImpPrebid.builder().storedrequest(
+                                        ExtStoredRequest.of("not_found")).build(), null)))))));
 
         given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
@@ -891,12 +893,11 @@ public class StoredRequestProcessorTest extends VertxTest {
                 "No stored video found for Imp with id id1");
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
-        return bidRequestBuilderCustomizer.apply(BidRequest.builder()).build();
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()).build();
     }
 
-    private static Imp givenImp(Function<ImpBuilder, ImpBuilder> impBuilderCustomizer) {
-        return impBuilderCustomizer.apply(Imp.builder()).build();
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
     }
 }
