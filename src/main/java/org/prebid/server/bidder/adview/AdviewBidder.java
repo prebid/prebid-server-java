@@ -127,31 +127,31 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
     private static BidRequest modifyRequest(BidRequest bidRequest,
                                             String masterTagId,
-                                            BigDecimal resolvedBidFloor,
-                                            String resolvedBidFloorCur) {
+                                            BigDecimal bidFloor,
+                                            String bidFloorCur) {
         return bidRequest.toBuilder()
-                .imp(modifyImps(bidRequest.getImp(), masterTagId, resolvedBidFloor, resolvedBidFloorCur))
+                .imp(modifyImps(bidRequest.getImp(), masterTagId, bidFloor, bidFloorCur))
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 
     private static List<Imp> modifyImps(List<Imp> imps,
                                         String masterTagId,
-                                        BigDecimal resolvedBidFloor,
-                                        String resolvedBidFloorCur) {
+                                        BigDecimal bidFloor,
+                                        String bidFloorCur) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, resolvedBidFloor, resolvedBidFloorCur));
+        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, bidFloor, bidFloorCur));
         return modifiedImps;
     }
 
     private static Imp modifyImp(Imp imp,
                                  String masterTagId,
-                                 BigDecimal resolvedBidFloor,
-                                 String resolvedBidFloorCur) {
+                                 BigDecimal bidFloor,
+                                 String bidFloorCur) {
         return imp.toBuilder()
                 .tagid(masterTagId)
-                .bidfloor(resolvedBidFloor)
-                .bidfloorcur(resolvedBidFloorCur)
+                .bidfloor(bidFloor)
+                .bidfloorcur(bidFloorCur)
                 .banner(resolveBanner(imp.getBanner()))
                 .build();
     }
