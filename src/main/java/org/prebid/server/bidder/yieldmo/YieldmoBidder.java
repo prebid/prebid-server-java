@@ -79,10 +79,15 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpYieldmo ext) {
-        final JsonNode pbadslotNode = imp.getExt().at(PBADSLOT_POINTER);
-        final String gpid = StringUtils.defaultIfBlank(pbadslotNode.asText(), null);
-        final YieldmoImpExt modifiedExt = YieldmoImpExt.of(ext.getPlacementId(), gpid);
+        final YieldmoImpExt modifiedExt = YieldmoImpExt.of(ext.getPlacementId(), extractGpid(imp));
         return imp.toBuilder().ext(mapper.mapper().valueToTree(modifiedExt)).build();
+    }
+
+    private static String extractGpid(Imp imp) {
+        final JsonNode pbadslotNode = imp.getExt().at(PBADSLOT_POINTER);
+        return pbadslotNode.isTextual()
+                ? StringUtils.defaultIfEmpty(pbadslotNode.asText(), null)
+                : null;
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
