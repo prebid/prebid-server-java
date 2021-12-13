@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.v1;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
@@ -35,7 +36,7 @@ import static org.assertj.core.api.SoftAssertions.assertSoftly;
 class Ortb2BlockingBidderRequestHookTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
-            .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
+            .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private final Ortb2BlockingBidderRequestHook hook = new Ortb2BlockingBidderRequestHook();

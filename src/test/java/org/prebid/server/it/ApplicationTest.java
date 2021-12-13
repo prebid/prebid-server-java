@@ -493,7 +493,7 @@ public class ApplicationTest extends IntegrationTest {
                         Function.identity(),
                         bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
 
-        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap.keySet()).hasSameElementsAs(expectedMap.keySet());
         assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
 
         JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -516,7 +516,7 @@ public class ApplicationTest extends IntegrationTest {
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
         final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
 
-        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
+        assertThat(responseAsList).hasSameElementsAs(expectedBidders);
     }
 
     @Test

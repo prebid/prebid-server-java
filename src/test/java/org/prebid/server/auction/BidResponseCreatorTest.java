@@ -649,7 +649,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         assertThat(bidResponse)
-                .isEqualToIgnoringGivenFields(responseWithExpectedFields, "nbr", "seatbid");
+                .usingRecursiveComparison()
+                .ignoringFields("nbr", "seatbid")
+                .isEqualTo(responseWithExpectedFields);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -968,9 +970,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final Future<BidResponse> result = bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                        auctionContext,
-                        CACHE_INFO,
-                        MULTI_BIDS);
+                auctionContext,
+                CACHE_INFO,
+                MULTI_BIDS);
 
         // then
         // then
@@ -1578,7 +1580,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO,
-                                multiBidMap).result();
+                        multiBidMap).result();
 
         // then
         assertThat(result.getSeatbid())
@@ -1680,7 +1682,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO,
-                                multiBidMap).result();
+                        multiBidMap).result();
 
         // then
         final Map<String, String> bidder1Bid4Targeting = new HashMap<>();
