@@ -63,8 +63,16 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
         try {
             extImpAdview = parseExtImp(firstImp);
-            final BigDecimal resolvedBidFloor = resolveBidFloor(request, firstImp);
-            final String resolvedBidFloorCurrency = resolveBidFloorCurrency(firstImp, resolvedBidFloor);
+            final String resolvedBidFloorCurrency;
+            final BigDecimal resolvedBidFloor;
+            if (shouldConvertBidFloor(firstImp)) {
+                resolvedBidFloorCurrency = BIDDER_CURRENCY;
+                resolvedBidFloor = resolveBidFloor(request, firstImp, resolvedBidFloorCurrency);
+            } else {
+                resolvedBidFloorCurrency = firstImp.getBidfloorcur();
+                resolvedBidFloor = firstImp.getBidfloor();
+            }
+
             modifiedBidRequest =
                     modifyRequest(request, extImpAdview.getMasterTagId(), resolvedBidFloor, resolvedBidFloorCurrency);
         } catch (PreBidException e) {
@@ -89,23 +97,24 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private BigDecimal resolveBidFloor(BidRequest request, Imp imp) {
+    private static boolean shouldConvertBidFloor(Imp imp) {
+        return BidderUtil.isValidPrice(imp.getBidfloor())
+                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY);
+    }
+
+    private BigDecimal resolveBidFloor(BidRequest request, Imp imp, String bidFloorCurrency) {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = imp.getBidfloorcur();
 
-        return shouldConvertBidFloor(bidFloor, bidFloorCur)
-                ? convertBidFloorCurrency(bidFloor, bidFloorCur, imp.getId(), request)
+        return !bidFloorCurrency.equals(bidFloorCur)
+                ? convertBidFloor(bidFloor, bidFloorCur, imp.getId(), request)
                 : bidFloor;
     }
 
-    private static boolean shouldConvertBidFloor(BigDecimal bidFloor, String bidFloorCur) {
-        return BidderUtil.isValidPrice(bidFloor) && !StringUtils.equalsIgnoreCase(bidFloorCur, BIDDER_CURRENCY);
-    }
-
-    private BigDecimal convertBidFloorCurrency(BigDecimal bidFloor,
-                                               String bidFloorCur,
-                                               String impId,
-                                               BidRequest bidRequest) {
+    private BigDecimal convertBidFloor(BigDecimal bidFloor,
+                                       String bidFloorCur,
+                                       String impId,
+                                       BidRequest bidRequest) {
         try {
             return currencyConversionService
                     .convertCurrency(bidFloor, bidRequest, bidFloorCur, BIDDER_CURRENCY);
@@ -114,16 +123,6 @@ public class AdviewBidder implements Bidder<BidRequest> {
                     "Unable to convert provided bid floor currency from %s to %s for imp `%s`",
                     bidFloorCur, BIDDER_CURRENCY, impId));
         }
-    }
-
-    private String resolveBidFloorCurrency(Imp firstImp, BigDecimal resolvedBidFloor) {
-        final BigDecimal impBidFloor = firstImp.getBidfloor();
-
-        if (impBidFloor != null && resolvedBidFloor != null && resolvedBidFloor.compareTo(impBidFloor) != 0) {
-            return BIDDER_CURRENCY;
-        }
-
-        return firstImp.getBidfloorcur();
     }
 
     private static BidRequest modifyRequest(BidRequest bidRequest,
