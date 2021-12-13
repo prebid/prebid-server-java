@@ -107,7 +107,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         toSetuidContext(routingContext)
-                .setHandler(setuidContextResult -> handleSetuidContextResult(setuidContextResult, routingContext));
+                .onComplete(setuidContextResult -> handleSetuidContextResult(setuidContextResult, routingContext));
     }
 
     private Future<SetuidContext> toSetuidContext(RoutingContext routingContext) {
@@ -152,7 +152,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             }
 
             isAllowedForHostVendorId(tcfContext)
-                    .setHandler(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
+                    .onComplete(hostTcfResponseResult -> respondByTcfResponse(hostTcfResponseResult, setuidContext));
         } else {
             final Throwable error = setuidContextResult.cause();
             handleErrors(error, routingContext, null);

@@ -126,7 +126,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         logger.info("[pubstack] Updating config: {0}", pubstackConfig);
         httpClient.get(makeEventEndpointUrl(pubstackConfig.getEndpoint(), pubstackConfig.getScopeId()), timeout)
                 .map(this::processRemoteConfigurationResponse)
-                .setHandler(this::updateConfigsOnChange);
+                .onComplete(this::updateConfigsOnChange);
     }
 
     private PubstackConfig processRemoteConfigurationResponse(HttpClientResponse response) {
