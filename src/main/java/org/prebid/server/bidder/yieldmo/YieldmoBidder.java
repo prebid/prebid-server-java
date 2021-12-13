@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -29,13 +30,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class YieldmoBidder implements Bidder<BidRequest> {
 
-    private static final JsonPointer EXT_DATA_PBADSLOT_POINTER_EXPRESSION = JsonPointer.valueOf("/data/pbadslot");
+    private static final JsonPointer PBADSLOT_POINTER = JsonPointer.valueOf("/data/pbadslot");
     private static final TypeReference<ExtPrebid<?, ExtImpYieldmo>> YIELDMO_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -79,7 +79,7 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpYieldmo ext) {
-        final JsonNode pbadslotNode = imp.getExt().at(EXT_DATA_PBADSLOT_POINTER_EXPRESSION);
+        final JsonNode pbadslotNode = imp.getExt().at(PBADSLOT_POINTER);
         final String gpid = StringUtils.defaultIfBlank(pbadslotNode.asText(), null);
         final YieldmoImpExt modifiedExt = YieldmoImpExt.of(ext.getPlacementId(), gpid);
         return imp.toBuilder().ext(mapper.mapper().valueToTree(modifiedExt)).build();
@@ -110,21 +110,22 @@ public class YieldmoBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        final String currency = bidResponse.getCur();
-        final Map<String, BidType> impIdToBidType = bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, YieldmoBidder::resolveBidType));
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.video), currency))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolveBidType(Imp imp) {
-        return imp.getBanner() != null ? BidType.banner : BidType.video;
+    private static BidType resolveBidType(Bid bid, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (Objects.equals(imp.getId(), bid.getImpid())) {
+                return imp.getBanner() != null ? BidType.banner : BidType.video;
+            }
+        }
+        return BidType.video;
     }
 }
