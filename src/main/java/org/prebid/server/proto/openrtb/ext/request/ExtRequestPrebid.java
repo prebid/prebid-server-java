@@ -142,4 +142,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.bidderparams
      */
     ObjectNode bidderparams;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.floors
+     */
+    ExtRequestPrebidFloors floors;
 }
