@@ -3,6 +3,7 @@ package org.prebid.server.bidder.sonobi;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -25,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -51,7 +51,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpSonobi extImpSonobi = parseImpExt(imp);
-                final Imp modifiedImp = imp.toBuilder().tagid(extImpSonobi.getTagId()).build();
+                final Imp modifiedImp = modifyImp(imp, extImpSonobi.getTagId());
                 requests.add(makeRequest(bidRequest, modifiedImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -69,6 +69,10 @@ public class SonobiBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static Imp modifyImp(Imp imp, String tagId) {
+        return imp.toBuilder().tagid(tagId).build();
+    }
+
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
 
@@ -83,22 +87,26 @@ public class SonobiBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final BidResponse bidResponse;
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+
+        return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               BidResponse bidResponse,
+                                               List<BidderError> errors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-
-        final String currency = bidResponse.getCur();
-        final Map<String, BidType> impIdToBidType = bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, SonobiBidder::resolveBidType));
 
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
@@ -106,15 +114,30 @@ public class SonobiBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), currency))
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolveBidType(Imp imp) {
-        return imp.getBanner() != null ? BidType.banner
-                : imp.getVideo() != null ? BidType.video
-                : imp.getXNative() != null ? BidType.xNative
-                : imp.getAudio() != null ? BidType.audio
-                : BidType.banner;
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+        try {
+            return BidderBid.of(bid, resolveBidType(bid, imps), currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+    }
+
+    private static BidType resolveBidType(Bid bid, List<Imp> imps) throws PreBidException {
+        final String impId = bid.getImpid();
+        for (Imp imp : imps) {
+            if (Objects.equals(impId, imp.getId())) {
+                return imp.getBanner() != null ? BidType.banner
+                        : imp.getVideo() != null ? BidType.video
+                        : BidType.banner;
+            }
+        }
+
+        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
     }
 }
