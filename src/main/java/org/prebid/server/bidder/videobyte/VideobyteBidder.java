@@ -29,11 +29,8 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class VideobyteBidder implements Bidder<BidRequest> {
@@ -68,7 +65,7 @@ public class VideobyteBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
-    private ExtImpVideobyte parseImpExt(Imp imp) throws PreBidException {
+    private ExtImpVideobyte parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), VIDEOBYTE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -77,10 +74,9 @@ public class VideobyteBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpVideobyte extImpVideobyte)
-            throws PreBidException {
-
+    private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpVideobyte extImpVideobyte) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder().imp(Collections.singletonList(imp)).build();
+
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(createUri(extImpVideobyte))
@@ -90,16 +86,23 @@ public class VideobyteBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String createUri(ExtImpVideobyte extImpVideobyte) throws PreBidException {
+    private String createUri(ExtImpVideobyte extImpVideobyte) {
         try {
             final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
                     .addParameter("source", "pbs")
                     .addParameter("pid", extImpVideobyte.getPublisherId());
-            letIfNotBlank(extImpVideobyte.getPlacementId(), it -> uriBuilder.addParameter("placementId", it));
-            letIfNotBlank(extImpVideobyte.getNetworkId(), it -> uriBuilder.addParameter("nid", it));
+
+            final String placementId = extImpVideobyte.getPlacementId();
+            if (StringUtils.isNotEmpty(placementId)) {
+                uriBuilder.addParameter("placementId", placementId);
+            }
+            final String networkId = extImpVideobyte.getNetworkId();
+            if (StringUtils.isNotEmpty(networkId)) {
+                uriBuilder.addParameter("nid", networkId);
+            }
 
             return uriBuilder.build().toString();
-        } catch (URISyntaxException e) { // shouldn't really happen
+        } catch (URISyntaxException e) {
             throw new PreBidException(e.getMessage());
         }
     }
@@ -109,17 +112,11 @@ public class VideobyteBidder implements Bidder<BidRequest> {
 
         final Site site = bidRequest.getSite();
         if (site != null) {
-            letIfNotBlank(site.getDomain(), it -> headers.add(HttpUtil.ORIGIN_HEADER, it));
-            letIfNotBlank(site.getRef(), it -> headers.add(HttpUtil.REFERER_HEADER, it));
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ORIGIN_HEADER, site.getDomain());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.REFERER_HEADER, site.getRef());
         }
 
         return headers;
-    }
-
-    private static void letIfNotBlank(String value, Consumer<String> action) {
-        if (StringUtils.isNotBlank(value)) {
-            action.accept(value);
-        }
     }
 
     @Override
@@ -137,19 +134,22 @@ public class VideobyteBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
-        final Map<String, BidType> impIdToMediaType = new HashMap<>();
-        for (Imp imp : bidRequest.getImp()) {
-            final BidType bidType = imp.getBanner() != null ? BidType.banner : BidType.video;
-            impIdToMediaType.put(imp.getId(), bidType);
-        }
-
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, impIdToMediaType.get(bid.getImpid()), DEFAULT_CURRENCY))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), DEFAULT_CURRENCY))
                 .collect(Collectors.toList());
+    }
+
+    private static BidType resolveBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (Objects.equals(impId, imp.getId())) {
+                return imp.getBanner() != null ? BidType.banner : BidType.video;
+            }
+        }
+        return BidType.video;
     }
 }
