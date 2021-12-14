@@ -1,7 +1,11 @@
 package org.prebid.server.functional.util
 
+import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.testcontainers.Dependencies
 import org.testcontainers.shaded.org.apache.commons.lang.RandomStringUtils
 
+import java.nio.file.Files
+import java.nio.file.Path
 import java.text.DecimalFormat
 import java.util.stream.IntStream
 
@@ -31,5 +35,19 @@ class PBSUtils {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
+    }
+
+    static Path createJsonFile(BidRequest bidRequest) {
+        def data = Dependencies.objectMapperWrapper.encode(bidRequest)
+        createTempFile(data, ".json")
+    }
+
+    private static Path createTempFile(String content, String suffix) {
+        def path = Files.createTempFile(null, suffix)
+        path.toFile().tap {
+            deleteOnExit()
+            it << content
+        }
+        path
     }
 }

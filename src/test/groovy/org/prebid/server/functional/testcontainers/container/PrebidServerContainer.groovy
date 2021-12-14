@@ -12,6 +12,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     public static final int ADMIN_PORT = 8060
     public static final String ADMIN_ENDPOINT_USERNAME = "user"
     public static final String ADMIN_ENDPOINT_PASSWORD = "user"
+    public static final String CONTAINER_WORKING_DIR = "/app/prebid-server/"
 
     private static final String DB_ACCOUNT_QUERY = """
 SELECT JSON_MERGE_PATCH(JSON_OBJECT('id', uuid,
