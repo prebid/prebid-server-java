@@ -73,7 +73,7 @@
           "type": "integer",
           "description": "Can this ad be skipped ( 0 = no, 1 = yes)"
         },
-        "skipDelay": {
+        "skipdelay": {
           "type": "integer",
           "description": "number of seconds until the ad can be skipped"
         }
