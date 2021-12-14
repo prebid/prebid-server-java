@@ -210,8 +210,7 @@ public class SonobiBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = sonobiBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
         assertThat(result.getErrors()).hasSize(1)
                 .extracting(BidderError::getMessage)
                 .containsExactly("Failed to find impression for ID: 456");

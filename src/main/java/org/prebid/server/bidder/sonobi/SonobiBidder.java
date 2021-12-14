@@ -65,7 +65,7 @@ public class SonobiBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), SONOBI_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(e.getMessage());
         }
     }
 
@@ -121,20 +121,20 @@ public class SonobiBidder implements Bidder<BidRequest> {
 
     private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
         try {
-            return BidderBid.of(bid, resolveBidType(bid, imps), currency);
+            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType resolveBidType(Bid bid, List<Imp> imps) throws PreBidException {
-        final String impId = bid.getImpid();
+    private static BidType resolveBidType(String impId, List<Imp> imps) throws PreBidException {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                return imp.getBanner() != null ? BidType.banner
-                        : imp.getVideo() != null ? BidType.video
-                        : BidType.banner;
+                if (imp.getBanner() == null && imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                return BidType.banner;
             }
         }
 
