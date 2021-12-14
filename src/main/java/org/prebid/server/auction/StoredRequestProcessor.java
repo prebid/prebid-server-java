@@ -53,9 +53,10 @@ public class StoredRequestProcessor {
     private final JacksonMapper mapper;
     private final JsonMerger jsonMerger;
 
-    private StoredRequestProcessor(long defaultTimeout,
-                                   BidRequest defaultBidRequest,
+    public StoredRequestProcessor(long defaultTimeout,
+                                   String defaultBidRequestPath,
                                    boolean generateBidRequestId,
+                                   FileSystem fileSystem,
                                    ApplicationSettings applicationSettings,
                                    IdGenerator idGenerator,
                                    Metrics metrics,
@@ -64,38 +65,15 @@ public class StoredRequestProcessor {
                                    JsonMerger jsonMerger) {
 
         this.defaultTimeout = defaultTimeout;
-        this.defaultBidRequest = defaultBidRequest;
+        this.defaultBidRequest = readBidRequest(
+                defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper));
         this.generateBidRequestId = generateBidRequestId;
-        this.applicationSettings = applicationSettings;
-        this.idGenerator = idGenerator;
-        this.metrics = metrics;
-        this.timeoutFactory = timeoutFactory;
-        this.mapper = mapper;
-        this.jsonMerger = jsonMerger;
-    }
-
-    public static StoredRequestProcessor create(long defaultTimeout,
-                                                String defaultBidRequestPath,
-                                                boolean generateBidRequestId,
-                                                FileSystem fileSystem,
-                                                ApplicationSettings applicationSettings,
-                                                IdGenerator idGenerator,
-                                                Metrics metrics,
-                                                TimeoutFactory timeoutFactory,
-                                                JacksonMapper mapper,
-                                                JsonMerger jsonMerger) {
-
-        return new StoredRequestProcessor(
-                defaultTimeout,
-                readBidRequest(
-                        defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper)),
-                generateBidRequestId,
-                Objects.requireNonNull(applicationSettings),
-                Objects.requireNonNull(idGenerator),
-                Objects.requireNonNull(metrics),
-                Objects.requireNonNull(timeoutFactory),
-                Objects.requireNonNull(mapper),
-                Objects.requireNonNull(jsonMerger));
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.metrics = Objects.requireNonNull(metrics);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     /**

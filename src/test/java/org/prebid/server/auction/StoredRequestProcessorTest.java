@@ -79,7 +79,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     public void setUp() {
         given(idGenerator.generateId()).willReturn("generated-stored-id");
 
-        storedRequestProcessor = StoredRequestProcessor.create(
+        storedRequestProcessor = new StoredRequestProcessor(
                 DEFAULT_TIMEOUT,
                 null,
                 false,
@@ -178,7 +178,7 @@ public class StoredRequestProcessorTest extends VertxTest {
                         .test(0)
                         .tmax(2500L)))));
 
-        storedRequestProcessor = StoredRequestProcessor.create(
+        storedRequestProcessor = new StoredRequestProcessor(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
                 false,
@@ -225,7 +225,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void processStoredRequestsShouldGenerateIdWhenAppAndFlagIsTrue() throws IOException {
         // given
-        storedRequestProcessor = StoredRequestProcessor.create(
+        storedRequestProcessor = new StoredRequestProcessor(
                 500,
                 null,
                 true,
@@ -318,7 +318,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenBidRequest(builder -> builder.at(1)))));
 
-        storedRequestProcessor = StoredRequestProcessor.create(
+        storedRequestProcessor = new StoredRequestProcessor(
                 DEFAULT_TIMEOUT,
                 "path/to/default/request.json",
                 false,
@@ -352,7 +352,7 @@ public class StoredRequestProcessorTest extends VertxTest {
     @Test
     public void processAmpRequestShouldReplaceBidIdWhenGenerateIdFlagIsTrue() throws IOException {
         // given
-        storedRequestProcessor = StoredRequestProcessor.create(
+        storedRequestProcessor = new StoredRequestProcessor(
                 500,
                 null,
                 true,
