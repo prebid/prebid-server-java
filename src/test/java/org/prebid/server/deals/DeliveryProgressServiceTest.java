@@ -155,7 +155,6 @@ public class DeliveryProgressServiceTest extends VertxTest {
                 .containsOnly(tuple(1, 200, 40L));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void processAuctionEventShouldUpdateCurrentPlan() {
         // given
