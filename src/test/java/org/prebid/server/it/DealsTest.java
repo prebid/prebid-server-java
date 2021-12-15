@@ -188,11 +188,11 @@ public class DealsTest extends VertxTest {
         // then
         assertThat(eventResponse.getStatusCode()).isEqualTo(200);
 
-        await().atMost(1, TimeUnit.SECONDS).pollInterval(50, TimeUnit.MILLISECONDS).until(() ->
+        await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
                 verify(() -> WIRE_MOCK_RULE.verify(postRequestedFor(urlPathEqualTo("/user-data-win-event")))));
 
         // verify delivery stats report
-        await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+        await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
                 verify(() -> WIRE_MOCK_RULE.verify(2, postRequestedFor(urlPathEqualTo("/delivery-stats-progress")))));
 
         final String expectedRequestBody = IntegrationTest.jsonFrom(
