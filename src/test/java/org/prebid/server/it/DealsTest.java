@@ -227,7 +227,7 @@ public class DealsTest extends VertxTest {
     }
 
     private void awaitForLineItemMetadata() {
-        await().atMost(2, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
+        await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
                 .until(() -> lineItemService.accountHasDeals("2001", ZonedDateTime.now(clock)));
     }
 
