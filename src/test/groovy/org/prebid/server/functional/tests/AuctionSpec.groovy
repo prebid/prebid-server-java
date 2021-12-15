@@ -10,7 +10,7 @@ import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 import spock.lang.Unroll
 
-import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.CONTAINER_WORKING_DIR
+import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
@@ -22,7 +22,6 @@ class AuctionSpec extends BaseSpec {
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
                                                                             "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
 
-    @Unroll
     def "PBS should return version in response header for auction request for #description"() {
 
         when: "PBS processes auction request"
@@ -62,7 +61,6 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
     }
 
-    @Unroll
     def "PBS should prefer timeout from the auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def timeout = getRandomTimeout()
@@ -91,7 +89,6 @@ class AuctionSpec extends BaseSpec {
         tmaxStoredRequest << [null, getRandomTimeout()]
     }
 
-    @Unroll
     def "PBS should honor max timeout from the settings for auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -146,16 +143,15 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
-    @Unroll
     def "PBS should take data by priority when request, stored request, default request are defined"() {
         given: "Default request with timeout"
         def defaultRequestModel = new BidRequest(tmax: defaultRequestTmax)
         def defaultRequest = PBSUtils.createJsonFile(defaultRequestModel)
 
         and: "Pbs config with default request"
-        def pbsContainer = new PrebidServerContainer(["default-request.file.path": CONTAINER_WORKING_DIR +
+        def pbsContainer = new PrebidServerContainer(["default-request.file.path": APP_WORKDIR +
                 defaultRequest.fileName]).tap {
-            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), CONTAINER_WORKING_DIR)
+            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR)
         }
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer, mapper)
