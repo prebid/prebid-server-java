@@ -102,7 +102,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                         result.getPodErrors()))
 
                 .map(videoResponse -> addToEvent(videoResponse, videoEventBuilder::bidResponse, videoResponse))
-                .setHandler(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
+                .onComplete(responseResult -> handleResult(responseResult, videoEventBuilder, routingContext,
                         startTime));
     }
 

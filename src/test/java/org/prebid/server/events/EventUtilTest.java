@@ -1,7 +1,6 @@
 package org.prebid.server.events;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -30,7 +29,7 @@ public class EventUtilTest {
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
     }
 

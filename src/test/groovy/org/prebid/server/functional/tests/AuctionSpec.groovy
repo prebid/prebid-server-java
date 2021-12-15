@@ -60,7 +60,7 @@ class AuctionSpec extends BaseSpec {
     }
 
     @Unroll
-    def "PBS should prefer timeout from the auction request when stored request timeout is #tmax"() {
+    def "PBS should prefer timeout from the auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def timeout = getRandomTimeout()
         def bidRequest = BidRequest.defaultBidRequest.tap {

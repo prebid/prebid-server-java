@@ -154,7 +154,7 @@ public class SonobiBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123").build())).build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
         final Result<List<BidderBid>> result = sonobiBidder.makeBids(httpCall, null);
@@ -171,7 +171,7 @@ public class SonobiBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
         final Result<List<BidderBid>> result = sonobiBidder.makeBids(httpCall, null);
@@ -188,7 +188,7 @@ public class SonobiBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(givenImp(identity())))
                         .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build())));
 
         // when
         final Result<List<BidderBid>> result = sonobiBidder.makeBids(httpCall, null);
@@ -198,34 +198,48 @@ public class SonobiBidderTest extends VertxTest {
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
-        return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+    @Test
+    public void makeBidsShouldReturnErrorsForBidsThatDoesNotMatchImp() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().imp(singletonList(givenImp(identity()))).build(),
+                mapper.writeValueAsString(givenBidResponse(Bid.builder().impid("123").build(),
+                        Bid.builder().impid("456").build())));
+
+        // when
+        final Result<List<BidderBid>> result = sonobiBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .containsExactly("Failed to find impression for ID: 456");
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+
+        return requestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(impCustomizer, identity());
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123"))
+        return impCustomizer.apply(Imp.builder().id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSonobi.of("tagidString"))))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(Bid... bids) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .bid(List.of(bids))
                         .build()))
                 .build();
     }

@@ -12,7 +12,7 @@
       },
       "ext": {
         "rubicon": {
-          "accountId": 2001,
+          "accountId": "2001",
           "siteId": 3001,
           "zoneId": 4001
         }

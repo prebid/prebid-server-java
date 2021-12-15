@@ -71,7 +71,7 @@ public class BasicJdbcClient implements JdbcClient {
         connectionPromise.future()
                 .recover(BasicJdbcClient::logConnectionError)
                 .compose(connection -> makeQuery(connection, query, params))
-                .setHandler(result -> handleResult(result, queryResultPromise, timerId, startTime));
+                .onComplete(result -> handleResult(result, queryResultPromise, timerId, startTime));
 
         return queryResultPromise.future().map(mapper);
     }

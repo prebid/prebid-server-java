@@ -112,11 +112,9 @@ public class HttpBidderRequester {
                         .map(httpCall -> processHttpCall(bidder, bidRequest, resultBuilder, httpCall)))
                 .collect(Collectors.toList());
 
-        final CompositeFuture completionFuture = CompositeFuture.any(
-                CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
-                completionTracker.future());
-
-        return completionFuture
+        return CompositeFuture.any(
+                        CompositeFuture.join(new ArrayList<>(httpRequestFutures)),
+                        completionTracker.future())
                 .map(ignored -> resultBuilder.toBidderSeatBid(debugEnabled));
     }
 
@@ -147,10 +145,8 @@ public class HttpBidderRequester {
     }
 
     private <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest, String storedResponse) {
-        return Future.succeededFuture(
-                HttpCall.success(httpRequest,
-                        HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse),
-                        null));
+        final HttpResponse httpResponse = HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse);
+        return Future.succeededFuture(HttpCall.success(httpRequest, httpResponse, null));
     }
 
     /**
@@ -159,11 +155,11 @@ public class HttpBidderRequester {
      * If errors list is empty, creates error which indicates of bidder unexpected behaviour.
      */
     private Future<BidderSeatBid> emptyBidderSeatBidWithErrors(List<BidderError> bidderErrors) {
-        return Future.succeededFuture(
-                BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), bidderErrors.isEmpty()
-                        ? Collections.singletonList(BidderError.failedToRequestBids(
-                        "The bidder failed to generate any bid requests, but also failed to generate an error"))
-                        : bidderErrors));
+        final List<BidderError> errors = bidderErrors.isEmpty()
+                ? Collections.singletonList(BidderError.failedToRequestBids(
+                "The bidder failed to generate any bid requests, but also failed to generate an error"))
+                : bidderErrors;
+        return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), errors));
     }
 
     /**
@@ -181,10 +177,8 @@ public class HttpBidderRequester {
     }
 
     private <T> Future<HttpClientResponse> createRequest(HttpRequest<T> httpRequest, long remainingTimeout) {
-        final byte[] requestBody = httpRequest.getBody();
         final MultiMap requestHeaders = httpRequest.getHeaders();
-
-        final byte[] preparedBody = compressIfRequired(requestBody, requestHeaders);
+        final byte[] preparedBody = compressIfRequired(httpRequest.getBody(), requestHeaders);
 
         return httpClient.request(httpRequest.getMethod(),
                 httpRequest.getUri(),
@@ -193,13 +187,11 @@ public class HttpBidderRequester {
                 remainingTimeout);
     }
 
-    private static byte[] compressIfRequired(byte[] existingBody, MultiMap headers) {
+    private static byte[] compressIfRequired(byte[] body, MultiMap headers) {
         final String contentEncodingHeader = headers.get(HttpUtil.CONTENT_ENCODING_HEADER);
-        if (Objects.equals(contentEncodingHeader, HttpHeaderValues.GZIP.toString())) {
-            return gzip(existingBody);
-        }
-
-        return existingBody;
+        return Objects.equals(contentEncodingHeader, HttpHeaderValues.GZIP.toString())
+                ? gzip(body)
+                : body;
     }
 
     private static byte[] gzip(byte[] value) {
@@ -220,7 +212,8 @@ public class HttpBidderRequester {
     private static <T> Future<HttpCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
         logger.warn("Error occurred while sending HTTP request to a bidder url: {0} with message: {1}",
                 httpRequest.getUri(), exception.getMessage());
-        logger.debug("Error occurred while sending HTTP request to a bidder url: {0}", exception, httpRequest.getUri());
+        logger.debug("Error occurred while sending HTTP request to a bidder url: {0}",
+                exception, httpRequest.getUri());
 
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
@@ -237,8 +230,8 @@ public class HttpBidderRequester {
      */
     private static <T> Future<HttpCall<T>> processResponse(HttpClientResponse response, HttpRequest<T> httpRequest) {
         final int statusCode = response.getStatusCode();
-        return Future.succeededFuture(HttpCall.success(httpRequest,
-                HttpResponse.of(statusCode, response.getHeaders(), response.getBody()), errorOrNull(statusCode)));
+        final HttpResponse httpResponse = HttpResponse.of(statusCode, response.getHeaders(), response.getBody());
+        return Future.succeededFuture(HttpCall.success(httpRequest, httpResponse, errorOrNull(statusCode)));
     }
 
     /**
@@ -271,10 +264,12 @@ public class HttpBidderRequester {
     }
 
     /**
-     * Returns result based on response status code
+     * Returns result based on response status code and list of {@link BidderBid}s from bidder.
      */
-    private static <T> Result<List<BidderBid>> makeResult(Bidder<T> bidder, HttpCall<T> httpCall,
+    private static <T> Result<List<BidderBid>> makeResult(Bidder<T> bidder,
+                                                          HttpCall<T> httpCall,
                                                           BidRequest bidRequest) {
+
         final int statusCode = httpCall.getResponse().getStatusCode();
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
             return Result.empty();
@@ -282,6 +277,7 @@ public class HttpBidderRequester {
         if (statusCode != HttpResponseStatus.OK.code()) {
             return null;
         }
+
         return bidder.makeBids(toHttpCallWithSafeResponseBody(httpCall), bidRequest);
     }
 
@@ -298,6 +294,7 @@ public class HttpBidderRequester {
             final HttpResponse updatedHttpResponse = HttpResponse.of(statusCode, response.getHeaders(), "{}");
             return HttpCall.success(httpCall.getRequest(), updatedHttpResponse, null);
         }
+
         return httpCall;
     }
 
@@ -306,16 +303,17 @@ public class HttpBidderRequester {
         final List<HttpRequest<T>> httpRequests;
         final List<BidderError> previousErrors;
         final BidderRequestCompletionTracker completionTracker;
+        private final JacksonMapper mapper;
 
         final Map<HttpRequest<T>, HttpCall<T>> httpCallsRecorded = new HashMap<>();
         final List<BidderBid> bidsRecorded = new ArrayList<>();
         final List<BidderError> errorsRecorded = new ArrayList<>();
-        private final JacksonMapper mapper;
 
         ResultBuilder(List<HttpRequest<T>> httpRequests,
                       List<BidderError> previousErrors,
                       BidderRequestCompletionTracker completionTracker,
                       JacksonMapper mapper) {
+
             this.httpRequests = httpRequests;
             this.previousErrors = previousErrors;
             this.completionTracker = completionTracker;
@@ -346,9 +344,7 @@ public class HttpBidderRequester {
 
             // Capture debugging info from the requests
             final List<ExtHttpCall> extHttpCalls = debugEnabled
-                    ? httpCalls.stream()
-                    .map(this::toExt)
-                    .collect(Collectors.toList())
+                    ? httpCalls.stream().map(this::toExt).collect(Collectors.toList())
                     : Collections.emptyList();
 
             final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded);
@@ -359,7 +355,7 @@ public class HttpBidderRequester {
         /**
          * Constructs {@link ExtHttpCall} filled with HTTP call information.
          */
-        private <T> ExtHttpCall toExt(HttpCall<T> httpCall) {
+        private ExtHttpCall toExt(HttpCall<T> httpCall) {
             final HttpRequest<T> request = httpCall.getRequest();
             final ExtHttpCall.ExtHttpCallBuilder builder = ExtHttpCall.builder()
                     .uri(request.getUri())

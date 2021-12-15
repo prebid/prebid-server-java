@@ -217,7 +217,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         final Async async = context.async();
 
         final Future<GeoInfo> future = geoLocationService.lookup(null, null);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
 
         async.await();
         return future;

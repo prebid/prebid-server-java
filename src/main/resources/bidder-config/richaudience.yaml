@@ -1,0 +1,17 @@
+adapters:
+  richaudience:
+    endpoint: http://ortb.richaudience.com/ortb/?bidder=pbs
+    meta-info:
+      maintainer-email: partnerintegrations@richaudience.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 108
+    usersync:
+      url: https://sync.richaudience.com/74889303289e27f327ad0c6de7be7264/?consentString={{gdpr_consent}}&r=
+      redirect-url: /setuid?bidder=richaudience&gdpr={{gdpr}}&gdpr_consent{{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[PDID]
+      cookie-family-name: richaudience
+      type: iframe
+      support-cors: false
