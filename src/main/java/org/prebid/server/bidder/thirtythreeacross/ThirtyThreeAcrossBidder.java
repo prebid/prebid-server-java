@@ -62,7 +62,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 validateImp(imp);
-                final ExtImpTtx extImpTtx = parseImpExt(imp);
+                final ExtImpThirtyThreeAcross extImpTtx = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpTtx);
                 impsMap.computeIfAbsent(computeKey(updatedImp), k -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {

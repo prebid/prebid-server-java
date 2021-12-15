@@ -122,7 +122,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(
-                        mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))));
+                        mapper.valueToTree(ThirtyThreeAcrossImpExt.of(ThirtyThreeAcrossImpExtTtx.of("productId", "zoneId"))));
     }
 
     @Test
@@ -132,7 +132,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpThirtyThreeAcross.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -151,7 +151,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpThirtyThreeAcross.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -174,7 +174,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo().toBuilder().placement(23).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpThirtyThreeAcross.of("11", null, "3")))))))
                 .build();
 
         // when
@@ -197,7 +197,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder
                                 .video(validVideo())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "instream")))))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpThirtyThreeAcross.of("11", null, "instream")))))))
                 .build();
 
         // when
