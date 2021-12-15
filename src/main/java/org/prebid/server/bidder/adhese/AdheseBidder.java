@@ -212,12 +212,12 @@ public class AdheseBidder implements Bidder<AdheseRequestBody> {
         }
 
         final BigDecimal price;
-        final Integer width;
-        final Integer height;
+        final int width;
+        final int height;
         try {
             price = getPrice(adheseBid);
-            width = Integer.valueOf(adheseBid.getWidth());
-            height = Integer.valueOf(adheseBid.getHeight());
+            width = Integer.parseInt(adheseBid.getWidth());
+            height = Integer.parseInt(adheseBid.getHeight());
         } catch (NumberFormatException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }

@@ -37,7 +37,7 @@ public class TracerLogHandler implements Handler<RoutingContext> {
             return;
         }
 
-        final Integer duration;
+        final int duration;
         final String loggerLevel = parameters.get(LOG_LEVEL_PARAMETER);
         try {
             duration = parseDuration(parameters.get(DURATION_IN_SECONDS));
