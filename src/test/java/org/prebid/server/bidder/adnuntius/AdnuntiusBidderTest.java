@@ -70,8 +70,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(0);
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
+        assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsExactly("Fail on Imp.Id=null: Adnuntius supports only Banner");
     }
 
@@ -86,8 +85,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(0);
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
+        assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .allMatch(errorMessage -> errorMessage.startsWith("Unmarshalling error:"));
     }
 
@@ -107,8 +105,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getAdUnits)
-                .allSatisfy(adUnits -> assertThat(adUnits).hasSize(2)
-                        .extracting(AdnuntiusAdUnit::getAuId)
+                .allSatisfy(adUnits -> assertThat(adUnits).extracting(AdnuntiusAdUnit::getAuId)
                         .containsExactly("auId1", "auId2"));
         assertThat(result.getErrors()).hasSize(0);
     }
@@ -142,11 +139,10 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(HttpRequest::getPayload)
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getMetaData)
                 .extracting(AdnuntiusMetaData::getUsi)
-                .containsOnly("userId");
+                .containsExactly("userId", "userId");
         assertThat(result.getErrors()).hasSize(0);
     }
 
@@ -160,10 +156,9 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(HttpRequest::getPayload)
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getContext)
-                .containsOnly("page");
+                .containsExactly("page", "page");
         assertThat(result.getErrors()).hasSize(0);
     }
 
@@ -184,9 +179,8 @@ public class AdnuntiusBidderTest extends VertxTest {
             expectedUri.append("&consentString=").append(HttpUtil.encodeUrl(consent));
         }
 
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(HttpRequest::getUri)
-                .containsOnly(expectedUri.toString());
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly(expectedUri.toString(), expectedUri.toString());
         assertThat(result.getErrors()).hasSize(0);
     }
 
@@ -292,9 +286,8 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("2.1");
+        assertThat(result.getValue()).extracting(BidderBid::getBidCurrency)
+                .containsExactly("2.1", "2.1");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -310,8 +303,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
+        assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsExactly("Value of measure: null can not be parsed.");
     }
 
@@ -327,8 +319,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
+        assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsExactly("Value of measure: null can not be parsed.");
     }
 
