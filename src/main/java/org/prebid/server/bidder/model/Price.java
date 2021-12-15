@@ -1,4 +1,4 @@
-package org.prebid.server.bidder;
+package org.prebid.server.bidder.model;
 
 import lombok.Value;
 
@@ -9,5 +9,5 @@ public class Price {
 
     String currency;
 
-    BigDecimal price;
+    BigDecimal value;
 }

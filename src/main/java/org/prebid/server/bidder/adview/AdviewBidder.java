@@ -10,7 +10,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.Price;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -98,7 +98,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
         final String bidFloorCur = bidFloor.getCurrency();
         try {
             final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloor.getPrice(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
+                    .convertCurrency(bidFloor.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
 
             return Price.of(BIDDER_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
@@ -121,11 +121,11 @@ public class AdviewBidder implements Bidder<BidRequest> {
         return modifiedImps;
     }
 
-    private static Imp modifyImp(Imp imp, String masterTagId, Price bidFloor) {
+    private static Imp modifyImp(Imp imp, String masterTagId, Price floorPrice) {
         return imp.toBuilder()
                 .tagid(masterTagId)
-                .bidfloor(bidFloor.getPrice())
-                .bidfloorcur(bidFloor.getCurrency())
+                .bidfloor(floorPrice.getValue())
+                .bidfloorcur(floorPrice.getCurrency())
                 .banner(resolveBanner(imp.getBanner()))
                 .build();
     }

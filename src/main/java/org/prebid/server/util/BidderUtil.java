@@ -1,7 +1,7 @@
 package org.prebid.server.util;
 
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.Price;
+import org.prebid.server.bidder.model.Price;
 
 import java.math.BigDecimal;
 
@@ -15,6 +15,6 @@ public class BidderUtil {
     }
 
     public static boolean isValidPrice(Price price) {
-        return isValidPrice(price.getPrice()) && StringUtils.isNotBlank(price.getCurrency());
+        return isValidPrice(price.getValue()) && StringUtils.isNotBlank(price.getCurrency());
     }
 }
