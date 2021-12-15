@@ -191,7 +191,7 @@ public class DealsSimulationTest extends VertxTest {
     }
 
     private void awaitForLineItemMetadata(ZonedDateTime now) {
-        await().atMost(10, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
+        await().atMost(20, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
                 .until(() -> lineItemService.accountHasDeals("2001", now));
     }
 
