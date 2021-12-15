@@ -8,18 +8,18 @@ import lombok.Value;
 @Value
 public class AlertSource {
 
-    private String env;
+    String env;
 
     @JsonProperty("data-center")
-    private String dataCenter;
+    String dataCenter;
 
-    private String region;
+    String region;
 
-    private String system;
+    String system;
 
     @JsonProperty("sub-system")
-    private String subSystem;
+    String subSystem;
 
     @JsonProperty("host-id")
-    private String hostId;
+    String hostId;
 }
