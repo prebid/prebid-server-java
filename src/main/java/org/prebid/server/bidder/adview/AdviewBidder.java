@@ -63,8 +63,8 @@ public class AdviewBidder implements Bidder<BidRequest> {
 
         try {
             extImpAdview = parseExtImp(firstImp);
-            final Price bidFloor = resolveBidFloor(firstImp, request);
-            modifiedBidRequest = modifyRequest(request, extImpAdview.getMasterTagId(), bidFloor);
+            final Price bidFloorPrice = resolveBidFloor(firstImp, request);
+            modifiedBidRequest = modifyRequest(request, extImpAdview.getMasterTagId(), bidFloorPrice);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -88,17 +88,17 @@ public class AdviewBidder implements Bidder<BidRequest> {
     }
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
-        final Price initialPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
-        return BidderUtil.isValidPrice(initialPrice)
-                ? convertBidFloor(initialPrice, imp.getId(), bidRequest)
-                : initialPrice;
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.isValidPrice(initialBidFloorPrice)
+                ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
+                : initialBidFloorPrice;
     }
 
-    private Price convertBidFloor(Price bidFloor, String impId, BidRequest bidRequest) {
-        final String bidFloorCur = bidFloor.getCurrency();
+    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
+        final String bidFloorCur = bidFloorPrice.getCurrency();
         try {
             final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloor.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
+                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, BIDDER_CURRENCY);
 
             return Price.of(BIDDER_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
@@ -108,24 +108,24 @@ public class AdviewBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, Price bidFloor) {
+    private static BidRequest modifyRequest(BidRequest bidRequest, String masterTagId, Price bidFloorPrice) {
         return bidRequest.toBuilder()
-                .imp(modifyImps(bidRequest.getImp(), masterTagId, bidFloor))
+                .imp(modifyImps(bidRequest.getImp(), masterTagId, bidFloorPrice))
                 .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 
-    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId, Price bidFloor) {
+    private static List<Imp> modifyImps(List<Imp> imps, String masterTagId, Price bidFloorPrice) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, bidFloor));
+        modifiedImps.set(0, modifyImp(imps.get(0), masterTagId, bidFloorPrice));
         return modifiedImps;
     }
 
-    private static Imp modifyImp(Imp imp, String masterTagId, Price floorPrice) {
+    private static Imp modifyImp(Imp imp, String masterTagId, Price bidFloorPrice) {
         return imp.toBuilder()
                 .tagid(masterTagId)
-                .bidfloor(floorPrice.getValue())
-                .bidfloorcur(floorPrice.getCurrency())
+                .bidfloor(bidFloorPrice.getValue())
+                .bidfloorcur(bidFloorPrice.getCurrency())
                 .banner(resolveBanner(imp.getBanner()))
                 .build();
     }
