@@ -288,7 +288,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldEnrichAuctionContextWithDebugContext() throws JsonProcessingException {
+    public void shouldEnrichAuctionContextWithDebugContext() {
         // given
         givenBidRequest();
 

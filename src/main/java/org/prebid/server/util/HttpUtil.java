@@ -16,7 +16,6 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -95,11 +94,7 @@ public final class HttpUtil {
      * The result can be safety used as the query string.
      */
     public static String encodeUrl(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot encode url: %s", value));
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**
@@ -109,11 +104,7 @@ public final class HttpUtil {
         if (StringUtils.isBlank(value)) {
             return null;
         }
-        try {
-            return URLDecoder.decode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot decode url: %s", value));
-        }
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
     /**

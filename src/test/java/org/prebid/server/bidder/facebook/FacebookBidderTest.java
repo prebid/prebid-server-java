@@ -409,8 +409,7 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpNativeByAddingWidthAndHeightAndRemovingRequestAndVerFields()
-            throws JsonProcessingException {
+    public void makeHttpRequestsShouldModifyImpNativeByAddingWidthAndHeightAndRemovingRequestAndVerFields() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder

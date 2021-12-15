@@ -414,7 +414,7 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetImpExtFromKeywordsSkippingKeysWithEmptyValues() throws IOException {
+    public void makeHttpRequestsShouldSetImpExtFromKeywordsSkippingKeysWithEmptyValues() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
