@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 162
     usersync:
-      url: https://usermatch.targeting.unrulymedia.com/pbsync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&rurl=
-      redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+      url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[RX_UUID]
       cookie-family-name: unruly
-      type: iframe
+      type: redirect
       support-cors: false
