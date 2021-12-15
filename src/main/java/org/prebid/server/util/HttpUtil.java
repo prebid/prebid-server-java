@@ -25,7 +25,6 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +68,7 @@ public final class HttpUtil {
     public static final CharSequence CONTENT_ENCODING_HEADER = HttpHeaders.createOptimized("Content-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
-    private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
