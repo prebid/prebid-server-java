@@ -96,8 +96,7 @@ public class VideobyteBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(HttpRequest::getUri)
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(ENDPOINT_URL + "?source=pbs&pid=" + HttpUtil.encodeUrl("1 23"),
                         ENDPOINT_URL + "?source=pbs&pid=456&placementId=" + HttpUtil.encodeUrl("a/bc"),
                         ENDPOINT_URL + "?source=pbs&pid=789&placementId=dce&nid=" + HttpUtil.encodeUrl("A?a=BC"));
@@ -116,11 +115,10 @@ public class VideobyteBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getHeaders)
-                .flatExtracting(MultiMap::entries)
-                .hasSize(6)
-                .elements(2, 5)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"));
+                .extracting(MultiMap::entries)
+                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
+                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"))
+                );
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -136,11 +134,10 @@ public class VideobyteBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getHeaders)
-                .flatExtracting(MultiMap::entries)
-                .hasSize(6)
-                .elements(2, 5)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(tuple(HttpUtil.REFERER_HEADER.toString(), "referer"));
+                .extracting(MultiMap::entries)
+                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
+                        .containsOnlyOnce(tuple(HttpUtil.REFERER_HEADER.toString(), "referer"))
+                );
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -156,14 +153,11 @@ public class VideobyteBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getHeaders)
-                .flatExtracting(MultiMap::entries)
-                .hasSize(8)
-                .elements(2, 3, 6, 7)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactly(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), "referer"),
-                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), "referer"));
+                .extracting(MultiMap::entries)
+                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
+                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
+                                tuple(HttpUtil.REFERER_HEADER.toString(), "referer"))
+                );
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -177,8 +171,7 @@ public class VideobyteBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .hasSize(1)
+        assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                     assertThat(error.getMessage()).isEqualTo("Bad server response.");
@@ -223,8 +216,7 @@ public class VideobyteBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(BidderBid::getType)
+        assertThat(result.getValue()).extracting(BidderBid::getType)
                 .containsExactly(BidType.banner, BidType.video);
         assertThat(result.getErrors()).isEmpty();
     }
