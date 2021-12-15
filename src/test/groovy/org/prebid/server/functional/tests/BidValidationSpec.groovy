@@ -118,7 +118,6 @@ class BidValidationSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    @Unroll
     def "PBS should drop invalid bid and emit debug error when bid price is #bidPrice and deal id is #dealId"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
@@ -154,7 +153,6 @@ class BidValidationSpec extends BaseSpec {
         null                          | null
     }
 
-    @Unroll
     def "PBS should only drop invalid bid without discarding whole seat"() {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
