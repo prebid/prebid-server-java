@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class AjaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAja>> AJA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAja>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

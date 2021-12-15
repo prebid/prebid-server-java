@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class SmartadserverBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartadserver>> SMARTADSERVER_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmartadserver>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

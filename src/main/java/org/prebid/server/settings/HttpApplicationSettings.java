@@ -67,7 +67,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
     private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
-            new TypeReference<Map<String, Category>>() {
+            new TypeReference<>() {
             };
 
     private final String endpoint;

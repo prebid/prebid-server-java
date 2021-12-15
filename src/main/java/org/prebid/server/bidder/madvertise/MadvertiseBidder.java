@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMadvertise>> MADVERTISE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMadvertise>>() {
+            new TypeReference<>() {
             };
 
     private static final int ZONE_ID_MIN_LENGTH = 7;

@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class KidozBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKidoz>> KIDOZ_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKidoz>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

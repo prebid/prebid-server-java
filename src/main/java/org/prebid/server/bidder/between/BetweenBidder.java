@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class BetweenBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBetween>>() {
+            new TypeReference<>() {
             };
     private static final String URL_HOST_MACRO = "{{Host}}";
 

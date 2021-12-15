@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class BidmachineBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

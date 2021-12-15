@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class AlgorixBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAlgorix>>() {
+            new TypeReference<>() {
             };
 
     private static final String URL_REGION_MACRO = "{HOST}";

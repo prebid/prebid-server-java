@@ -40,7 +40,7 @@ public class BrightrollBidder implements Bidder<BidRequest> {
 
     private static final String OPENRTB_VERSION = "2.5";
     private static final TypeReference<ExtPrebid<?, ExtImpBrightroll>> BRIGHTROLL_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBrightroll>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

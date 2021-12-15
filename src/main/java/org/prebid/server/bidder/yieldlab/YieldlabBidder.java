@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 public class YieldlabBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYieldlab>> YIELDLAB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpYieldlab>>() {
+            new TypeReference<>() {
             };
 
     private static final String BID_CURRENCY = "EUR";

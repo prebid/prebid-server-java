@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class MobilefuseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMobilefuse>> MOBILEFUSE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMobilefuse>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

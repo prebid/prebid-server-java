@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class YahooSSPBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYahooSSP>> YAHOOSSP_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpYahooSSP>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

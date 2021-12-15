@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class AdviewBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdview>> ADVIEW_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdview>>() {
+            new TypeReference<>() {
             };
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
 

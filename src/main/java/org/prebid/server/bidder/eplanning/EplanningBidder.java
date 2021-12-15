@@ -70,7 +70,7 @@ public class EplanningBidder implements Bidder<Void> {
             Arrays.asList("300x250", "728x90", "300x600", "160x600", "970x250", "970x90", "1x1"));
 
     private static final TypeReference<ExtPrebid<?, ExtImpEplanning>> EPLANNING_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpEplanning>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
