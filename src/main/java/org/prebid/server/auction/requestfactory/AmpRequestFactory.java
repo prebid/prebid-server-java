@@ -203,8 +203,8 @@ public class AmpRequestFactory {
     }
 
     private static User createUser(ConsentType consentType, String consentString, String addtlConsent) {
-        final boolean tcfV2ConsentProvided = (StringUtils.isNotBlank(consentString)
-                && TcfDefinerService.isConsentStringValid(consentString))
+        final boolean tcfV2ConsentProvided = StringUtils.isNotBlank(consentString)
+                && TcfDefinerService.isConsentStringValid(consentString)
                 && (consentType == null || consentType == ConsentType.tcfV2);
 
         if (StringUtils.isNotBlank(addtlConsent) || tcfV2ConsentProvided) {
