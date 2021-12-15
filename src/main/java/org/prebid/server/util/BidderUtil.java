@@ -10,11 +10,11 @@ public class BidderUtil {
     private BidderUtil() {
     }
 
-    public static boolean isValidPrice(Price price) {
-        final BigDecimal value = price.getPrice();
+    public static boolean isValidPrice(BigDecimal price) {
+        return price != null && price.compareTo(BigDecimal.ZERO) > 0;
+    }
 
-        return value != null
-                && value.compareTo(BigDecimal.ZERO) > 0
-                && StringUtils.isNotBlank(price.getCurrency());
+    public static boolean isValidPrice(Price price) {
+        return isValidPrice(price.getPrice()) && StringUtils.isNotBlank(price.getCurrency());
     }
 }
