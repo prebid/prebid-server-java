@@ -27,7 +27,6 @@ import static org.prebid.server.functional.model.response.auction.ErrorType.PREB
 @PBSTest
 class BidderParamsSpec extends BaseSpec {
 
-    @Unroll
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(adapterConfig)
@@ -54,7 +53,6 @@ class BidderParamsSpec extends BaseSpec {
                                     "adapters.generic.enabled": generic]
     }
 
-    @Unroll
     def "PBS should not send request to bidder and emit error when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(adapterConfig)
@@ -78,7 +76,6 @@ class BidderParamsSpec extends BaseSpec {
                                     "adapters.generic.enabled"   : generic]
     }
 
-    @Unroll
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
@@ -107,7 +104,6 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "true"
     }
 
-    @Unroll
     def "PBS should not modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
@@ -136,7 +132,6 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "false"
     }
 
-    @Unroll
     def "PBS should mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
@@ -164,7 +159,6 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "true"
     }
 
-    @Unroll
     def "PBS should not mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,

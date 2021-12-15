@@ -5,7 +5,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -62,7 +61,7 @@ public class BasicHttpClientTest {
         given(httpClientRequest.setFollowRedirects(anyBoolean())).willReturn(httpClientRequest);
         given(httpClientRequest.handler(any())).willReturn(httpClientRequest);
         given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-        given(httpClientRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpClientRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
         given(httpClientResponse.exceptionHandler(any())).willReturn(httpClientResponse);
@@ -166,7 +165,7 @@ public class BasicHttpClientTest {
         // when
         final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         // then
@@ -188,7 +187,7 @@ public class BasicHttpClientTest {
         // when
         final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         // then

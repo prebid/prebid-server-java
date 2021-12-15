@@ -68,7 +68,7 @@ public class PurposeOneStrategyTest {
         target.allow(privacyEnforcementAction);
 
         // then
-        assertThat(privacyEnforcementAction).isEqualToComparingFieldByField(allowPurpose());
+        assertThat(privacyEnforcementAction).usingRecursiveComparison().isEqualTo(allowPurpose());
     }
 
     @Test
@@ -80,7 +80,9 @@ public class PurposeOneStrategyTest {
         target.allowNaturally(privacyEnforcementAction);
 
         // then
-        assertThat(privacyEnforcementAction).isEqualToComparingFieldByField(PrivacyEnforcementAction.restrictAll());
+        assertThat(privacyEnforcementAction)
+                .usingRecursiveComparison()
+                .isEqualTo(PrivacyEnforcementAction.restrictAll());
     }
 
     @Test
@@ -118,7 +120,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null,
                 PrivacyEnforcementAction.restrictAll());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString,
@@ -155,7 +157,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowPurpose());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, null,
                 PrivacyEnforcementAction.restrictAll());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString,
@@ -193,7 +195,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurpose());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurpose());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString, emptyList(),
@@ -229,7 +231,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurposeAndNaturally());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE_CODE, tcString, emptyList(),
@@ -271,7 +273,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingFieldByFieldElementComparator()
+        assertThat(result).usingRecursiveFieldByFieldElementComparator()
                 .isEqualTo(Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE_CODE, tcString,
@@ -315,7 +317,7 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingFieldByFieldElementComparator().isEqualTo(
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
                 Arrays.asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(noEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString,

@@ -90,7 +90,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));
 
-        target = VideoStoredRequestProcessor.create(
+        target = new VideoStoredRequestProcessor(
                 false,
                 emptyList(),
                 2000L,
@@ -398,7 +398,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
                 .isEqualTo(mapper.valueToTree(priceGranularity));
     }
 
-    private BidRequestVideo givenValidDataResult(
+    private static BidRequestVideo givenValidDataResult(
             UnaryOperator<BidRequestVideo.BidRequestVideoBuilder> requestCustomizer,
             UnaryOperator<Podconfig.PodconfigBuilder> podconfigCustomizer) {
 

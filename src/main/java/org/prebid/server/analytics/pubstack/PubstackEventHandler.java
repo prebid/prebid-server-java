@@ -134,7 +134,7 @@ public class PubstackEventHandler {
         resetReportEventsConditions();
 
         httpClient.request(HttpMethod.POST, url, headers, toGzippedBytes(copyToSend), timeoutMs)
-                .setHandler(this::handleReportResponse);
+                .onComplete(this::handleReportResponse);
     }
 
     private void resetReportEventsConditions() {

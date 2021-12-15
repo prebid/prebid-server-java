@@ -42,7 +42,6 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
     }
 
-    @Unroll
     def "PBS should prefer timeout from the request when stored request timeout is #tmax"() {
         given: "Default AMP request with timeout"
         def timeout = getRandomTimeout()
@@ -70,7 +69,6 @@ class AmpSpec extends BaseSpec {
         tmax << [null, getRandomTimeout()]
     }
 
-    @Unroll
     def "PBS should honor max timeout from the settings"() {
         given: "Default AMP request"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -123,7 +121,6 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
-    @Unroll
     def "PBS should return version in response header for #description"() {
         given: "Default AmpRequest"
         def ampStoredRequest = BidRequest.defaultBidRequest

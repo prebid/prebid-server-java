@@ -110,7 +110,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
         final EventRequest eventRequest = EventUtil.from(routingContext);
         getAccountById(eventRequest.getAccountId())
-                .setHandler(async -> handleEvent(async, eventRequest, routingContext));
+                .onComplete(async -> handleEvent(async, eventRequest, routingContext));
     }
 
     /**
