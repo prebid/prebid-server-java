@@ -117,8 +117,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .extracting(HttpRequest::getHeaders)
                 .extracting(MultiMap::entries)
                 .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"))
-                );
+                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain")));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -136,8 +135,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .extracting(HttpRequest::getHeaders)
                 .extracting(MultiMap::entries)
                 .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsOnlyOnce(tuple(HttpUtil.REFERER_HEADER.toString(), "referer"))
-                );
+                        .containsOnlyOnce(tuple(HttpUtil.REFERER_HEADER.toString(), "referer")));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -156,8 +154,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .extracting(MultiMap::entries)
                 .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
                         .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
-                                tuple(HttpUtil.REFERER_HEADER.toString(), "referer"))
-                );
+                                tuple(HttpUtil.REFERER_HEADER.toString(), "referer")));
         assertThat(result.getErrors()).isEmpty();
     }
 
