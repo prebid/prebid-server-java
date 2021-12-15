@@ -58,12 +58,13 @@ public class DealsSimulationAdminHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse response;
 
-    private ZonedDateTime now = ZonedDateTime.now(Clock.fixed(Instant.parse("2019-10-10T00:00:00Z"), ZoneOffset.UTC));
+    private ZonedDateTime now;
 
     private DealsSimulationAdminHandler dealsSimulationAdminHandler;
 
     @Before
     public void setUp() {
+        now = ZonedDateTime.now(Clock.fixed(Instant.parse("2019-10-10T00:00:00Z"), ZoneOffset.UTC));
         dealsSimulationAdminHandler = new DealsSimulationAdminHandler(registerService,
                 plannerService, deliveryProgressService, deliveryStatsService, httpBidderRequester, jacksonMapper,
                 "endpoint");

@@ -10,7 +10,7 @@ public enum DeviceType {
     SET_TOP_BOX("set top box"),
     TABLET("tablet");
 
-    private String name;
+    private final String name;
 
     DeviceType(String name) {
         this.name = name;

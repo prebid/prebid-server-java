@@ -40,7 +40,7 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
 
     private final long lineItemStatusTtl;
 
-    protected DeliveryProgress overallDeliveryProgress;
+    protected final DeliveryProgress overallDeliveryProgress;
     protected DeliveryProgress currentDeliveryProgress;
 
     public DeliveryProgressService(DeliveryProgressProperties deliveryProgressProperties,

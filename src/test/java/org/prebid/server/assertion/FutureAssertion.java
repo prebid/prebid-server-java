@@ -9,7 +9,7 @@ import org.assertj.core.util.Preconditions;
 
 public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE>, Future<VALUE>> {
 
-    private ComparisonStrategy futureValueComparisonStrategy;
+    private final ComparisonStrategy futureValueComparisonStrategy;
 
     private FutureAssertion(Future<VALUE> actual) {
         super(actual, FutureAssertion.class);

@@ -18,7 +18,7 @@ public class TracerLogHandler implements Handler<RoutingContext> {
     private static final String LOG_LEVEL_PARAMETER = "level";
     private static final String DURATION_IN_SECONDS = "duration";
 
-    private CriteriaManager criteriaManager;
+    private final CriteriaManager criteriaManager;
 
     public TracerLogHandler(CriteriaManager criteriaManager) {
         this.criteriaManager = Objects.requireNonNull(criteriaManager);
