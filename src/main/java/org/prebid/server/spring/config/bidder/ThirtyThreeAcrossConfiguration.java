@@ -28,12 +28,12 @@ public class ThirtyThreeAcrossConfiguration {
     }
 
     @Bean
-    BidderDeps ttxBidderDeps(BidderConfigurationProperties ttxConfigurationProperties,
+    BidderDeps thirtythreeacrossBidderDeps(BidderConfigurationProperties thirtythreeacrossConfigurationProperties,
                              @NotBlank @Value("${external-url}") String externalUrl,
                              JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(ttxConfigurationProperties)
+                .withConfig(thirtythreeacrossConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config -> new ThirtyThreeAcrossBidder(config.getEndpoint(), mapper))
                 .assemble();
