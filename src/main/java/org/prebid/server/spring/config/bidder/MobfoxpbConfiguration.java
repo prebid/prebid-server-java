@@ -5,11 +5,8 @@ import org.prebid.server.bidder.mobfoxpb.MobfoxpbBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,17 +21,6 @@ public class MobfoxpbConfiguration {
 
     private static final String BIDDER_NAME = "mobfoxpb";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("mobfoxpbConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("mobfoxpbConfigurationProperties")
     @ConfigurationProperties("adapters.mobfoxpb")
     BidderConfigurationProperties configurationProperties() {
@@ -42,12 +28,14 @@ public class MobfoxpbConfiguration {
     }
 
     @Bean
-    BidderDeps mobfoxpbBidderDeps() {
+    BidderDeps mobfoxpbBidderDeps(BidderConfigurationProperties mobfoxpbConfigurationProperties,
+                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                  JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new MobfoxpbBidder(configProperties.getEndpoint(), mapper))
+                .withConfig(mobfoxpbConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new MobfoxpbBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

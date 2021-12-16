@@ -36,6 +36,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -57,6 +58,9 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
     private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
+    private static final String VAST_MARKUP = "<VAST version=\"2.0\"><Ad id=\"%s\"><Wrapper><AdSystem>Yieldlab"
+            + "</AdSystem><VASTAdTagURI><![CDATA[ %s ]]></VASTAdTagURI><Impression></Impression><Creatives></Creatives>"
+            + "</Wrapper></Ad></VAST>";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -70,9 +74,16 @@ public class YieldlabBidder implements Bidder<Void> {
     public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
         final ExtImpYieldlab modifiedExtImp = constructExtImp(request.getImp());
 
+        final String uri;
+        try {
+            uri = makeUrl(modifiedExtImp, request);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
         return Result.withValue(HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(makeUrl(modifiedExtImp, request))
+                .uri(uri)
                 .headers(resolveHeaders(request.getSite(), request.getDevice(), request.getUser()))
                 .build());
     }
@@ -121,8 +132,14 @@ public class YieldlabBidder implements Bidder<Void> {
 
         final String updatedPath = String.format("%s/%s", endpointUrl, extImpYieldlab.getAdslotId());
 
-        final URIBuilder uriBuilder = new URIBuilder()
-                .setPath(updatedPath)
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(updatedPath);
+        } catch (URISyntaxException e) {
+            throw new PreBidException(String.format("Invalid url: %s, error: %s", updatedPath, e.getMessage()));
+        }
+
+        uriBuilder
                 .addParameter("content", "json")
                 .addParameter("pvid", "true")
                 .addParameter("ts", timestamp)
@@ -269,6 +286,7 @@ public class YieldlabBidder implements Bidder<Void> {
         if (currentImp.getVideo() != null) {
             bidType = BidType.video;
             updatedBid.nurl(makeNurl(bidRequest, matchedExtImp, yieldlabResponse));
+            updatedBid.adm(resolveAdm(bidRequest, matchedExtImp, yieldlabResponse));
         } else if (currentImp.getBanner() != null) {
             bidType = BidType.banner;
             updatedBid.adm(makeAdm(bidRequest, matchedExtImp, yieldlabResponse));
@@ -344,6 +362,12 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private String makeAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
         return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
+    }
+
+    private static String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
+                                     YieldlabResponse yieldlabResponse) {
+        return String.format(VAST_MARKUP, extImpYieldlab.getAdslotId(),
+                makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
     private static String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,

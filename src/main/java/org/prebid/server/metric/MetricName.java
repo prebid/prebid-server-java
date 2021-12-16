@@ -17,6 +17,7 @@ public enum MetricName {
 
     // geo location
     geolocation_requests,
+    geolocation_request_time,
     geolocation_successful,
     geolocation_fail,
 
@@ -43,6 +44,14 @@ public enum MetricName {
     cookiesync,
     setuid,
 
+    // event types
+    event_auction("auction"),
+    event_amp("amp"),
+    event_video("video"),
+    event_notification("event"),
+    event_cookie_sync("cookie_sync"),
+    event_setuid("setuid"),
+    event_unknown("unknown"),
 
     // request and adapter statuses
     ok,
@@ -97,13 +106,14 @@ public enum MetricName {
     stored_imps_found,
     stored_imps_missing,
 
-    // cache
-    creative_size,
+    // cache creative types
+    json,
+    xml,
 
-    //account.*.requests.
+    // account.*.requests.
     rejected,
 
-    //currency rates
+    // currency rates
     stale,
 
     // settings cache
@@ -113,7 +123,44 @@ public enum MetricName {
     initialize,
     update,
     hit,
-    miss;
+    miss,
+
+    // hooks
+    call,
+    success,
+    noop,
+    reject,
+    unknown,
+    failure,
+    execution_error("execution-error"),
+    duration,
+
+    // win notifications
+    win_notifications,
+    win_requests,
+    win_request_preparation_failed,
+    win_request_time,
+    win_request_failed,
+    win_request_successful,
+
+    // user details
+    user_details_requests,
+    user_details_request_preparation_failed,
+    user_details_request_time,
+    user_details_request_failed,
+    user_details_request_successful,
+
+    // pg
+    planner_lineitems_received,
+    planner_requests,
+    planner_request_failed,
+    planner_request_successful,
+    planner_request_time,
+    delivery_requests,
+    delivery_request_failed,
+    delivery_request_successful,
+    delivery_request_time;
+
 
     private final String name;
 

@@ -33,6 +33,7 @@ This parameter affects how many CPU cores will be utilized by the application. R
 - `http-client.circuit-breaker.opening-threshold` - the number of failures before opening the circuit.
 - `http-client.circuit-breaker.opening-interval-ms` - time interval for opening the circuit breaker if failures count reached.
 - `http-client.circuit-breaker.closing-interval-ms` - time spent in open state before attempting to re-try.
+- `http-client.circuit-breaker.idle-expire-hours` - idle time to clean the circuit breaker up.
 - `http-client.use-compression` - if equals to `true` httpclient compression is enabled for requests (see [also](https://vertx.io/docs/apidocs/io/vertx/core/http/HttpClientOptions.html#setTryUseCompression-boolean-))
 - `http-client.max-redirects` - set the maximum amount of HTTP redirections to follow. A value of 0 (the default) prevents redirections from being followed.
 - `http-client.ssl` - enable SSL/TLS support.
@@ -58,11 +59,6 @@ Removes and downloads file again if depending service cant process probably corr
 - `external-url` - the setting stands for external URL prebid server is reachable by, for example address of the load-balancer e.g. http://prebid.host.com.
 - `admin.port` - the port to listen on administration requests.
 
-## Auction (Legacy)
-- `default-timeout-ms` - this setting controls default timeout for /auction endpoint.
-- `max-timeout-ms` - this setting controls maximum timeout for /auction endpoint.
-- `timeout-adjustment-ms` - reduces timeout value passed in legacy Auction request so that Prebid Server can handle timeouts from adapters and respond to the request before it times out.
-
 ## Default bid request
 - `default-request.file.path` - path to a JSON file containing the default request
 
@@ -82,12 +78,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
+- `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
 
-## Amp (OpenRTB)
-- `amp.default-timeout-ms` - default operation timeout for OpenRTB Amp requests.
-- `amp.max-timeout-ms` - maximum operation timeout for OpenRTB Amp requests.
-- `amp.timeout-adjustment-ms` - reduces timeout value passed in Amp request so that Prebid Server can handle timeouts from adapters and respond to the AMP RTC request before it times out.
-- `amp.custom-targeting` - a list of bidders whose custom targeting should be included in AMP responses.
+## Event
+- `event.default-timeout-ms` - timeout for event notifications
 
 ## Timeout notification
 - `auction.timeout-notification.timeout-ms` - HTTP timeout to use when sending notifications about bidder timeouts
@@ -100,6 +94,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
+- `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
 
 ## Setuid
 - `setuid.default-timeout-ms` - default operation timeout for requests to `/setuid` endpoint.
@@ -110,7 +105,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
 
 ## Vtrack
-- `vtrack.allow-unkonwn-bidder` - flag allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
+- `vtrack.modify-vast-for-unknown-bidder` - flag that allows modifying the VAST value and adding the impression tag to it, for bidders who were not configured in Prebid Server.
 
 ## Adapters
 - `adapters.*` - the section for bidder specific configuration options.
@@ -118,16 +114,29 @@ Removes and downloads file again if depending service cant process probably corr
 There are several typical keys:
 - `adapters.<BIDDER_NAME>.enabled` - indicates the bidder should be active and ready for auction. By default all bidders are disabled.
 - `adapters.<BIDDER_NAME>.endpoint` - the url for submitting bids.
-- `adapters.<BIDDER_NAME>.pbs-enforces-gdpr` - indicates if pbs server provides gdpr support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.pbs-enforces-ccpa` - indicates if PBS server provides CCPA support for bidder or bidder will handle it itself.
+- `adapters.<BIDDER_NAME>.modifying-vast-xml-allowed` - indicates if PBS server is allowed to modify VAST creatives received from this bidder.
 - `adapters.<BIDDER_NAME>.deprecated-names` - comma separated deprecated names of bidder.
-- `adapters.<BIDDER_NAME>.aliases` - comma separated aliases of bidder.
+- `adapters.<BIDDER_NAME>.meta-info.maintainer-email` - specifies maintainer e-mail address that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.app-media-types` - specifies media types supported for app requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.site-media-types` - specifies media types supported for site requests that will be shown in bidder info endpoint response.
+- `adapters.<BIDDER_NAME>.meta-info.supported-vendors` - specifies viewability vendors supported by the bidder.
+- `adapters.<BIDDER_NAME>.meta-info.vendor-id` - specifies TCF vendor ID.
 - `adapters.<BIDDER_NAME>.usersync.url` - the url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.redirect-url` - the redirect part of url for synchronizing UIDs cookie.
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
 
-But feel free to add additional bidder's specific options.
+In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
+Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
+support the same configuration options that their bidder counterparts support except `aliases` (i.e. it's not possible 
+to declare alias of an alias). Another restriction of aliases configuration is that they cannot declare support for media types 
+not supported by their bidders (however aliases could narrow down media types they support). For example: if the bidder 
+is written to not support native site requests, then an alias cannot magically decide to change that; however, if a bidder 
+supports native site requests, and the alias does not want to for some reason, it has the ability to remove that support.
+
+Also, each bidder could have its own bidder-specific options.
 
 ## Logging
 - `logging.http-interaction.max-limit` - maximum value for the number of interactions to log in one take.
@@ -152,7 +161,7 @@ But feel free to add additional bidder's specific options.
 - `admin-endpoints.currency-rates.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.currency-rates.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.currency-rates.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.currency-rates.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.storedrequest.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.storedrequest.path` - the server context path where the endpoint will be accessible.
@@ -167,12 +176,42 @@ But feel free to add additional bidder's specific options.
 - `admin-endpoints.cache-invalidation.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.cache-invalidation.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.cache-invalidation.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.cache-invalidation.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.logging-httpinteraction.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.logging-httpinteraction.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.logging-httpinteraction.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.logging-httpinteraction.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
+
+- `admin-endpoints.tracelog.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.tracelog.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.deals-status.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.deals-status.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.deals-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.deals-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.lineitem-status.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.lineitem-status.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.lineitem-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.lineitem-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+
+- `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
+
+- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
+- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
+- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
+- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
@@ -206,6 +245,9 @@ For `console` backend type available next options:
 - `metrics.console.enabled` - if equals to `true` then `console` will be used to submit metrics.
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
+For `prometheus` backend type available next options:
+- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
 - `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
@@ -236,6 +278,8 @@ For filesystem data source available next options:
 - `settings.filesystem.settings-filename` - location of file settings.
 - `settings.filesystem.stored-requests-dir` - directory with stored requests.
 - `settings.filesystem.stored-imps-dir` - directory with stored imps.
+- `settings.filesystem.stored-responses-dir` - directory with stored responses.
+- `settings.filesystem.categories-dir` - directory with categories.
 
 For database data source available next options:
 - `settings.database.type` - type of database to be used: `mysql` or `postgres`.
@@ -258,27 +302,32 @@ For HTTP data source available next options:
 - `settings.http.endpoint` - the url to fetch stored requests.
 - `settings.http.amp-endpoint` - the url to fetch AMP stored requests.
 - `settings.http.video-endpoint` - the url to fetch video stored requests.
+- `settings.http.category-endpoint` - the url to fetch categories for long form video.
 
 For account processing rules available next options:
 - `settings.enforce-valid-account` - if equals to `true` then request without account id will be rejected with 401.
+- `settings.generate-storedrequest-bidrequest-id` - overrides `bidrequest.id` in amp or app stored request with generated UUID if true. Default value is false. This flag can be overridden by setting `bidrequest.id` as `{{UUID}}` placeholder directly in stored request.
 
 It is possible to specify default account configuration values that will be assumed if account config have them 
 unspecified or missing at all. Example:
 ```yaml
 settings:  
-  default-account-config:
-    events-enabled: true
-    enforce-ccpa: true
-    gdpr: '{"enabled": true}'
-    analytics-sampling-factor: 1
-    default-integration: pbjs
-    analytics-config: '{"auction-events":{"amp":true}}'
+  default-account-config: >
+    {
+      "auction": {
+        "default-integration": "pbjs"
+        "events": {
+          "enabled": true
+        }
+      },
+      "privacy": {
+        "gdpr": {
+          "enabled": true
+        }
+      }
+    }
 ```
 See [application settings](application-settings.md) for full reference of available configuration parameters.
-Be aware that individual configuration values will not be merged with concrete 
-account values if they exist in account configuration but account value will completely replace the default value. For 
-example, if account configuration defines `gdpr` field, it will completely replace `settings.default-account-config.gdpr` 
-value in the final account configuration model.
 
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
@@ -340,11 +389,11 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `gdpr.special-features.sfN.vendor-exceptions[]` - bidder names that will be treated opposite to `sfN.enforce` value.
 - `gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
 - `gdpr.vendorlist.default-timeout-ms` - default operation timeout for obtaining new vendor list.
-- `gdpr.vendorlist.vN.http-endpoint-template` - template string for vendor list url, where `{VERSION}` is used as version number placeholder.
-- `gdpr.vendorlist.vN.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
-- `gdpr.vendorlist.vN.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
-- `gdpr.vendorlist.vN.deprecated` - Flag to show is this vendor list is deprecated or not.
-- `gdpr.vendorlist.vN.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
+- `gdpr.vendorlist.v2.http-endpoint-template` - template string for vendor list url version 2.
+- `gdpr.vendorlist.v2.refresh-missing-list-period-ms` - time to wait between attempts to fetch vendor list version that previously was reported to be missing by origin. Default `3600000` (one hour).
+- `gdpr.vendorlist.v2.fallback-vendor-list-path` - location on the file system of the fallback vendor list that will be used in place of missing vendor list versions. Optional.
+- `gdpr.vendorlist.v2.deprecated` - Flag to show is this vendor list is deprecated or not.
+- `gdpr.vendorlist.v2.cache-dir` - directory for local storage cache for vendor list. Should be with `WRITE` permissions for user application run from.
 
 ## CCPA
 - `ccpa.enforce` - if equals to `true` enforces to check ccpa policy, otherwise ignore ccpa verification.
@@ -361,3 +410,48 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `geolocation.type` - set the geo location service provider, can be `maxmind` or custom provided by hosting company.
 - `geolocation.maxmind` - section for [MaxMind](https://www.maxmind.com) configuration as geo location service provider.
 - `geolocation.maxmind.remote-file-syncer` - use RemoteFileSyncer component for downloading/updating MaxMind database file. See [RemoteFileSyncer](#remote-file-syncer) section for its configuration.
+
+## Analytics
+- `analytics.pubstack.enabled` - if equals to `true` the Pubstack analytics module will be enabled. Default value is `false`. 
+- `analytics.pubstack.endpoint` - url for reporting events and fetching configuration. 
+- `analytics.pubstack.scopeid` - defined the scope provided by the Pubstack Support Team.
+- `analytics.pubstack.configuration-refresh-delay-ms` - delay in milliseconds between remote config updates.
+- `analytics.pubstack.timeout-ms` - timeout in milliseconds for report and fetch config requests.
+- `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
+- `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
+- `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
+
+## Programmatic Guaranteed Delivery
+- `deals.planner.plan-endpoint` - planner endpoint to get plans from.
+- `deals.planner.update-period` - cron expression to start job for requesting Line Item metadata updates from the Planner.
+- `deals.planner.plan-advance-period` - cron expression to start job for advancing Line Items to the next plan.
+- `deals.planner.retry-period-sec` - how long (in seconds) to wait before re-sending a request to the Planner that previously failed with 5xx HTTP error code.
+- `deals.planner.timeout-ms` - default operation timeout for requests to planner's endpoints.
+- `deals.planner.register-endpoint` - register endpoint to get plans from.
+- `deals.planner.register-period-sec` - time period (in seconds) to send register request to the Planner.
+- `deals.planner.username` - username for planner BasicAuth.
+- `deals.planner.password` - password for planner BasicAuth.
+- `deals.delivery-stats.delivery-period` - cron expression to start job for sending delivery progress to planner.
+- `deals.delivery-stats.cached-reports-number` - how many reports to cache while planner is unresponsive.
+- `deals.delivery-stats.timeout-ms` - default operation timeout for requests to delivery progress endpoints.
+- `deals.delivery-stats.username` - username for delivery progress BasicAuth.
+- `deals.delivery-stats.password` - password for delivery progress BasicAuth.
+- `deals.delivery-stats.line-items-per-report` - max number of line items in each report to split for batching. Default is 25.
+- `deals.delivery-stats.reports-interval-ms` - interval in ms between consecutive reports. Default is 0.
+- `deals.delivery-stats.batches-interval-ms` - interval in ms between consecutive batches. Default is 1000.
+- `deals.delivery-stats.request-compression-enabled` - enables request gzip compression when set to true.
+- `deals.delivery-progress.line-item-status-ttl-sec` - how long to store line item's metrics after it was expired.
+- `deals.delivery-progress.cached-plans-number` -  how many plans to store in metrics per line item.
+- `deals.delivery-progress.report-reset-period`- cron expression to start job for closing current delivery progress and starting new one.
+- `deals.delivery-progress-report.competitors-number`- number of line items top competitors to send in delivery progress report.
+- `deals.user-data.user-details-endpoint` - user Data Store endpoint to get user details from.
+- `deals.user-data.win-event-endpoint` - user Data Store endpoint to which win events should be sent.
+- `deals.user-data.timeout` - time to wait (in milliseconds) for User Data Service response.
+- `deals.user-data.user-ids` - list of Rules for determining user identifiers to send to User Data Store.
+- `deals.max-deals-per-bidder` - maximum number of deals to send to each bidder.
+- `deals.alert-proxy.enabled` - enable alert proxy service if `true`.
+- `deals.alert-proxy.url` - alert service endpoint to send alerts to.
+- `deals.alert-proxy.timeout-sec` - default operation timeout for requests to alert service endpoint.
+- `deals.alert-proxy.username` - username for alert proxy BasicAuth.
+- `deals.alert-proxy.password` - password for alert proxy BasicAuth.
+- `deals.alert-proxy.alert-types` - key value pair of alert type and sampling factor to send high priority alert.

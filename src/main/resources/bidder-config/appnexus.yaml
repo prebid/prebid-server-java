@@ -1,12 +1,9 @@
 adapters:
   appnexus:
-    enabled: false
     endpoint: http://ib.adnxs.com/openrtb2
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: districtm
+    aliases:
+      districtm:
+        enabled: false
     meta-info:
       maintainer-email: prebid-server@xandr.com
       app-media-types:
@@ -24,3 +21,4 @@ adapters:
       cookie-family-name: adnxs
       type: redirect
       support-cors: false
+    platform-id: 5

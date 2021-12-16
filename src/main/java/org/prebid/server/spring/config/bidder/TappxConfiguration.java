@@ -5,11 +5,8 @@ import org.prebid.server.bidder.tappx.TappxBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,17 +21,6 @@ public class TappxConfiguration {
 
     private static final String BIDDER_NAME = "tappx";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("tappxConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("tappxConfigurationProperties")
     @ConfigurationProperties("adapters.tappx")
     BidderConfigurationProperties configurationProperties() {
@@ -42,12 +28,14 @@ public class TappxConfiguration {
     }
 
     @Bean
-    BidderDeps tappxBidderDeps() {
+    BidderDeps tappxBidderDeps(BidderConfigurationProperties tappxConfigurationProperties,
+                               @NotBlank @Value("${external-url}") String externalUrl,
+                               JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new TappxBidder(configProperties.getEndpoint(), mapper))
+                .withConfig(tappxConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new TappxBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

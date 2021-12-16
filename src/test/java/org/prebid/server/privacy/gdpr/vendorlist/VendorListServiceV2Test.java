@@ -19,7 +19,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Feature;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialFeature;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.SpecialPurpose;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
@@ -45,10 +45,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.ONE;
-import static org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose.TWO;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
+import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
 public class VendorListServiceV2Test extends VertxTest {
 
@@ -145,13 +145,13 @@ public class VendorListServiceV2Test extends VertxTest {
         final Future<Map<Integer, VendorV2>> future = vendorListService.forVersion(1);
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
         assertThat(future).succeededWith(singletonMap(
                 52, VendorV2.builder()
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
-                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                         .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                         .features(EnumSet.noneOf(Feature.class))
                         .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
@@ -441,7 +441,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
-                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                         .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                         .features(EnumSet.noneOf(Feature.class))
                         .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
@@ -455,7 +455,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 .id(52)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
-                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
@@ -464,7 +464,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 .id(42)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
-                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
@@ -506,7 +506,7 @@ public class VendorListServiceV2Test extends VertxTest {
                         .id(52)
                         .purposes(EnumSet.of(ONE))
                         .legIntPurposes(EnumSet.of(TWO))
-                        .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                        .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                         .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                         .features(EnumSet.noneOf(Feature.class))
                         .specialFeatures(EnumSet.noneOf(SpecialFeature.class))
@@ -590,7 +590,7 @@ public class VendorListServiceV2Test extends VertxTest {
                 .id(52)
                 .purposes(EnumSet.of(ONE))
                 .legIntPurposes(EnumSet.of(TWO))
-                .flexiblePurposes(EnumSet.noneOf(Purpose.class))
+                .flexiblePurposes(EnumSet.noneOf(PurposeCode.class))
                 .specialPurposes(EnumSet.noneOf(SpecialPurpose.class))
                 .features(EnumSet.noneOf(Feature.class))
                 .specialFeatures(EnumSet.noneOf(SpecialFeature.class))

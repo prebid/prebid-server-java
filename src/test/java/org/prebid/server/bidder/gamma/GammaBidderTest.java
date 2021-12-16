@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.gamma.model.GammaBid;
+import org.prebid.server.bidder.gamma.model.GammaBidResponse;
+import org.prebid.server.bidder.gamma.model.GammaSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -150,7 +152,6 @@ public class GammaBidderTest extends VertxTest {
                         tuple("Accept", "*/*"),
                         tuple("Connection", "keep-alive"),
                         tuple("Cache-Control", "no-cache"),
-                        tuple("Accept-Encoding", "gzip, deflate"),
                         tuple("x-openrtb-version", "2.5"));
     }
 
@@ -195,7 +196,6 @@ public class GammaBidderTest extends VertxTest {
                         tuple("Accept", "*/*"),
                         tuple("Connection", "keep-alive"),
                         tuple("Cache-Control", "no-cache"),
-                        tuple("Accept-Encoding", "gzip, deflate"),
                         tuple("User-Agent", "userAgent"),
                         tuple("x-openrtb-version", "2.5"),
                         tuple("X-Forwarded-For", "123.123.123.12"),
@@ -238,13 +238,14 @@ public class GammaBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
         final String adm = "ADM";
-        final GammaBid bid = GammaBid.builder().id("impId").vastXml(adm).build();
+        final Bid bid = Bid.builder().id("impId").build();
+        final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).build();
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
-                BidResponse.builder()
+                GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(bid))
+                        .seatbid(singletonList(GammaSeatBid.builder()
+                                .bid(singletonList(gammaBid))
                                 .build()))
                         .build()));
 
@@ -266,13 +267,14 @@ public class GammaBidderTest extends VertxTest {
 
         final String adm = "ADM";
         final String nurl = "NURL";
-        final GammaBid bid = GammaBid.builder().id("impId").vastXml(adm).vastUrl(nurl).build();
+        final Bid bid = Bid.builder().id("impId").build();
+        final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).vastUrl(nurl).build();
         final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
-                BidResponse.builder()
+                GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(bid))
+                        .seatbid(singletonList(GammaSeatBid.builder()
+                                .bid(singletonList(gammaBid))
                                 .build()))
                         .build()));
 
@@ -350,7 +352,7 @@ public class GammaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final GammaBid expectedBid = GammaBid.builder().adm("ADM").build();
+        final Bid expectedBid = Bid.builder().adm("ADM").build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
     }

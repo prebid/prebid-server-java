@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -27,8 +26,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.emxdigital.ExtImpEmxDigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -67,15 +64,11 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(bidRequest);
-        final MultiMap headers = makeHeaders(request);
-        final String url = makeUrl(request);
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(url)
-                .body(body)
-                .headers(headers)
+                .uri(makeUrl(request))
+                .body(mapper.encodeToBytes(bidRequest))
+                .headers(makeHeaders(request))
                 .payload(request)
                 .build());
     }
@@ -241,26 +234,8 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
         final Long tmax = bidRequest.getTmax();
         final int urlTimeout = tmax == 0 ? 1000 : tmax.intValue();
 
-        if (isDebugEnabled(bidRequest)) {
-            // for passing validation tests
-            return String.format("%s?t=1000&ts=2060541160", endpointUrl);
-        }
-
         return String.format("%s?t=%s&ts=%s&src=pbserver", endpointUrl, urlTimeout,
                 (int) Instant.now().getEpochSecond());
-    }
-
-    /**
-     * Determines debug flag from {@link BidRequest} or {@link ExtRequest}.
-     */
-    private boolean isDebugEnabled(BidRequest bidRequest) {
-        if (Objects.equals(bidRequest.getTest(), 1)) {
-            return true;
-        }
-
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && Objects.equals(extRequestPrebid.getDebug(), 1);
     }
 
     @Override
@@ -285,16 +260,12 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(modifyBid(bid), getBidType(bid.getAdm()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getAdm()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidType(String bidAdm) {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
                 ? BidType.video : BidType.banner;
-    }
-
-    private static Bid modifyBid(Bid bid) {
-        return bid.toBuilder().impid(bid.getId()).build();
     }
 }

@@ -83,7 +83,7 @@ public class SmartrtbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(2);
         assertThat(result.getErrors().get(1).getMessage()).startsWith("Cannot infer publisher ID from bid ext");
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test

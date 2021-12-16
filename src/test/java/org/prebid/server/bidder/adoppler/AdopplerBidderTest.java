@@ -13,6 +13,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -24,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adoppler.ExtImpAdoppler;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -114,53 +114,6 @@ public class AdopplerBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfDuplicateId() throws JsonProcessingException {
-        // given
-        final Imp imp1 = Imp.builder().id("impId").banner(Banner.builder().build()).build();
-        final Imp imp2 = Imp.builder().id("impId").video(Video.builder().build()).build();
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(imp1, imp2))
-                .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest, mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("duplicate $.imp.id impId"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfEmptyImp() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder().id("123")
-                        .banner(null)
-                        .video(null)
-                        .audio(null)
-                        .xNative(null)
-                        .build()))
-                .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest, mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-
-        // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("one of $.imp.banner, $.imp.video, "
-                        + "$.imp.audio and $.imp.native field required"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnErrorIfBidIdEmpty() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -186,7 +139,7 @@ public class AdopplerBidderTest extends VertxTest {
         // given
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(Collections.singletonList(imp)).build();
-        final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(null));
+        final ObjectNode ext = mapper.valueToTree(AdopplerResponseExt.of(AdopplerResponseAdsExt.of(null)));
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .id("321")
@@ -226,7 +179,8 @@ public class AdopplerBidderTest extends VertxTest {
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
     }

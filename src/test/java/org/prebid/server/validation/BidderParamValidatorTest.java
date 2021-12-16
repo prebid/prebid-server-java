@@ -9,7 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
@@ -31,13 +31,15 @@ import java.util.Set;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 public class BidderParamValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
-    private static final String ADFORM = "adform";
+    private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
@@ -57,9 +59,20 @@ public class BidderParamValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(bidderCatalog.names()).willReturn(new HashSet<>(
-                asList(RUBICON, APPNEXUS, ADFORM, BRIGHTROLL, SOVRN, ADTELLIGENT, FACEBOOK, OPENX, EPLANNING,
-                        SOMOAUDIENCE, BEACHFRONT)));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList(
+                RUBICON,
+                APPNEXUS,
+                APPNEXUS_ALIAS,
+                BRIGHTROLL,
+                SOVRN,
+                ADTELLIGENT,
+                FACEBOOK,
+                OPENX,
+                EPLANNING,
+                SOMOAUDIENCE,
+                BEACHFRONT)));
+        given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
+        given(bidderCatalog.bidderInfoByName(eq(APPNEXUS_ALIAS))).willReturn(givenBidderInfo(APPNEXUS));
 
         bidderParamValidator = BidderParamValidator.create(bidderCatalog, "static/bidder-params", jacksonMapper);
     }
@@ -139,29 +152,31 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
+    public void validateShouldReturnValidationMessagesWhenAppnexusAliasImpExtNotValid() {
         // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross", null, null, null, null, null);
+        final ExtImpAppnexus ext = ExtImpAppnexus.builder().member("memberId").build();
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
+        final Set<String> messages = bidderParamValidator.validate(APPNEXUS_ALIAS, node);
 
         // then
-        assertThat(messages).isEmpty();
+        assertThat(messages.size()).isEqualTo(4);
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenAdformImpExtNotValid() {
+    public void validateShouldNotReturnValidationMessagesWhenAppnexusAliasImpExtIsOk() {
         // given
-        final JsonNode node = mapper.createObjectNode();
+        final ExtImpAppnexus ext = ExtImpAppnexus.builder().placementId(1).build();
+
+        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
+        final Set<String> messages = bidderParamValidator.validate(APPNEXUS_ALIAS, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(1);
+        assertThat(messages).isEmpty();
     }
 
     @Test
@@ -376,7 +391,7 @@ public class BidderParamValidatorTest extends VertxTest {
         final Set<String> messages = bidderParamValidator.validate(BEACHFRONT, node);
 
         // then
-        assertThat(messages.size()).isEqualTo(3);
+        assertThat(messages.size()).isEqualTo(2);
     }
 
     @Test
@@ -393,5 +408,24 @@ public class BidderParamValidatorTest extends VertxTest {
         // then
         assertThat(result).isEqualTo(ResourceUtil.readFromClasspath(
                 "org/prebid/server/validation/schema//valid/test-schemas.json"));
+    }
+
+    private static BidderInfo givenBidderInfo(String aliasOf) {
+        return BidderInfo.create(
+                true,
+                true,
+                "https://endpoint.com",
+                aliasOf,
+                null,
+                null,
+                null,
+                null,
+                0,
+                true,
+                false);
+    }
+
+    private static BidderInfo givenBidderInfo() {
+        return givenBidderInfo(null);
     }
 }

@@ -56,7 +56,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, 24, clock);
     }
 
     @After
@@ -67,7 +67,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailOnInvalidUrl() {
         // when and then
-        assertThatThrownBy(() -> httpClient.request(HttpMethod.GET, "invalid_url", null, null, 0L))
+        assertThatThrownBy(() -> httpClient.request(HttpMethod.GET, "invalid_url", null, (String) null, 0L))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Invalid url: invalid_url");
     }
@@ -81,7 +81,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong());
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong());
 
         assertThat(future.succeeded()).isTrue();
     }
@@ -95,7 +95,7 @@ public class CircuitBreakerSecuredHttpClientTest {
         final Future<?> future = doRequest(context);
 
         // then
-        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong());
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong());
 
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -112,7 +112,8 @@ public class CircuitBreakerSecuredHttpClientTest {
         final Future<?> future2 = doRequest(context); // 2 call
 
         // then
-        verify(wrappedHttpClient).request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 call
+        // invoked only on 1 call
+        verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong());
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -134,7 +135,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong()); // invoked only on 1 & 3 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -159,7 +160,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong()); // invoked only on 1 & 3 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong()); // invoked only on 1 & 3 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception");
@@ -173,7 +174,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, 24, clock);
 
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 
@@ -184,7 +185,7 @@ public class CircuitBreakerSecuredHttpClientTest {
 
         // then
         verify(wrappedHttpClient, times(2))
-                .request(any(), anyString(), any(), any(), anyLong()); // invoked on 1 & 2 calls
+                .request(any(), anyString(), any(), (String) any(), anyLong()); // invoked on 1 & 2 calls
 
         assertThat(future1.failed()).isTrue();
         assertThat(future1.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception1");
@@ -196,7 +197,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void circuitBreakerNumberGaugeShouldReportActualNumber(TestContext context) {
         // when
-        doRequest("http://www.some-host-1.com:80/path", context);
+        doRequest(context);
 
         // then
         final ArgumentCaptor<LongSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(LongSupplier.class);
@@ -212,12 +213,12 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest("http://www.some-host-1.com:80/path", context);
+        doRequest(context);
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
         verify(metrics).createHttpClientCircuitBreakerGauge(
-                eq("http_www_some_host_1_com_80"),
+                eq("http_url"),
                 gaugeValueProviderCaptor.capture());
         final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
 
@@ -230,15 +231,15 @@ public class CircuitBreakerSecuredHttpClientTest {
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
-        doRequest("http://www.some-host-1.com:80/path", context); // 1 call
-        doRequest("http://www.some-host-1.com:80/path", context); // 2 call
+        doRequest(context); // 1 call
+        doRequest(context); // 2 call
         doWaitForClosingInterval(context);
-        doRequest("http://www.some-host-1.com:80/path", context); // 3 call
+        doRequest(context); // 3 call
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
         verify(metrics).createHttpClientCircuitBreakerGauge(
-                eq("http_www_some_host_1_com_80"),
+                eq("http_url"),
                 gaugeValueProviderCaptor.capture());
         final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
 
@@ -248,7 +249,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @SuppressWarnings("unchecked")
     private <T> void givenHttpClientReturning(T... results) {
         BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
-                given(wrappedHttpClient.request(any(), anyString(), any(), any(), anyLong()));
+                given(wrappedHttpClient.request(any(), anyString(), any(), (String) any(), anyLong()));
         for (T result : results) {
             if (result instanceof Exception) {
                 stubbing = stubbing.willReturn(Future.failedFuture((Throwable) result));
@@ -258,18 +259,15 @@ public class CircuitBreakerSecuredHttpClientTest {
         }
     }
 
-    private Future<HttpClientResponse> doRequest(String url, TestContext context) {
-        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, url, null, null, 0L);
+    private Future<HttpClientResponse> doRequest(TestContext context) {
+        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, "http://url", null, (String) null,
+                0L);
 
         final Async async = context.async();
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         return future;
-    }
-
-    private Future<HttpClientResponse> doRequest(TestContext context) {
-        return doRequest("http://url", context);
     }
 
     private void doWaitForOpeningInterval(TestContext context) {

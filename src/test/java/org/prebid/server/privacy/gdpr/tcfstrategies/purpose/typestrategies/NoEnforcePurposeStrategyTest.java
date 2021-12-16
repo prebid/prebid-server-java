@@ -11,7 +11,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.Purpose;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
 
 import java.util.Arrays;
@@ -27,7 +27,7 @@ import static org.mockito.BDDMockito.given;
 
 public class NoEnforcePurposeStrategyTest {
 
-    private static final Purpose PURPOSE = Purpose.ONE;
+    private static final PurposeCode PURPOSE_CODE = PurposeCode.ONE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -61,11 +61,11 @@ public class NoEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -77,7 +77,7 @@ public class NoEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
@@ -95,11 +95,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -113,11 +113,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendors.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -131,11 +131,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -149,11 +149,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -172,11 +172,13 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -194,11 +196,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendors.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
 
     @Test
@@ -217,11 +219,13 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -240,11 +244,11 @@ public class NoEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(eq(2))).willReturn(false);
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
 
     @Test
@@ -258,10 +262,10 @@ public class NoEnforcePurposeStrategyTest {
                 VendorV2.empty(1));
 
         // when
-        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE, tcString,
+        final Collection<VendorPermission> result = target.allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 singletonList(vendorPermissionWitGvl1), singletonList(vendorPermissionWitGvl2), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }

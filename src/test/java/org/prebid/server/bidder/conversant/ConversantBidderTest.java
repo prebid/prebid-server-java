@@ -620,6 +620,44 @@ public class ConversantBidderTest extends VertxTest {
                 .matches(id -> id.matches(UUID_REGEX), "matches UUID format");
     }
 
+    @Test
+    public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresentAndImpBidFloorIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(new BigDecimal(-1.00)),
+                extBuilder -> extBuilder.bidfloor(BigDecimal.ONE));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetImpBidFloorFromImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(new BigDecimal(-1.00)),
+                extBuilder -> extBuilder.bidfloor(new BigDecimal(-2.00)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(new BigDecimal(-1.00));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,

@@ -1,22 +1,33 @@
 package org.prebid.server.settings;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
 public class EnrichingApplicationSettings implements ApplicationSettings {
 
     private final ApplicationSettings delegate;
+    private final JsonMerger jsonMerger;
     private final Account defaultAccount;
 
-    public EnrichingApplicationSettings(ApplicationSettings delegate, Account defaultAccount) {
+    public EnrichingApplicationSettings(String defaultAccountConfig,
+                                        ApplicationSettings delegate,
+                                        JsonMerger jsonMerger) {
+
         this.delegate = Objects.requireNonNull(delegate);
-        this.defaultAccount = Objects.equals(Account.builder().build(), defaultAccount) ? null : defaultAccount;
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
+
+        this.defaultAccount = parseAccount(defaultAccountConfig);
     }
 
     @Override
@@ -28,8 +39,8 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         }
 
         return accountFuture
-                .map(account -> account.merge(defaultAccount))
-                .otherwise(Account.empty(accountId).merge(defaultAccount));
+                .map(this::mergeAccounts)
+                .otherwise(mergeAccounts(Account.empty(accountId)));
     }
 
     @Override
@@ -44,6 +55,11 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return delegate.getStoredResponses(responseIds, timeout);
+    }
+
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return delegate.getCategories(primaryAdServer, publisher, timeout);
     }
 
     @Override
@@ -62,5 +78,25 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                                                        Timeout timeout) {
 
         return delegate.getVideoStoredData(accountId, requestIds, impIds, timeout);
+    }
+
+    private static Account parseAccount(String accountConfig) {
+        try {
+            final Account account = StringUtils.isNotBlank(accountConfig)
+                    ? new ObjectMapper().readValue(accountConfig, Account.class)
+                    : null;
+
+            return isNotEmpty(account) ? account : null;
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
+    }
+
+    private static boolean isNotEmpty(Account account) {
+        return account != null && !account.equals(Account.builder().build());
+    }
+
+    private Account mergeAccounts(Account account) {
+        return jsonMerger.merge(account, defaultAccount, Account.class);
     }
 }

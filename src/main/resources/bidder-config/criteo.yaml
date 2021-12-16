@@ -1,0 +1,18 @@
+adapters:
+  criteo:
+    endpoint: https://bidder.criteo.com/cdb?profileId=230
+    meta-info:
+      maintainer-email: prebid@criteo.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 91
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: criteo
+      type: redirect
+      support-cors: false
+    generate-slot-id: true

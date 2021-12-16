@@ -70,11 +70,17 @@ public class TargetingKeywordsCreator {
      * Stores http path for cache service endpoint.
      */
     private static final String HB_CACHE_PATH_KEY = "hb_cache_path";
+    /**
+     * Stores category duration for video bids
+     */
+    private static final String HB_CATEGORY_DURATION_KEY = "hb_pb_cat_dur";
 
     /**
      * Stores bid's format. For example "video" or "banner".
      */
     private static final String HB_FORMAT_KEY = "hb_format";
+
+    private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
@@ -140,17 +146,18 @@ public class TargetingKeywordsCreator {
                                 boolean winningBid,
                                 String cacheId,
                                 String format,
-                                String vastCacheId) {
+                                String vastCacheId,
+                                String categoryDuration) {
 
         final Map<String, String> keywords = makeFor(
                 bidder,
                 winningBid,
                 bid.getPrice(),
-                "0.0",
                 bid.getW(),
                 bid.getH(),
                 cacheId,
                 vastCacheId,
+                categoryDuration,
                 format,
                 bid.getDealid());
 
@@ -170,18 +177,18 @@ public class TargetingKeywordsCreator {
     private Map<String, String> makeFor(String bidder,
                                         boolean winningBid,
                                         BigDecimal price,
-                                        String defaultCpm,
                                         Integer width,
                                         Integer height,
                                         String cacheId,
                                         String vastCacheId,
+                                        String categoryDuration,
                                         String format,
                                         String dealId) {
 
         final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
                 Collections.emptySet());
 
-        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : defaultCpm;
+        final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
         keywordMap.put(HB_PB_KEY, roundedCpm);
 
         keywordMap.put(HB_BIDDER_KEY, bidder);
@@ -204,11 +211,16 @@ public class TargetingKeywordsCreator {
         if (StringUtils.isNotBlank(format) && includeFormat) {
             keywordMap.put(HB_FORMAT_KEY, format);
         }
+
+        // get Line Item by dealId
         if (StringUtils.isNotBlank(dealId)) {
             keywordMap.put(HB_DEAL_KEY, dealId);
         }
         if (isApp) {
             keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
+        }
+        if (StringUtils.isNotBlank(categoryDuration)) {
+            keywordMap.put(HB_CATEGORY_DURATION_KEY, categoryDuration);
         }
 
         return keywordMap.asMap();

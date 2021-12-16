@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Yieldone {@link Bidder} implementation.
- */
 public class YieldoneBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYieldone>> YIELDONE_EXT_TYPE_REFERENCE =
@@ -66,13 +63,13 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encode(outgoingRequest))
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 
@@ -102,14 +99,18 @@ public class YieldoneBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final List<Imp> requestImps = bidRequest.getImp();
             final BidResponse bidResponse = decodeBodyToBidResponse(httpCall);
+            if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+                return Result.empty();
+            }
+
             final List<BidderBid> bidderBids = bidResponse.getSeatbid().stream()
                     .filter(Objects::nonNull)
                     .map(SeatBid::getBid)
                     .filter(Objects::nonNull)
                     .flatMap(Collection::stream)
-                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), requestImps), bidResponse.getCur()))
+                    .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                            bidResponse.getCur()))
                     .collect(Collectors.toList());
 
             return Result.withValues(bidderBids);

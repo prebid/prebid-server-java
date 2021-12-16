@@ -31,9 +31,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Silvermob {@link Bidder} implementation.
- */
 public class SilvermobBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSilvermob>> SILVERMOB_EXT_TYPE_REFERENCE =
@@ -78,7 +75,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImp))
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 
@@ -145,7 +142,9 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());

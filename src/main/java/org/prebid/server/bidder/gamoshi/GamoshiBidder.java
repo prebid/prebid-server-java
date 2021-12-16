@@ -32,9 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Gamoshi {@link Bidder} implementation.
- */
 public class GamoshiBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -72,19 +69,18 @@ public class GamoshiBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         final String requestUrl = endpointUrl + "/r/" + firstImpExt.getSupplyPartnerId() + "/bidr?bidder=prebid-server";
         final MultiMap headers = resolveHeaders(request.getDevice());
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(requestUrl)
-                        .headers(headers)
-                        .payload(outgoingRequest)
-                        .body(body)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(requestUrl)
+                                .headers(headers)
+                                .payload(outgoingRequest)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .build()),
                 errors);
     }
 
@@ -149,7 +145,7 @@ public class GamoshiBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final Map<String, BidType> requestImpIdToBidType = bidRequest.getImp().stream()
+        final Map<String, BidType> impIdToBidType = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, GamoshiBidder::getBidType));
 
         return bidResponse.getSeatbid().stream()
@@ -157,8 +153,8 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        requestImpIdToBidType.getOrDefault(bid.getImpid(), BidType.banner), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner),
+                        bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

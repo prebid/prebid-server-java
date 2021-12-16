@@ -1,0 +1,27 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "123",
+      "ext": {
+        "algorix": {
+          "sid": "testSid",
+          "token": "testToken",
+          "placementId": "testPlacementId",
+          "appId": "testAppId",
+          "region": "APAC"
+        }
+      }
+    }
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

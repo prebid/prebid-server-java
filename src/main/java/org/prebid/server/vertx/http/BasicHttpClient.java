@@ -4,12 +4,14 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 /**
  * Simple wrapper around {@link HttpClient} with general functionality.
@@ -27,12 +29,31 @@ public class BasicHttpClient implements HttpClient {
     @Override
     public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
                                               long timeoutMs) {
+        return request(method, url, headers, timeoutMs, body,
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body));
+    }
+
+    @Override
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body,
+                                              long timeoutMs) {
+        return request(method, url, headers, timeoutMs, body,
+                (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)));
+    }
+
+    private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, long timeoutMs,
+                                                   T body, Consumer<HttpClientRequest> requestBodySetter) {
         final Promise<HttpClientResponse> promise = Promise.promise();
 
         if (timeoutMs <= 0) {
             failResponse(new TimeoutException("Timeout has been exceeded"), promise);
         } else {
-            final HttpClientRequest httpClientRequest = httpClient.requestAbs(method, url);
+            final HttpClientRequest httpClientRequest;
+            try {
+                httpClientRequest = httpClient.requestAbs(method, url);
+            } catch (Exception e) {
+                failResponse(e, promise);
+                return promise.future();
+            }
 
             // Vert.x HttpClientRequest timeout doesn't aware of case when a part of the response body is received,
             // but remaining part is delayed. So, overall request/response timeout is involved to fix it.
@@ -48,12 +69,11 @@ public class BasicHttpClient implements HttpClient {
             }
 
             if (body != null) {
-                httpClientRequest.end(body);
+                requestBodySetter.accept(httpClientRequest);
             } else {
                 httpClientRequest.end();
             }
         }
-
         return promise.future();
     }
 

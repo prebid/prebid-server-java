@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.amx.ExtImpAmx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,9 +36,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * AMX {@link Bidder} implementation.
- */
 public class AmxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAmx>> AMX_EXT_TYPE_REFERENCE =
@@ -54,8 +52,17 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     public AmxBidder(String endpointUrl, JacksonMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper);
-        this.endpointUrl = new URIBuilder()
-                .setPath(HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl)))
+        this.endpointUrl = resolveEndpointUrl(endpointUrl);
+    }
+
+    private static String resolveEndpointUrl(String url) {
+        final URIBuilder uriBuilder;
+        try {
+            uriBuilder = new URIBuilder(HttpUtil.validateUrl(Objects.requireNonNull(url)));
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(String.format("Invalid url: %s, error: %s", url, e.getMessage()));
+        }
+        return uriBuilder
                 .addParameter(VERSION_PARAM, ADAPTER_VERSION)
                 .toString();
     }
@@ -90,7 +97,7 @@ public class AmxBidder implements Bidder<BidRequest> {
                         .uri(endpointUrl)
                         .headers(HttpUtil.headers())
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build()), errors);
     }
 

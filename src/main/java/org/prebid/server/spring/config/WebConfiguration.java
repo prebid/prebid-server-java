@@ -14,16 +14,18 @@ import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.auction.AmpRequestFactory;
 import org.prebid.server.auction.AmpResponsePostProcessor;
-import org.prebid.server.auction.AuctionRequestFactory;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.VideoRequestFactory;
 import org.prebid.server.auction.VideoResponseFactory;
+import org.prebid.server.auction.requestfactory.AmpRequestFactory;
+import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
+import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserService;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -50,6 +52,7 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -114,10 +117,12 @@ public class WebConfiguration {
                                         @Value("${http.ssl}") boolean ssl,
                                         @Value("${http.jks-path}") String jksPath,
                                         @Value("${http.jks-password}") String jksPassword) {
+
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
+                .setDecompressionSupported(true)
                 .setIdleTimeout(10); // kick off long processing requests
 
         if (ssl) {
@@ -213,6 +218,7 @@ public class WebConfiguration {
             Metrics metrics,
             Clock clock,
             HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
@@ -222,6 +228,7 @@ public class WebConfiguration {
                 metrics,
                 clock,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 mapper);
     }
 
@@ -236,6 +243,7 @@ public class WebConfiguration {
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
             HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
         return new AmpHandler(
@@ -248,6 +256,7 @@ public class WebConfiguration {
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 mapper);
     }
 
@@ -256,13 +265,22 @@ public class WebConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
+            CacheService cacheService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
-        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
-                clock, mapper);
+        return new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService,
+               cacheService, analyticsReporter,
+                metrics,
+                clock,
+                prebidVersionProvider,
+                mapper);
     }
 
     @Bean
@@ -330,7 +348,8 @@ public class WebConfiguration {
     @Bean
     VtrackHandler vtrackHandler(
             @Value("${vtrack.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${vtrack.allow-unkonwn-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.allow-unknown-bidder}") boolean allowUnknownBidder,
+            @Value("${vtrack.modify-vast-for-unknown-bidder}") boolean modifyVastForUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             CacheService cacheService,
@@ -340,6 +359,7 @@ public class WebConfiguration {
         return new VtrackHandler(
                 defaultTimeoutMs,
                 allowUnknownBidder,
+                modifyVastForUnknownBidder,
                 applicationSettings,
                 bidderCatalog,
                 cacheService,
@@ -379,10 +399,25 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler eventNotificationHandler(AnalyticsReporterDelegator analyticsReporterDelegator,
-                                                      TimeoutFactory timeoutFactory,
-                                                      ApplicationSettings applicationSettings) {
-        return new NotificationEventHandler(analyticsReporterDelegator, timeoutFactory, applicationSettings);
+    NotificationEventHandler notificationEventHandler(
+            UidsCookieService uidsCookieService,
+            @Autowired(required = false) ApplicationEventService applicationEventService,
+            @Autowired(required = false) UserService userService,
+            AnalyticsReporterDelegator analyticsReporterDelegator,
+            TimeoutFactory timeoutFactory,
+            ApplicationSettings applicationSettings,
+            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
+            @Value("${deals.enabled}") boolean dealsEnabled) {
+
+        return new NotificationEventHandler(
+                uidsCookieService,
+                applicationEventService,
+                userService,
+                analyticsReporterDelegator,
+                timeoutFactory,
+                applicationSettings,
+                defaultTimeoutMillis,
+                dealsEnabled);
     }
 
     @Bean

@@ -4,13 +4,9 @@ import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.dmx.DmxBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
-import org.prebid.server.spring.config.bidder.model.UsersyncConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,17 +21,6 @@ public class DmxConfiguration {
 
     private static final String BIDDER_NAME = "dmx";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("dmxConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("dmxConfigurationProperties")
     @ConfigurationProperties("adapters.dmx")
     BidderConfigurationProperties configurationProperties() {
@@ -43,14 +28,14 @@ public class DmxConfiguration {
     }
 
     @Bean
-    BidderDeps dmxBidderDeps() {
-        final UsersyncConfigurationProperties usersync = configProperties.getUsersync();
+    BidderDeps dmxBidderDeps(BidderConfigurationProperties dmxConfigurationProperties,
+                             @NotBlank @Value("${external-url}") String externalUrl,
+                             JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(usersync, externalUrl))
-                .bidderCreator(() -> new DmxBidder(configProperties.getEndpoint(), mapper))
+                .withConfig(dmxConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new DmxBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

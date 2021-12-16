@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adocean;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -75,6 +76,34 @@ public class AdoceanBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("invalid domain", "masterId",
+                                        "adoceanmyaozpniqismex")))).build()))
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Invalid url: https://invalid domain/");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                });
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateRequestForEveryValidImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -111,10 +140,10 @@ public class AdoceanBidderTest extends VertxTest {
                         + "in imp with id : notValidImp"));
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
-                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.1.0&id="
+                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.2.0&id="
                         + "masterId2&nc=1&nosecure=1&aid=slaveId%3Ai2-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=slaveId%7E577x333");
     }
@@ -175,7 +204,7 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1&nosecure=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1&nosecure=1"
                         + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1");
     }
 
@@ -210,7 +239,7 @@ public class AdoceanBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.1.0&id=masterId&nc=1"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1&hcuserid=testBuyerUid"
                         + "&aosspsizes=slaveId%7E300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2%7E577x333");
     }
@@ -281,7 +310,7 @@ public class AdoceanBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
         final HttpCall<Void> httpCall = givenHttpCall(null, "");
 
@@ -360,6 +389,97 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getValue()).isEqualTo(Collections.emptyList());
     }
 
+    @Test
+    public void makeHttpRequestsShouldBuildUrlIfAppIsPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex"))))
+                        .build()))
+                .test(1)
+                .app(App.builder().name("name").bundle("bundle").domain("domain").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1"
+                        + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent"
+                        + "&gdpr=1&app=1&appname=name&appbundle=bundle&appdomain=domain");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldBuildUrlIfDeviceWithIfaIsPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex"))))
+                        .build()))
+                .test(1)
+                .device(Device.builder().ifa("ifa").os("os").osv("osv").model("model").make("make").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
+                        + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
+                        + "&gdpr_consent=consent&gdpr=1&ifa=ifa&devos=os&devosv=osv&devmodel=model&devmake=make");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldBuildUrlIfDeviceWithIfaIsNotPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex"))))
+                        .build()))
+                .test(1)
+                .device(Device.builder().dpidmd5("dpidmd5").os("os").osv("osv").model("model").make("make").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                        + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
+                        + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
+                        + "&gdpr_consent=consent&gdpr=1&dpidmd5=dpidmd5&devos=os&devosv=osv"
+                        + "&devmodel=model&devmake=make");
+    }
+
     private static AdoceanResponseAdUnit adoceanResponseCreator(
             Function<AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder,
                     AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder> adoceanCustomizer) {
@@ -399,10 +519,11 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody) {
+    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody)
+            throws JsonProcessingException {
         return HttpCall.success(
                 HttpRequest.<Void>builder()
-                        .body(requestBody)
+                        .body(mapper.writeValueAsBytes(requestBody))
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"
                                 + "&nc=1&nosecure=1&pbsrv_v=1.0.0")
                         .build(),

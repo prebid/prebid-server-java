@@ -28,6 +28,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
+import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -127,7 +128,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("abc")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20), BigDecimal.ONE))))
+                                ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20),
+                                        BigDecimal.ONE, ExtData.of("pbAdSlot")))))
                         .banner(Banner.builder().w(40).h(30).build())
                         .build()))
                 .app(App.builder().ext(ExtApp.of(null, null)).build())
@@ -145,7 +147,8 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
                 + "&us_privacy=&instant_play_capable=true&stayInIframe=false&height=10&width=20"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8";
+                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8"
+                + "&gpid=pbAdSlot";
         final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
                 DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
 
@@ -153,7 +156,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -181,8 +184,8 @@ public class SharethroughBidderTest extends VertxTest {
                 .build();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, null, null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                                "pkey", false, null, null, null))))
                         .build()))
                 .site(Site.builder().page("http://page.com").build())
                 .device(Device.builder().build())
@@ -207,7 +210,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue()).doesNotContainNull()
                 .hasSize(1).element(0)
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsString(expectedPayload), HttpRequest::getBody)
+                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
                 .returns(expectedPayload, HttpRequest::getPayload)
                 .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
     }

@@ -47,9 +47,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Facebook {@link Bidder} implementation.
- */
 public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
@@ -125,12 +122,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers)
                 .payload(outgoingRequest)
                 .build();
@@ -156,9 +151,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
             if (StringUtils.isBlank(extImpFacebook.getPublisherId())) {
                 throw new PreBidException("Missing publisherId param");
             }
-
             return extImpFacebook;
-
         } else if (splitLength == 2) {
             return ExtImpFacebook.of(placementSplit[1], placementSplit[0]);
         } else {
@@ -317,18 +310,19 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException(String.format("bid %s missing 'bid_id' in 'adm'", bid.getId()));
             }
 
-            bid.setAdid(bidId);
-            bid.setCrid(bidId);
+            final Bid modifiedBid = bid.toBuilder()
+                    .adid(bidId)
+                    .crid(bidId)
+                    .build();
 
-            return BidderBid.of(bid, resolveBidType(bid.getImpid(), imps), currency);
-
+            return BidderBid.of(modifiedBid, getBidType(modifiedBid.getImpid(), imps), currency);
         } catch (DecodeException | PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 final BidType bidType = resolveImpType(imp);
@@ -353,16 +347,13 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Publisher publisher = app != null ? app.getPublisher() : null;
         final String publisherId = publisher != null ? publisher.getId() : null;
-
         if (StringUtils.isEmpty(publisherId)) {
             return null;
         }
 
-        final String url = String.format(timeoutNotificationUrlTemplate, this.platformId, publisherId, requestId);
-
         return HttpRequest.<Void>builder()
                 .method(HttpMethod.GET)
-                .uri(url)
+                .uri(String.format(timeoutNotificationUrlTemplate, platformId, publisherId, requestId))
                 .build();
     }
 }

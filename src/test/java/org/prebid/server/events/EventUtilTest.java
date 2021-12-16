@@ -1,7 +1,6 @@
 package org.prebid.server.events;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -30,7 +29,7 @@ public class EventUtilTest {
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
     }
 
@@ -217,7 +216,8 @@ public class EventUtilTest {
                 .add("b", "bidId")
                 .add("ts", "1000")
                 .add("f", "i")
-                .add("x", "0"));
+                .add("x", "0")
+                .add("l", "lineItemId"));
 
         // when
         final EventRequest result = EventUtil.from(routingContext);
@@ -231,6 +231,7 @@ public class EventUtilTest {
                 .timestamp(1000L)
                 .format(EventRequest.Format.image)
                 .analytics(EventRequest.Analytics.disabled)
+                .lineItemId("lineItemId")
                 .build());
     }
 
@@ -264,6 +265,7 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -271,6 +273,7 @@ public class EventUtilTest {
                 .integration("pbjs")
                 .analytics(EventRequest.Analytics.enabled)
                 .timestamp(1000L)
+                .lineItemId("lineItemId")
                 .build();
 
         // when
@@ -278,14 +281,17 @@ public class EventUtilTest {
 
         // then
         assertThat(result).isEqualTo(
-                "http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1");
+                "http://external-url/event?t=win&b=bidId&a=accountId"
+                        + "&aid=auctionId&ts=1000&bidder=bidder&f=b&int=pbjs&x=1"
+                        + "&l=lineItemId");
     }
 
     @Test
-    public void toUrlShouldReturnExpectedUrlWithoutFormatAndAnalytics() {
+    public void toUrlShouldReturnExpectedUrlWithoutFormatAndAnalyticsAndLineItemId() {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -296,7 +302,8 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&ts=1000&bidder=bidder&int=");
+        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId"
+                + "&aid=auctionId&ts=1000&bidder=bidder&int=");
     }
 
     @Test
@@ -304,6 +311,7 @@ public class EventUtilTest {
         // given
         final EventRequest eventRequest = EventRequest.builder()
                 .type(EventRequest.Type.win)
+                .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
@@ -314,6 +322,7 @@ public class EventUtilTest {
         final String result = EventUtil.toUrl("http://external-url", eventRequest);
 
         // then
-        assertThat(result).isEqualTo("http://external-url/event?t=win&b=bidId&a=accountId&bidder=bidder&int=");
+        assertThat(result).isEqualTo("http://external-url/event?t=win"
+                + "&b=bidId&a=accountId&aid=auctionId&bidder=bidder&int=");
     }
 }

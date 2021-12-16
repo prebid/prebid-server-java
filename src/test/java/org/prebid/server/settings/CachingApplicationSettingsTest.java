@@ -14,12 +14,15 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -69,7 +72,12 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        final Account account = Account.builder().id("accountId").priceGranularity("med").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 
@@ -145,7 +153,12 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldUpdateMetrics() {
         // given
-        final Account account = Account.builder().id("accountId").priceGranularity("med").build();
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
         given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 
@@ -156,6 +169,83 @@ public class CachingApplicationSettingsTest {
         // then
         verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.miss));
         verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.hit));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnResultFromCacheOnSuccessiveCalls() {
+        // given
+        given(applicationSettings.getCategories(eq("adServer"), eq("publisher"), same(timeout)))
+                .willReturn(Future.succeededFuture(singletonMap("iab", "id")));
+
+        // when
+        final Future<Map<String, String>> future
+                = cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
+        verify(applicationSettings).getCategories(eq("adServer"), eq("publisher"), same(timeout));
+        verifyNoMoreInteractions(applicationSettings);
+    }
+
+    @Test
+    public void getCategoriesShouldPropagateFailure() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        final Future<Map<String, String>> future =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getCategoriesShouldCachePreBidException() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        final Future<Map<String, String>> lastFuture =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        verify(applicationSettings).getCategories(anyString(), anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getCategoriesShouldNotCacheNotPreBidException() {
+        // given
+        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+                .willReturn(Future.failedFuture(new TimeoutException("timeout")));
+
+        // when
+
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        final Future<Map<String, String>> lastFuture =
+                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+
+        // then
+        verify(applicationSettings, times(3)).getCategories(anyString(), anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(TimeoutException.class)
+                .hasMessage("timeout");
     }
 
     @Test

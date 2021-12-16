@@ -16,60 +16,93 @@ public class EventsService {
     /**
      * Returns {@link Events} object based on given params.
      */
-    public Events createEvent(String bidId, String bidder, String accountId, Long timestamp, String integration) {
+    public Events createEvent(String bidId,
+                              String bidder,
+                              String accountId,
+                              String lineItemId,
+                              boolean analyticsEnabled,
+                              EventsContext eventsContext) {
         return Events.of(
                 eventUrl(
                         EventRequest.Type.win,
                         bidId,
                         bidder,
                         accountId,
-                        timestamp,
+                        lineItemId,
+                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
-                        integration),
+                        eventsContext),
                 eventUrl(
                         EventRequest.Type.imp,
                         bidId,
                         bidder,
                         accountId,
-                        timestamp,
+                        lineItemId,
+                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
-                        integration));
+                        eventsContext));
     }
 
     /**
      * Returns url for win tracking.
      */
-    public String winUrl(String bidId, String bidder, String accountId, Long timestamp, String integration) {
+    public String winUrl(String bidId, String bidder, String accountId, String lineItemId,
+                         boolean analyticsEnabled, EventsContext eventsContext) {
         return eventUrl(
-                EventRequest.Type.win, bidId, bidder, accountId, timestamp, EventRequest.Format.image, integration);
+                EventRequest.Type.win,
+                bidId,
+                bidder,
+                accountId,
+                lineItemId,
+                analytics(analyticsEnabled),
+                EventRequest.Format.image,
+                eventsContext);
     }
 
     /**
      * Returns url for VAST tracking.
      */
-    public String vastUrlTracking(String bidId, String bidder, String accountId, Long timestamp, String integration) {
-        return eventUrl(
-                EventRequest.Type.imp, bidId, bidder, accountId, timestamp, EventRequest.Format.blank, integration);
+    public String vastUrlTracking(String bidId,
+                                  String bidder,
+                                  String accountId,
+                                  String lineItemId,
+                                  EventsContext eventsContext) {
+        return eventUrl(EventRequest.Type.imp,
+                bidId,
+                bidder,
+                accountId,
+                lineItemId,
+                null,
+                EventRequest.Format.blank,
+                eventsContext);
     }
 
     private String eventUrl(EventRequest.Type type,
                             String bidId,
                             String bidder,
                             String accountId,
-                            Long timestamp,
+                            String lineItemId,
+                            EventRequest.Analytics analytics,
                             EventRequest.Format format,
-                            String integration) {
+                            EventsContext eventsContext) {
 
         final EventRequest eventRequest = EventRequest.builder()
                 .type(type)
                 .bidId(bidId)
+                .auctionId(eventsContext.getAuctionId())
                 .accountId(accountId)
                 .bidder(bidder)
-                .timestamp(timestamp)
+                .timestamp(eventsContext.getAuctionTimestamp())
                 .format(format)
-                .integration(integration)
+                .integration(eventsContext.getIntegration())
+                .lineItemId(lineItemId)
+                .analytics(analytics)
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);
+    }
+
+    private static EventRequest.Analytics analytics(boolean analyticsEnabled) {
+        return analyticsEnabled ? null : EventRequest.Analytics.disabled;
     }
 }

@@ -5,11 +5,8 @@ import org.prebid.server.bidder.adtelligent.AdtelligentBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,17 +21,6 @@ public class AdtelligentConfiguration {
 
     private static final String BIDDER_NAME = "adtelligent";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("adtelligentConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("adtelligentConfigurationProperties")
     @ConfigurationProperties("adapters.adtelligent")
     BidderConfigurationProperties configurationProperties() {
@@ -42,12 +28,14 @@ public class AdtelligentConfiguration {
     }
 
     @Bean
-    BidderDeps adtelligentBidderDeps() {
+    BidderDeps adtelligentBidderDeps(BidderConfigurationProperties adtelligentConfigurationProperties,
+                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                     JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new AdtelligentBidder(configProperties.getEndpoint(), mapper))
+                .withConfig(adtelligentConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new AdtelligentBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

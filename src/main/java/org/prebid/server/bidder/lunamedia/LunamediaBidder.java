@@ -37,9 +37,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Lunamedia {@link Bidder} implementation.
- */
 public class LunamediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLunamedia>> IMP_EXT_TYPE_REFERENCE = new
@@ -158,7 +155,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(updatedBidRequest))
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers())
                     .payload(updatedBidRequest)
                     .build();
@@ -222,11 +219,11 @@ public class LunamediaBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 return imp.getVideo() != null ? BidType.video : BidType.banner;

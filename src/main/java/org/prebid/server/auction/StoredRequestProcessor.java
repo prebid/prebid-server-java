@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
@@ -22,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.VideoStoredDataResult;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,53 +37,43 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Executes stored request processing
+ * Executes stored request processing.
  */
 public class StoredRequestProcessor {
 
+    private static final String OVERRIDE_BID_REQUEST_ID_TEMPLATE = "{{UUID}}";
+
     private final long defaultTimeout;
     private final BidRequest defaultBidRequest;
+    private final boolean generateBidRequestId;
     private final ApplicationSettings applicationSettings;
-    private final TimeoutFactory timeoutFactory;
+    private final IdGenerator idGenerator;
     private final Metrics metrics;
+    private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
     private final JsonMerger jsonMerger;
 
-    private StoredRequestProcessor(long defaultTimeout,
-                                   BidRequest defaultBidRequest,
+    public StoredRequestProcessor(long defaultTimeout,
+                                   String defaultBidRequestPath,
+                                   boolean generateBidRequestId,
+                                   FileSystem fileSystem,
                                    ApplicationSettings applicationSettings,
+                                   IdGenerator idGenerator,
                                    Metrics metrics,
                                    TimeoutFactory timeoutFactory,
                                    JacksonMapper mapper,
                                    JsonMerger jsonMerger) {
 
         this.defaultTimeout = defaultTimeout;
-        this.defaultBidRequest = defaultBidRequest;
-        this.applicationSettings = applicationSettings;
-        this.timeoutFactory = timeoutFactory;
-        this.metrics = metrics;
-        this.mapper = mapper;
-        this.jsonMerger = jsonMerger;
-    }
-
-    public static StoredRequestProcessor create(long defaultTimeout,
-                                                String defaultBidRequestPath,
-                                                FileSystem fileSystem,
-                                                ApplicationSettings applicationSettings,
-                                                Metrics metrics,
-                                                TimeoutFactory timeoutFactory,
-                                                JacksonMapper mapper,
-                                                JsonMerger jsonMerger) {
-
-        return new StoredRequestProcessor(
-                defaultTimeout,
-                readBidRequest(
-                        defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper)),
-                Objects.requireNonNull(applicationSettings),
-                Objects.requireNonNull(metrics),
-                Objects.requireNonNull(timeoutFactory),
-                Objects.requireNonNull(mapper),
-                Objects.requireNonNull(jsonMerger));
+        this.defaultBidRequest = readBidRequest(
+                defaultBidRequestPath, Objects.requireNonNull(fileSystem), Objects.requireNonNull(mapper));
+        this.generateBidRequestId = generateBidRequestId;
+        this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.idGenerator = Objects.requireNonNull(idGenerator);
+        this.metrics = Objects.requireNonNull(metrics);
+        this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.mapper = Objects.requireNonNull(mapper);
+        this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
     /**
@@ -90,12 +82,12 @@ public class StoredRequestProcessor {
      * fetched jsons from source. In case any error happen during the process, returns failedFuture with
      * InvalidRequestException {@link InvalidRequestException} as cause.
      */
-    Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
+    public Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
             bidRequestToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
-                    Collections.singletonList(bidRequest), this::getStoredRequestFromBidRequest);
+                    Collections.singletonList(bidRequest), StoredRequestProcessor::getStoredRequestFromBidRequest);
 
             impToStoredRequestId = mapStoredRequestHolderToStoredRequestId(
                     bidRequest.getImp(), this::getStoredRequestFromImp);
@@ -114,28 +106,32 @@ public class StoredRequestProcessor {
                         .compose(storedDataResult -> updateMetrics(storedDataResult, requestIds, impIds));
 
         return storedRequestsToBidRequest(
-                storedDataFuture, bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId);
+                storedDataFuture, bidRequest, bidRequestToStoredRequestId.get(bidRequest), impToStoredRequestId)
+                .map(this::generateBidRequestIdForApp);
     }
 
     /**
-     * Fetches AMP request from the source.
+     * Fetches the AMP request from the source.
      */
-    Future<BidRequest> processAmpRequest(String accountId, String ampRequestId) {
-        final BidRequest bidRequest = defaultBidRequest != null ? defaultBidRequest : BidRequest.builder().build();
+    public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture =
-                applicationSettings.getAmpStoredData(
-                        accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
+                applicationSettings.getAmpStoredData(accountId, Collections.singleton(ampRequestId),
+                                Collections.emptySet(), timeout(bidRequest))
                         .compose(storedDataResult -> updateMetrics(
                                 storedDataResult, Collections.singleton(ampRequestId), Collections.emptySet()));
 
-        return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap());
+        return storedRequestsToBidRequest(ampStoredDataFuture, bidRequest, ampRequestId, Collections.emptyMap())
+                .map(this::generateBidRequestId);
     }
 
     /**
      * Fetches stored request.video and map existing values to imp.id.
      */
-    Future<VideoStoredDataResult> videoStoredDataResult(String accountId, List<Imp> imps, List<String> errors,
+    Future<VideoStoredDataResult> videoStoredDataResult(String accountId,
+                                                        List<Imp> imps,
+                                                        List<String> errors,
                                                         Timeout timeout) {
+
         final Map<String, String> storedIdToImpId =
                 mapStoredRequestHolderToStoredRequestId(imps, this::getStoredRequestFromImp)
                         .entrySet().stream()
@@ -146,17 +142,22 @@ public class StoredRequestProcessor {
                 .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
     }
 
-    private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult, Set<String> requestIds,
+    private Future<StoredDataResult> updateMetrics(StoredDataResult storedDataResult,
+                                                   Set<String> requestIds,
                                                    Set<String> impIds) {
+
         requestIds.forEach(
                 id -> metrics.updateStoredRequestMetric(storedDataResult.getStoredIdToRequest().containsKey(id)));
-        impIds.forEach(id -> metrics.updateStoredImpsMetric(storedDataResult.getStoredIdToImp().containsKey(id)));
+
+        impIds.forEach(
+                id -> metrics.updateStoredImpsMetric(storedDataResult.getStoredIdToImp().containsKey(id)));
 
         return Future.succeededFuture(storedDataResult);
     }
 
-    private static BidRequest readBidRequest(
-            String defaultBidRequestPath, FileSystem fileSystem, JacksonMapper mapper) {
+    private static BidRequest readBidRequest(String defaultBidRequestPath,
+                                             FileSystem fileSystem,
+                                             JacksonMapper mapper) {
 
         return StringUtils.isNotBlank(defaultBidRequestPath)
                 ? mapper.decodeValue(fileSystem.readFileBlocking(defaultBidRequestPath), BidRequest.class)
@@ -220,16 +221,19 @@ public class StoredRequestProcessor {
 
     /**
      * Runs {@link BidRequest} and {@link Imp}s merge processes.
+     * <p>
+     * The merging priority is: original request > stored request > default request
      */
     private BidRequest mergeBidRequestAndImps(BidRequest bidRequest,
                                               String storedRequestId,
                                               Map<Imp, String> impToStoredId,
                                               StoredDataResult storedDataResult) {
 
-        return mergeBidRequestImps(
-                mergeBidRequest(mergeDefaultRequest(bidRequest), storedRequestId, storedDataResult),
-                impToStoredId,
-                storedDataResult);
+        final BidRequest mergedWithStoredRequest = mergeBidRequest(bidRequest, storedRequestId, storedDataResult);
+
+        final BidRequest mergedWithDefaultRequest = mergeDefaultRequest(mergedWithStoredRequest);
+
+        return mergeImps(mergedWithDefaultRequest, impToStoredId, storedDataResult);
     }
 
     private BidRequest mergeDefaultRequest(BidRequest bidRequest) {
@@ -240,8 +244,9 @@ public class StoredRequestProcessor {
      * Merges original request with request from stored request source. Values from original request
      * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequest(
-            BidRequest originalRequest, String storedRequestId, StoredDataResult storedDataResult) {
+    private BidRequest mergeBidRequest(BidRequest originalRequest,
+                                       String storedRequestId,
+                                       StoredDataResult storedDataResult) {
 
         final String storedRequest = storedDataResult.getStoredIdToRequest().get(storedRequestId);
         return StringUtils.isNotBlank(storedRequestId)
@@ -253,8 +258,9 @@ public class StoredRequestProcessor {
      * Merges {@link Imp}s from original request with Imps from stored request source. Values from original request
      * has higher priority than stored request values.
      */
-    private BidRequest mergeBidRequestImps(
-            BidRequest bidRequest, Map<Imp, String> impToStoredId, StoredDataResult storedDataResult) {
+    private BidRequest mergeImps(BidRequest bidRequest,
+                                 Map<Imp, String> impToStoredId,
+                                 StoredDataResult storedDataResult) {
 
         if (impToStoredId.isEmpty()) {
             return bidRequest;
@@ -272,14 +278,27 @@ public class StoredRequestProcessor {
         return bidRequest.toBuilder().imp(mergedImps).build();
     }
 
+    private BidRequest generateBidRequestIdForApp(BidRequest bidRequest) {
+        return bidRequest.getApp() != null
+                ? generateBidRequestId(bidRequest)
+                : bidRequest;
+    }
+
+    private BidRequest generateBidRequestId(BidRequest bidRequest) {
+        return generateBidRequestId || Objects.equals(bidRequest.getId(), OVERRIDE_BID_REQUEST_ID_TEMPLATE)
+                ? bidRequest.toBuilder().id(idGenerator.generateId()).build()
+                : bidRequest;
+    }
+
     /**
      * Maps object to its StoredRequestId if exists. If object's extension contains storedRequest field, expected
      * that it includes id too, in another case error about missed id in stored request will be added to error list.
      * Gathers all errors into list, and in case if it is not empty, throws {@link InvalidRequestException} with list
      * of errors.
      */
-    private <K> Map<K, String> mapStoredRequestHolderToStoredRequestId(
-            List<K> storedRequestHolders, Function<K, ExtStoredRequest> storedRequestExtractor) {
+    private static <K> Map<K, String> mapStoredRequestHolderToStoredRequestId(
+            List<K> storedRequestHolders,
+            Function<K, ExtStoredRequest> storedRequestExtractor) {
 
         if (CollectionUtils.isEmpty(storedRequestHolders)) {
             return Collections.emptyMap();
@@ -310,23 +329,16 @@ public class StoredRequestProcessor {
     }
 
     /**
-     * Extracts {@link ExtStoredRequest} from {@link BidRequest} if exists. In case when Extension has invalid
-     * format throws {@link InvalidRequestException}
+     * Extracts {@link ExtStoredRequest} from {@link BidRequest} if exists.
      */
-    private ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
-        final ExtRequest ext = bidRequest.getExt();
-        if (ext != null) {
-            final ExtRequestPrebid prebid = ext.getPrebid();
-            if (prebid != null) {
-                return prebid.getStoredrequest();
-            }
-        }
-        return null;
+    private static ExtStoredRequest getStoredRequestFromBidRequest(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getStoredrequest);
     }
 
     /**
      * Extracts {@link ExtStoredRequest} from {@link Imp} if exists. In case when Extension has invalid
-     * format throws {@link InvalidRequestException}
+     * format throws {@link InvalidRequestException}.
      */
     private ExtStoredRequest getStoredRequestFromImp(Imp imp) {
         if (imp.getExt() != null) {
@@ -345,7 +357,7 @@ public class StoredRequestProcessor {
     }
 
     /**
-     * If the request defines tmax explicitly, then it is returned as is. Otherwise default timeout is returned.
+     * If the request defines tmax explicitly, then it is returned as is. Otherwise, default timeout is returned.
      */
     private Timeout timeout(BidRequest bidRequest) {
         final Long tmax = bidRequest.getTmax();

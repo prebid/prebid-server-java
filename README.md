@@ -22,6 +22,8 @@ For more information, see:
 - [Getting started with Prebid Server](https://docs.prebid.org/prebid-server/overview/prebid-server-overview.html)
 - [Current Bidders](https://docs.prebid.org/dev-docs/pbs-bidders.html)
 
+Please consider [registering your Prebid Server](https://docs.prebid.org/prebid-server/hosting/pbs-hosting.html#optional-registration) to get on the mailing list for updates, etc.
+
 # Getting Started
 
 The server makes the following assumptions:
@@ -50,11 +52,19 @@ git clone https://github.com/prebid/prebid-server-java.git
 cd prebid-server-java
 ```
 
+And from this step there are two common use cases, which can be chosen depending on your goals 
+
+1. Create prebid-server JAR only
 - Run below command to build project:
 ```bash
 mvn clean package
 ```
 
+2. Create prebid-server JAR with modules
+- Run below command to build project:
+```bash
+mvn clean package --file extra/pom.xml
+```
 For more information how to configure the server follow [documentation](docs/build.md).
 
 ## Configuration
@@ -82,12 +92,12 @@ and verify response status is `200 OK`.
 # Documentation
 
 ## Development
-- [Endpoints](docs/endpoints)
-- [Adding new bidder](docs/developers/add-new-bidder.md)
-- [Adding new analytics module](docs/developers/add-new-analytics-module.md)
+- [Endpoints](https://docs.prebid.org/prebid-server/endpoints/pbs-endpoint-overview.html)
+- [Adding new bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html)
+- [Adding new analytics module](https://docs.prebid.org/prebid-server/developers/pbs-build-an-analytics-adapter.html#adding-an-analytics-adapter-in-pbs-java)
 - [Adding viewability support](docs/developers/add-viewability-vendors.md)
 - [Auction result post-processing](docs/developers/auction-result-post-processing.md)
-- [Cookie Syncs](docs/developers/cookie-syncs.md)
+- [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
 - [Stored Requests](docs/developers/stored-requests.md)
 - [Unit Tests](docs/developers/unit-tests.md)
 - [GDPR](docs/developers/gdpr.md)

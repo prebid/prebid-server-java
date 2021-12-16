@@ -17,7 +17,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.kubient.ExtImpKubient;
@@ -31,9 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * kubient {@link Bidder} implementation.
- */
 public class KubientBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
@@ -58,22 +54,14 @@ public class KubientBidder implements Bidder<BidRequest> {
             }
         }
 
-        String body;
-        try {
-            body = mapper.encode(request);
-        } catch (EncodeException e) {
-            return Result.withError(
-                    BidderError.badInput(String.format("Failed to encode request body, error: %s", e.getMessage())));
-        }
-
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(request)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .body(mapper.encodeToBytes(request))
+                                .headers(HttpUtil.headers())
+                                .payload(request)
+                                .build()),
                 Collections.emptyList());
     }
 
@@ -119,8 +107,7 @@ public class KubientBidder implements Bidder<BidRequest> {
 
     private BidderBid toBidderBid(BidRequest bidRequest, String currency, Bid bid, List<BidderError> errors) {
         try {
-            final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-            return BidderBid.of(bid, bidType, currency);
+            return BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;

@@ -31,9 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Logicad {@link Bidder} implementation.
- */
 public class LogicadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLogicad>> LOGICAD_EXT_TYPE_REFERENCE =
@@ -108,12 +105,11 @@ public class LogicadBidder implements Bidder<BidRequest> {
 
         for (Map.Entry<ExtImpLogicad, List<Imp>> entry : extImpToImps.entrySet()) {
             final BidRequest updatedBidRequest = bidRequest.toBuilder().imp(entry.getValue()).build();
-            final String body = mapper.encode(updatedBidRequest);
 
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(endpointUrl)
-                    .body(body)
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build();

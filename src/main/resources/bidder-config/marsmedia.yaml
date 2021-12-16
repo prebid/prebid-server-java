@@ -1,12 +1,6 @@
 adapters:
   marsmedia:
-    enabled: false
-    endpoint: https://bid306.rtbsrv.com/bidder/?bid=f3xtet
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases:
+    endpoint: https://bidd.rtbsrv.com/bidder/?bid=f3xtet
     meta-info:
       maintainer-email: prebid@mars.media
       app-media-types:

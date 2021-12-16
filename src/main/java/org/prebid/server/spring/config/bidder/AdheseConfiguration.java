@@ -5,11 +5,8 @@ import org.prebid.server.bidder.adhese.AdheseBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
-import org.prebid.server.spring.config.bidder.util.BidderInfoCreator;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -24,17 +21,6 @@ public class AdheseConfiguration {
 
     private static final String BIDDER_NAME = "adhese";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("adheseConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("adheseConfigurationProperties")
     @ConfigurationProperties("adapters.adhese")
     BidderConfigurationProperties configurationProperties() {
@@ -42,12 +28,14 @@ public class AdheseConfiguration {
     }
 
     @Bean
-    BidderDeps adheseBidderDeps() {
+    BidderDeps adheseBidderDeps(BidderConfigurationProperties adheseConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .bidderInfo(BidderInfoCreator.create(configProperties))
-                .usersyncerCreator(UsersyncerCreator.create(configProperties.getUsersync(), externalUrl))
-                .bidderCreator(() -> new AdheseBidder(configProperties.getEndpoint(), mapper))
+                .withConfig(adheseConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config -> new AdheseBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

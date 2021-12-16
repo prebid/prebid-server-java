@@ -59,7 +59,7 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
             try {
                 final T impExt = parseImpExt(imp);
                 final Imp modifiedImp = modifyImp(imp, impExt);
-                modifiedImpsWithExts.add(new ImpWithExt<>(modifiedImp, impExt));
+                modifiedImpsWithExts.add(ImpWithExt.of(modifiedImp, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -161,12 +161,11 @@ public abstract class OpenrtbBidder<T> implements Bidder<BidRequest> {
         modifyRequest(bidRequest, requestBuilder, impsWithExts);
 
         final BidRequest outgoingRequest = requestBuilder.build();
-        final String body = mapper.encode(outgoingRequest);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers())
                 .payload(outgoingRequest)
                 .build();

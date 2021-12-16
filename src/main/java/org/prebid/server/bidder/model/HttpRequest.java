@@ -8,7 +8,7 @@ import lombok.Value;
 /**
  * Packages together the fields needed to make an http request.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class HttpRequest<T> {
 
@@ -16,9 +16,9 @@ public class HttpRequest<T> {
 
     String uri;
 
-    String body;
-
     MultiMap headers;
+
+    byte[] body;
 
     T payload;
 }

@@ -53,12 +53,11 @@ public class ContextRunner {
     private <T> void runOnContext(Supplier<Context> contextFactory, int times, Handler<Promise<T>> action) {
         final CountDownLatch completionLatch = new CountDownLatch(times);
         final AtomicBoolean actionFailed = new AtomicBoolean(false);
-
         for (int i = 0; i < times; i++) {
             final Context context = contextFactory.get();
 
             final Promise<T> promise = Promise.promise();
-            promise.future().setHandler(ar -> {
+            promise.future().onComplete(ar -> {
                 if (ar.failed()) {
                     logger.fatal("Fatal error occurred while running action on Vertx context", ar.cause());
                     actionFailed.compareAndSet(false, true);

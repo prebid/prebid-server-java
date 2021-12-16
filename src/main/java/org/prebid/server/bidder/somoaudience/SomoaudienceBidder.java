@@ -33,9 +33,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Somoaudience {@link Bidder} implementation.
- */
 public class SomoaudienceBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSomoaudience>> SOMOAUDIENCE_EXT_TYPE_REFERENCE =
@@ -123,7 +120,7 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers(outgoingRequest.getDevice()))
                 .payload(outgoingRequest)
                 .build();
@@ -179,11 +176,11 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(imps, bid.getImpid()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getType(List<Imp> imps, String impId) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findAny()

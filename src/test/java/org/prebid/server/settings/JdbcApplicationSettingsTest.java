@@ -24,8 +24,12 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
+import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
+import org.prebid.server.settings.model.AccountCookieSyncConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.settings.model.EnabledForRequestType;
@@ -62,10 +66,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private static final String JDBC_URL = "jdbc:h2:mem:test";
 
     private static final String SELECT_ACCOUNT_QUERY =
-            "SELECT uuid, price_granularity, banner_cache_ttl, video_cache_ttl, "
-                    + "events_enabled, enforce_ccpa, tcf_config, analytics_sampling_factor, truncate_target_attr, "
-                    + "default_integration, analytics_config, bid_validations, status "
-                    + "FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
+            "SELECT config FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
 
     private static final String SELECT_QUERY =
             "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests "
@@ -111,12 +112,12 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @BeforeClass
     public static void beforeClass() throws SQLException {
         connection = DriverManager.getConnection(JDBC_URL);
-        connection.createStatement().execute("CREATE TABLE accounts_account (id SERIAL PRIMARY KEY, "
-                + "uuid varchar(40) NOT NULL, price_granularity varchar(6), granularityMultiplier numeric(9,3), "
-                + "banner_cache_ttl INT, video_cache_ttl INT, events_enabled BIT, enforce_ccpa BIT, "
-                + "tcf_config varchar(512), analytics_sampling_factor INT, truncate_target_attr INT, "
-                + "default_integration varchar(64), analytics_config varchar(512), bid_validations varchar(512), "
-                + "status varchar(25));");
+        connection.createStatement().execute(
+                "CREATE TABLE accounts_account ("
+                        + "id SERIAL PRIMARY KEY, "
+                        + "uuid varchar(40) NOT NULL, "
+                        + "config varchar(4096)"
+                        + ");");
         connection.createStatement().execute("CREATE TABLE stored_requests (id SERIAL PRIMARY KEY, "
                 + "accountId varchar(40) NOT NULL, reqid varchar(40) NOT NULL, requestData varchar(512));");
         connection.createStatement().execute("CREATE TABLE stored_requests2 (id SERIAL PRIMARY KEY, "
@@ -130,14 +131,42 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                         + " responseData varchar(512));");
         connection.createStatement().execute("CREATE TABLE one_column_table (id SERIAL PRIMARY KEY, reqid "
                 + "varchar(40) NOT NULL);");
-        connection.createStatement().execute("insert into accounts_account "
-                + "(uuid, price_granularity, banner_cache_ttl, video_cache_ttl, events_enabled, enforce_ccpa, "
-                + "tcf_config, analytics_sampling_factor, truncate_target_attr, default_integration, analytics_config, "
-                + "bid_validations, status) "
-                + "values ('1001','med', 100, 100, TRUE, TRUE, '{\"enabled\": true, "
-                + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}}', 1, 0, "
-                + "'web', '{\"auction-events\": {\"amp\": true}}', '{\"banner-creative-max-size\": \"enforce\"}', "
-                + "'active');");
+        connection.createStatement().execute("insert into accounts_account (uuid, config) values ("
+                + "'1001',"
+                + "'{"
+                + "\"id\": \"1001\","
+                + "\"status\": \"active\","
+                + "\"auction\": {"
+                + "\"price-granularity\": \"med\","
+                + "\"debug-allow\": true,"
+                + "\"banner-cache-ttl\": 100,"
+                + "\"video-cache-ttl\": 100,"
+                + "\"truncate-target-attr\": 0,"
+                + "\"default-integration\": \"web\","
+                + "\"bid-validations\": {"
+                + "\"banner-creative-max-size\": \"enforce\""
+                + "},"
+                + "\"events\": {"
+                + "\"enabled\": true"
+                + "}"
+                + "},"
+                + "\"privacy\": {"
+                + "\"gdpr\": {"
+                + "\"enabled\": true,"
+                + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
+                + "}"
+                + "},"
+                + "\"analytics\": {"
+                + "\"auction-events\": {\"amp\": true},"
+                + "\"modules\": {\"some-analytics\": {\"supported-endpoints\": [\"auction\"]}}"
+                + "},"
+                + "\"cookie-sync\": {"
+                + "\"default-limit\": 5,"
+                + "\"max-limit\": 8,"
+                + "\"default-coop-sync\": true"
+                + "}"
+                + "}'"
+                + ");");
         connection.createStatement().execute(
                 "insert into stored_requests (accountId, reqid, requestData) values ('1001', '1','value1');");
         connection.createStatement().execute(
@@ -191,24 +220,33 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(account -> {
+        future.onComplete(context.asyncAssertSuccess(account -> {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
-                    .priceGranularity("med")
-                    .bannerCacheTtl(100)
-                    .videoCacheTtl(100)
-                    .analyticsSamplingFactor(1)
-                    .eventsEnabled(true)
-                    .enforceCcpa(true)
-                    .gdpr(AccountGdprConfig.builder()
-                            .enabled(true)
-                            .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
-                            .build())
-                    .truncateTargetAttr(0)
-                    .defaultIntegration("web")
-                    .analyticsConfig(AccountAnalyticsConfig.of(singletonMap("amp", true)))
-                    .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                     .status(AccountStatus.active)
+                    .auction(AccountAuctionConfig.builder()
+                            .priceGranularity("med")
+                            .bannerCacheTtl(100)
+                            .videoCacheTtl(100)
+                            .truncateTargetAttr(0)
+                            .defaultIntegration("web")
+                            .debugAllow(true)
+                            .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                            .events(AccountEventsConfig.of(true))
+                            .build())
+                    .privacy(AccountPrivacyConfig.of(
+                            AccountGdprConfig.builder()
+                                    .enabled(true)
+                                    .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                    .build(),
+                            null))
+                    .analytics(AccountAnalyticsConfig.of(
+                            singletonMap("amp", true),
+                            singletonMap(
+                                    "some-analytics",
+                                    mapper.createObjectNode()
+                                            .set("supported-endpoints", mapper.createArrayNode().add("auction")))))
+                    .cookieSync(AccountCookieSyncConfig.of(5, 8, true))
                     .build());
             async.complete();
         }));
@@ -221,29 +259,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        future.setHandler(context.asyncAssertFailure(exception -> {
+        future.onComplete(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(PreBidException.class)
                     .hasMessage("Account not found: non-existing");
-            async.complete();
-        }));
-    }
-
-    @Test
-    public void getAccountByIdShouldTolerateAccountWithoutStatusDefined(TestContext context) throws SQLException {
-        // given
-        connection.createStatement()
-                .execute("insert into accounts_account (uuid, status) values ('1002', NULL);");
-
-        // when
-        final Future<Account> future = jdbcApplicationSettings.getAccountById("1002", timeout);
-
-        // then
-        final Async async = context.async();
-        future.setHandler(context.asyncAssertSuccess(account -> {
-            assertThat(account).isEqualTo(Account.builder()
-                    .id("1002")
-                    .status(null)
-                    .build());
             async.complete();
         }));
     }
@@ -262,7 +280,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedImps = new HashMap<>();
         expectedImps.put("4", "value4");
         expectedImps.put("5", "value5");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
@@ -280,7 +298,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedRequests = new HashMap<>();
         expectedRequests.put("1", "value1");
         expectedRequests.put("2", "value2");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, emptyMap(), emptyList()));
             async.complete();
@@ -301,7 +319,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Map<String, String> expectedImps = new HashMap<>();
         expectedImps.put("4", "value4");
         expectedImps.put("5", "value5");
-        future.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult)
                     .isEqualTo(StoredDataResult.of(expectedRequests, expectedImps, emptyList()));
             async.complete();
@@ -326,7 +344,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -359,7 +377,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -392,7 +410,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             final Map<String, String> expectedRequests = new HashMap<>();
             expectedRequests.put("1", "value1");
             expectedRequests.put("2", "value2");
@@ -411,7 +429,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
@@ -426,7 +444,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), singletonMap("4", "value4"),
                     singletonList("No stored imp found for id: 6")));
             async.complete();
@@ -442,7 +460,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     singletonList("No stored request found for id: 3")));
             async.complete();
@@ -467,7 +485,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Error occurred while mapping stored request data")));
             async.complete();
@@ -492,7 +510,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("Error occurred while mapping stored request data")));
             async.complete();
@@ -508,7 +526,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] and stored imps for ids [6, 7] were found")));
             async.complete();
@@ -524,7 +542,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
                     singletonList("No stored requests for ids [3, 4] were found")));
             async.complete();
@@ -539,7 +557,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedRequestResultFuture.setHandler(context.asyncAssertSuccess(storedRequestResult -> {
+        storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(singletonMap("1", "value1"), emptyMap(),
                     emptyList()));
             async.complete();
@@ -558,7 +576,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         expectedResponses.put("1", "response1");
         expectedResponses.put("2", "response2");
 
-        future.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        future.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult)
                     .isEqualTo(StoredResponseDataResult.of(expectedResponses, emptyList()));
             async.complete();
@@ -573,7 +591,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(singletonMap("1", "response1"),
                     singletonList("No stored response found for id: 3")));
             async.complete();
@@ -597,7 +615,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
                     singletonList("Result set column number is less than expected")));
             async.complete();
@@ -612,11 +630,23 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
-        storedResponseDataResultFuture.setHandler(context.asyncAssertSuccess(storedResponseDataResult -> {
+        storedResponseDataResultFuture.onComplete(context.asyncAssertSuccess(storedResponseDataResult -> {
             assertThat(storedResponseDataResult).isEqualTo(StoredResponseDataResult.of(emptyMap(),
                     singletonList("No stored responses were found for ids: 3,4")));
             async.complete();
         }));
+    }
+
+    @Test
+    public void getCategoriesShouldReturnFailedFutureWithUnsupportedPrebidException() {
+        // given and when
+        final Future<Map<String, String>> result = jdbcApplicationSettings.getCategories("adServer", "publisher",
+                timeout);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class)
+                .hasMessage("Not supported");
     }
 
     private JdbcClient jdbcClient() {

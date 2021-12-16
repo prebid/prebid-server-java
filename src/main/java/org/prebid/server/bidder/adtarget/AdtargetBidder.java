@@ -23,6 +23,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -33,12 +34,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
-/**
- * Adtarget {@link Bidder} implementation.
- */
 public class AdtargetBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdtarget>> ADTARGET_EXT_TYPE_REFERENCE =
@@ -65,7 +62,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             httpRequests.add(HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(url)
-                    .body(mapper.encode(bidRequest))
+                    .body(mapper.encodeToBytes(bidRequest))
                     .headers(HttpUtil.headers())
                     .payload(bidRequest)
                     .build());
@@ -81,8 +78,8 @@ public class AdtargetBidder implements Bidder<BidRequest> {
             try {
                 validateImpression(imp);
                 extImpAdtarget = parseImpAdtarget(imp);
-            } catch (PreBidException ex) {
-                errors.add(BidderError.badInput(ex.getMessage()));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
             final Imp updatedImp = updateImp(imp, extImpAdtarget);
@@ -119,7 +116,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
         final AdtargetImpExt adtargetImpExt = AdtargetImpExt.of(extImpAdtarget);
         final BigDecimal bidFloor = extImpAdtarget.getBidFloor();
         return imp.toBuilder()
-                .bidfloor(bidFloor != null && bidFloor.compareTo(BigDecimal.ZERO) > 0 ? bidFloor : imp.getBidfloor())
+                .bidfloor(BidderUtil.isValidPrice(bidFloor) ? bidFloor : imp.getBidfloor())
                 .ext(mapper.mapper().valueToTree(adtargetImpExt))
                 .build();
     }
@@ -164,9 +161,10 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String bidImpId, String bidId, List<Imp> imps) {
-        final Optional<Imp> impWithBidId = imps.stream().filter(imp -> imp.getId().equals(bidImpId)).findFirst();
-        if (impWithBidId.isPresent()) {
-            return impWithBidId.get().getVideo() != null ? BidType.video : BidType.banner;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(bidImpId)) {
+                return imp.getVideo() != null ? BidType.video : BidType.banner;
+            }
         }
         throw new PreBidException(String.format(
                 "ignoring bid id=%s, request doesn't contain any impression with id=%s", bidId, bidImpId));

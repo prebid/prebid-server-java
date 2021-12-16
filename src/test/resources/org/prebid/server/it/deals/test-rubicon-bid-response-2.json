@@ -1,0 +1,20 @@
+{
+  "id": "bidResponseId2",
+  "seatbid": [
+    {
+      "seat": "seatId2",
+      "bid": [
+        {
+          "id": "bidId2",
+          "impid": "impId2",
+          "dealid": "dealId2",
+          "price": 8.43,
+          "adm": "<Impression><![CDATA[]]></Impression>",
+          "crid": "crid2",
+          "w": 320,
+          "h": 320
+        }
+      ]
+    }
+  ]
+}

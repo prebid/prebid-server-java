@@ -176,6 +176,75 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetBidFloorFromExtIfImpBidFloorIsZero() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(
+                        Imp.builder().id("impId")
+                                .bidfloor(BigDecimal.ZERO)
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.TEN);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetBidFloorFromExtIfImpBidFloorIsMissed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(
+                        Imp.builder().id("impId")
+                                .bidfloor(null)
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.TEN);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetBidFloorFromExtIfImpBidFloorIsValid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(
+                        Imp.builder().id("impId")
+                                .bidfloor(BigDecimal.ONE)
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, null, BigDecimal.TEN))))
+                                .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(body -> mapper.readValue(body, BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnResultWithHttpRequestsContainingExpectedHeaders() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -274,7 +343,7 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).hasSize(1);
     }
 

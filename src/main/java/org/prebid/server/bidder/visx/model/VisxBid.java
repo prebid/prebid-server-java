@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.visx.model;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Data;
 
@@ -27,4 +28,6 @@ public class VisxBid {
     Integer w;
 
     Integer h;
+
+    ObjectNode ext;
 }
