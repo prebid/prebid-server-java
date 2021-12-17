@@ -50,7 +50,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
         }
 
         googleRecaptchaVerifier.verify(recaptcha)
-                .setHandler(result -> handleVerification(routingContext, result));
+                .onComplete(result -> handleVerification(routingContext, result));
     }
 
     private void handleVerification(RoutingContext routingContext, AsyncResult<RecaptchaResponse> result) {

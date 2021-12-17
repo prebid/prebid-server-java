@@ -686,7 +686,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         verify(uidsCookieService).parseFromRequest(httpRequest);
 
-        assertThat(result).isEqualToComparingFieldByFieldRecursively(AuctionContext.builder()
+        assertThat(result).usingRecursiveComparison().isEqualTo(AuctionContext.builder()
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)

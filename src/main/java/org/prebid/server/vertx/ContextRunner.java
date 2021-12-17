@@ -57,7 +57,7 @@ public class ContextRunner {
             final Context context = contextFactory.get();
 
             final Promise<T> promise = Promise.promise();
-            promise.future().setHandler(ar -> {
+            promise.future().onComplete(ar -> {
                 if (ar.failed()) {
                     logger.fatal("Fatal error occurred while running action on Vertx context", ar.cause());
                     actionFailed.compareAndSet(false, true);

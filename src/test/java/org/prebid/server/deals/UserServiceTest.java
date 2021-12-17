@@ -439,7 +439,7 @@ public class UserServiceTest extends VertxTest {
                         .responseStatus(200)
                         .responseBody(mapper.writeValueAsString(
                                 UserDetailsResponse.of(User.of(singletonList(UserData.of("1", "rubicon",
-                                        asList(Segment.of("2222"), Segment.of("3333")))),
+                                                asList(Segment.of("2222"), Segment.of("3333")))),
                                         ExtUser.of(asList("L-1111", "O-2222"))))))
                         .responseTimeMillis(0)
                         .build()));
@@ -593,6 +593,9 @@ public class UserServiceTest extends VertxTest {
                 .frequencyCaps(frequencyCaps)
                 .build();
 
-        assertThat(capturedRequest).isEqualToIgnoringGivenFields(expectedRequestWithoutWinTime, "winEventDateTime");
+        assertThat(capturedRequest)
+                .usingRecursiveComparison()
+                .ignoringFields("winEventDateTime")
+                .isEqualTo(expectedRequestWithoutWinTime);
     }
 }

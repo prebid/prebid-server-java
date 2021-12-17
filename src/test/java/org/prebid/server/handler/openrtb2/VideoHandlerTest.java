@@ -5,7 +5,6 @@ import com.iab.openrtb.request.video.PodError;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -97,11 +96,11 @@ public class VideoHandlerTest extends VertxTest {
         given(routingContext.response()).willReturn(httpResponse);
 
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap());
-        given(httpRequest.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(httpResponse.exceptionHandler(any())).willReturn(httpResponse);
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
-        given(httpResponse.headers()).willReturn(new CaseInsensitiveHeaders());
+        given(httpResponse.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         given(clock.millis()).willReturn(Instant.now().toEpochMilli());
 

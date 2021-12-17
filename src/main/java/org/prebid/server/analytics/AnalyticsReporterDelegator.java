@@ -76,7 +76,7 @@ public class AnalyticsReporterDelegator {
 
     public <T> void processEvent(T event, TcfContext tcfContext) {
         privacyEnforcementService.resultForVendorIds(reporterVendorIds, tcfContext)
-                .setHandler(privacyEnforcementMap -> delegateEvent(event, tcfContext, privacyEnforcementMap));
+                .onComplete(privacyEnforcementMap -> delegateEvent(event, tcfContext, privacyEnforcementMap));
     }
 
     private <T> void delegateEvent(T event,

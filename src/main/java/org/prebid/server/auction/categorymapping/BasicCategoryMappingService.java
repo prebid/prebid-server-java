@@ -158,7 +158,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         bidderResponse, primaryAdServer, publisher, timeout, withCategory, translateCategories))
                 .collect(Collectors.toList()));
 
-        compositeFuture.setHandler(ignored ->
+        compositeFuture.onComplete(ignored ->
                 collectCategoryFetchResults(compositeFuture, categoryBidContextsPromise, rejectedBids));
 
         return categoryBidContextsPromise.future();

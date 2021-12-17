@@ -8,6 +8,8 @@ import org.testcontainers.lifecycle.Startables
 
 class Dependencies {
 
+    private static final Boolean IS_LAUNCH_CONTAINERS = Boolean.valueOf(System.getProperty("launchContainers"))
+
     static final ObjectMapperWrapper objectMapperWrapper = new ObjectMapperWrapper()
 
     static final Network network = Network.newNetwork()
@@ -23,13 +25,17 @@ class Dependencies {
             .withNetwork(network)
 
     static void start() {
-        Startables.deepStart([networkServiceContainer, mysqlContainer])
-                  .join()
+        if (IS_LAUNCH_CONTAINERS) {
+            Startables.deepStart([networkServiceContainer, mysqlContainer])
+                      .join()
+        }
     }
 
     static void stop() {
-        [networkServiceContainer, mysqlContainer].parallelStream()
-                                                 .forEach({ it.stop() })
+        if (IS_LAUNCH_CONTAINERS) {
+            [networkServiceContainer, mysqlContainer].parallelStream()
+                                                     .forEach({ it.stop() })
+        }
     }
 
     private Dependencies() {} // should not be instantiated

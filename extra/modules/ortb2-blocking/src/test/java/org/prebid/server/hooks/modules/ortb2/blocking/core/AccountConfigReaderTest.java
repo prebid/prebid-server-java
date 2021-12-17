@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.core;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -45,7 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AccountConfigReaderTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
-            .setPropertyNamingStrategy(PropertyNamingStrategy.KEBAB_CASE)
+            .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     @Test

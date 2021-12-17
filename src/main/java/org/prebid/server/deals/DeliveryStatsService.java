@@ -118,7 +118,7 @@ public class DeliveryStatsService implements Suspendable {
                                         : Future.succeededFuture())),
                         // combiner does not do any useful operations, just required for this type of reduce operation
                         (a, b) -> Promise.<Void>promise().future())
-                .setHandler(result -> handleDeliveryResult(result, batchesCount, sentBatches));
+                .onComplete(result -> handleDeliveryResult(result, batchesCount, sentBatches));
     }
 
     protected Future<Void> sendBatch(DeliveryProgressReportBatch deliveryProgressReportBatch, ZonedDateTime now) {
@@ -136,7 +136,7 @@ public class DeliveryStatsService implements Suspendable {
                                         ? setInterval(reportIntervalMs)
                                         : Future.succeededFuture()),
                         (a, b) -> Promise.<Void>promise().future())
-                .setHandler(result -> handleBatchDelivery(result, deliveryProgressReportBatch, sentReports, promise));
+                .onComplete(result -> handleBatchDelivery(result, deliveryProgressReportBatch, sentReports, promise));
         return promise.future();
     }
 
@@ -160,12 +160,12 @@ public class DeliveryStatsService implements Suspendable {
             headers.add(HttpHeaders.CONTENT_ENCODING, GZIP);
             httpClient.request(HttpMethod.POST, deliveryStatsProperties.getEndpoint(), headers, gzipBody(body),
                     deliveryStatsProperties.getTimeoutMs())
-                    .setHandler(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
+                    .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         } else {
             httpClient.post(deliveryStatsProperties.getEndpoint(), headers, body,
                     deliveryStatsProperties.getTimeoutMs())
-                    .setHandler(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
+                    .onComplete(result -> handleDeliveryProgressReport(result, deliveryProgressReport, promise,
                             startTime));
         }
 

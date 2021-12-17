@@ -5,17 +5,29 @@
   "type": "object",
   "properties": {
     "accountId": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^\\d+$",
       "minimum": 1,
       "description": "An ID which identifies the publisher's account"
     },
     "siteId": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^\\d+$",
       "minimum": 1,
       "description": "An ID which identifies the site selling the impression"
     },
     "zoneId": {
-      "type": "integer",
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^\\d+$",
       "minimum": 1,
       "description": "An ID which identifies the sub-section of the site where the impression is located"
     },

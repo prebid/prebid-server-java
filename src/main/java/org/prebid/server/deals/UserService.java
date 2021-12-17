@@ -247,7 +247,7 @@ public class UserService {
         metrics.updateWinNotificationMetric();
         final long startTime = clock.millis();
         httpClient.post(winEventUrl, body, timeout)
-                .setHandler(result -> handleWinResponse(result, startTime));
+                .onComplete(result -> handleWinResponse(result, startTime));
     }
 
     /**
