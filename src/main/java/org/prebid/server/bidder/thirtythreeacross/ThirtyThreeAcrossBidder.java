@@ -18,14 +18,18 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossCaller;
 import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExt;
 import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossReqExt;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossReqExtTtx;
 import org.prebid.server.bidder.thirtythreeacross.response.ThirtyThreeAcrossBidExt;
 import org.prebid.server.bidder.thirtythreeacross.response.ThirtyThreeAcrossBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -149,9 +153,28 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
+    private ExtRequest createReqExt() {
+        final List<ThirtyThreeAcrossCaller> ttxCaller = new ArrayList<>();
+        ttxCaller.add(ThirtyThreeAcrossCaller.of());
+
+        final ExtRequest ttxReqExt = mapper.fillExtension(
+            ExtRequest.empty(),
+            ThirtyThreeAcrossReqExt.of(
+                ThirtyThreeAcrossReqExtTtx.of(ttxCaller)
+            )
+        );
+
+        return ttxReqExt;
+    }
+
+    private void foo() {
+
+    }
+
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
         final BidRequest modifiedRequest = request.toBuilder()
                 .imp(requestImps)
+                .ext(createReqExt())
                 .build();
 
         return HttpRequest.<BidRequest>builder()
