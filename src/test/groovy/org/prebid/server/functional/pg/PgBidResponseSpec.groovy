@@ -1,6 +1,5 @@
 package org.prebid.server.functional.pg
 
-
 import org.prebid.server.functional.model.deals.lineitem.LineItemSize
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -8,7 +7,6 @@ import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 
@@ -42,8 +40,7 @@ class PgBidResponseSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.sentToClientAsTopMatch?.size() == lineItemCount
     }
 
-    @Unroll
-    def "PBS should invalidate bidder response when '#field' doesn't match with the bid request"() {
+    def "PBS should invalidate bidder response when bid id doesn't match to the bid request bid id"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -55,7 +52,9 @@ class PgBidResponseSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         and: "Set bid response"
-        def bidResponse = bidResponseGeneric(bidRequest, plansResponse)
+        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {
+            seatbid[0].bid[0].impid = PBSUtils.randomNumber as String
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "Sending auction request to PBS"
@@ -64,30 +63,33 @@ class PgBidResponseSpec extends BasePgSpec {
         then: "Bidder response is invalid"
         def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
         assert bidderError?.size() == 1
-        assert bidderError[0].message.startsWith(errorMessage(bidResponse))
+        assert bidderError[0].message.startsWith("Bid \"${bidResponse.seatbid[0].bid[0].id}\" has no corresponding imp in request")
+    }
 
-        where:
-        field     |
-                bidResponseGeneric |
-                errorMessage
+    def "PBS should invalidate bidder response when deal id doesn't match to the bid request deal id"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
 
-        "bid id"  |
-                { BidRequest bidReq, PlansResponse plansResp ->
-                    BidResponse.getDefaultPgBidResponse(bidReq, plansResp).tap {
-                        seatbid[0].bid[0].impid = PBSUtils.randomNumber as String
-                    }
-                }                  |
-                { BidResponse bidResp -> "Bid \"${bidResp.seatbid[0].bid[0].id}\" has no corresponding imp in request" }
+        and: "Planner Mock line items"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id)
+        generalPlanner.initPlansResponse(plansResponse)
 
-        "deal id" |
-                { BidRequest bidReq, PlansResponse plansResp ->
-                    BidResponse.getDefaultPgBidResponse(bidReq, plansResp).tap {
-                        seatbid[0].bid[0].dealid = PBSUtils.randomNumber as String
-                    }
-                }                  |
-                { BidResponse bidResp ->
-                    "WARNING: Bid \"${bidResp.seatbid[0].bid[0].id}\" has 'dealid' not present in corresponding imp in request."
-                }
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        and: "Set bid response"
+        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {
+            seatbid[0].bid[0].dealid = PBSUtils.randomNumber as String
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Sending auction request to PBS"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder response is invalid"
+        def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
+        assert bidderError?.size() == 1
+        assert bidderError[0].message.startsWith("WARNING: Bid \"${bidResponse.seatbid[0].bid[0].id}\" has 'dealid' not present in corresponding imp in request.")
     }
 
     def "PBS should invalidate bidder response when non-matched to the bid request size is returned"() {

@@ -331,19 +331,19 @@ class UserDetailsSpec extends BasePgSpec {
         pgPbsService.sendAuctionRequest(bidRequest)
 
         and: "Sending event request to PBS"
-        pgPbsService.sendEventRequest(eventRequest, cookieHeader)
+        pgPbsService.sendEventRequest(eventRequest, HttpUtil.getCookieHeader(mapper, uidsCookie))
 
         then: "PBS hasn't sent a win notification to the User Service"
         assert userData.requestCount == initialRequestCount
 
         where:
-        reason              | cookieHeader
+        reason              | uidsCookie
 
-        "empty cookie"      | HttpUtil.getCookieHeader(mapper, new UidsCookie())
+        "empty cookie"      | new UidsCookie()
 
-        "empty uids cookie" | HttpUtil.getCookieHeader(mapper, UidsCookie.defaultUidsCookie.tap {
+        "empty uids cookie" | UidsCookie.defaultUidsCookie.tap {
             uids = null
             tempUIDs = null
-        })
+        }
     }
 }
