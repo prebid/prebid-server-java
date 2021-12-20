@@ -39,7 +39,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
     private static final String UNKNOWN_PUBLISHER_ID = "unknown";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

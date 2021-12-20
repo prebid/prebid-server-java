@@ -227,7 +227,7 @@ public class AlertHttpServiceTest extends VertxTest {
 
     private List<AlertEvent> parseAlertEvents(String row) throws JsonProcessingException {
         return mapper.readValue(row,
-                new TypeReference<List<AlertEvent>>() {
+                new TypeReference<>() {
                 });
     }
 }

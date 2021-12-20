@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class UnrulyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpUnruly>> UNRULY_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpUnruly>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

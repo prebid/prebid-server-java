@@ -13,12 +13,10 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -850,18 +848,6 @@ public class HttpBidderRequesterTest extends VertxTest {
         // setup multiple answers
         for (HttpClientResponse httpClientResponse : httpClientResponses) {
             stubbing = stubbing.willReturn(Future.succeededFuture(httpClientResponse));
-        }
-    }
-
-    @AllArgsConstructor
-    public static class MultiMapMatcher implements ArgumentMatcher<MultiMap> {
-
-        private final MultiMap left;
-
-        @Override
-        public boolean matches(MultiMap right) {
-            return left.size() == right.size() && left.entries().stream()
-                    .allMatch(entry -> right.contains(entry.getKey(), entry.getValue(), true));
         }
     }
 }

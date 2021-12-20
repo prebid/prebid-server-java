@@ -44,7 +44,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     private static final int EVENT_TYPE_IMPRESSION = 1;
 
     private static final TypeReference<ExtPrebid<?, ExtImpOutbrain>> OUTBRAIN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOutbrain>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

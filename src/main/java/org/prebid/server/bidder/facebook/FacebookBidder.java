@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
+            new TypeReference<>() {
             };
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);

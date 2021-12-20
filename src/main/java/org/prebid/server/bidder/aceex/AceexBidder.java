@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class AceexBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAceex>> ACEEX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAceex>>() {
+            new TypeReference<>() {
             };
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
     private static final String X_OPENRTB_VERSION = "2.5";

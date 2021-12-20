@@ -24,7 +24,6 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -61,8 +60,6 @@ public abstract class VendorListService<T, V> {
     private final Metrics metrics;
     protected final JacksonMapper mapper;
 
-    protected final Set<Integer> knownVendorIds;
-
     /**
      * This is memory/performance optimized model slice:
      * map of vendor list version -> map of vendor ID -> Vendors
@@ -96,8 +93,6 @@ public abstract class VendorListService<T, V> {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
-
-        knownVendorIds = knownVendorIds(gdprHostVendorId, bidderCatalog);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
@@ -167,17 +162,6 @@ public abstract class VendorListService<T, V> {
      * Returns the version of TCF which {@link VendorListService} implementation deals with.
      */
     protected abstract int getTcfVersion();
-
-    private static Set<Integer> knownVendorIds(Integer gdprHostVendorId, BidderCatalog bidderCatalog) {
-        final Set<Integer> knownVendorIds = bidderCatalog.knownVendorIds();
-
-        // add host vendor ID (used in /setuid and /cookie_sync endpoint handlers)
-        if (gdprHostVendorId != null) {
-            knownVendorIds.add(gdprHostVendorId);
-        }
-
-        return Collections.unmodifiableSet(knownVendorIds);
-    }
 
     /**
      * Creates if doesn't exists and checks write permissions for the given directory.

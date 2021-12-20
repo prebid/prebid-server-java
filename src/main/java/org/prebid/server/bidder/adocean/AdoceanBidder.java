@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 public class AdoceanBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdocean>> ADOCEAN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdocean>>() {
+            new TypeReference<>() {
             };
     private static final String VERSION = "1.2.0";
     private static final int MAX_URI_LENGTH = 8000;

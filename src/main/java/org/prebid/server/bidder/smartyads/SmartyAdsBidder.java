@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartyAds>> SMARTYADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmartyAds>>() {
+            new TypeReference<>() {
             };
     private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";

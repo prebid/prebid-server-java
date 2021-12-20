@@ -104,7 +104,7 @@ public class MarsmediaBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .allSatisfy(uri -> {
-                    final String regex = "[a-zA-Z0-9\\:\\/\\._\\-\\?&\\=]+zone=(?<zone>[a-zA-Z0-9]+)";
+                    final String regex = "[a-zA-Z0-9:/._\\-?&=]+zone=(?<zone>[a-zA-Z0-9]+)";
                     final Matcher matcher = Pattern.compile(regex).matcher(uri);
                     assertThat(matcher.find()).isTrue();
                     assertThat(matcher.group("zone")).isEqualTo("zoneId");

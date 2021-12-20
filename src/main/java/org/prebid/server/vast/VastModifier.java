@@ -125,11 +125,8 @@ public class VastModifier {
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
         final int replacementStart = vastXml.lastIndexOf(IMPRESSION_CLOSE_TAG);
 
-        return new StringBuilder().append(vastXml, 0, replacementStart)
-                .append(IMPRESSION_CLOSE_TAG)
-                .append(impressionTag)
-                .append(vastXml.substring(replacementStart + IMPRESSION_CLOSE_TAG.length()))
-                .toString();
+        return vastXml.substring(0, replacementStart) + IMPRESSION_CLOSE_TAG + impressionTag
+                + vastXml.substring(replacementStart + IMPRESSION_CLOSE_TAG.length());
     }
 
     private static String insertBeforeElementCloseTag(String vastXml, String vastUrlTracking, String elementCloseTag) {

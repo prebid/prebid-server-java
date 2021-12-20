@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class LogicadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLogicad>> LOGICAD_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpLogicad>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

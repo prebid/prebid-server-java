@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class AdprimeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdprime>> ADPRIME_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdprime>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

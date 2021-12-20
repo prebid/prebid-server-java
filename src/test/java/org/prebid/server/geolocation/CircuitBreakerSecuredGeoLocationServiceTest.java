@@ -205,7 +205,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void givenWrappedGeoLocationReturning(Future... results) {
+    private <T> void givenWrappedGeoLocationReturning(Future<T>... results) {
         BDDMockito.BDDMyOngoingStubbing<Future<GeoInfo>> given =
                 given(wrappedGeoLocationService.lookup(any(), any()));
         for (Future<T> result : results) {
