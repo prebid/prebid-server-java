@@ -121,22 +121,22 @@ class AlertSpec extends BasePgSpec {
         PBSUtils.waitUntil { alert.requestCount == initialRequestCount + 1 }
 
         and: "Alert request should correspond to the payload"
-        def alertRequest = alert.recordedAlertRequest
+        verifyAll(alert.recordedAlertRequest) { alertRequest ->
+            (alertRequest.id =~ UUID_REGEX).matches()
+            alertRequest.action == RAISE
+            alertRequest.priority == MEDIUM
+            alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+            alertRequest.name == PBS_PLANNER_CLIENT_ERROR
+            alertRequest.details == "Service planner failed to send request 1 time(s) with error message :" +
+                    " Failed to retrieve line items from GP. Reason: Failed to fetch data from Planner, HTTP status code ${httpStatusCode.code()}"
 
-        assert (alertRequest.id =~ UUID_REGEX).matches()
-        assert alertRequest.action == RAISE
-        assert alertRequest.priority == MEDIUM
-        assert alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
-        assert alertRequest.name == PBS_PLANNER_CLIENT_ERROR
-        assert alertRequest.details == "Service planner failed to send request 1 time(s) with error message :" +
-                " Failed to retrieve line items from GP. Reason: Failed to fetch data from Planner, HTTP status code ${httpStatusCode.code()}"
-
-        assert alertRequest.source.env == pgPbsProperties.env
-        assert alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-        assert alertRequest.source.region == pgPbsProperties.region
-        assert alertRequest.source.system == pgPbsProperties.system
-        assert alertRequest.source.subSystem == pgPbsProperties.subSystem
-        assert alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgPbsProperties.env
+            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
+            alertRequest.source.region == pgPbsProperties.region
+            alertRequest.source.system == pgPbsProperties.system
+            alertRequest.source.subSystem == pgPbsProperties.subSystem
+            alertRequest.source.hostId == pgPbsProperties.hostId
+        }
 
         cleanup: "Return initial Planner response status code"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(PBSUtils.randomString))
@@ -163,22 +163,23 @@ class AlertSpec extends BasePgSpec {
         PBSUtils.waitUntil { alert.requestCount == initialRequestCount + 1 }
 
         and: "Alert request should correspond to the payload"
-        def alertRequest = alert.recordedAlertRequest
+        verifyAll(alert.recordedAlertRequest) { alertRequest ->
+            (alertRequest.id =~ UUID_REGEX).matches()
+            alertRequest.action == RAISE
+            alertRequest.priority == MEDIUM
+            alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+            alertRequest.name == PBS_REGISTER_CLIENT_ERROR
+            alertRequest.details.startsWith("Service register failed to send request 1 time(s) with error message :" +
+                    " Planner responded with non-successful code ${httpStatusCode.code()}")
 
-        assert (alertRequest.id =~ UUID_REGEX).matches()
-        assert alertRequest.action == RAISE
-        assert alertRequest.priority == MEDIUM
-        assert alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
-        assert alertRequest.name == PBS_REGISTER_CLIENT_ERROR
-        assert alertRequest.details.startsWith("Service register failed to send request 1 time(s) with error message :" +
-                " Planner responded with non-successful code ${httpStatusCode.code()}")
+            alertRequest.source.env == pgPbsProperties.env
+            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
+            alertRequest.source.region == pgPbsProperties.region
+            alertRequest.source.system == pgPbsProperties.system
+            alertRequest.source.subSystem == pgPbsProperties.subSystem
+            alertRequest.source.hostId == pgPbsProperties.hostId
+        }
 
-        assert alertRequest.source.env == pgPbsProperties.env
-        assert alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-        assert alertRequest.source.region == pgPbsProperties.region
-        assert alertRequest.source.system == pgPbsProperties.system
-        assert alertRequest.source.subSystem == pgPbsProperties.subSystem
-        assert alertRequest.source.hostId == pgPbsProperties.hostId
 
         cleanup: "Return initial Planner response status code"
         generalPlanner.initRegisterResponse()
@@ -213,23 +214,23 @@ class AlertSpec extends BasePgSpec {
         PBSUtils.waitUntil { alert.requestCount == initialRequestCount + 1 }
 
         and: "Alert request should correspond to the payload"
-        def alertRequest = alert.recordedAlertRequest
+        verifyAll(alert.recordedAlertRequest) { alertRequest ->
+            (alertRequest.id =~ UUID_REGEX).matches()
+            alertRequest.action == RAISE
+            alertRequest.priority == MEDIUM
+            alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+            alertRequest.name == PBS_DELIVERY_CLIENT_ERROR
+            alertRequest.details.startsWith("Service deliveryStats failed to send request 1 time(s) with error message : " +
+                    "Report was not send to delivery stats service with a reason: Delivery stats service responded with " +
+                    "status code = ${httpStatusCode.code()} for report with id = ")
 
-        assert (alertRequest.id =~ UUID_REGEX).matches()
-        assert alertRequest.action == RAISE
-        assert alertRequest.priority == MEDIUM
-        assert alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
-        assert alertRequest.name == PBS_DELIVERY_CLIENT_ERROR
-        assert alertRequest.details.startsWith("Service deliveryStats failed to send request 1 time(s) with error message : " +
-                "Report was not send to delivery stats service with a reason: Delivery stats service responded with " +
-                "status code = ${httpStatusCode.code()} for report with id = ")
-
-        assert alertRequest.source.env == pgPbsProperties.env
-        assert alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-        assert alertRequest.source.region == pgPbsProperties.region
-        assert alertRequest.source.system == pgPbsProperties.system
-        assert alertRequest.source.subSystem == pgPbsProperties.subSystem
-        assert alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgPbsProperties.env
+            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
+            alertRequest.source.region == pgPbsProperties.region
+            alertRequest.source.system == pgPbsProperties.system
+            alertRequest.source.subSystem == pgPbsProperties.subSystem
+            alertRequest.source.hostId == pgPbsProperties.hostId
+        }
 
         cleanup: "Return initial Delivery Statistics response status code"
         deliveryStatistics.reset()
@@ -256,22 +257,22 @@ class AlertSpec extends BasePgSpec {
         PBSUtils.waitUntil { alert.requestCount == initialRequestCount + 1 }
 
         and: "Alert request should correspond to the payload"
-        def alertRequest = alert.recordedAlertRequest
+        verifyAll(alert.recordedAlertRequest) { alertRequest ->
+            (alertRequest.id =~ UUID_REGEX).matches()
+            alertRequest.action == RAISE
+            alertRequest.priority == LOW
+            alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+            alertRequest.name == PBS_PLANNER_EMPTY_RESPONSE
+            alertRequest.details.startsWith("Service planner failed to send request 1 time(s) with error message : " +
+                    "Response without line items was received from planner")
 
-        assert (alertRequest.id =~ UUID_REGEX).matches()
-        assert alertRequest.action == RAISE
-        assert alertRequest.priority == LOW
-        assert alertRequest.updatedAt.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
-        assert alertRequest.name == PBS_PLANNER_EMPTY_RESPONSE
-        assert alertRequest.details.startsWith("Service planner failed to send request 1 time(s) with error message : " +
-                "Response without line items was received from planner")
-
-        assert alertRequest.source.env == pgPbsProperties.env
-        assert alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-        assert alertRequest.source.region == pgPbsProperties.region
-        assert alertRequest.source.system == pgPbsProperties.system
-        assert alertRequest.source.subSystem == pgPbsProperties.subSystem
-        assert alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgPbsProperties.env
+            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
+            alertRequest.source.region == pgPbsProperties.region
+            alertRequest.source.system == pgPbsProperties.system
+            alertRequest.source.subSystem == pgPbsProperties.subSystem
+            alertRequest.source.hostId == pgPbsProperties.hostId
+        }
 
         cleanup: "Return initial Planner response"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(PBSUtils.randomString))

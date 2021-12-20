@@ -48,15 +48,16 @@ class RegisterSpec extends BasePgSpec {
         assert registerRequest.region == region
 
         and: "Delivery Statistics Report doesn't have delivery specific data"
-        def delStatsReport = registerRequest.status.dealsStatus
-        assert (delStatsReport.reportId =~ UUID_REGEX).matches()
-        assert delStatsReport.instanceId == host
-        assert delStatsReport.vendor == vendor
-        assert delStatsReport.region == region
-        assert !delStatsReport.lineItemStatus
-        assert !delStatsReport.dataWindowStartTimeStamp
-        assert !delStatsReport.dataWindowEndTimeStamp
-        assert delStatsReport.reportTimeStamp.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+        verifyAll(registerRequest.status.dealsStatus) { delStatsReport ->
+            (delStatsReport.reportId =~ UUID_REGEX).matches()
+            delStatsReport.instanceId == host
+            delStatsReport.vendor == vendor
+            delStatsReport.region == region
+            !delStatsReport.lineItemStatus
+            !delStatsReport.dataWindowStartTimeStamp
+            !delStatsReport.dataWindowEndTimeStamp
+            delStatsReport.reportTimeStamp.isBefore(ZonedDateTime.now(ZoneId.from(UTC)))
+        }
     }
 
     def "PBS should send a register request with appropriate headers"() {
@@ -107,17 +108,22 @@ class RegisterSpec extends BasePgSpec {
         def delStatsReport = registerRequest.status?.dealsStatus
         assert delStatsReport
         def lineItemStatus = delStatsReport.lineItemStatus
+
         assert lineItemStatus?.size() == plansResponse.lineItems.size()
-        assert lineItemStatus[0].lineItemSource == lineItem.source
-        assert lineItemStatus[0].lineItemId == lineItem.lineItemId
-        assert lineItemStatus[0].dealId == lineItem.dealId
-        assert lineItemStatus[0].extLineItemId == lineItem.extLineItemId
+        verifyAll(lineItemStatus) {
+            lineItemStatus[0].lineItemSource == lineItem.source
+            lineItemStatus[0].lineItemId == lineItem.lineItemId
+            lineItemStatus[0].dealId == lineItem.dealId
+            lineItemStatus[0].extLineItemId == lineItem.extLineItemId
+        }
 
         and: "Line item wasn't used in auction"
-        assert !lineItemStatus[0].accountAuctions
-        assert !lineItemStatus[0].targetMatched
-        assert !lineItemStatus[0].sentToBidder
-        assert !lineItemStatus[0].spentTokens
+        verifyAll(lineItemStatus) {
+            !lineItemStatus[0].accountAuctions
+            !lineItemStatus[0].targetMatched
+            !lineItemStatus[0].sentToBidder
+            !lineItemStatus[0].spentTokens
+        }
 
         cleanup:
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
@@ -159,17 +165,22 @@ class RegisterSpec extends BasePgSpec {
 
         and: "Delivery Statistics Report has correct line item status data"
         def lineItemStatus = delStatsReport.lineItemStatus
+
         assert lineItemStatus?.size() as Long == lineItemCount
-        assert lineItemStatus[0].lineItemSource == lineItem.source
-        assert lineItemStatus[0].lineItemId == lineItem.lineItemId
-        assert lineItemStatus[0].dealId == lineItem.dealId
-        assert lineItemStatus[0].extLineItemId == lineItem.extLineItemId
+        verifyAll(lineItemStatus) {
+            lineItemStatus[0].lineItemSource == lineItem.source
+            lineItemStatus[0].lineItemId == lineItem.lineItemId
+            lineItemStatus[0].dealId == lineItem.dealId
+            lineItemStatus[0].extLineItemId == lineItem.extLineItemId
+        }
 
         and: "Line item was used in auction"
-        assert lineItemStatus[0].accountAuctions == lineItemCount
-        assert lineItemStatus[0].targetMatched == lineItemCount
-        assert lineItemStatus[0].sentToBidder == lineItemCount
-        assert lineItemStatus[0].spentTokens == lineItemCount
+        verifyAll(lineItemStatus) {
+            lineItemStatus[0].accountAuctions == lineItemCount
+            lineItemStatus[0].targetMatched == lineItemCount
+            lineItemStatus[0].sentToBidder == lineItemCount
+            lineItemStatus[0].spentTokens == lineItemCount
+        }
 
         cleanup:
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
