@@ -130,60 +130,71 @@ class ReportSpec extends BasePgSpec {
         def reportRequest = deliveryStatistics.lastRecordedDeliveryStatisticsReportRequest
         def endTime = ZonedDateTime.now(ZoneId.from(UTC))
 
-        assert (reportRequest.reportId =~ UUID_REGEX).matches()
-        assert reportRequest.instanceId == pgPbsProperties.hostId
-        assert reportRequest.vendor == pgPbsProperties.vendor
-        assert reportRequest.region == pgPbsProperties.region
-        assert !reportRequest.clientAuctions
+        verifyAll(reportRequest) {
+            (reportRequest.reportId =~ UUID_REGEX).matches()
+            reportRequest.instanceId == pgPbsProperties.hostId
+            reportRequest.vendor == pgPbsProperties.vendor
+            reportRequest.region == pgPbsProperties.region
+            !reportRequest.clientAuctions
 
-        assert reportRequest.reportTimeStamp.isBefore(endTime)
-        assert reportRequest.dataWindowStartTimeStamp.isBefore(startTime)
-        assert reportRequest.dataWindowEndTimeStamp.isAfter(startTime)
-        assert reportRequest.dataWindowEndTimeStamp.isBefore(endTime)
-        assert reportRequest.reportTimeStamp.isAfter(reportRequest.dataWindowEndTimeStamp)
+            reportRequest.reportTimeStamp.isBefore(endTime)
+            reportRequest.dataWindowStartTimeStamp.isBefore(startTime)
+            reportRequest.dataWindowEndTimeStamp.isAfter(startTime)
+            reportRequest.dataWindowEndTimeStamp.isBefore(endTime)
+            reportRequest.reportTimeStamp.isAfter(reportRequest.dataWindowEndTimeStamp)
+        }
 
         and: "Report line items should have an appropriate to the initially set line items info"
         assert reportRequest.lineItemStatus?.size() == 1
         def lineItemStatus = reportRequest.lineItemStatus[0]
-        assert lineItemStatus.lineItemSource == lineItem.source
-        assert lineItemStatus.lineItemId == lineItem.lineItemId
-        assert lineItemStatus.dealId == lineItem.dealId
-        assert lineItemStatus.extLineItemId == lineItem.extLineItemId
-        assert !lineItemStatus.accountAuctions
-        assert !lineItemStatus.domainMatched
-        assert !lineItemStatus.targetMatched
-        assert !lineItemStatus.targetMatchedButFcapped
-        assert !lineItemStatus.targetMatchedButFcapLookupFailed
-        assert !lineItemStatus.pacingDeferred
-        assert !lineItemStatus.sentToBidder
-        assert !lineItemStatus.sentToBidderAsTopMatch
-        assert !lineItemStatus.receivedFromBidder
-        assert !lineItemStatus.receivedFromBidderInvalidated
-        assert !lineItemStatus.sentToClient
-        assert !lineItemStatus.sentToClientAsTopMatch
-        assert !lineItemStatus.lostToLineItems
-        assert !lineItemStatus.events
-        assert !lineItemStatus.readyAt
-        assert !lineItemStatus.spentTokens
-        assert !lineItemStatus.pacingFrequency
 
-        assert lineItemStatus.deliverySchedule?.size() == 1
+        verifyAll(lineItemStatus) {
+            lineItemStatus.lineItemSource == lineItem.source
+            lineItemStatus.lineItemId == lineItem.lineItemId
+            lineItemStatus.dealId == lineItem.dealId
+            lineItemStatus.extLineItemId == lineItem.extLineItemId
+            !lineItemStatus.accountAuctions
+            !lineItemStatus.domainMatched
+            !lineItemStatus.targetMatched
+            !lineItemStatus.targetMatchedButFcapped
+            !lineItemStatus.targetMatchedButFcapLookupFailed
+            !lineItemStatus.pacingDeferred
+            !lineItemStatus.sentToBidder
+            !lineItemStatus.sentToBidderAsTopMatch
+            !lineItemStatus.receivedFromBidder
+            !lineItemStatus.receivedFromBidderInvalidated
+            !lineItemStatus.sentToClient
+            !lineItemStatus.sentToClientAsTopMatch
+            !lineItemStatus.lostToLineItems
+            !lineItemStatus.events
+            !lineItemStatus.readyAt
+            !lineItemStatus.spentTokens
+            !lineItemStatus.pacingFrequency
+
+            lineItemStatus.deliverySchedule?.size() == 1
+        }
+
         def timeFormatter = DateTimeFormatter.ofPattern(TIME_PATTERN)
         def deliverySchedule = lineItemStatus.deliverySchedule[0]
-        assert deliverySchedule.planId == lineItem.deliverySchedules[0].planId
-        assert timeFormatter.format(deliverySchedule.planStartTimeStamp) ==
-                timeFormatter.format(lineItem.deliverySchedules[0].startTimeStamp)
-        assert timeFormatter.format(deliverySchedule.planUpdatedTimeStamp) ==
-                timeFormatter.format(lineItem.deliverySchedules[0].updatedTimeStamp)
-        assert timeFormatter.format(deliverySchedule.planExpirationTimeStamp) ==
-                timeFormatter.format(lineItem.deliverySchedules[0].endTimeStamp)
 
-        assert deliverySchedule.tokens?.size() == 1
-        def tokens = deliverySchedule.tokens[0]
-        assert tokens.priorityClass == lineItem.deliverySchedules[0].tokens[0].priorityClass
-        assert tokens.total == lineItem.deliverySchedules[0].tokens[0].total
-        assert tokens.spent == 0
-        assert tokens.totalSpent == 0
+        verifyAll(deliverySchedule) {
+            deliverySchedule.planId == lineItem.deliverySchedules[0].planId
+            timeFormatter.format(deliverySchedule.planStartTimeStamp) ==
+                    timeFormatter.format(lineItem.deliverySchedules[0].startTimeStamp)
+            timeFormatter.format(deliverySchedule.planUpdatedTimeStamp) ==
+                    timeFormatter.format(lineItem.deliverySchedules[0].updatedTimeStamp)
+            timeFormatter.format(deliverySchedule.planExpirationTimeStamp) ==
+                    timeFormatter.format(lineItem.deliverySchedules[0].endTimeStamp)
+
+            deliverySchedule.tokens?.size() == 1
+        }
+
+        verifyAll(deliverySchedule.tokens[0]) { tokens ->
+            tokens.priorityClass == lineItem.deliverySchedules[0].tokens[0].priorityClass
+            tokens.total == lineItem.deliverySchedules[0].tokens[0].total
+            tokens.spent == 0
+            tokens.totalSpent == 0
+        }
     }
 
     def "PBS should send a correct delivery statistics report when auction with one line item is happened"() {
@@ -233,16 +244,21 @@ class ReportSpec extends BasePgSpec {
         and: "Report line items should have an appropriate to the initially set line item info"
         assert reportRequest.lineItemStatus?.size() == 1
         def lineItemStatus = reportRequest.lineItemStatus[0]
-        assert lineItemStatus.lineItemSource == lineItem.source
-        assert lineItemStatus.lineItemId == lineItem.lineItemId
-        assert lineItemStatus.dealId == lineItem.dealId
-        assert lineItemStatus.extLineItemId == lineItem.extLineItemId
+
+        verifyAll(lineItemStatus) {
+            lineItemStatus.lineItemSource == lineItem.source
+            lineItemStatus.lineItemId == lineItem.lineItemId
+            lineItemStatus.dealId == lineItem.dealId
+            lineItemStatus.extLineItemId == lineItem.extLineItemId
+        }
 
         and: "Report should have the right PG metrics info"
-        assert lineItemStatus?.accountAuctions == lineItemCount
-        assert lineItemStatus?.targetMatched == lineItemCount
-        assert lineItemStatus?.sentToBidder == lineItemCount
-        assert lineItemStatus?.sentToBidderAsTopMatch == lineItemCount
+        verifyAll(lineItemStatus) {
+            lineItemStatus?.accountAuctions == lineItemCount
+            lineItemStatus?.targetMatched == lineItemCount
+            lineItemStatus?.sentToBidder == lineItemCount
+            lineItemStatus?.sentToBidderAsTopMatch == lineItemCount
+        }
 
         and: "Report line item should have a delivery schedule"
         assert lineItemStatus.deliverySchedule?.size() == 1

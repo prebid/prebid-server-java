@@ -45,14 +45,9 @@ import static org.prebid.server.functional.model.response.auction.MediaType.VIDE
 class TargetingSpec extends BasePgSpec {
 
     @Shared
-    String stringTargetingValue
+    String stringTargetingValue = PBSUtils.randomString
     @Shared
-    Integer integerTargetingValue
-
-    def setupSpec() {
-        stringTargetingValue = PBSUtils.randomString
-        integerTargetingValue = PBSUtils.randomNumber
-    }
+    Integer integerTargetingValue = PBSUtils.randomNumber
 
     def cleanup() {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
@@ -87,44 +82,37 @@ class TargetingSpec extends BasePgSpec {
 
         "two root nodes"                               | Targeting.invalidTwoRootNodesTargeting
 
-        "invalid boolean operator"                     | new Targeting.Builder(BooleanOperator.INVALID)
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
-                .build()
+        "invalid boolean operator"                     | new Targeting.Builder(BooleanOperator.INVALID).addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                                       .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
+                                                                                                       .build()
 
-        "uppercase boolean operator"                   | new Targeting.Builder(UPPERCASE_AND)
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
-                .build()
+        "uppercase boolean operator"                   | new Targeting.Builder(UPPERCASE_AND).addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                             .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
+                                                                                             .build()
 
         "invalid targeting type"                       | Targeting.defaultTargetingBuilder
                                                                   .addTargeting(INVALID, INTERSECTS, [PBSUtils.randomString])
                                                                   .build()
 
-        "'in' matching type value as not list"         | new Targeting.Builder()
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, IN, BANNER)
-                .build()
+        "'in' matching type value as not list"         | new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                .addTargeting(AD_UNIT_MEDIA_TYPE, IN, BANNER)
+                                                                                .build()
 
-        "'intersects' matching type value as not list" | new Targeting.Builder()
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, BANNER)
-                .build()
+        "'intersects' matching type value as not list" | new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, BANNER)
+                                                                                .build()
 
-        "'within' matching type value as not list"     | new Targeting.Builder()
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, WITHIN, BANNER)
-                .build()
+        "'within' matching type value as not list"     | new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                .addTargeting(AD_UNIT_MEDIA_TYPE, WITHIN, BANNER)
+                                                                                .build()
 
-        "'matches' matching type value as list"        | new Targeting.Builder()
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, MATCHES, [BANNER])
-                .build()
+        "'matches' matching type value as list"        | new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                                .addTargeting(AD_UNIT_MEDIA_TYPE, MATCHES, [BANNER])
+                                                                                .build()
 
-        "null targeting height and width"              | new Targeting.Builder()
-                .addTargeting(AD_UNIT_SIZE, INTERSECTS, [new LineItemSize(w: null, h: null)])
-                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
-                .build()
+        "null targeting height and width"              | new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [new LineItemSize(w: null, h: null)])
+                                                                                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
+                                                                                .build()
     }
 
     @Unroll
@@ -166,14 +154,16 @@ class TargetingSpec extends BasePgSpec {
     }
 
     @Unroll
-    def "PBS should support line item targeting by #targetingType"() {
+    def "PBS should support line item targeting by string '#targetingType' targeting type"() {
         given: "Bid response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
-            lineItems[0].targeting = targeting
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(targetingType, MATCHES, stringTargetingValue)
+                                              .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
 
@@ -187,91 +177,146 @@ class TargetingSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType                       | targeting                                            | bidRequest
+        targetingType | bidRequest
 
-        "referrer"                          |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(REFERRER, MATCHES, stringTargetingValue)
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    site.page = stringTargetingValue
-                }
+        REFERRER      | BidRequest.defaultBidRequest.tap {
+            site.page = stringTargetingValue
+        }
 
-        "site domain"                       |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(SITE_DOMAIN, MATCHES, stringTargetingValue)
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    site.domain = stringTargetingValue
-                }
+        SITE_DOMAIN   | BidRequest.defaultBidRequest.tap {
+            site.domain = stringTargetingValue
+        }
 
-        "site publisher domain"             |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(SITE_DOMAIN, MATCHES, stringTargetingValue)
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
-                }
+        SITE_DOMAIN   | BidRequest.defaultBidRequest.tap {
+            site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
+        }
 
-        "app bundle"                        |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(APP_BUNDLE, MATCHES, stringTargetingValue)
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    app = App.defaultApp.tap { bundle = stringTargetingValue }
-                }
+        APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
+            app = App.defaultApp.tap { bundle = stringTargetingValue }
+        }
 
-        "page position"                     |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(PAGE_POSITION, IN, [integerTargetingValue])
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    imp[0].banner.pos = integerTargetingValue
-                }
+        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                language = stringTargetingValue
+            }
+        }
+    }
 
-        "user dow"                          |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(DOW, IN, [ZonedDateTime.now(ZoneId.from(UTC)).dayOfWeek.get(SUNDAY_START.dayOfWeek())])
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    def weekDay = ZonedDateTime.now(ZoneId.from(UTC)).dayOfWeek.get(SUNDAY_START.dayOfWeek())
-                    user = User.defaultUser.tap {
-                        ext = new UserExt(time: new UserTime(userdow: weekDay))
-                    }
-                }
+    def "PBS should support line item targeting by page position targeting type"() {
+        given: "Bid request and bid response"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner.pos = integerTargetingValue
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
 
-        "user hour"                         |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(HOUR, IN, [ZonedDateTime.now(ZoneId.from(UTC)).hour])
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    def hour = ZonedDateTime.now(ZoneId.from(UTC)).hour
-                    user = User.defaultUser.tap {
-                        ext = new UserExt(time: new UserTime(userhour: hour))
-                    }
-                }
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(PAGE_POSITION, IN, [integerTargetingValue])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
 
-        "ufpd language"                     |
-                Targeting.defaultTargetingBuilder
-                         .addTargeting(UFPD_LANGUAGE, MATCHES, stringTargetingValue)
-                         .build()                                                                  |
-                BidRequest.defaultBidRequest.tap {
-                    user = User.defaultUser.tap {
-                        language = stringTargetingValue
-                    }
-                }
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
-        "'\$or' root node with one match"   |
-                new Targeting.Builder(OR)
-                        .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                        .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
-                        .build()                                                                   |
-                BidRequest.defaultBidRequest
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
 
-        "'\$not' root node without matches" |
-                new Targeting.Builder(NOT)
-                        .buildNotBooleanOperatorTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO]) |
-                BidRequest.defaultBidRequest
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+    }
+
+    def "PBS should support line item targeting by userdow targeting type"() {
+        given: "Bid request and bid response"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def weekDay = ZonedDateTime.now(ZoneId.from(UTC)).dayOfWeek.get(SUNDAY_START.dayOfWeek())
+            user = User.defaultUser.tap {
+                ext = new UserExt(time: new UserTime(userdow: weekDay))
+            }
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(DOW, IN, [ZonedDateTime.now(ZoneId.from(UTC)).dayOfWeek.get(SUNDAY_START.dayOfWeek())])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+    }
+
+    def "PBS should support line item targeting by userhour targeting type"() {
+        given: "Bid request and bid response"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def hour = ZonedDateTime.now(ZoneId.from(UTC)).hour
+            user = User.defaultUser.tap {
+                ext = new UserExt(time: new UserTime(userhour: hour))
+            }
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(HOUR, IN, [ZonedDateTime.now(ZoneId.from(UTC)).hour])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+    }
+
+    def "PBS should support line item targeting by '#targetingType' targeting type"() {
+        given: "Bid request and bid response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(HOUR, IN, [ZonedDateTime.now(ZoneId.from(UTC)).hour])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        targetingType                       | targetingValue
+
+        "'\$or' root node with one match"   | new Targeting.Builder(OR).addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                                       .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
+                                                                       .build()
+
+        "'\$not' root node without matches" | new Targeting.Builder(NOT).buildNotBooleanOperatorTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
     }
 
     @Unroll
@@ -304,15 +349,13 @@ class TargetingSpec extends BasePgSpec {
         where:
         domainTargetingType     | bidRequest
 
-        "site domain"           |
-                BidRequest.defaultBidRequest.tap {
-                    site.domain = stringTargetingValue
-                }
+        "site domain"           | BidRequest.defaultBidRequest.tap {
+            site.domain = stringTargetingValue
+        }
 
-        "site publisher domain" |
-                BidRequest.defaultBidRequest.tap {
-                    site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
-                }
+        "site publisher domain" | BidRequest.defaultBidRequest.tap {
+            site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
+        }
     }
 
     @Unroll
@@ -340,11 +383,9 @@ class TargetingSpec extends BasePgSpec {
         assert !auctionResponse.ext?.debug?.pgmetrics
 
         where:
-        targeting << [new Targeting.Builder(OR)
-                              .addTargeting(AD_UNIT_SIZE, INTERSECTS, [new LineItemSize(w: PBSUtils.randomNumber, h: PBSUtils.randomNumber)])
-                              .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
-                              .build(),
-                      new Targeting.Builder(NOT)
-                              .buildNotBooleanOperatorTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])]
+        targeting << [new Targeting.Builder(OR).addTargeting(AD_UNIT_SIZE, INTERSECTS, [new LineItemSize(w: PBSUtils.randomNumber, h: PBSUtils.randomNumber)])
+                                               .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
+                                               .build(),
+                      new Targeting.Builder(NOT).buildNotBooleanOperatorTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])]
     }
 }
