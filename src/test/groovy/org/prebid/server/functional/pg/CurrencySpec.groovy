@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
@@ -24,20 +25,18 @@ class CurrencySpec extends BasePgSpec {
             PbsPgConfig.getPgConfig(networkServiceContainer)
     private static final PrebidServerService pgCurrencyConverterPbsService = pbsServiceFactory.getService(pgCurrencyConverterPbsConfig)
 
+    @Shared
+    BidRequest bidRequest
+
     def setup() {
+        bidRequest = BidRequest.defaultBidRequest
+        bidder.setResponse(bidRequest.id, BidResponse.getDefaultBidResponse(bidRequest))
         pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
     def "PBS should convert non-default line item currency to the default one during the bidder auction"() {
-        given: "Bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        given: "Planner Mock line items with the same CPM but different currencies"
         def accountId = bidRequest.site.publisher.id
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Planner Mock line items with the same CPM but different currencies"
         def defaultCurrency = Price.defaultPrice.currency
         def nonDefaultCurrency = "EUR"
         def defaultCurrencyLineItem = [LineItem.getDefaultLineItem(accountId).tap { price = new Price(cpm: 1, currency: defaultCurrency) }]
@@ -64,19 +63,11 @@ class CurrencySpec extends BasePgSpec {
     }
 
     def "PBS should invalidate line item with an unknown for the conversion rate currency"() {
-        given: "Bid request"
-        def bidRequest = BidRequest.defaultBidRequest
-        def accountId = bidRequest.site.publisher.id
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "Planner Mock line items with a default currency and unknown currency"
+        given: "Planner Mock line items with a default currency and unknown currency"
         def defaultCurrency = Price.defaultPrice.currency
         def unknownCurrency = "UAH"
-        def defaultCurrencyLineItem = [LineItem.getDefaultLineItem(accountId).tap { price = new Price(cpm: 1, currency: defaultCurrency) }]
-        def unknownCurrencyLineItem = [LineItem.getDefaultLineItem(accountId).tap { price = new Price(cpm: 1, currency: unknownCurrency) }]
+        def defaultCurrencyLineItem = [LineItem.getDefaultLineItem(bidRequest.site.publisher.id).tap { price = new Price(cpm: 1, currency: defaultCurrency) }]
+        def unknownCurrencyLineItem = [LineItem.getDefaultLineItem(bidRequest.site.publisher.id).tap { price = new Price(cpm: 1, currency: unknownCurrency) }]
         def lineItems = defaultCurrencyLineItem + unknownCurrencyLineItem
         def plansResponse = new PlansResponse(lineItems: lineItems)
         generalPlanner.initPlansResponse(plansResponse)
