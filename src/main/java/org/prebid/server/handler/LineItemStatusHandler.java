@@ -12,7 +12,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
 
-import java.time.ZonedDateTime;
 import java.util.Objects;
 
 public class LineItemStatusHandler implements Handler<RoutingContext> {
@@ -20,7 +19,6 @@ public class LineItemStatusHandler implements Handler<RoutingContext> {
     private static final Logger logger = LoggerFactory.getLogger(LineItemStatusHandler.class);
 
     private static final String ID_PARAM = "id";
-    private static final String PG_SIM_TIMESTAMP = "pg-sim-timestamp";
 
     private final DeliveryProgressService deliveryProgressService;
     private final JacksonMapper mapper;
@@ -48,8 +46,7 @@ public class LineItemStatusHandler implements Handler<RoutingContext> {
         }
 
         try {
-            final ZonedDateTime time = HttpUtil.getDateFromHeader(routingContext.request().headers(), PG_SIM_TIMESTAMP);
-            final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport(lineItemId, time);
+            final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport(lineItemId);
 
             HttpUtil.headers().forEach(entry -> routingContext.response().putHeader(entry.getKey(), entry.getValue()));
             HttpUtil.executeSafely(routingContext, endpoint,

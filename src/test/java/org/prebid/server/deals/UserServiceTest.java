@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -504,10 +503,6 @@ public class UserServiceTest extends VertxTest {
     @Test
     public void processWinEventShouldCallMetricsWinRequestWithFalseWhenStatusIsNot200() {
         // given
-        final NotificationEvent event = NotificationEvent.builder()
-                .bidId("bidId")
-                .lineItemId("lineItem1")
-                .build();
         final List<FrequencyCap> frequencyCaps = singletonList(FrequencyCap.builder().fcapId("213").build());
 
         given(lineItemService.getLineItemById(any())).willReturn(LineItem.of(

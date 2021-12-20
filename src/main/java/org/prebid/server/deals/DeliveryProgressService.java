@@ -181,7 +181,7 @@ public class DeliveryProgressService implements ApplicationEventProcessor {
     /**
      * Returns {@link LineItemStatusReport} for the given {@link LineItem}'s ID.
      */
-    public LineItemStatusReport getLineItemStatusReport(String lineItemId, ZonedDateTime now) {
+    public LineItemStatusReport getLineItemStatusReport(String lineItemId) {
         final LineItem lineItem = lineItemService.getLineItemById(lineItemId);
         if (lineItem == null) {
             throw new PreBidException(String.format("LineItem not found: %s", lineItemId));

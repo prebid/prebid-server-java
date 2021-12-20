@@ -5,14 +5,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
-import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
@@ -24,8 +22,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class BidderDetailsHandler implements Handler<RoutingContext> {
-
-    private static final Logger logger = LoggerFactory.getLogger(BidderDetailsHandler.class);
 
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";

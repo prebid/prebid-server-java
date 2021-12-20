@@ -14,10 +14,6 @@ public enum BooleanOperator {
         this.value = value;
     }
 
-    public String value() {
-        return value;
-    }
-
     public static boolean isBooleanOperator(String candidate) {
         return Arrays.stream(BooleanOperator.values()).anyMatch(op -> op.value.equals(candidate));
     }

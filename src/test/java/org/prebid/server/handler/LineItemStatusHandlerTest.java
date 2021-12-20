@@ -65,7 +65,7 @@ public class LineItemStatusHandlerTest extends VertxTest {
     @Test
     public void handleShouldRespondWithErrorIfProcessingFailed() {
         // given
-        given(deliveryProgressService.getLineItemStatusReport(any(), any())).willThrow(new PreBidException("error"));
+        given(deliveryProgressService.getLineItemStatusReport(any())).willThrow(new PreBidException("error"));
 
         // when
         handler.handle(routingContext);
@@ -78,7 +78,7 @@ public class LineItemStatusHandlerTest extends VertxTest {
     @Test
     public void handleShouldRespondWithErrorIfUnexpectedExceptionOccurred() {
         // given
-        given(deliveryProgressService.getLineItemStatusReport(any(), any())).willThrow(new RuntimeException("error"));
+        given(deliveryProgressService.getLineItemStatusReport(any())).willThrow(new RuntimeException("error"));
 
         // when
         handler.handle(routingContext);
@@ -91,7 +91,7 @@ public class LineItemStatusHandlerTest extends VertxTest {
     @Test
     public void handleShouldRespondWithExpectedResult() {
         // given
-        given(deliveryProgressService.getLineItemStatusReport(any(), any()))
+        given(deliveryProgressService.getLineItemStatusReport(any()))
                 .willReturn(LineItemStatusReport.builder().lineItemId("lineItemId").build());
 
         // when

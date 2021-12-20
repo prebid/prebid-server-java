@@ -285,7 +285,7 @@ public class DeliveryProgressServiceTest extends VertxTest {
         given(lineItemService.getLineItemById(anyString())).willReturn(lineItem);
 
         // when
-        final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport("lineItemId1", now);
+        final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport("lineItemId1");
 
         // then
         assertThat(report).isEqualTo(LineItemStatusReport.builder()
