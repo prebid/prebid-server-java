@@ -52,12 +52,13 @@ class PgBidderRequestSpec extends BasePgSpec {
         pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
 
         then: "PBS sent a request to the bidder with added device info"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.user?.ext?.fcapids == userResponse.user.ext.fcapIds
-        assert bidderRequest.user.data?.size() == userResponse.user.data.size()
-        assert bidderRequest.user.data[0].id == userResponse.user.data[0].name
-        assert bidderRequest.user.data[0].segment?.size() == userResponse.user.data[0].segment.size()
-        assert bidderRequest.user.data[0].segment[0].id == userResponse.user.data[0].segment[0].id
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) { bidderRequest ->
+            bidderRequest.user?.ext?.fcapids == userResponse.user.ext.fcapIds
+            bidderRequest.user.data?.size() == userResponse.user.data.size()
+            bidderRequest.user.data[0].id == userResponse.user.data[0].name
+            bidderRequest.user.data[0].segment?.size() == userResponse.user.data[0].segment.size()
+            bidderRequest.user.data[0].segment[0].id == userResponse.user.data[0].segment[0].id
+        }
     }
 
     def "PBS should be able to add pmp deals part to the bidder request when PG is enabled"() {
@@ -81,17 +82,21 @@ class PgBidderRequestSpec extends BasePgSpec {
 
         then: "PBS sent a request to the bidder with added deals"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
         assert bidderRequest.imp?.size() == bidRequest.imp.size()
         assert bidderRequest.imp[0].pmp?.deals?.size() == plansResponse.lineItems.size()
         assert bidderRequest.imp[0].pmp?.deals
         assert plansResponse.lineItems.each { lineItem ->
             def deal = bidderRequest.imp[0]?.pmp?.deals?.find { it.id == lineItem.dealId }
+
             assert deal
-            assert deal?.ext?.line?.lineItemId == lineItem.lineItemId
-            assert deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
-            assert deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
-            assert deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
-            assert deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            verifyAll(deal) {
+                deal?.ext?.line?.lineItemId == lineItem.lineItemId
+                deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
+                deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
+                deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
+                deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            }
         }
     }
 
@@ -128,12 +133,15 @@ class PgBidderRequestSpec extends BasePgSpec {
         assert firstRequestImp?.pmp?.deals?.size() == plansResponse.lineItems.size()
         assert plansResponse.lineItems.each { lineItem ->
             def deal = firstRequestImp.pmp.deals.find { it.id == lineItem.dealId }
+
             assert deal
-            assert deal?.ext?.line?.lineItemId == lineItem.lineItemId
-            assert deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
-            assert deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
-            assert deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
-            assert deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            verifyAll(deal) {
+                deal?.ext?.line?.lineItemId == lineItem.lineItemId
+                deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
+                deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
+                deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
+                deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            }
         }
 
         def topMatchLineItemId = firstRequestImp.pmp.deals.first().ext.line.lineItemId
@@ -145,12 +153,15 @@ class PgBidderRequestSpec extends BasePgSpec {
 
         assert plansResponse.lineItems.findAll { it.lineItemId != topMatchLineItemId }.each { lineItem ->
             def deal = secondRequestImp.pmp.deals.find { it.id == lineItem.dealId }
+
             assert deal
-            assert deal?.ext?.line?.lineItemId == lineItem.lineItemId
-            assert deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
-            assert deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
-            assert deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
-            assert deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            verifyAll(deal) {
+                deal?.ext?.line?.lineItemId == lineItem.lineItemId
+                deal?.ext?.line?.extLineItemId == lineItem.extLineItemId
+                deal?.ext?.line?.sizes?.size() == lineItem.sizes.size()
+                deal?.ext?.line?.sizes[0].w == lineItem.sizes[0].w
+                deal?.ext?.line?.sizes[0].h == lineItem.sizes[0].h
+            }
         }
     }
 }

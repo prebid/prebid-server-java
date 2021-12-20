@@ -236,18 +236,19 @@ class UserDetailsSpec extends BasePgSpec {
 
         and: "Win request corresponds to the payload"
         def timeFormatter = DateTimeFormatter.ofPattern(TIME_PATTERN)
-        def winNotificationRequest = userData.recordedWinEventRequest
-        assert winNotificationRequest.bidderCode == GENERIC.value
-        assert winNotificationRequest.bidId == winEventRequest.bidId
-        assert winNotificationRequest.lineItemId == lineItemId
-        assert winNotificationRequest.region == pgPbsProperties.region
-        assert winNotificationRequest.userIds?.size() == 1
-        assert winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
-        assert winNotificationRequest.userIds[0].type == pgPbsProperties.userIdType
-        assert timeFormatter.format(winNotificationRequest.lineUpdatedDateTime) ==
-                timeFormatter.format(lineItemUpdateTime)
-        assert winNotificationRequest.winEventDateTime.isAfter(winNotificationRequest.lineUpdatedDateTime)
-        assert !winNotificationRequest.frequencyCaps
+
+        verifyAll(userData.recordedWinEventRequest) { winNotificationRequest ->
+            winNotificationRequest.bidderCode == GENERIC.value
+            winNotificationRequest.bidId == winEventRequest.bidId
+            winNotificationRequest.lineItemId == lineItemId
+            winNotificationRequest.region == pgPbsProperties.region
+            winNotificationRequest.userIds?.size() == 1
+            winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
+            winNotificationRequest.userIds[0].type == pgPbsProperties.userIdType
+            timeFormatter.format(winNotificationRequest.lineUpdatedDateTime) == timeFormatter.format(lineItemUpdateTime)
+            winNotificationRequest.winEventDateTime.isAfter(winNotificationRequest.lineUpdatedDateTime)
+            !winNotificationRequest.frequencyCaps
+        }
     }
 
     @Unroll
