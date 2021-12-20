@@ -240,10 +240,6 @@ class PgAuctionSpec extends BasePgSpec {
         and: "Publisher account id"
         def accountId = bidRequest.site.publisher.id
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Planner Mock line items to return #maxDealsPerBidder + 1 line items"
         def maxLineItemsToProcess = pgPbsProperties.maxDealsPerBidder
         def plansResponse = new PlansResponse(lineItems: (1..maxLineItemsToProcess + 1).collect {
@@ -279,10 +275,6 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
         def lineItemsNumber = plansResponse.lineItems.size()
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
@@ -312,10 +304,6 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
         def lineItemCount = plansResponse.lineItems.size()
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
@@ -340,10 +328,6 @@ class PgAuctionSpec extends BasePgSpec {
             lineItems[0].frequencyCaps = [FrequencyCap.defaultFrequencyCap.tap { it.fcapId = fcapId }]
         }
         generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
@@ -377,10 +361,6 @@ class PgAuctionSpec extends BasePgSpec {
         }
         generalPlanner.initPlansResponse(plansResponse)
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
@@ -413,10 +393,6 @@ class PgAuctionSpec extends BasePgSpec {
         }
         def accountId = bidRequest.site.publisher.id
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Planner Mock with two line items"
         def plansResponse = PlansResponse.getDefaultPlansResponse(accountId).tap {
             lineItems << LineItem.getDefaultLineItem(accountId)
@@ -448,10 +424,6 @@ class PgAuctionSpec extends BasePgSpec {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
         def accountId = bidRequest.site.publisher.id
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner Mock line items with different priorities"
         def lowerPriorityLineItems = [LineItem.getDefaultLineItem(accountId).tap { relativePriority = VERY_LOW },
@@ -486,10 +458,6 @@ class PgAuctionSpec extends BasePgSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def accountId = bidRequest.site.publisher.id
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Planner Mock line items with different CPMs"
         def currency = Price.defaultPrice.currency
         def lowerCpmLineItems = [LineItem.getDefaultLineItem(accountId).tap { price = new Price(cpm: 1, currency: currency) },
@@ -523,10 +491,6 @@ class PgAuctionSpec extends BasePgSpec {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
         def accountId = bidRequest.site.publisher.id
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Planner Mock line items with different priorities and CPMs"
         def currency = Price.defaultPrice.currency

@@ -74,10 +74,6 @@ class TokenSpec extends BasePgSpec {
         }
         generalPlanner.initPlansResponse(plansResponse)
 
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
-
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
@@ -100,10 +96,6 @@ class TokenSpec extends BasePgSpec {
             deliverySchedules.tokens << new Token(priorityClass: 3, total: 1)
         }
         generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
@@ -157,10 +149,6 @@ class TokenSpec extends BasePgSpec {
             lineItems[0].deliverySchedules[0].tokens = tokens
         }
         generalPlanner.initPlansResponse(plansResponse)
-
-        and: "Bid response"
-        def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
-        bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
