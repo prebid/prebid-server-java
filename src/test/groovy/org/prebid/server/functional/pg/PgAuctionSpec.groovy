@@ -65,11 +65,13 @@ class PgAuctionSpec extends BasePgSpec {
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response contains values according to the payload"
-        assert auctionResponse.id == bidRequest.id
-        assert auctionResponse.cur == pgPbsProperties.currency
-        assert !auctionResponse.bidid
-        assert !auctionResponse.customdata
-        assert !auctionResponse.nbr
+        verifyAll(auctionResponse) {
+            auctionResponse.id == bidRequest.id
+            auctionResponse.cur == pgPbsProperties.currency
+            !auctionResponse.bidid
+            !auctionResponse.customdata
+            !auctionResponse.nbr
+        }
 
         and: "Seat bid corresponds to the request seat bid"
         assert auctionResponse.seatbid?.size() == bidRequest.imp.size()
@@ -77,13 +79,15 @@ class PgAuctionSpec extends BasePgSpec {
         assert seatBid.seat == GENERIC.value
 
         assert seatBid.bid?.size() == 1
-        def bid = seatBid.bid[0]
-        assert (bid.id =~ UUID_REGEX).matches()
-        assert bid.impid == bidRequest.imp[0].id
-        assert bid.price == bidResponse.seatbid[0].bid[0].price
-        assert bid.crid == bidResponse.seatbid[0].bid[0].crid
-        assert bid.ext?.prebid?.type == BANNER
-        assert bid.ext?.origbidcpm == bidResponse.seatbid[0].bid[0].price
+
+        verifyAll(seatBid.bid[0]) { bid ->
+            (bid.id =~ UUID_REGEX).matches()
+            bid.impid == bidRequest.imp[0].id
+            bid.price == bidResponse.seatbid[0].bid[0].price
+            bid.crid == bidResponse.seatbid[0].bid[0].crid
+            bid.ext?.prebid?.type == BANNER
+            bid.ext?.origbidcpm == bidResponse.seatbid[0].bid[0].price
+        }
     }
 
     @Unroll
@@ -112,41 +116,34 @@ class PgAuctionSpec extends BasePgSpec {
         where:
         reason                  | plansResponse
 
-        "non matched targeting" |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].targeting = new Targeting.Builder()
-                            .addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
-                            .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
-                            .addTargeting(DEVICE_REGION, IN, [14])
-                            .build()
-                }
+        "non matched targeting" | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].targeting = new Targeting.Builder().addTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])
+                                                            .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [BANNER])
+                                                            .addTargeting(DEVICE_REGION, IN, [14])
+                                                            .build()
+        }
 
-        "empty targeting"       |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].targeting = null
-                }
+        "empty targeting"       | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].targeting = null
+        }
 
-        "non matched bidder"    |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].source = PBSUtils.randomString
-                }
+        "non matched bidder"    | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].source = PBSUtils.randomString
+        }
 
-        "inactive status"       |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].status = DELETED
-                }
+        "inactive status"       | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].status = DELETED
+        }
 
-        "paused status"         |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].status = PAUSED
-                }
+        "paused status"         | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].status = PAUSED
+        }
 
-        "expired lifetime"      |
-                PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
-                    lineItems[0].startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(2)
-                    lineItems[0].endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(1)
-                    lineItems[0].updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(2)
-                }
+        "expired lifetime"      | PlansResponse.getDefaultPlansResponse(PBSUtils.randomString).tap {
+            lineItems[0].startTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(2)
+            lineItems[0].endTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(1)
+            lineItems[0].updatedTimeStamp = ZonedDateTime.now(ZoneId.from(UTC)).minusMinutes(2)
+        }
     }
 
     def "PBS shouldn't process line item with non matched publisher account id"() {
