@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.adview.AdviewBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -30,12 +31,13 @@ public class AdviewConfiguration {
     @Bean
     BidderDeps adviewBidderDeps(BidderConfigurationProperties adviewConfigurationProperties,
                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                JacksonMapper mapper) {
+                                JacksonMapper mapper,
+                                CurrencyConversionService currencyConversionService) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(adviewConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AdviewBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new AdviewBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
