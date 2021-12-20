@@ -34,7 +34,6 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdyoulike>> ADYOULIKE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
