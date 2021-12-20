@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
@@ -7,14 +8,14 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 
-import static org.prebid.server.functional.model.ChannelType.APP
-import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -274,7 +275,7 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
     def "PBS should apply ccpa when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = true in account config"() {
         given: "Default basic generic BidRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        def bidRequest = getCcpaBidRequest(APP, validCcpa)
+        def bidRequest = getCcpaBidRequest(DistributionChannel.APP, validCcpa)
 
         and: "Save account config into DB"
         def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
@@ -290,14 +291,14 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: false, enabledForRequestType: [(APP): true]),
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
                        new AccountCcpaConfig(enabled: true)]
     }
 
     def "PBS should apply ccpa when privacy.ccpa.channel-enabled.web or privacy.ccpa.enabled = true in account config"() {
         given: "Default basic generic BidRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        def bidRequest = getCcpaBidRequest(WEB, validCcpa)
+        def bidRequest = getCcpaBidRequest(validCcpa)
 
         and: "Save account config into DB"
         def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
@@ -313,14 +314,14 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: false, enabledForRequestType: [(WEB): true]),
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.WEB): true]),
                        new AccountCcpaConfig(enabled: true)]
     }
 
     def "PBS should not apply ccpa when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = false in account config"() {
         given: "Default basic generic BidRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        def bidRequest = getCcpaBidRequest(APP, validCcpa)
+        def bidRequest = getCcpaBidRequest(DistributionChannel.APP, validCcpa)
 
         and: "Save account config into DB"
         def privacy = new AccountPrivacyConfig(ccpa: ccpaConfig)
@@ -337,7 +338,7 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: true, enabledForRequestType: [(APP): false]),
+        ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(ChannelType.APP): false]),
                        new AccountCcpaConfig(enabled: false)]
     }
 
@@ -361,7 +362,7 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: true, enabledForRequestType: [(WEB): false]),
+        ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(ChannelType.WEB): false]),
                        new AccountCcpaConfig(enabled: false)]
     }
 }

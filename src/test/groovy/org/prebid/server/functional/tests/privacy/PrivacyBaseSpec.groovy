@@ -1,9 +1,9 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
@@ -15,7 +15,7 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 
-import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
@@ -26,9 +26,11 @@ import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIV
 abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2
+    protected static final PrebidServerService privacyPbsService = pbsServiceFactory.getService(
+            ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
 
-    protected static BidRequest getBidRequestWithGeo(ChannelType channelType = WEB) {
-        BidRequest.getDefaultBidRequest(channelType).tap {
+    protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
+        BidRequest.getDefaultBidRequest(channel).tap {
             device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
         }
     }
@@ -39,8 +41,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static BidRequest getCcpaBidRequest(ChannelType channelType = WEB, ConsentString consentString) {
-        getBidRequestWithGeo(channelType).tap {
+    protected static BidRequest getCcpaBidRequest(DistributionChannel channel = SITE, ConsentString consentString) {
+        getBidRequestWithGeo(channel).tap {
             regs.ext = new RegsExt(usPrivacy: consentString)
         }
     }
@@ -52,8 +54,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static BidRequest getGdprBidRequest(ChannelType channelType = WEB, ConsentString consentString) {
-        getBidRequestWithGeo(channelType).tap {
+    protected static BidRequest getGdprBidRequest(DistributionChannel channel = SITE, ConsentString consentString) {
+        getBidRequestWithGeo(channel).tap {
             regs.ext = new RegsExt(gdpr: 1)
             user = new User(ext: new UserExt(consent: consentString))
         }

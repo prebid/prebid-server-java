@@ -116,8 +116,8 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo == maskGeo(ampStoredRequest)
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: false, enabledForRequestType: [(AMP): true]),
-                              new AccountCcpaConfig(enabled: true)]
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(AMP): true]),
+                       new AccountCcpaConfig(enabled: true)]
     }
 
     @Unroll
@@ -146,7 +146,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == ampStoredRequest.device.geo.lon
 
         where:
-        ccpaConfig << [new AccountCcpaConfig(enabled: true, enabledForRequestType: [(AMP): false]),
-                              new AccountCcpaConfig(enabled: false)]
+        ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(AMP): false]),
+                       new AccountCcpaConfig(enabled: false)]
     }
 }

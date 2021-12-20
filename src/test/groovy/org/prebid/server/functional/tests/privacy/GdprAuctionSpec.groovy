@@ -1,18 +1,18 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 import spock.lang.Unroll
 
-import static org.prebid.server.functional.model.ChannelType.APP
-import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
@@ -102,7 +102,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
-        def bidRequest = getGdprBidRequest(APP, validConsentString)
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
         and: "Save account config into DB"
         def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
@@ -111,14 +111,14 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: false, enabledForRequestType: [(APP): true]),
+        gdprConfig << [new AccountGdprConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
                        new AccountGdprConfig(enabled: true)]
     }
 
@@ -138,7 +138,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -146,7 +146,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         where:
         gdprConfig << [new AccountGdprConfig(enabled: true),
-                       new AccountGdprConfig(enabled: false, enabledForRequestType: [(WEB): true])]
+                       new AccountGdprConfig(enabled: false, channelEnabled: [(ChannelType.WEB): true])]
     }
 
     @Unroll
@@ -156,7 +156,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
-        def bidRequest = getGdprBidRequest(APP, validConsentString)
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
         and: "Save account config into DB"
         def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
@@ -173,7 +173,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: true, enabledForRequestType: [(APP): false]),
+        gdprConfig << [new AccountGdprConfig(enabled: true, channelEnabled: [(ChannelType.APP): false]),
                        new AccountGdprConfig(enabled: false)]
     }
 
@@ -201,7 +201,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: true, enabledForRequestType: [(WEB): false]),
+        gdprConfig << [new AccountGdprConfig(enabled: true, channelEnabled: [(ChannelType.WEB): false]),
                        new AccountGdprConfig(enabled: false)]
     }
 }

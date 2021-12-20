@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -285,15 +286,15 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequests.device?.geo == maskGeo(ampStoredRequest)
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: false, enabledForRequestType: [(AMP): true]),
-                              new AccountGdprConfig(enabled: true)]
+        gdprConfig << [new AccountGdprConfig(enabled: false, channelEnabled: [(ChannelType.AMP): true]),
+                       new AccountGdprConfig(enabled: true)]
     }
 
     def "PBS should not apply gdpr when privacy.gdpr.channel-enabled.amp or privacy.gdpr.enabled = false in account config"() {
@@ -324,7 +325,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == ampStoredRequest.device.geo.lon
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: true, enabledForRequestType: [(AMP): false]),
+        gdprConfig << [new AccountGdprConfig(enabled: true, channelEnabled: [(ChannelType.AMP): false]),
                               new AccountGdprConfig(enabled: false)]
     }
 }
