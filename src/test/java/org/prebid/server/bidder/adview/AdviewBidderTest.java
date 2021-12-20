@@ -123,7 +123,7 @@ public class AdviewBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldConvertCurrencyIfIncorrect() {
+    public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
                 .willReturn(BigDecimal.TEN);
@@ -141,14 +141,6 @@ public class AdviewBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsOnly(tuple(BigDecimal.TEN, "USD"));
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .containsOnly(singletonList(
-                        givenImp(impBuilder -> impBuilder
-                                .bidfloorcur("USD")
-                                .bidfloor(BigDecimal.TEN)
-                                .tagid("publisherId"))));
     }
 
     @Test
