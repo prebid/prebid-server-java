@@ -21,15 +21,18 @@ public class ThirtyThreeAcrossTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFrom33Across() throws IOException, JSONException {
         // given
+        String path = "openrtb2/thirtythreeacross/";
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/thirtythreeacross-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/thirtythreeacross/test-thirtythreeacross-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/thirtythreeacross/test-thirtythreeacross-bid-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom(path + "test-thirtythreeacross-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom(path + "test-thirtythreeacross-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/thirtythreeacross/test-auction-thirtythreeacross-request.json",
+        final Response response = responseFor(path + "test-auction-thirtythreeacross-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/thirtythreeacross/test-auction-thirtythreeacross-response.json", response, singletonList("thirtythreeacross"));
+        assertJsonEquals(path + "test-auction-thirtythreeacross-response.json",
+                response,
+                singletonList("thirtythreeacross"));
     }
 }

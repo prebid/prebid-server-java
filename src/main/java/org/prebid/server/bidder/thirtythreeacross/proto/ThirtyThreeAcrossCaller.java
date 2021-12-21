@@ -6,7 +6,7 @@ import lombok.Value;
 @NoArgsConstructor(staticName = "of")
 @Value
 public class ThirtyThreeAcrossCaller {
-  final String name = "Prebid-Server-Java";
 
-  final String version = "N/A";
+    final String name = "Prebid-Server-Java";
+    final String version = "N/A";
 }

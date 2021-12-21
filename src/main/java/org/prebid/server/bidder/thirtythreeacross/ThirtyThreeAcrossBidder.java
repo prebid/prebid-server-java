@@ -149,7 +149,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
 
     private ObjectNode createImpExt(String productId, String zoneId, String siteId) {
         final ThirtyThreeAcrossImpExt ttxImpExt = ThirtyThreeAcrossImpExt.of(
-            ThirtyThreeAcrossImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
+                ThirtyThreeAcrossImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
@@ -158,17 +158,13 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         ttxCaller.add(ThirtyThreeAcrossCaller.of());
 
         final ExtRequest ttxReqExt = mapper.fillExtension(
-            ExtRequest.empty(),
-            ThirtyThreeAcrossReqExt.of(
-                ThirtyThreeAcrossReqExtTtx.of(ttxCaller)
-            )
+                ExtRequest.empty(),
+                ThirtyThreeAcrossReqExt.of(
+                        ThirtyThreeAcrossReqExtTtx.of(ttxCaller)
+                )
         );
 
         return ttxReqExt;
-    }
-
-    private void foo() {
-
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
@@ -213,10 +209,10 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid
-                                       bid) {
+    private BidType getBidType(Bid bid) {
         try {
-            final ThirtyThreeAcrossBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), ThirtyThreeAcrossBidExt.class);
+            final ThirtyThreeAcrossBidExt ttxBidExt =
+                    mapper.mapper().convertValue(bid.getExt(), ThirtyThreeAcrossBidExt.class);
             return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;
         } catch (IllegalArgumentException e) {
             return BidType.banner;
