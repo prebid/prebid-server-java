@@ -34,7 +34,6 @@ import org.prebid.server.proto.openrtb.ext.request.adhese.ExtImpAdhese;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -173,7 +172,7 @@ public class AdheseBidderTest extends VertxTest {
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
                                 .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xz", Arrays.asList("ifaValue"))))
+                                        "xz", singletonList("ifaValue"))))
                                 .build()));
     }
 
@@ -206,7 +205,7 @@ public class AdheseBidderTest extends VertxTest {
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
                                 .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xf", Arrays.asList("pageValue"))))
+                                        "xf", singletonList("pageValue"))))
                                 .build()));
     }
 
@@ -243,7 +242,7 @@ public class AdheseBidderTest extends VertxTest {
                                                 .slotname("_adhese_prebid_demo_-leaderboard")
                                                 .build()))
                                 .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xt", Arrays.asList("dummy"))))
+                                        "xt", singletonList("dummy"))))
                                 .build()));
     }
 

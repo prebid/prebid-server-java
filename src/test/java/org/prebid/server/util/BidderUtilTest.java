@@ -21,7 +21,7 @@ public class BidderUtilTest {
     @Test
     public void isValidPriceShouldReturnFalseIfPriceIsMissing() {
         // when and then
-        assertThat(BidderUtil.isValidPrice(null)).isFalse();
+        assertThat(BidderUtil.isValidPrice((BigDecimal) null)).isFalse();
     }
 
     @Test

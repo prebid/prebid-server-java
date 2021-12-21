@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class SynacormediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSynacormedia>> SYNACORMEDIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSynacormedia>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

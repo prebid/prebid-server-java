@@ -106,10 +106,8 @@ public class VideoRequestFactory {
                 .compose(httpRequest -> createBidRequest(httpRequest)
                         .map(bidRequestWithErrors -> populatePodErrors(
                                 bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
-                        .map(bidRequestWithErrors -> {
-                            return ortb2RequestFactory.enrichAuctionContext(
-                                    initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime);
-                        }))
+                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))

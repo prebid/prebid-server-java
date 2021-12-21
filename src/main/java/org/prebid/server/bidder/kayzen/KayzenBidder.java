@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 public class KayzenBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKayzen>> KAYZEN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKayzen>>() {
+            new TypeReference<>() {
             };
     private static final String URL_ZONE_ID_MACRO = "{{ZoneID}}";
     private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";

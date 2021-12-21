@@ -6,7 +6,6 @@ import spock.lang.Unroll
 
 class InfoBiddersSpec extends BaseSpec {
 
-    @Unroll
     def "PBS should get info about active bidders when enabledonly = #enabledonly"() {
         when: "PBS processes bidders info request"
         def response = defaultPbsService.sendInfoBiddersRequest("true")
@@ -18,7 +17,6 @@ class InfoBiddersSpec extends BaseSpec {
         enabledonly << ["true", "True", "truE"]
     }
 
-    @Unroll
     def "PBS should get info about all bidders when enabledonly = #enabledonly"() {
         when: "PBS processes bidders info request"
         def response = defaultPbsService.sendInfoBiddersRequest("false")
@@ -38,7 +36,6 @@ class InfoBiddersSpec extends BaseSpec {
         assert response.size() > 1
     }
 
-    @Unroll
     def "PBS should return error when enabledonly is incorrect"() {
         when: "PBS processes bidders info request"
         defaultPbsService.sendInfoBiddersRequest(enabledonly)

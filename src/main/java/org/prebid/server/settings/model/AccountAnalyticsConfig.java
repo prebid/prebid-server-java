@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
@@ -14,12 +12,10 @@ public class AccountAnalyticsConfig {
     private static final Map<String, Boolean> FALLBACK_AUCTION_EVENTS;
 
     static {
-        final Map<String, Boolean> events = new HashMap<>();
-        events.put("web", false);
-        events.put("amp", true);
-        events.put("app", true);
-
-        FALLBACK_AUCTION_EVENTS = Collections.unmodifiableMap(events);
+        FALLBACK_AUCTION_EVENTS = Map.of(
+                "web", false,
+                "amp", true,
+                "app", true);
     }
 
     @JsonProperty("auction-events")

@@ -91,7 +91,7 @@ public abstract class PurposeStrategy {
         }
 
         // Full by default
-        if (purposeType == null || Objects.equals(purposeType, EnforcePurpose.full)) {
+        if (purposeType == null || purposeType.equals(EnforcePurpose.full)) {
             return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
@@ -107,7 +107,7 @@ public abstract class PurposeStrategy {
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptyList()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->
-                        bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
+                bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
     }
 
     protected Collection<VendorPermission> allowedByBasicTypeStrategy(

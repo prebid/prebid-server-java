@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class RhythmoneBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpRhythmone>> RHYTHMONE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpRhythmone>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class IqzoneBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpIqzone>> IQZONE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpIqzone>>() {
+            new TypeReference<>() {
             };
 
     private final JacksonMapper mapper;

@@ -67,7 +67,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     private static final int DEFAULT_VIDEO_HEIGHT = 250;
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
+            new TypeReference<>() {
             };
 
     private final String bannerEndpointUrl;

@@ -422,7 +422,7 @@ public class PrivacyEnforcementService {
         if (nosaleBidders.size() == 1 && nosaleBidders.contains(CATCH_ALL_BIDDERS)) {
             ccpaEnforcedBidders.clear();
         } else {
-            ccpaEnforcedBidders.removeAll(nosaleBidders);
+            nosaleBidders.forEach(ccpaEnforcedBidders::remove);
         }
 
         ccpaEnforcedBidders.removeIf(bidder ->

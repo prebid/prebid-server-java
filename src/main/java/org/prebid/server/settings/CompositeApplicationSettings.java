@@ -22,7 +22,7 @@ import java.util.function.BiFunction;
  */
 public class CompositeApplicationSettings implements ApplicationSettings {
 
-    private Proxy proxy;
+    private final Proxy proxy;
 
     public CompositeApplicationSettings(List<ApplicationSettings> delegates) {
         if (Objects.requireNonNull(delegates).isEmpty()) {
@@ -96,8 +96,8 @@ public class CompositeApplicationSettings implements ApplicationSettings {
      */
     private static class Proxy implements ApplicationSettings {
 
-        private ApplicationSettings applicationSettings;
-        private Proxy next;
+        private final ApplicationSettings applicationSettings;
+        private final Proxy next;
 
         private Proxy(ApplicationSettings applicationSettings, Proxy next) {
             this.applicationSettings = applicationSettings;

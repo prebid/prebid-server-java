@@ -141,7 +141,7 @@ public class InvibesBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldCreateRequestWithDataFromEveryImpression() throws JsonProcessingException {
+    public void shouldCreateRequestWithDataFromEveryImpression() {
         // given
         final List<Imp> imps = Arrays.asList(givenImp(
                 impBuilder -> impBuilder

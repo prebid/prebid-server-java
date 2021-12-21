@@ -1,12 +1,10 @@
 package org.prebid.server.privacy.ccpa;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class Ccpa {
 
     public static final Ccpa EMPTY = Ccpa.of(null);
@@ -21,7 +19,7 @@ public class Ccpa {
     private static final String NOT_ENFORCED_SIGNAL = "N";
     private static final String NOT_DEFINED_SIGNAL = "-";
 
-    private String usPrivacy;
+    String usPrivacy;
 
     public boolean isNotEmpty() {
         return StringUtils.isNotEmpty(usPrivacy);

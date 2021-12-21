@@ -191,7 +191,7 @@ public class DealsSimulationTest extends VertxTest {
     }
 
     private void awaitForLineItemMetadata(ZonedDateTime now) {
-        await().atMost(10, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
+        await().atMost(20, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
                 .until(() -> lineItemService.accountHasDeals("2001", now));
     }
 
@@ -223,7 +223,7 @@ public class DealsSimulationTest extends VertxTest {
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
 
         return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
-                arrayValueMatchers.toArray(new Customization[arrayValueMatchers.size()]));
+                arrayValueMatchers.toArray(Customization[]::new));
     }
 
     private void assertResponse(String expectedResponsePath, Response response, List<String> bidders)

@@ -7,6 +7,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
@@ -49,6 +50,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@UtilityClass
 public class SettingsConfiguration {
 
     @Configuration
@@ -323,8 +325,8 @@ public class SettingsConfiguration {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                            jdbcApplicationSettings,
-                            httpApplicationSettings)
+                                    jdbcApplicationSettings,
+                                    httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 

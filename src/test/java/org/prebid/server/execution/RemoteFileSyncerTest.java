@@ -41,7 +41,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-@SuppressWarnings("ResultOfMethodCallIgnored")
 public class RemoteFileSyncerTest extends VertxTest {
 
     private static final long TIMEOUT = 10000;

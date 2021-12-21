@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 
 import java.math.BigDecimal;
@@ -18,6 +19,10 @@ public class BidderUtil {
 
     public static boolean isValidPrice(BigDecimal price) {
         return price != null && price.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public static boolean isValidPrice(Price price) {
+        return isValidPrice(price.getValue()) && StringUtils.isNotBlank(price.getCurrency());
     }
 
     public static PriceFloorInfo resolvePriceFloor(Bid bid, BidRequest bidRequest) {

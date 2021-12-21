@@ -43,8 +43,8 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
     private static final String USD_CURRENCY = "USD";
     private static final Integer PROTOCOL_VAST_40 = 7;
 
-    private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpEmxDigital>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpEmxDigital>> EMXDIGITAL_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

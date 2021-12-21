@@ -74,7 +74,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
 
     private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAppnexus>>() {
+            new TypeReference<>() {
             };
 
     static {

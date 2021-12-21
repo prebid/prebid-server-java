@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class BeintooBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeintoo>> BEINTOO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBeintoo>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class ApplogyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpApplogy>> APPLOGY_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

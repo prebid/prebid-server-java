@@ -183,8 +183,6 @@ public class AmpRequestFactory {
                 .ext(createExt(httpRequest, tagId, debug))
                 .build();
 
-        validateOriginalBidRequest(bidRequest, consentString, auctionContext);
-
         return Future.succeededFuture(bidRequest);
     }
 
@@ -203,8 +201,8 @@ public class AmpRequestFactory {
     }
 
     private static User createUser(ConsentType consentType, String consentString, String addtlConsent) {
-        final boolean tcfV2ConsentProvided = (StringUtils.isNotBlank(consentString)
-                && TcfDefinerService.isConsentStringValid(consentString))
+        final boolean tcfV2ConsentProvided = StringUtils.isNotBlank(consentString)
+                && TcfDefinerService.isConsentStringValid(consentString)
                 && (consentType == null || consentType == ConsentType.tcfV2);
 
         if (StringUtils.isNotBlank(addtlConsent) || tcfV2ConsentProvided) {
@@ -313,30 +311,6 @@ public class AmpRequestFactory {
     private static Map<String, String> ampDataFromQueryString(HttpRequestContext httpRequest) {
         return httpRequest.getQueryParams().entries().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (value1, value2) -> value1));
-    }
-
-    private static void validateOriginalBidRequest(
-            BidRequest bidRequest,
-            String requestConsentString,
-            AuctionContext auctionContext) {
-
-        final User user = bidRequest.getUser();
-        final ExtUser extUser = user != null ? user.getExt() : null;
-        final String gdprConsentString = extUser != null ? extUser.getConsent() : null;
-
-        final Regs regs = bidRequest.getRegs();
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
-
-        if (StringUtils.isAllBlank(gdprConsentString, usPrivacy)) {
-            final String message = String.format(
-                    "Amp request parameter %s or %s have invalid format: %s",
-                    CONSENT_PARAM,
-                    GDPR_CONSENT_PARAM,
-                    requestConsentString);
-            logger.debug(message);
-            auctionContext.getPrebidErrors().add(message);
-        }
     }
 
     /**
