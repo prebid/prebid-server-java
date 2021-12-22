@@ -7,13 +7,12 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 @PBSTest
 class DealsSpec extends BaseSpec {
 
     def "PBS should choose bid with deal when preferdeals flag equal true"() {
-        given: "Default basic  BidRequest with generic bidder with preferdeals = true"
+        given: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
 
@@ -73,7 +72,7 @@ class DealsSpec extends BaseSpec {
     }
 
     def "PBS should choose higher bid from two without deals"() {
-        given: "Default basic  BidRequest with generic bidder with preferdeals = true"
+        given: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
 
@@ -97,7 +96,7 @@ class DealsSpec extends BaseSpec {
     }
 
     def "PBS should prefer bids with dealid when multibid is enabled"() {
-        given: "Default basic  BidRequest with generic bidder with preferdeals = true"
+        given: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.targeting = new Targeting(preferdeals: true)
 
@@ -129,7 +128,7 @@ class DealsSpec extends BaseSpec {
     }
 
     def "PBS should not choose lower deal price with preferdeals equal #preferdeals flag"() {
-        given: "Default basic  BidRequest with generic bidder with preferdeals"
+        given: "Default basic BidRequest with generic bidder with preferdeals"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.targeting = new Targeting(preferdeals: preferdeals)
 
