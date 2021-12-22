@@ -1,0 +1,26 @@
+status-response: "ok"
+adapters:
+  yandex:
+    enabled: true
+    page_id: 346580
+    imp_id: 14
+    dsp_name:
+metrics:
+  prefix: prebid
+cache:
+  scheme: http
+  host: localhost
+  path: /cache
+  query: uuid=
+settings:
+  filesystem:
+    settings-filename: sample/sample-app-settings.yaml
+    stored-requests-dir:
+    stored-imps-dir:
+    stored-responses-dir:
+    categories-dir:
+gdpr:
+  default-value: 1
+  vendorlist:
+    v2:
+      cache-dir: /var/tmp/vendor2
