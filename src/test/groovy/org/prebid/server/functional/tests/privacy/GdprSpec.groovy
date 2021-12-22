@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -141,10 +143,7 @@ class GdprSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should not contain ext.errors"
-        assert !response.ext?.errors
-
-        and: "Response should contain debug log with error"
+        then: "Response should contain debug log with error"
         assert response.ext?.debug?.privacy
         def privacy = response.ext?.debug?.privacy
 
@@ -163,5 +162,28 @@ class GdprSpec extends PrivacyBaseSpec {
             privacy.errors == ["Amp request parameter consent_string or gdpr_consent have invalid format:" +
                                        " $invalidConsentString" as String]
         }
+    }
+
+    def "PBS should not emit error for amp request when gdpr_consent is #description"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should not contain error"
+        assert !response.ext?.errors
+
+        where:
+        description            | request
+        "not specified"        | AmpRequest.defaultAmpRequest
+        "invalid tcf consent" | getGdprAmpRequest(new BogusConsent())
     }
 }

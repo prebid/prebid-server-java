@@ -6,6 +6,8 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -177,10 +179,7 @@ class CcpaSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should not contain error"
-        assert !response.ext?.errors
-
-        and: "Response should contain debug log with error"
+        then: "Response should contain debug log with error"
         assert response.ext?.debug?.privacy
         def privacy = response.ext?.debug?.privacy
 
@@ -193,5 +192,24 @@ class CcpaSpec extends PrivacyBaseSpec {
             privacy.errors ==
                     ["Amp request parameter consent_string or gdpr_consent have invalid format: $invalidCcpa" as String]
         }
+    }
+
+    def "PBS should not emit error for amp request when gdpr_consent contains invalid ccpa consent"() {
+        given: "Default AmpRequest with invalid ccpa consent"
+        def invalidCcpa = new BogusConsent()
+        def ampRequest = getCcpaAmpRequest(invalidCcpa)
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should not contain error"
+        assert !response.ext?.errors
     }
 }
