@@ -37,6 +37,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorFetcher;
+import org.prebid.server.floors.PriceFloorResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -115,6 +117,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private DealsProcessor dealsProcessor;
     @Mock
     private CountryCodeMapper countryCodeMapper;
+    @Mock
+    private PriceFloorFetcher floorFetcher;
+    @Mock
+    private PriceFloorResolver floorResolver;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -173,6 +179,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsProcessor,
                 countryCodeMapper,
+                floorFetcher,
+                floorResolver,
+                jacksonMapper,
                 clock);
     }
 
@@ -192,6 +201,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsProcessor,
                 countryCodeMapper,
+                floorFetcher,
+                floorResolver,
+                jacksonMapper,
                 clock);
 
         given(storedRequestProcessor.processStoredRequests(any(), any()))
@@ -229,6 +241,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsProcessor,
                 countryCodeMapper,
+                floorFetcher,
+                floorResolver,
+                jacksonMapper,
                 clock);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -571,6 +586,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsProcessor,
                 countryCodeMapper,
+                floorFetcher,
+                floorResolver,
+                jacksonMapper,
                 clock);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());

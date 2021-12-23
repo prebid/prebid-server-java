@@ -110,6 +110,8 @@ public class AuctionRequestFactory {
 
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
+                .map(ortb2RequestFactory::enrichWithRules)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 

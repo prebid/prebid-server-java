@@ -4,8 +4,10 @@ import io.vertx.core.Vertx;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorEnforcer;
+import org.prebid.server.floors.BasicPriceFloorResolver;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
+import org.prebid.server.floors.PriceFloorResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -45,5 +47,11 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "false", matchIfMissing = true)
     PriceFloorEnforcer noOpPriceFloorEnforcer() {
         return PriceFloorEnforcer.noOp();
+    }
+
+    // TODO: Add noOp resolver for price-floors.enabled=false property
+    @Bean
+    PriceFloorResolver basicPriceFloorResolver() {
+        return new BasicPriceFloorResolver();
     }
 }

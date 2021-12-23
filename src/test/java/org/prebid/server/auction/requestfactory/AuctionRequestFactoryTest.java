@@ -133,6 +133,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+        given(ortb2RequestFactory.enrichWithRules(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));

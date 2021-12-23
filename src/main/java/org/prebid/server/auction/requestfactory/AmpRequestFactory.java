@@ -154,6 +154,8 @@ public class AmpRequestFactory {
 
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
+                .map(ortb2RequestFactory::enrichWithRules)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
 

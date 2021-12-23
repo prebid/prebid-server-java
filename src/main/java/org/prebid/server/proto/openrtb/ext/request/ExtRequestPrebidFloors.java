@@ -1,46 +1,26 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
-
-import java.math.BigDecimal;
+import org.prebid.server.floors.model.PriceFloorLocation;
+import org.prebid.server.floors.model.PriceFloorRules;
 
 /**
  * Defines the contract for bidrequest.ext.prebid.floors
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class ExtRequestPrebidFloors {
 
     Boolean enabled;
 
-    @JsonProperty("floorCurrency")
-    String floorCurrency;
-
-    @JsonProperty("floorProvider")
-    String floorProvider;
-
-    @JsonProperty("floorMin")
-    BigDecimal floorMin;
-
-    String location;
-
-    @JsonProperty("modelVersion")
-    String modelVersion;
-
-    @JsonProperty("modelWeight")
-    Integer modelWeight;
-
-    @JsonProperty("modelTimestamp")
-    Long modelTimestamp;
-
-    @JsonProperty("skipRate")
-    Integer skipRate;
-
-    Boolean skipped;
-
     String country;
 
+    // TODO: check if analytic use it as an enum
+    PriceFloorLocation location;
+
+    // TODO: should this data be taken from rules.enforcement?
     ExtRequestPrebidFloorsEnforcement enforcement;
+
+    PriceFloorRules rules;
 }
