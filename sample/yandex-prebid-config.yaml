@@ -4,7 +4,7 @@ adapters:
     enabled: true
     page_id: 346580
     imp_id: 14
-    dsp_name:
+    dsp_name: 10500
 metrics:
   prefix: prebid
 cache:
@@ -20,7 +20,7 @@ settings:
     stored-responses-dir:
     categories-dir:
 gdpr:
-  default-value: 1
+  default-value: 0
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2

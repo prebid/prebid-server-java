@@ -105,13 +105,13 @@ public class YandexBidder implements Bidder<BidRequest> {
         }
     }
 
-    private String modifyUrl(ExtImpYandex extImpYandex, String referrer, String cur) {
+    private String modifyUrl(ExtImpYandex extImpYandex, String referer, String cur) {
         final String resolvedUrl = endpointUrl
                 .replace(PAGE_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getPageId().toString()))
                 .replace(IMP_ID_MACRO, HttpUtil.encodeUrl(extImpYandex.getImpId().toString()));
         final StringBuilder uri = new StringBuilder(resolvedUrl);
-        if (StringUtils.isNotBlank(referrer)) {
-            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referrer));
+        if (StringUtils.isNotBlank(referer)) {
+            uri.append("&target-ref=").append(HttpUtil.encodeUrl(referer));
         }
         if (StringUtils.isNotBlank(cur)) {
             uri.append("&ssp-cur=").append(cur);
@@ -119,16 +119,16 @@ public class YandexBidder implements Bidder<BidRequest> {
         return uri.toString();
     }
 
-    private String getReferrer(BidRequest request) {
-        String referrer = null;
+    private String getReferer(BidRequest request) {
+        String referer = null;
         final Site site = request.getSite();
         final App app = request.getApp();
         if (site != null) {
-            referrer = site.getRef();
+            referer = site.getPage();
         } else if (app != null) {
-            referrer = app.getDomain();
+            referer = app.getDomain();
         }
-        return referrer;
+        return referer;
     }
 
     @Override
@@ -136,7 +136,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> bidRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        final String referrer = getReferrer(request);
+        final String referer = getReferer(request);
         final List<String> curs = request.getCur();
         final String cur = curs != null && !curs.isEmpty() ? curs.get(0) : "";
 
@@ -146,7 +146,7 @@ public class YandexBidder implements Bidder<BidRequest> {
                 final Imp imp = impList.get(i);
                 ExtImpYandex extImpYandex = parseAndValidateImpExt(imp.getExt(), i);
                 final Imp modifiedImp = modifyImp(imp);
-                final String modifiedUrl = modifyUrl(extImpYandex, referrer, cur);
+                final String modifiedUrl = modifyUrl(extImpYandex, referer, cur);
                 final BidRequest modifiedRequest =
                         request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
                 bidRequests.add(buildHttpRequest(modifiedRequest, modifiedUrl));

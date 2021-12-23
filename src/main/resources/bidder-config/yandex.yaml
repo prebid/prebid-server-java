@@ -5,19 +5,13 @@ adapters:
       maintainer-email: prebid@yandex-team.ru
       app-media-types:
         - banner
-#        - video
-#        - audio
-#        - native
       site-media-types:
         - banner
-#        - video
-#        - audio
-#        - native
       supported-vendors:
       vendor-id: 1066
     usersync:
       url: https://an.yandex.ru/mapuid/{{dsp_name}}is/
-      redirect-url: /setuid?bidder=yandex&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+      redirect-url:
       cookie-family-name: yandex
       type: redirect
       support-cors: false
