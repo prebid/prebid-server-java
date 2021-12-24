@@ -8,6 +8,7 @@ enum TargetingType {
     AD_UNIT_MEDIA_TYPE("adunit.mediatype"),
     AD_UNIT_AD_SLOT("adunit.adslot"),
     SITE_DOMAIN("site.domain"),
+    SITE_PUBLISHER_DOMAIN("site.publisher.domain"),
     REFERRER("site.referrer"),
     APP_BUNDLE("app.bundle"),
     DEVICE_COUNTRY("device.geo.ext.netacuity.country"),

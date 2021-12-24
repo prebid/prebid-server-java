@@ -183,14 +183,6 @@ class TargetingSpec extends BasePgSpec {
             site.page = stringTargetingValue
         }
 
-        SITE_DOMAIN   | BidRequest.defaultBidRequest.tap {
-            site.domain = stringTargetingValue
-        }
-
-        SITE_DOMAIN   | BidRequest.defaultBidRequest.tap {
-            site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
-        }
-
         APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
             app = App.defaultApp.tap { bundle = stringTargetingValue }
         }
@@ -356,6 +348,44 @@ class TargetingSpec extends BasePgSpec {
         "site publisher domain" | BidRequest.defaultBidRequest.tap {
             site.publisher = Publisher.defaultPublisher.tap { domain = stringTargetingValue }
         }
+    }
+
+    @Unroll
+    def "PBS should support line item domain targeting"() {
+        given: "Bid response"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site.domain = siteDomain
+            site.publisher = Publisher.defaultPublisher.tap { domain = sitePublisherDomain }
+        }
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(SITE_DOMAIN, IN, [siteDomain])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+        def lineItemSize = plansResponse.lineItems.size()
+
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == lineItemSize
+
+        and: "Targeting recorded as matched"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedDomainTargeting?.size() == lineItemSize
+
+        where:
+        siteDomain                | sitePublisherDomain
+        "www.example.com"         | null
+        "https://www.example.com" | null
+        "www.example.com"         | "example.com"
     }
 
     @Unroll
