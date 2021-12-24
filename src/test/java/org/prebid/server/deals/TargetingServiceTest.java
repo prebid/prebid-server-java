@@ -1,6 +1,8 @@
 package org.prebid.server.deals;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -755,11 +757,15 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void matchesTargetingShouldReturnFalseForNotIntersectsInteger() {
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new IntersectsIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321))));
+                new IntersectsStrings(category(Type.userFirstPartyData, "segment"), asList("test", "111")));
+
+        final ArrayNode test = mapper.createArrayNode().add("test");
 
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
-                        .ext(ExtUser.builder().data(mapper.valueToTree(singletonMap("someId", asList(123, 456))))
+                        .ext(ExtUser.builder()
+                                .data(mapper.createObjectNode().set("segment", TextNode.valueOf("test")))
+//                                .data(mapper.createObjectNode().set("segment", test))
                                 .build())
                         .build())
                 .build();
@@ -773,7 +779,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
     }
 
     @Test
