@@ -1396,7 +1396,7 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
-                .containsOnly("WARNING: request.imp[0].ext.prebid.rubicon was dropped with a reason: "
+                .containsOnly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
                         + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
@@ -1419,7 +1419,8 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
-                .containsOnly("WARNING: request.imp[0].ext.prebid.rubicon was dropped with a reason: request.imp[0]"
+                .containsExactlyInAnyOrder(
+                        "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
                         + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())

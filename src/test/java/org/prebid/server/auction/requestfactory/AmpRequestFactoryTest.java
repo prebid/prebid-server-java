@@ -288,7 +288,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldEnrichAuctionContextWithDebugContext() throws JsonProcessingException {
+    public void shouldEnrichAuctionContextWithDebugContext() {
         // given
         givenBidRequest();
 
@@ -1524,7 +1524,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.getRegs()).isNull();
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldReturnBidRequestWithCreatedExtPrebidAmpData() {
         // given
@@ -1666,7 +1665,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), any())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
                 .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
