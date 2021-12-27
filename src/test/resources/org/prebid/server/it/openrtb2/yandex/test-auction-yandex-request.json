@@ -10,8 +10,7 @@
       "ext": {
         "yandex": {
           "page_id": 123456,
-          "imp_id": 7,
-          "dsp_name": "dsp_name"
+          "imp_id": 7
         }
       }
     }

@@ -13,16 +13,10 @@
       "type": "integer",
       "minLength": 1,
       "description": "Special identifier provided by Yandex Manager"
-    },
-    "dsp_name": {
-      "type": "string",
-      "minLength": 1,
-      "description": "Partner name provided by Yandex Manager, used for cookie sync"
     }
   },
   "required": [
     "page_id",
-    "imp_id",
-    "dsp_name"
+    "imp_id"
   ]
 }

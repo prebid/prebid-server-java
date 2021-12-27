@@ -10,6 +10,4 @@ public class ExtImpYandex {
     Integer pageId;
 
     Integer impId;
-
-    String dspName;
 }

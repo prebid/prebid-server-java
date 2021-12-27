@@ -4,7 +4,6 @@ adapters:
     enabled: true
     page_id: 346580
     imp_id: 14
-    dsp_name: 10500
 metrics:
   prefix: prebid
 cache:

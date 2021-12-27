@@ -78,10 +78,6 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (impId == null || impId == 0) {
             throw new PreBidException(String.format("imp #%s: missing param imp_id", index));
         }
-        final String dspName = extImpYandex.getDspName();
-        if (StringUtils.isBlank(dspName)) {
-            throw new PreBidException(String.format("imp #%s: missing param dsp_name", index));
-        }
         return extImpYandex;
     }
 

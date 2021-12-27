@@ -60,7 +60,7 @@ public class YandexBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .banner(Banner.builder().w(100).h(100).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 7, "dsp_name")))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 7)))))
                 .build();
     }
 
@@ -102,7 +102,7 @@ public class YandexBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(null, 7, "dsp_name")))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(null, 7)))),
                 identity());
 
         // when
@@ -119,7 +119,7 @@ public class YandexBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 0, "dsp_name")))),
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 0)))),
                 identity());
 
         // when
@@ -132,30 +132,13 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenDspNameIsEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(123456, 7, null)))),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("imp #0: missing param dsp_name"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldCreateARequestForEachImpAndSkipImpsWithErrors() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.id("imp1")),
                         givenImp(impBuilder -> impBuilder.id("imp2")
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(1234567, null, ""))))),
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYandex.of(1234567, null))))),
                         givenImp(impBuilder -> impBuilder.id("imp3"))))
                 .build();
         // when
@@ -180,14 +163,14 @@ public class YandexBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(
                                                 null,
-                                                ExtImpYandex.of(123456, 7, "dsp_name"))
+                                                ExtImpYandex.of(123456, 7))
                                 )).build(),
                         Imp.builder()
                                 .banner(Banner.builder().w(100).h(100).build()).id("321")
                                 .ext(mapper.valueToTree(
                                         ExtPrebid.of(
                                                 null,
-                                                ExtImpYandex.of(123456, 7, "dsp_name"))
+                                                ExtImpYandex.of(123456, 7))
                                 )).build()))
                 .build();
 
