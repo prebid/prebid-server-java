@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.ttx.TtxBidder;
+import org.prebid.server.bidder.thirtythreeacross.ThirtyThreeAcrossBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/ttx.yaml", factory = YamlPropertySourceFactory.class)
-public class TtxConfiguration {
+@PropertySource(value = "classpath:/bidder-config/thirtythreeacross.yaml", factory = YamlPropertySourceFactory.class)
+public class ThirtyThreeAcrossConfiguration {
 
-    private static final String BIDDER_NAME = "ttx";
+    private static final String BIDDER_NAME = "thirtythreeacross";
 
-    @Bean("ttxConfigurationProperties")
-    @ConfigurationProperties("adapters.ttx")
+    @Bean("thirtyThreeAcrossConfigurationProperties")
+    @ConfigurationProperties("adapters.thirtythreeacross")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps ttxBidderDeps(BidderConfigurationProperties ttxConfigurationProperties,
-                             @NotBlank @Value("${external-url}") String externalUrl,
-                             JacksonMapper mapper) {
+    BidderDeps thirtythreeacrossBidderDeps(BidderConfigurationProperties thirtyThreeAcrossConfigurationProperties,
+                                           @NotBlank @Value("${external-url}") String externalUrl,
+                                           JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(ttxConfigurationProperties)
+                .withConfig(thirtyThreeAcrossConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TtxBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ThirtyThreeAcrossBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -1,5 +1,5 @@
 adapters:
-  ttx:
+  thirtythreeacross:
     endpoint: https://ssc.33across.com/api/v1/s2s
     aliases:
       '33across':

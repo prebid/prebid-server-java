@@ -1,10 +1,10 @@
-package org.prebid.server.bidder.ttx.proto;
+package org.prebid.server.bidder.thirtythreeacross.proto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class TtxExtTtxCaller {
+public class ThirtyThreeAcrossExtTtxCaller {
 
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String name;
