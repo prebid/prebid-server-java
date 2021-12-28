@@ -10,8 +10,8 @@ adapters:
       supported-vendors:
       vendor-id: 1066
     usersync:
-      url: https://an.yandex.ru/mapuid/{{dsp_name}}is/?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
-      redirect-url: /setuid?bidder=yandex&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
+      url: https://an.yandex.ru/mapuid/yandex/?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&redirect=
+      redirect-url: /setuid?bidder=yandex&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={YANDEXUID}
       cookie-family-name: yandex
       type: redirect
       support-cors: false
