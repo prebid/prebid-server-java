@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.ttx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -17,11 +18,12 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.ttx.proto.TtxExtTtx;
+import org.prebid.server.bidder.ttx.proto.TtxExtTtxCaller;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.response.TtxBidExt;
-import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 
 import java.util.List;
@@ -49,6 +51,63 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new TtxBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendErrorIfExtTtxCouldNotBeParsed() {
+        // given
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.createArrayNode());
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .allSatisfy(error -> assertThat(error).startsWith("Cannot deserialize value of"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddExtTtxIfNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.valueToTree(
+                TtxExtTtx.of(singletonList(TtxExtTtxCaller.of("Prebid-Server", "n/a")))));
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(ext);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateExtTtx() {
+        // given
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.valueToTree(
+                TtxExtTtx.of(singletonList(TtxExtTtxCaller.of("Caller", "1.0")))));
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRequest updatedExt = ExtRequest.empty();
+        updatedExt.addProperty("ttx", mapper.valueToTree(TtxExtTtx.of(List.of(
+                TtxExtTtxCaller.of("Caller", "1.0"),
+                TtxExtTtxCaller.of("Prebid-Server", "n/a")))));
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(updatedExt);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -294,23 +353,20 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoInBidExt() throws JsonProcessingException {
         // given
-        final TtxBidExt ttxBidExt = TtxBidExt.of(TtxBidExtTtx.of("video"));
+        final ObjectNode ttxBidExt = mapper.createObjectNode().set("ttx",
+                mapper.createObjectNode().put("mediaType", "video"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .ext(mapper.valueToTree(ttxBidExt)))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ttxBidExt))));
 
         // when
         final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .ext(mapper.valueToTree(ttxBidExt))
-                .build();
+        final Bid expectedBid = Bid.builder().ext(ttxBidExt).build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, video, "USD"));
     }
@@ -318,23 +374,20 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfExtNotContainVideoString() throws JsonProcessingException {
         // given
-        final TtxBidExt ttxBidExt = TtxBidExt.of(TtxBidExtTtx.of("notVideo"));
+        final ObjectNode ttxBidExt = mapper.createObjectNode().set("ttx",
+                mapper.createObjectNode().put("mediaType", "notVideo"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .ext(mapper.valueToTree(ttxBidExt)))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ttxBidExt))));
 
         // when
         final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .ext(mapper.valueToTree(ttxBidExt))
-                .build();
+        final Bid expectedBid = Bid.builder().ext(ttxBidExt).build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
     }
@@ -353,9 +406,8 @@ public class TtxBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        final List<Imp> imps = singletonList(givenImp(impCustomizer));
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(imps)).build();
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -363,11 +415,12 @@ public class TtxBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
+        final Imp.ImpBuilder builder = Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("siteId", "zoneId", "productId")))))
-                .build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("siteId", "zoneId", "productId"))));
+
+        return impCustomizer.apply(builder).build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

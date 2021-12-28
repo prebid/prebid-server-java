@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.ttx;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -18,17 +19,19 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.ttx.proto.TtxExtTtx;
+import org.prebid.server.bidder.ttx.proto.TtxExtTtxCaller;
 import org.prebid.server.bidder.ttx.proto.TtxImpExt;
 import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.response.TtxBidExt;
-import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,6 +47,8 @@ public class TtxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTtx>> TTX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final TtxExtTtxCaller PREBID_CALLER = TtxExtTtxCaller.of("Prebid-Server", "n/a");
+    private static final JsonPointer TTX_BID_MEDIA_TYPE_POINTER = JsonPointer.valueOf("/ttx/mediaType");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -59,7 +64,8 @@ public class TtxBidder implements Bidder<BidRequest> {
         final Map<String, List<Imp>> impsMap = new HashMap<>();
         final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
-        for (Imp imp : request.getImp()) {
+        final BidRequest modifiedRequest = modifyRequest(request, errors);
+        for (Imp imp : modifiedRequest.getImp()) {
             try {
                 validateImp(imp);
                 final ExtImpTtx extImpTtx = parseImpExt(imp);
@@ -71,10 +77,50 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
 
         for (List<Imp> imps : impsMap.values()) {
-            requests.add(createRequest(request, imps));
+            requests.add(createRequest(modifiedRequest, imps));
         }
 
         return Result.of(requests, errors);
+    }
+
+    private BidRequest modifyRequest(BidRequest request, List<BidderError> errors) {
+        try {
+            return request.toBuilder().ext(modifyRequestExt(request.getExt())).build();
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return request;
+        }
+    }
+
+    private ExtRequest modifyRequestExt(ExtRequest ext) throws PreBidException {
+        final Map<String, JsonNode> properties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
+        final JsonNode extTtxNode = ObjectUtil.getIfNotNull(properties, p -> p.get("ttx"));
+        final TtxExtTtx extTtx;
+        try {
+            extTtx = mapper.mapper().convertValue(extTtxNode, TtxExtTtx.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        final ExtRequest modifiedExt = ExtRequest.empty();
+        if (properties != null) {
+            modifiedExt.addProperties(properties);
+        }
+        modifiedExt.addProperty("ttx", mapper.mapper().valueToTree(modifyRequestExtTtx(extTtx)));
+
+        return modifiedExt;
+    }
+
+    private static TtxExtTtx modifyRequestExtTtx(TtxExtTtx ttxExtTtx) {
+        final List<TtxExtTtxCaller> callers;
+        if (ttxExtTtx == null || CollectionUtils.isEmpty(ttxExtTtx.getCaller())) {
+            callers = Collections.singletonList(PREBID_CALLER);
+        } else {
+            callers = new ArrayList<>(ttxExtTtx.getCaller());
+            callers.add(PREBID_CALLER);
+        }
+
+        return TtxExtTtx.of(callers);
     }
 
     private void validateImp(Imp imp) throws PreBidException {
@@ -100,11 +146,6 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String computeKey(Imp imp) {
-        final JsonNode ttx = imp.getExt().get("ttx");
-        return ttx.get("prod").asText() + ttx.get("zoneid").asText();
-    }
-
     private static Video updatedVideo(Video video, String productId) throws PreBidException {
         if (video == null) {
             return null;
@@ -117,11 +158,10 @@ public class TtxBidder implements Bidder<BidRequest> {
             throw new PreBidException("One or more invalid or missing video field(s) "
                     + "w, h, protocols, mimes, playbackmethod");
         }
-        final Integer videoPlacement = video.getPlacement();
 
         return video.toBuilder()
                 .startdelay(resolveStartDelay(video.getStartdelay(), productId))
-                .placement(resolvePlacement(videoPlacement, productId))
+                .placement(resolvePlacement(video.getPlacement(), productId))
                 .build();
     }
 
@@ -149,6 +189,11 @@ public class TtxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ttxImpExt);
     }
 
+    private String computeKey(Imp imp) {
+        final JsonNode ttx = imp.getExt().get("ttx");
+        return ttx.get("prod").asText() + ttx.get("zoneid").asText();
+    }
+
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
         final BidRequest modifiedRequest = request.toBuilder()
                 .imp(requestImps)
@@ -167,7 +212,7 @@ public class TtxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -177,32 +222,20 @@ public class TtxBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
-    }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid
-                                       bid) {
-        try {
-            final TtxBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), TtxBidExt.class);
-            return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;
-        } catch (IllegalArgumentException e) {
-            return BidType.banner;
-        }
-    }
-
-    private static BidType getBidTypeByTtx(TtxBidExtTtx bidExt) {
-        return bidExt != null && Objects.equals(bidExt.getMediaType(), "video")
-                ? BidType.video
-                : BidType.banner;
+    private static BidType getBidType(Bid bid) {
+        final String mediaType = ObjectUtil.getIfNotNull(bid.getExt(),
+                ext -> ext.at(TTX_BID_MEDIA_TYPE_POINTER).asText(null));
+        return "video".equals(mediaType) ? BidType.video : BidType.banner;
     }
 }
