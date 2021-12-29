@@ -27,6 +27,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -165,23 +166,6 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfWrapExtHasInvalidParams() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .wrapper(mapper.valueToTree(singletonMap("key", "invalid value"))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error in Wrapper Parameters");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetAudioToNullIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -212,12 +196,15 @@ public class PubmaticBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .extracting(Banner::getH).containsOnly(250);
+                .extracting(Banner::getH)
+                .containsExactly(250);
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .extracting(Banner::getW).containsOnly(300);
+                .extracting(Banner::getW)
+                .containsExactly(300);
     }
 
     @Test
@@ -442,19 +429,19 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 extImpPubmaticBuilder -> extImpPubmaticBuilder
-                        .wrapper(mapper.valueToTree(singletonMap("key", 1))));
+                        .wrapper(PubmaticWrapper.of(1, 1)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsOnly(jacksonMapper.fillExtension(
+                .containsExactly(jacksonMapper.fillExtension(
                         ExtRequest.empty(), mapper.createObjectNode()
-                                .set("wrapper", mapper.valueToTree(singletonMap("key", 1)))));
+                                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(1, 1)))));
     }
 
     @Test
