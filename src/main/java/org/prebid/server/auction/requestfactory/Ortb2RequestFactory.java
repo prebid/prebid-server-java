@@ -20,6 +20,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.model.DeepDebugLog;
@@ -58,7 +59,6 @@ import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.time.Clock;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
@@ -116,8 +116,7 @@ public class Ortb2RequestFactory {
     public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
         return AuctionContext.builder()
                 .requestTypeMetric(requestTypeMetric)
-                .prebidErrors(new ArrayList<>())
-                .debugWarnings(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)

@@ -32,8 +32,8 @@ import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
-import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -248,7 +248,7 @@ public class BidResponseCreator {
                           String lineItemId) {
 
         final Account account = auctionContext.getAccount();
-        final List<DebugWarning> debugWarnings = auctionContext.getDebugWarnings();
+        final PrebidLog prebidLog = auctionContext.getPrebidLog();
 
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
@@ -262,7 +262,7 @@ public class BidResponseCreator {
                         account,
                         eventsContext,
                         effectiveBidId,
-                        debugWarnings,
+                        prebidLog,
                         lineItemId))
                 .ext(updateBidExt(
                         bid,
@@ -283,7 +283,7 @@ public class BidResponseCreator {
                                 Account account,
                                 EventsContext eventsContext,
                                 String effectiveBidId,
-                                List<DebugWarning> debugWarnings,
+                                PrebidLog prebidLog,
                                 String lineItemId) {
 
         final String bidAdm = bid.getAdm();
@@ -295,7 +295,7 @@ public class BidResponseCreator {
                 effectiveBidId,
                 account.getId(),
                 eventsContext,
-                debugWarnings,
+                prebidLog,
                 lineItemId)
                 : bidAdm;
     }
@@ -468,8 +468,7 @@ public class BidResponseCreator {
     private static CategoryMappingResult addCategoryMappingErrors(CategoryMappingResult categoryMappingResult,
                                                                   AuctionContext auctionContext) {
 
-        auctionContext.getPrebidErrors()
-                .addAll(CollectionUtils.emptyIfNull(categoryMappingResult.getErrors()));
+        auctionContext.getPrebidLog().mergeOtherLog(categoryMappingResult.getPrebidLog());
 
         return categoryMappingResult;
     }
@@ -1003,8 +1002,8 @@ public class BidResponseCreator {
      * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
      */
     private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
-        return auctionContext.getPrebidErrors().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+        return auctionContext.getPrebidLog().getPrebidMessagesByTags(List.of("ERROR", "WARNING")).stream()
+                .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }
 
@@ -1044,9 +1043,10 @@ public class BidResponseCreator {
     }
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
-        final List<ExtBidderError> contextWarnings = auctionContext.getDebugWarnings().stream()
-                .map(debugWarning -> ExtBidderError.of(BidderError.Type.generic.getCode(), debugWarning.getMessage()))
-                .collect(Collectors.toList());
+        final List<ExtBidderError> contextWarnings =
+                auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING").stream()
+                        .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
+                        .collect(Collectors.toList());
 
         return contextWarnings.isEmpty()
                 ? Collections.emptyMap()

@@ -25,8 +25,6 @@ import java.util.function.UnaryOperator;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.prebid.server.auction.model.DebugWarning.Code.account_level_debug_disabled;
-import static org.prebid.server.auction.model.DebugWarning.Code.bidder_level_debug_disabled;
 
 public class DebugResolverTest {
 

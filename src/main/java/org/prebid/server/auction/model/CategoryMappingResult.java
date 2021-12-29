@@ -16,14 +16,14 @@ public class CategoryMappingResult {
 
     List<BidderResponse> bidderResponses;
 
-    List<String> errors;
+    PrebidLog prebidLog;
 
     public static CategoryMappingResult of(List<BidderResponse> bidderResponses) {
         return CategoryMappingResult.of(
                 Collections.emptyMap(),
                 Collections.emptyMap(),
                 bidderResponses,
-                Collections.emptyList());
+                PrebidLog.of());
     }
 
     public String getCategory(Bid bid) {

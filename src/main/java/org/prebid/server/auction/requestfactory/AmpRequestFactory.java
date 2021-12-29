@@ -28,6 +28,9 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrivacyMessageFactory;
+import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -335,7 +338,8 @@ public class AmpRequestFactory {
                     GDPR_CONSENT_PARAM,
                     requestConsentString);
             logger.debug(message);
-            auctionContext.getPrebidErrors().add(message);
+            auctionContext.getPrebidLog().logMessage(
+                    PrivacyMessageFactory.debug(PrivacyMessageType.generic_privacy_error, message));
         }
     }
 
@@ -359,7 +363,7 @@ public class AmpRequestFactory {
         return storedRequestProcessor.processAmpRequest(accountId, storedRequestId, receivedBidRequest)
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
-                .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
+                .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidLog()))
                 .map(bidRequest -> paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT))
                 .map(ortb2RequestFactory::validateRequest);
     }
@@ -459,11 +463,11 @@ public class AmpRequestFactory {
     /**
      * Extracts parameters from http request and overrides corresponding attributes in {@link BidRequest}.
      */
-    private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestContext httpRequest, List<String> errors) {
+    private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestContext httpRequest, PrebidLog prebidLog) {
         final String requestTargeting = httpRequest.getQueryParams().get(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
         ortbTypesResolver.normalizeTargeting(
-                targetingNode, errors, implicitParametersExtractor.refererFrom(httpRequest));
+                targetingNode, prebidLog, implicitParametersExtractor.refererFrom(httpRequest));
         final Targeting targeting = parseTargeting(targetingNode);
 
         final Site updatedSite = overrideSite(bidRequest.getSite());

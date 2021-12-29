@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.DebugWarning;
+import org.prebid.server.auction.model.BidderMessageFactory;
+import org.prebid.server.auction.model.BidderMessageType;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
@@ -13,7 +15,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -70,7 +71,7 @@ public class VastModifier {
                                    String eventBidId,
                                    String accountId,
                                    EventsContext eventsContext,
-                                   List<DebugWarning> debugWarnings,
+                                   PrebidLog prebidLog,
                                    String lineItemId) {
         if (!bidderCatalog.isModifyingVastXmlAllowed(bidder)) {
             return bidAdm;
@@ -86,8 +87,8 @@ public class VastModifier {
         try {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {
-            debugWarnings.add(DebugWarning.of(
-                    DebugWarning.Code.invalid_tracking_url_for_vastxml.getCode(),
+            prebidLog.logMessage(BidderMessageFactory.error(
+                    BidderMessageType.invalid_tracking_url_for_vastxml,
                     e.getMessage()));
             metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
         }

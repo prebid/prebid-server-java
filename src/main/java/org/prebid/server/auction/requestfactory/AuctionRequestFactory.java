@@ -13,6 +13,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -21,7 +22,6 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -83,7 +83,7 @@ public class AuctionRequestFactory {
                 Endpoint.openrtb2_auction, MetricName.openrtb2web);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
+                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidLog())
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
@@ -127,12 +127,12 @@ public class AuctionRequestFactory {
         return body;
     }
 
-    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest, List<String> errors) {
+    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest, PrebidLog prebidLog) {
         try {
             final JsonNode bidRequestNode = bodyAsJsonNode(httpRequest.getBody());
 
             final String referer = paramsExtractor.refererFrom(httpRequest);
-            ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
+            ortbTypesResolver.normalizeBidRequest(bidRequestNode, prebidLog, referer);
 
             return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
         } catch (Exception e) {

@@ -52,7 +52,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
-import static org.prebid.server.auction.model.DebugWarning.Code.invalid_privacy_consent;
 
 public class TcfDefinerServiceTest {
 

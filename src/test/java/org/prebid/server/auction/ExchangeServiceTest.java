@@ -186,9 +186,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.auction.model.DebugWarning.Code.bidrequest_contains_both_app_and_site;
-import static org.prebid.server.auction.model.DebugWarning.Code.invalid_price_in_bid;
-import static org.prebid.server.auction.model.DebugWarning.Code.multibid;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 

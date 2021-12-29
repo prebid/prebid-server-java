@@ -44,9 +44,7 @@ public class AuctionContext {
 
     MetricName requestTypeMetric;
 
-    List<String> prebidErrors;
-
-    List<DebugWarning> debugWarnings;
+    PrebidLog prebidLog;
 
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
@@ -78,10 +76,6 @@ public class AuctionContext {
 
     public AuctionContext with(BidResponse bidResponse) {
         return this.toBuilder().bidResponse(bidResponse).build();
-    }
-
-    public AuctionContext with(BidRequest bidRequest, List<String> errors) {
-        return this.toBuilder().bidRequest(bidRequest).prebidErrors(errors).build();
     }
 
     public AuctionContext with(List<AuctionParticipation> auctionParticipations) {

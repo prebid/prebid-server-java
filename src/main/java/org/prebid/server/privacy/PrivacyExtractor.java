@@ -7,14 +7,15 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrivacyMessageFactory;
+import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
-
-import java.util.List;
 
 /**
  * GDPR-aware utilities
@@ -41,8 +42,8 @@ public class PrivacyExtractor {
      * </ul><p>
      * And construct {@link Privacy} from them. Use default values in case of invalid value.
      */
-    public Privacy validPrivacyFrom(BidRequest bidRequest, List<String> errors) {
-        return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
+    public Privacy validPrivacyFrom(BidRequest bidRequest, PrebidLog prebidLog) {
+        return extractPrivacy(bidRequest.getRegs(), bidRequest.getUser(), prebidLog);
     }
 
     public Privacy validPrivacyFrom(CookieSyncRequest request) {
@@ -61,7 +62,7 @@ public class PrivacyExtractor {
         return toValidPrivacy(gdpr, gdprConsent, null, null, null);
     }
 
-    private Privacy extractPrivacy(Regs regs, User user, List<String> errors) {
+    private Privacy extractPrivacy(Regs regs, User user, PrebidLog prebidLog) {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 
@@ -71,33 +72,33 @@ public class PrivacyExtractor {
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
         final Integer coppa = regs != null ? regs.getCoppa() : null;
 
-        return toValidPrivacy(gdpr, consent, usPrivacy, coppa, errors);
+        return toValidPrivacy(gdpr, consent, usPrivacy, coppa, prebidLog);
     }
 
     private static Privacy toValidPrivacy(String gdpr,
                                           String consent,
                                           String usPrivacy,
                                           Integer coppa,
-                                          List<String> errors) {
+                                          PrebidLog prebidLog) {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
         final String validConsent = consent == null ? DEFAULT_CONSENT_VALUE : consent;
-        final Ccpa validCcpa = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy, errors);
+        final Ccpa validCcpa = usPrivacy == null ? DEFAULT_CCPA_VALUE : toValidCcpa(usPrivacy, prebidLog);
         final Integer validCoppa = coppa == null ? DEFAULT_COPPA_VALUE : coppa;
 
         return Privacy.of(validGdpr, validConsent, validCcpa, validCoppa);
     }
 
-    private static Ccpa toValidCcpa(String usPrivacy, List<String> errors) {
+    private static Ccpa toValidCcpa(String usPrivacy, PrebidLog prebidLog) {
         try {
             Ccpa.validateUsPrivacy(usPrivacy);
             return Ccpa.of(usPrivacy);
         } catch (PreBidException e) {
             final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
             logger.debug(message);
-            if (errors != null) {
-                errors.add(message);
+            if (prebidLog != null) {
+                prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.ccpa_error, message));
             }
             return DEFAULT_CCPA_VALUE;
         }

@@ -14,8 +14,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
-import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.CountryCodeMapper;
@@ -99,13 +99,12 @@ public class PrivacyEnforcementService {
 
     public Future<PrivacyContext> contextFromBidRequest(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final List<String> errors = auctionContext.getPrebidErrors();
+        final PrebidLog prebidLog = auctionContext.getPrebidLog();
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
-        final List<DebugWarning> debugWarnings = auctionContext.getDebugWarnings();
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
+        final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, prebidLog);
 
         final Device device = bidRequest.getDevice();
         final String alpha2CountryCode = resolveAlpha2CountryCode(device);
@@ -123,7 +122,7 @@ public class PrivacyEnforcementService {
                         requestType,
                         requestLogInfo,
                         timeout,
-                        debugWarnings)
+                        prebidLog)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
