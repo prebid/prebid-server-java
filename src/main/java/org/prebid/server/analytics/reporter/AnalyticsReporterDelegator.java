@@ -1,4 +1,4 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,12 +11,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.AnalyticsEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.model.CookieSyncEvent;
-import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
@@ -51,6 +48,7 @@ public class AnalyticsReporterDelegator {
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Metrics metrics;
+    private final MetricsEventTypeAnalyticsEventProcessor metricsEventTypeEventProcessor;
 
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
@@ -58,36 +56,40 @@ public class AnalyticsReporterDelegator {
     public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
-                                      Metrics metrics) {
+                                      Metrics metrics,
+                                      MetricsEventTypeAnalyticsEventProcessor metricsEventTypeEventProcessor) {
+
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.metrics = Objects.requireNonNull(metrics);
+        this.metricsEventTypeEventProcessor = Objects.requireNonNull(metricsEventTypeEventProcessor);
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
         reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
     }
 
-    public <T> void processEvent(T event) {
+    public void processEvent(AnalyticsEvent event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
             vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, event));
         }
     }
 
-    public <T> void processEvent(T event, TcfContext tcfContext) {
+    public void processEvent(AnalyticsEvent event, TcfContext tcfContext) {
         privacyEnforcementService.resultForVendorIds(reporterVendorIds, tcfContext)
                 .onComplete(privacyEnforcementMap -> delegateEvent(event, tcfContext, privacyEnforcementMap));
     }
 
-    private <T> void delegateEvent(T event,
-                                   TcfContext tcfContext,
-                                   AsyncResult<Map<Integer, PrivacyEnforcementAction>> privacyEnforcementMapResult) {
+    private void delegateEvent(AnalyticsEvent event,
+                               TcfContext tcfContext,
+                               AsyncResult<Map<Integer, PrivacyEnforcementAction>> privacyEnforcementMapResult) {
+
         if (privacyEnforcementMapResult.succeeded()) {
             final Map<Integer, PrivacyEnforcementAction> privacyEnforcementActionMap =
                     privacyEnforcementMapResult.result();
             checkUnknownAdaptersForAuctionEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
-                final T updatedEvent = updateEvent(event, analyticsReporter.name());
+                final AnalyticsEvent updatedEvent = updateEvent(event, analyticsReporter.name());
                 final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
@@ -105,7 +107,7 @@ public class AnalyticsReporterDelegator {
         }
     }
 
-    private <T> void checkUnknownAdaptersForAuctionEvent(T event) {
+    private void checkUnknownAdaptersForAuctionEvent(AnalyticsEvent event) {
         if (event instanceof AuctionEvent) {
             logUnknownAdapters((AuctionEvent) event);
         }
@@ -137,19 +139,20 @@ public class AnalyticsReporterDelegator {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private static <T> T updateEvent(T event, String adapter) {
+    private static AnalyticsEvent updateEvent(AnalyticsEvent event, String adapter) {
         if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent) {
             final AuctionEvent auctionEvent = (AuctionEvent) event;
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
             return updatedAuctionContext != null
-                    ? (T) auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
+                    ? auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
                     : event;
         }
 
         return event;
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
         final BidRequest bidRequest = context != null ? context.getBidRequest() : null;
         final BidRequest updatedBidRequest = updateBidRequest(bidRequest, adapter);
@@ -188,19 +191,19 @@ public class AnalyticsReporterDelegator {
         return !analyticsNodeCopy.isEmpty() ? analyticsNodeCopy : null;
     }
 
-    private <T> void processEventByReporter(AnalyticsReporter analyticsReporter, T event) {
+    private void processEventByReporter(AnalyticsReporter analyticsReporter, AnalyticsEvent event) {
         final String reporterName = analyticsReporter.name();
         analyticsReporter.processEvent(event)
                 .map(ignored -> processSuccess(event, reporterName))
                 .otherwise(exception -> processFail(exception, event, reporterName));
     }
 
-    private <T> Future<Void> processSuccess(T event, String reporterName) {
+    private Future<Void> processSuccess(AnalyticsEvent event, String reporterName) {
         updateMetricsByEventType(event, reporterName, MetricName.ok);
         return Future.succeededFuture();
     }
 
-    private <T> Future<Void> processFail(Throwable exception, T event, String reporterName) {
+    private Future<Void> processFail(Throwable exception, AnalyticsEvent event, String reporterName) {
         final MetricName failedResult;
         if (exception instanceof TimeoutException || exception instanceof ConnectTimeoutException) {
             failedResult = MetricName.timeout;
@@ -213,23 +216,7 @@ public class AnalyticsReporterDelegator {
         return Future.failedFuture(exception);
     }
 
-    private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
-        final MetricName eventType;
-        if (event instanceof AuctionEvent) {
-            eventType = MetricName.event_auction;
-        } else if (event instanceof AmpEvent) {
-            eventType = MetricName.event_amp;
-        } else if (event instanceof VideoEvent) {
-            eventType = MetricName.event_video;
-        } else if (event instanceof SetuidEvent) {
-            eventType = MetricName.event_setuid;
-        } else if (event instanceof CookieSyncEvent) {
-            eventType = MetricName.event_cookie_sync;
-        } else if (event instanceof NotificationEvent) {
-            eventType = MetricName.event_notification;
-        } else {
-            eventType = MetricName.event_unknown;
-        }
-        metrics.updateAnalyticEventMetric(analyticsCode, eventType, result);
+    private void updateMetricsByEventType(AnalyticsEvent event, String analyticsCode, MetricName result) {
+        metrics.updateAnalyticEventMetric(analyticsCode, event.accept(metricsEventTypeEventProcessor), result);
     }
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.analytics.processor.AnalyticsEventProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.HttpRequestContext;
 
@@ -15,7 +16,7 @@ import java.util.Map;
  */
 @Builder
 @Value
-public class AmpEvent {
+public class AmpEvent implements AnalyticsEvent {
 
     Integer status;
 
@@ -30,4 +31,9 @@ public class AmpEvent {
     Map<String, JsonNode> targeting;
 
     String origin;
+
+    @Override
+    public <T> T accept(AnalyticsEventProcessor<T> processor) {
+        return processor.processAmpEvent(this);
+    }
 }

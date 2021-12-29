@@ -51,7 +51,6 @@ public enum MetricName {
     event_notification("event"),
     event_cookie_sync("cookie_sync"),
     event_setuid("setuid"),
-    event_unknown("unknown"),
 
     // request and adapter statuses
     ok,

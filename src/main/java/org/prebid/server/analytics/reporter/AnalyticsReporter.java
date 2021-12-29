@@ -1,6 +1,7 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter;
 
 import io.vertx.core.Future;
+import org.prebid.server.analytics.model.AnalyticsEvent;
 
 /**
  * Type of component that does transactional logging.
@@ -13,7 +14,7 @@ public interface AnalyticsReporter {
      * <p>
      * Implementation note: this method is executed on Vert.x event loop thread so it must never use blocking API.
      */
-    <T> Future<Void> processEvent(T event);
+    Future<Void> processEvent(AnalyticsEvent event);
 
     /**
      * Method for defining analytics reporter ID for TCF checks.

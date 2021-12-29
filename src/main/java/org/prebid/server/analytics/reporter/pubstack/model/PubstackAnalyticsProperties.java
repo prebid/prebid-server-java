@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack.model;
+package org.prebid.server.analytics.reporter.pubstack.model;
 
 import lombok.Builder;
 import lombok.Value;

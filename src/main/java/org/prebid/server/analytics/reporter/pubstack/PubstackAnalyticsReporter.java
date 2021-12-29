@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack;
+package org.prebid.server.analytics.reporter.pubstack;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -7,15 +7,16 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.AnalyticsEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.pubstack.model.EventType;
-import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
-import org.prebid.server.analytics.pubstack.model.PubstackConfig;
+import org.prebid.server.analytics.reporter.AnalyticsReporter;
+import org.prebid.server.analytics.reporter.pubstack.model.EventType;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -94,7 +95,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
     }
 
-    public <T> Future<Void> processEvent(T event) {
+    public Future<Void> processEvent(AnalyticsEvent event) {
         final EventType eventType = CLASS_TO_EVENT_TYPE.get(event.getClass().getName());
         if (eventType != null) {
             eventHandlers.get(eventType).handle(event);

@@ -3,10 +3,13 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.LogAnalyticsReporter;
-import org.prebid.server.analytics.pubstack.PubstackAnalyticsReporter;
+import org.prebid.server.analytics.processor.LogAnalyticsEventProcessor;
+import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
+import org.prebid.server.analytics.reporter.AnalyticsReporter;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
+import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -30,19 +33,37 @@ public class AnalyticsConfiguration {
             @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
             PrivacyEnforcementService privacyEnforcementService,
-            Metrics metrics) {
+            Metrics metrics,
+            MetricsEventTypeAnalyticsEventProcessor metricsEventTypeAnalyticsEventProcessor) {
 
         return new AnalyticsReporterDelegator(
                 delegates != null ? delegates : Collections.emptyList(),
                 vertx,
                 privacyEnforcementService,
-                metrics);
+                metrics,
+                metricsEventTypeAnalyticsEventProcessor);
     }
 
     @Bean
+    MetricsEventTypeAnalyticsEventProcessor metricsEventTypeAnalyticsEventProcessor() {
+        return new MetricsEventTypeAnalyticsEventProcessor();
+    }
+
+    @Configuration
     @ConditionalOnProperty(prefix = "analytics.log", name = "enabled", havingValue = "true")
-    LogAnalyticsReporter logAnalyticsReporter(JacksonMapper mapper) {
-        return new LogAnalyticsReporter(mapper);
+    public static class LogAnalyticsConfiguration {
+
+        @Bean
+        LogAnalyticsReporter logAnalyticsReporter(LogAnalyticsEventProcessor logAnalyticsEventProcessor,
+                                                  JacksonMapper mapper) {
+
+            return new LogAnalyticsReporter(logAnalyticsEventProcessor, mapper);
+        }
+
+        @Bean
+        LogAnalyticsEventProcessor logAnalyticsEventProcessor() {
+            return new LogAnalyticsEventProcessor();
+        }
     }
 
     @Configuration
@@ -50,12 +71,14 @@ public class AnalyticsConfiguration {
     public static class PubstackAnalyticsConfiguration {
 
         @Bean
-        PubstackAnalyticsReporter pubstackAnalyticsReporter(PubstackAnalyticsProperties pubstackAnalyticsProperties,
-                                                            HttpClient httpClient,
-                                                            JacksonMapper jacksonMapper,
-                                                            Vertx vertx) {
+        PubstackAnalyticsReporter pubstackAnalyticsReporter(
+                PubstackAnalyticsConfiguratinProperties pubstackAnalyticsConfiguratinProperties,
+                HttpClient httpClient,
+                JacksonMapper jacksonMapper,
+                Vertx vertx) {
+
             return new PubstackAnalyticsReporter(
-                    pubstackAnalyticsProperties.toComponentProperties(),
+                    pubstackAnalyticsConfiguratinProperties.toComponentProperties(),
                     httpClient,
                     jacksonMapper,
                     vertx);
@@ -63,14 +86,14 @@ public class AnalyticsConfiguration {
 
         @Bean
         @ConfigurationProperties(prefix = "analytics.pubstack")
-        PubstackAnalyticsProperties pubstackAnalyticsProperties() {
-            return new PubstackAnalyticsProperties();
+        PubstackAnalyticsConfiguratinProperties pubstackAnalyticsConfiguratinProperties() {
+            return new PubstackAnalyticsConfiguratinProperties();
         }
 
         @Validated
         @NoArgsConstructor
         @Data
-        private static class PubstackAnalyticsProperties {
+        private static class PubstackAnalyticsConfiguratinProperties {
             @NotNull
             String endpoint;
 
@@ -89,8 +112,8 @@ public class AnalyticsConfiguration {
             @NotNull
             PubstackBufferProperties buffers;
 
-            public org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties toComponentProperties() {
-                return org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties.builder()
+            public PubstackAnalyticsProperties toComponentProperties() {
+                return PubstackAnalyticsProperties.builder()
                         .endpoint(getEndpoint())
                         .scopeId(getScopeid())
                         .enabled(getEnabled())

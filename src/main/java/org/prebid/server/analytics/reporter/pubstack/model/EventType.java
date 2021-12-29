@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack.model;
+package org.prebid.server.analytics.reporter.pubstack.model;
 
 public enum EventType {
 

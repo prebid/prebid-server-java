@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack;
+package org.prebid.server.analytics.reporter.pubstack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
@@ -15,9 +15,9 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.pubstack.model.EventType;
-import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
-import org.prebid.server.analytics.pubstack.model.PubstackConfig;
+import org.prebid.server.analytics.reporter.pubstack.model.EventType;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;

@@ -2,6 +2,7 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.analytics.processor.AnalyticsEventProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.response.VideoResponse;
@@ -13,7 +14,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class VideoEvent {
+public class VideoEvent implements AnalyticsEvent {
 
     Integer status;
 
@@ -24,5 +25,10 @@ public class VideoEvent {
     AuctionContext auctionContext;
 
     VideoResponse bidResponse;
+
+    @Override
+    public <T> T accept(AnalyticsEventProcessor<T> processor) {
+        return processor.processVideoEvent(this);
+    }
 }
 

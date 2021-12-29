@@ -1,4 +1,4 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.IntNode;
@@ -9,7 +9,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -18,7 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
+import org.prebid.server.analytics.model.AnalyticsEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
@@ -48,7 +49,7 @@ import static org.mockito.Mockito.verify;
 
 public class AnalyticsReporterDelegatorTest {
 
-    private static final String EVENT = StringUtils.EMPTY;
+    private static final AnalyticsEvent EVENT = AuctionEvent.builder().build();
     private static final Integer FIRST_REPORTER_ID = 1;
     private static final Integer SECOND_REPORTER_ID = 2;
 
@@ -88,7 +89,7 @@ public class AnalyticsReporterDelegatorTest {
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
-                privacyEnforcementService, metrics);
+                privacyEnforcementService, metrics, new MetricsEventTypeAnalyticsEventProcessor());
     }
 
     @Test
@@ -277,8 +278,8 @@ public class AnalyticsReporterDelegatorTest {
         };
     }
 
-    private static String captureEvent(AnalyticsReporter reporter) {
-        final ArgumentCaptor<String> auctionEventCaptor = ArgumentCaptor.forClass(String.class);
+    private static AnalyticsEvent captureEvent(AnalyticsReporter reporter) {
+        final ArgumentCaptor<AnalyticsEvent> auctionEventCaptor = ArgumentCaptor.forClass(AnalyticsEvent.class);
         verify(reporter).processEvent(auctionEventCaptor.capture());
         return auctionEventCaptor.getValue();
     }
