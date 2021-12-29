@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 

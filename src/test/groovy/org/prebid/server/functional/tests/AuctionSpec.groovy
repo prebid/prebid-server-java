@@ -8,7 +8,6 @@ import org.prebid.server.functional.testcontainers.container.PrebidServerContain
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
@@ -92,7 +91,7 @@ class AuctionSpec extends BaseSpec {
     def "PBS should honor max timeout from the settings for auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            tmax = autcionRequestTimeout
+            tmax = auctionRequestTimeout
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
         }
 
@@ -113,7 +112,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == MAX_TIMEOUT as Long
 
         where:
-        autcionRequestTimeout || storedRequestTimeout
+        auctionRequestTimeout || storedRequestTimeout
         MAX_TIMEOUT + 1       || null
         null                  || MAX_TIMEOUT + 1
         MAX_TIMEOUT + 1       || MAX_TIMEOUT + 1
@@ -149,10 +148,11 @@ class AuctionSpec extends BaseSpec {
         def defaultRequest = PBSUtils.createJsonFile(defaultRequestModel)
 
         and: "Pbs config with default request"
-        def pbsContainer = new PrebidServerContainer(["default-request.file.path": APP_WORKDIR +
-                defaultRequest.fileName]).tap {
-            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR)
-        }
+        def pbsContainer = new PrebidServerContainer(
+                ["default-request.file.path" : APP_WORKDIR + defaultRequest.fileName,
+                 "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+                 "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]).tap {
+            withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer, mapper)
 
@@ -172,7 +172,11 @@ class AuctionSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should not contain error"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
 
         then: "Bidder request should contain correct tmax"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
