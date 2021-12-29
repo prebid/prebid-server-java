@@ -13,8 +13,19 @@
           "TagID": "tag_id1"
         }
       }
-    }
-  ],
+    }, {
+      "id": "imp_id2",
+      "video": {
+        "mimes": [ "video/mp4" ],
+        "w": 640,
+        "h": 480
+      },
+      "ext": {
+        "bidder": {
+          "TagID": "tag_id2"
+        }
+      }
+    } ],
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",

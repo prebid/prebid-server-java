@@ -25,10 +25,6 @@ public class AdmanTest extends IntegrationTest {
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-1.json"))));
 
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adman-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-2.json"))));
-
         // when
         final Response response = responseFor("openrtb2/adman/test-auction-adman-request.json",
                 Endpoint.openrtb2_auction);
