@@ -10,6 +10,10 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.DebugMessageFactory;
+import org.prebid.server.auction.model.DebugMessageType;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
@@ -85,10 +89,9 @@ public class OrtbTypesResolver {
      * and bidderconfig.
      * Mutates both parameters, {@param fpdContainerNode} and {@param warnings}.
      */
-    public void normalizeBidRequest(JsonNode bidRequest, List<String> warnings, String referer) {
-        final List<String> resolverWarnings = new ArrayList<>();
+    public void normalizeBidRequest(JsonNode bidRequest, String referer) {
         final String rowOriginBidRequest = getOriginalRowContainerNode(bidRequest);
-        normalizeRequestFpdFields(bidRequest, resolverWarnings);
+        normalizeRequestFpdFields(bidRequest);
         final JsonNode bidderConfigs = bidRequest.path("ext").path("prebid").path("bidderconfig");
         if (!bidderConfigs.isMissingNode() && bidderConfigs.isArray()) {
             for (JsonNode bidderConfig : bidderConfigs) {
@@ -97,11 +100,11 @@ public class OrtbTypesResolver {
 
                 final JsonNode ortb2Config = bidderConfig.path("config").path("ortb2");
                 if (!ortb2Config.isMissingNode()) {
-                    normalizeStandardFpdFields(ortb2Config, resolverWarnings, "bidrequest.ext.prebid.bidderconfig");
+                    normalizeStandardFpdFields(ortb2Config, "bidrequest.ext.prebid.bidderconfig");
                 }
             }
         }
-        processWarnings(resolverWarnings, warnings, rowOriginBidRequest, referer, BIDREQUEST);
+        processWarnings(rowOriginBidRequest, referer, BIDREQUEST);
     }
 
     private String getOriginalRowContainerNode(JsonNode bidRequest) {
@@ -163,49 +166,49 @@ public class OrtbTypesResolver {
      * Resolves fields types inconsistency to ortb2 protocol for {@param targeting}.
      * Mutates both parameters, {@param targeting} and {@param warnings}.
      */
-    public void normalizeTargeting(JsonNode targeting, List<String> warnings, String referer) {
+    public void normalizeTargeting(JsonNode targeting, String referer) {
         final List<String> resolverWarnings = new ArrayList<>();
         final String rowOriginTargeting = getOriginalRowContainerNode(targeting);
-        normalizeStandardFpdFields(targeting, resolverWarnings, TARGETING);
-        processWarnings(resolverWarnings, warnings, rowOriginTargeting, referer, TARGETING);
+        normalizeStandardFpdFields(targeting, TARGETING);
+        processWarnings(rowOriginTargeting, referer, TARGETING);
     }
 
     /**
      * Resolves fields types inconsistency to ortb2 protocol for {@param fpdContainerNode}.
      * Mutates both parameters, {@param fpdContainerNode} and {@param warnings}.
      */
-    private void normalizeStandardFpdFields(JsonNode fpdContainerNode, List<String> warnings, String nodePrefix) {
+    private void normalizeStandardFpdFields(JsonNode fpdContainerNode, String nodePrefix) {
         final String normalizedNodePrefix = nodePrefix.endsWith(".") ? nodePrefix : nodePrefix.concat(".");
         if (fpdContainerNode != null && fpdContainerNode.isObject()) {
             final ObjectNode fpdContainerObjectNode = (ObjectNode) fpdContainerNode;
             updateWithNormalizedNode(fpdContainerObjectNode, USER, FIRST_ARRAY_ELEMENT_STANDARD_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix);
             updateWithNormalizedNode(fpdContainerObjectNode, APP, FIRST_ARRAY_ELEMENT_STANDARD_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix);
             updateWithNormalizedNode(fpdContainerObjectNode, SITE, FIRST_ARRAY_ELEMENT_STANDARD_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, normalizedNodePrefix);
         }
     }
 
-    private void normalizeRequestFpdFields(JsonNode fpdContainerNode, List<String> warnings) {
+    private void normalizeRequestFpdFields(JsonNode fpdContainerNode) {
         if (fpdContainerNode != null && fpdContainerNode.isObject()) {
             final ObjectNode fpdContainerObjectNode = (ObjectNode) fpdContainerNode;
             final String bidRequestPrefix = BIDREQUEST + ".";
             updateWithNormalizedNode(fpdContainerObjectNode, USER, FIRST_ARRAY_ELEMENT_REQUEST_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix);
             updateWithNormalizedNode(fpdContainerObjectNode, APP, FIRST_ARRAY_ELEMENT_REQUEST_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix);
             updateWithNormalizedNode(fpdContainerObjectNode, SITE, FIRST_ARRAY_ELEMENT_REQUEST_FIELDS,
-                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix, warnings);
+                    COMMA_SEPARATED_ELEMENT_FIELDS, bidRequestPrefix);
         }
     }
 
     private void updateWithNormalizedNode(ObjectNode containerNode, String nodeNameToNormalize,
                                           Map<String, Set<String>> firstArrayElementsFields,
                                           Map<String, Set<String>> commaSeparatedElementFields,
-                                          String nodePrefix, List<String> warnings) {
+                                          String nodePrefix) {
         final JsonNode normalizedNode = normalizeNode(containerNode.get(nodeNameToNormalize), nodeNameToNormalize,
-                firstArrayElementsFields, commaSeparatedElementFields, nodePrefix, warnings);
+                firstArrayElementsFields, commaSeparatedElementFields, nodePrefix);
         if (normalizedNode != null) {
             containerNode.set(nodeNameToNormalize, normalizedNode);
         } else {
@@ -216,25 +219,24 @@ public class OrtbTypesResolver {
     private JsonNode normalizeNode(JsonNode containerNode, String nodeName,
                                    Map<String, Set<String>> firstArrayElementsFields,
                                    Map<String, Set<String>> commaSeparatedElementFields,
-                                   String nodePrefix, List<String> warnings) {
+                                   String nodePrefix) {
         if (containerNode != null) {
             if (containerNode.isObject()) {
                 final ObjectNode containerObjectNode = (ObjectNode) containerNode;
 
                 CollectionUtils.emptyIfNull(firstArrayElementsFields.get(nodeName))
                         .forEach(fieldName -> updateWithNormalizedField(containerObjectNode, fieldName,
-                                () -> toFirstElementTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
-                                        warnings)));
+                                () -> toFirstElementTextNode(containerObjectNode, fieldName, nodeName, nodePrefix)));
 
                 CollectionUtils.emptyIfNull(commaSeparatedElementFields.get(nodeName))
                         .forEach(fieldName -> updateWithNormalizedField(containerObjectNode, fieldName,
-                                () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix,
-                                        warnings)));
+                                () -> toCommaSeparatedTextNode(containerObjectNode, fieldName, nodeName, nodePrefix)));
 
-                normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, warnings);
+                normalizeDataExtension(containerObjectNode, nodeName, nodePrefix);
             } else {
-                warnings.add(String.format("%s%s field ignored. Expected type is object, but was `%s`.",
-                        nodePrefix, nodeName, containerNode.getNodeType().name()));
+                PrebidLog.logMessage(DebugMessageFactory.warning(DebugMessageType.incorrect_node_field,
+                        String.format("%s%s field ignored. Expected type is object, but was `%s`.",
+                                nodePrefix, nodeName, containerNode.getNodeType().name())));
                 return null;
             }
         }
@@ -252,7 +254,7 @@ public class OrtbTypesResolver {
     }
 
     private JsonNode toFirstElementTextNode(ObjectNode containerNode, String fieldName, String containerName,
-                                            String nodePrefix, List<String> warnings) {
+                                            String nodePrefix) {
         final JsonNode node = containerNode.get(fieldName);
         if (node == null || node.isNull() || node.isTextual()) {
             return node;
@@ -263,18 +265,19 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray && !arrayNode.isEmpty()) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is"
-                    + " string, but was an array of strings. Converted to string by taking first element "
-                    + "of array.", nodePrefix, containerName, fieldName));
+            PrebidLog.logMessage(DebugMessageFactory.warning(DebugMessageType.incorrect_type_of_first_party_data,
+                    String.format("Incorrect type for first party data field %s%s.%s, expected is"
+                            + " string, but was an array of strings. Converted to string by taking first element "
+                            + "of array.", nodePrefix, containerName, fieldName)));
             return new TextNode(arrayNode.get(0).asText());
         } else {
-            warnForExpectedStringArrayType(fieldName, containerName, warnings, nodePrefix, node.getNodeType());
+            warnForExpectedStringArrayType(fieldName, containerName, nodePrefix, node.getNodeType());
             return null;
         }
     }
 
     private JsonNode toCommaSeparatedTextNode(ObjectNode containerNode, String fieldName, String containerName,
-                                              String nodePrefix, List<String> warnings) {
+                                              String nodePrefix) {
         final JsonNode node = containerNode.get(fieldName);
         if (node == null || node.isNull() || node.isTextual()) {
             return node;
@@ -285,21 +288,21 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
-                    + "string, but was an array of strings. Converted to string by separating values with "
-                    + "comma.", nodePrefix, containerName, fieldName));
+            PrebidLog.logMessage(DebugMessageFactory.warning(DebugMessageType.incorrect_type_of_first_party_data,
+                    String.format("Incorrect type for first party data field %s%s.%s, expected is "
+                            + "string, but was an array of strings. Converted to string by separating values with "
+                            + "comma.", nodePrefix, containerName, fieldName)));
             return new TextNode(StreamSupport.stream(arrayNode.spliterator(), false)
                     .map(jsonNode -> (TextNode) jsonNode)
                     .map(TextNode::textValue)
                     .collect(Collectors.joining(",")));
         } else {
-            warnForExpectedStringArrayType(fieldName, containerName, warnings, nodePrefix, node.getNodeType());
+            warnForExpectedStringArrayType(fieldName, containerName, nodePrefix, node.getNodeType());
             return null;
         }
     }
 
-    private void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix,
-                                        List<String> warnings) {
+    private void normalizeDataExtension(ObjectNode containerNode, String containerName, String nodePrefix) {
         final JsonNode data = containerNode.get(DATA);
         if (data == null || !data.isObject()) {
             return;
@@ -310,50 +313,55 @@ public class OrtbTypesResolver {
             final JsonNode resolvedExtData = jsonMerger.merge(data, extData);
             ((ObjectNode) ext).set(DATA, resolvedExtData);
         } else {
-            copyDataToExtData(containerNode, containerName, nodePrefix, warnings, data);
+            copyDataToExtData(containerNode, containerName, nodePrefix, data);
         }
         containerNode.remove(DATA);
     }
 
-    private void copyDataToExtData(ObjectNode containerNode, String containerName, String nodePrefix,
-                                   List<String> warnings, JsonNode data) {
+    private void copyDataToExtData(ObjectNode containerNode, String containerName, String nodePrefix, JsonNode data) {
         final JsonNode ext = containerNode.get(EXT);
         if (ext != null && ext.isObject()) {
             ((ObjectNode) ext).set(DATA, data);
         } else if (ext != null && !ext.isObject()) {
-            warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected is "
-                            + "object, but was %s. Replaced with object",
-                    nodePrefix, containerName, EXT, ext.getNodeType()));
+            PrebidLog.logMessage(DebugMessageFactory.warning(DebugMessageType.incorrect_type_of_first_party_data,
+                    String.format("Incorrect type for first party data field %s%s.%s, expected is "
+                                    + "object, but was %s. Replaced with object",
+                            nodePrefix, containerName, EXT, ext.getNodeType())));
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         } else {
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         }
     }
 
-    private void warnForExpectedStringArrayType(String fieldName, String containerName, List<String> warnings,
+    private void warnForExpectedStringArrayType(String fieldName, String containerName,
                                                 String nodePrefix, JsonNodeType nodeType) {
-        warnings.add(String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
-                        + " was `%s`. Failed to convert to correct type.", nodePrefix, containerName, fieldName,
-                nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
+        PrebidLog.logMessage(DebugMessageFactory.warning(DebugMessageType.incorrect_type_of_first_party_data,
+                String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
+                                + " was `%s`. Failed to convert to correct type.", nodePrefix, containerName, fieldName,
+                        nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name())));
     }
 
     private static boolean isTextualArray(ArrayNode arrayNode) {
         return StreamSupport.stream(arrayNode.spliterator(), false).allMatch(JsonNode::isTextual);
     }
 
-    private void processWarnings(List<String> resolverWarning, List<String> warnings, String containerValue,
+    private void processWarnings(String containerValue,
                                  String referer, String containerName) {
-        if (CollectionUtils.isNotEmpty(resolverWarning)) {
-            warnings.addAll(updateWithWarningPrefix(resolverWarning));
+        List<String> messages = PrebidLog.getPrebidMessagesByTags(
+                        List.of(DebugMessageType.incorrect_type_of_first_party_data.getTag(),
+                                DebugMessageType.incorrect_node_field.getTag())).stream()
+                .map(PrebidMessage::getMessage).collect(Collectors.toList());
+        if (CollectionUtils.isNotEmpty(messages)) {
+            List<String> updatedMessages = updateWithWarningPrefix(messages);
             // log only 1% of cases
             ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
-                    String.join("\n", resolverWarning),
+                    String.join("\n", updatedMessages),
                     StringUtils.isNotBlank(referer) ? referer : UNKNOWN_REFERER,
                     containerName, containerValue), 0.01);
         }
     }
 
-    private List<String> updateWithWarningPrefix(List<String> resolverWarning) {
-        return resolverWarning.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
+    private List<String> updateWithWarningPrefix(List<String> messages) {
+        return messages.stream().map(warning -> "WARNING: " + warning).collect(Collectors.toList());
     }
 }

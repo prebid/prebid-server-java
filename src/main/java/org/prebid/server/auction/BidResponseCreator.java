@@ -32,7 +32,6 @@ import org.prebid.server.auction.model.BidderResponseInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
-import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
@@ -248,7 +247,6 @@ public class BidResponseCreator {
                           String lineItemId) {
 
         final Account account = auctionContext.getAccount();
-        final List<DebugWarning> debugWarnings = auctionContext.getDebugWarnings();
 
         final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
                 ? bidIdGenerator.generateId()
@@ -262,7 +260,6 @@ public class BidResponseCreator {
                         account,
                         eventsContext,
                         effectiveBidId,
-                        debugWarnings,
                         lineItemId))
                 .ext(updateBidExt(
                         bid,
@@ -283,7 +280,6 @@ public class BidResponseCreator {
                                 Account account,
                                 EventsContext eventsContext,
                                 String effectiveBidId,
-                                List<DebugWarning> debugWarnings,
                                 String lineItemId) {
 
         final String bidAdm = bid.getAdm();
@@ -295,7 +291,6 @@ public class BidResponseCreator {
                 effectiveBidId,
                 account.getId(),
                 eventsContext,
-                debugWarnings,
                 lineItemId)
                 : bidAdm;
     }

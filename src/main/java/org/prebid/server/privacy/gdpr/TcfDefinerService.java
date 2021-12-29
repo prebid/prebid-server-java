@@ -8,8 +8,10 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
-import org.prebid.server.auction.model.DebugWarning;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrivacyMessageFactory;
+import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -29,7 +31,6 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -91,14 +92,13 @@ public class TcfDefinerService {
                                                 AccountGdprConfig accountGdprConfig,
                                                 MetricName requestType,
                                                 RequestLogInfo requestLogInfo,
-                                                Timeout timeout,
-                                                List<DebugWarning> debugWarnings) {
+                                                Timeout timeout) {
 
         if (!isGdprEnabled(accountGdprConfig, requestType)) {
             return Future.succeededFuture(TcfContext.empty());
         }
 
-        return toTcfContext(privacy, country, ipAddress, requestLogInfo, timeout, debugWarnings)
+        return toTcfContext(privacy, country, ipAddress, requestLogInfo, timeout)
                 .map(this::updateTcfGeoMetrics);
     }
 
@@ -113,7 +113,7 @@ public class TcfDefinerService {
                                                 Timeout timeout) {
 
         return resolveTcfContext(privacy, null, ipAddress,
-                accountGdprConfig, requestType, requestLogInfo, timeout, null);
+                accountGdprConfig, requestType, requestLogInfo, timeout);
     }
 
     public Future<TcfResponse<Integer>> resultForVendorIds(Set<Integer> vendorIds, TcfContext tcfContext) {
@@ -177,10 +177,9 @@ public class TcfDefinerService {
                                             String country,
                                             String ipAddress,
                                             RequestLogInfo requestLogInfo,
-                                            Timeout timeout,
-                                            List<DebugWarning> debugWarnings) {
+                                            Timeout timeout) {
         final String consentString = privacy.getConsentString();
-        final TCString consent = parseConsentString(consentString, requestLogInfo, debugWarnings);
+        final TCString consent = parseConsentString(consentString, requestLogInfo);
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
         final boolean consentIsValid = isConsentValid(consent);
 
@@ -350,8 +349,7 @@ public class TcfDefinerService {
      * Note: parsing TC string should not fail the entire request, but assume the user does not consent.
      */
     private TCString parseConsentString(String consentString,
-                                        RequestLogInfo requestLogInfo,
-                                        List<DebugWarning> debugWarnings) {
+                                        RequestLogInfo requestLogInfo) {
         if (StringUtils.isBlank(consentString)) {
             metrics.updatePrivacyTcfMissingMetric();
             return TCStringEmpty.create();
@@ -367,12 +365,10 @@ public class TcfDefinerService {
         metrics.updatePrivacyTcfRequestsMetric(version);
         // disable TCF1 support
         if (version == 1) {
-            if (debugWarnings != null) {
-                debugWarnings.add(DebugWarning.of(DebugWarning.Code.invalid_privacy_consent.getCode(),
-                        String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
-                                + "deprecated and treated as corrupted TCF version 2", consentString))
-                );
-            }
+            PrebidLog.logMessage(PrivacyMessageFactory.debug(PrivacyMessageType.tcf_error,
+                    String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
+                            + "deprecated and treated as corrupted TCF version 2", consentString))
+            );
             return TCStringEmpty.create();
         }
         return tcString;

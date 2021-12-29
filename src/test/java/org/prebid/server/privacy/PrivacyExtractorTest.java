@@ -39,7 +39,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegsIsNull() {
         // given and when
         final String gdpr =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().build(), new ArrayList<>()).getGdpr();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().build()).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -49,7 +49,7 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnGdprEmptyValueWhenRegsExtIsNull() {
         // given and when
         final String gdpr = privacyExtractor.validPrivacyFrom(
-                BidRequest.builder().regs(Regs.of(null, null)).build(), new ArrayList<>())
+                        BidRequest.builder().regs(Regs.of(null, null)).build())
                 .getGdpr();
 
         // then
@@ -63,7 +63,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final String gdpr =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>()).getGdpr();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build()).getGdpr();
 
         // then
         assertThat(gdpr).isEmpty();
@@ -76,7 +76,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final String gdpr =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>()).getGdpr();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build()).getGdpr();
 
         // then
         assertThat(gdpr).isEqualTo("1");
@@ -89,7 +89,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final String gdpr =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>()).getGdpr();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build()).getGdpr();
 
         // then
         assertThat(gdpr).isEqualTo("0");
@@ -98,7 +98,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldReturnConsentEmptyValueWhenExtUserIsNull() {
         // given and when
-        final String consent = privacyExtractor.validPrivacyFrom(BidRequest.builder().build(), new ArrayList<>())
+        final String consent = privacyExtractor.validPrivacyFrom(BidRequest.builder().build())
                 .getConsentString();
 
         // then
@@ -112,7 +112,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final String consent =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().user(user).build(), new ArrayList<>())
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().user(user).build())
                         .getConsentString();
 
         // then
@@ -126,7 +126,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final String consent =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().user(user).build(), new ArrayList<>())
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().user(user).build())
                         .getConsentString();
 
         // then
@@ -137,15 +137,15 @@ public class PrivacyExtractorTest extends VertxTest {
     public void shouldReturnDefaultCcpaWhenNotValidAndAddError() {
         // given
         final Regs regs = Regs.of(null, ExtRegs.of(null, "invalid"));
-        final ArrayList<String> errors = new ArrayList<>();
 
         // when
         final Ccpa ccpa =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), errors).getCcpa();
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build()).getCcpa();
 
         // then
         assertThat(ccpa).isEqualTo(Ccpa.EMPTY);
-        assertThat(errors).containsOnly(
+        //TODO: error handling
+        assertThat(new ArrayList<>()).containsOnly(
                 "CCPA consent invalid has invalid format: us_privacy must contain 4 characters");
     }
 
@@ -156,7 +156,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final Integer coppa =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>())
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build())
                         .getCoppa();
 
         // then
@@ -170,7 +170,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final Integer coppa =
-                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build(), new ArrayList<>())
+                privacyExtractor.validPrivacyFrom(BidRequest.builder().regs(regs).build())
                         .getCoppa();
 
         // then
@@ -185,7 +185,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // when
         final Privacy privacy = privacyExtractor
-                .validPrivacyFrom(BidRequest.builder().regs(regs).user(user).build(), new ArrayList<>());
+                .validPrivacyFrom(BidRequest.builder().regs(regs).user(user).build());
 
         // then
         assertThat(privacy).isEqualTo(Privacy.of("0", "consent", Ccpa.of("1Yn-"), 0));
