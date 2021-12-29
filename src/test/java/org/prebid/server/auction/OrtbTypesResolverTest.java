@@ -25,7 +25,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final JsonNode inputParam = mapper.createArrayNode();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createArrayNode());
@@ -39,7 +39,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
@@ -57,7 +57,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
@@ -73,7 +73,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode());
@@ -87,7 +87,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
@@ -103,7 +103,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> errors = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, errors, "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
@@ -120,7 +120,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("user", user);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()
@@ -141,7 +141,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("app", app);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("app", mapper.createObjectNode()
@@ -167,7 +167,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("site", site);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("site", mapper.createObjectNode()
@@ -187,7 +187,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("site", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -199,7 +199,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("app", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -211,7 +211,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("user", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -225,7 +225,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -240,7 +240,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("site", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -255,7 +255,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("app", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -268,7 +268,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")))));
@@ -281,7 +281,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .set("data", mapper.createArrayNode().add(obj("id", "123")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(
@@ -296,7 +296,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .set("ext", obj("extField", "extValue")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue"))
@@ -309,7 +309,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
@@ -323,7 +323,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final List<String> warnings = new ArrayList<>();
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, warnings, "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
@@ -372,7 +372,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         requestNode.set("ext", obj("prebid", obj("bidderconfig", array(obj("config", obj("ortb2", ortbConfig))))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, "referer");
 
         // then
         assertThat(requestNode.get("site"))
@@ -455,7 +455,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode requestedFpdContext = fpdContext.deepCopy();
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, "referer");
 
         // then
         final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
@@ -500,7 +500,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode requestFpdUser = fpdUser.deepCopy();
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, new ArrayList<>(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, "referer");
 
         // then
         final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
