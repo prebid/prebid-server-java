@@ -197,7 +197,7 @@ public class AmpRequestFactory {
 
         if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
             errors.add(String.format(
-                    "Amp request parameter %s have invalid format: %s",
+                    "Amp request parameter %s has invalid format: %s",
                     consentParam.getFromParam(),
                     consentParam.getConsentString()));
         }

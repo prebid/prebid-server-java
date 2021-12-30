@@ -1426,7 +1426,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidErrors())
-                .containsExactly("Amp request parameter consent_string have invalid format: consent-value");
+                .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
     }
 
     @Test
@@ -1441,7 +1441,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidErrors())
-                .containsExactly("Amp request parameter gdpr_consent have invalid format: consent-value");
+                .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
     }
 
     @Test
