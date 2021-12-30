@@ -12,7 +12,6 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
-import spock.lang.Unroll
 
 @PBSTest
 class BidValidationSpec extends BaseSpec {
