@@ -156,12 +156,13 @@ public class VideoResponseFactory {
         final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
 
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+        final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
 
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
         final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
 
-        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
-                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extWarnings, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extWarnings, extAmpVideoPrebid)
                 : null;
     }
 

@@ -14,5 +14,7 @@ public class ExtAmpVideoResponse {
 
     Map<String, List<ExtBidderError>> errors;
 
+    Map<String, List<ExtBidderError>> warnings;
+
     ExtAmpVideoPrebid prebid;
 }
