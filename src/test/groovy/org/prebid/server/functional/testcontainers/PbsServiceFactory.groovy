@@ -9,8 +9,8 @@ import org.prebid.server.functional.util.PBSUtils
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final Integer MAX_CONTAINERS_COUNT = Integer.valueOf(
-            PBSUtils.getPropertyOrDefaultValue("max.containers.count", "2"))
+    private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
+            PBSUtils.getPropertyOrDefault("max.containers.count", "2"))
 
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer

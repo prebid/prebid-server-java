@@ -51,7 +51,7 @@ class PBSUtils {
         path
     }
 
-    static String getPropertyOrDefaultValue(String property, String defaultValue) {
+    static String getPropertyOrDefault(String property, String defaultValue) {
         System.getProperty(property) ?: defaultValue
     }
 }
