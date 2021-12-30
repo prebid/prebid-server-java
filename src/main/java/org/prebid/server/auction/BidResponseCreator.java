@@ -1002,7 +1002,7 @@ public class BidResponseCreator {
      * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
      */
     private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
-        return auctionContext.getPrebidLog().getPrebidMessagesByTags(List.of("ERROR", "WARNING")).stream()
+        return auctionContext.getPrebidLog().getPrebidMessagesByTag("ERROR").stream()
                 .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }
@@ -1043,10 +1043,12 @@ public class BidResponseCreator {
     }
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
-        final List<ExtBidderError> contextWarnings =
-                auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING").stream()
-                        .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
-                        .collect(Collectors.toList());
+        final List<ExtBidderError> contextWarnings = auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")
+                .stream()
+                .map(prebidMessage -> ExtBidderError.of(
+                        BidderError.Type.generic.getCode(),
+                        prebidMessage.getMessage()))
+                .collect(Collectors.toList());
 
         return contextWarnings.isEmpty()
                 ? Collections.emptyMap()

@@ -371,8 +371,10 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                prebidLog.logMessage(BidderMessageFactory.warning(BidderMessageType.multibid, String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder)));
+                prebidLog.logMessage(BidderMessageFactory.warning(
+                        BidderMessageType.multibid,
+                        String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
+                                + "Only bidder %s will be used.", bidder, bidders, bidder)));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, prebidLog);
                 continue;

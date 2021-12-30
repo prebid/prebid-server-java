@@ -9,7 +9,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
-import org.prebid.server.auction.model.DebugWarning;
+import org.prebid.server.auction.model.DebugMessageFactory;
+import org.prebid.server.auction.model.DebugMessageType;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
@@ -19,7 +22,6 @@ import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 
-import java.util.ArrayList;
 import java.util.function.UnaryOperator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,7 +76,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, null));
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).isEmpty();
     }
 
     @Test
@@ -88,9 +90,12 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
+        final PrebidMessage prebidMessage = DebugMessageFactory.warning(
+                DebugMessageType.account_level_debug_disabled,
+                "Debug turned off for account");
         assertThat(result).isEqualTo(DebugContext.of(false, null));
-        assertThat(auctionContext.getDebugWarnings()).hasSize(1)
-                .containsOnly(DebugWarning.of(account_level_debug_disabled.getCode(), "Debug turned off for account"));
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).hasSize(1)
+                .containsOnly(prebidMessage);
     }
 
     @Test
@@ -105,7 +110,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(true, null));
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).isEmpty();
     }
 
     @Test
@@ -134,7 +139,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isFalse();
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).isEmpty();
     }
 
     @Test
@@ -148,11 +153,12 @@ public class DebugResolverTest {
         final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
+        final PrebidMessage prebidMessage = DebugMessageFactory.warning(
+                DebugMessageType.bidder_level_debug_disabled,
+                "Debug turned off for bidder: bidder");
         assertThat(result).isFalse();
-        assertThat(auctionContext.getDebugWarnings()).hasSize(1)
-                .containsOnly(
-                        DebugWarning.of(bidder_level_debug_disabled.getCode(),
-                                "Debug turned off for bidder: bidder"));
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).hasSize(1)
+                .containsOnly(prebidMessage);
     }
 
     @Test
@@ -167,7 +173,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isTrue();
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).isEmpty();
     }
 
     @Test
@@ -184,14 +190,14 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isTrue();
-        assertThat(auctionContext.getDebugWarnings()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")).isEmpty();
     }
 
     private static AuctionContext givenAuctionContext(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
 
         return auctionContextCustomizer.apply(AuctionContext.builder()
-                        .debugWarnings(new ArrayList<>()))
+                        .prebidLog(PrebidLog.of()))
                 .build();
     }
 

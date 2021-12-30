@@ -269,7 +269,8 @@ public class OrtbTypesResolver {
             prebidLog.logMessage(DebugMessageFactory.warning(
                     DebugMessageType.incorrect_type_of_first_party_data,
                     String.format("Incorrect type for first party data field %s%s.%s, expected is"
-                                    + " string, but was an array of strings. Converted to string by taking first element of array.",
+                                    + " string, but was an array of strings. "
+                                    + "Converted to string by taking first element of array.",
                             nodePrefix, containerName, fieldName)));
             return new TextNode(arrayNode.get(0).asText());
         } else {

@@ -6,7 +6,10 @@ import java.util.Set;
 
 public class DebugMessageFactory {
 
-    private final static Set<String> tags = Set.of("DEBUG");
+    private static final Set<String> DEBUG_TAG = Set.of("DEBUG");
+
+    private DebugMessageFactory() {
+    }
 
     public static PrebidMessage error(DebugMessageType type, String message) {
         return PrebidMessage.of(makeTags(type.getTag(), "ERROR"), message);
@@ -21,7 +24,7 @@ public class DebugMessageFactory {
     }
 
     private static Set<String> makeTags(String... newTags) {
-        final HashSet<String> resultingTags = new HashSet<>(tags);
+        final HashSet<String> resultingTags = new HashSet<>(DEBUG_TAG);
         GenericMessageFactory.addGeneric(resultingTags);
         resultingTags.addAll(Arrays.asList(newTags));
 

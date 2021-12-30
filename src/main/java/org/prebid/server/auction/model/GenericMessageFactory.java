@@ -5,10 +5,13 @@ import java.util.Set;
 
 public class GenericMessageFactory {
 
-    private static final Set<String> tags = Collections.singleton("GENERIC");
+    private static final Set<String> GENERIC_TAG = Collections.singleton("GENERIC");
+
+    private GenericMessageFactory() {
+    }
 
     public static void addGeneric(Set<String> set) {
-        set.addAll(tags);
+        set.addAll(GENERIC_TAG);
     }
 
 }

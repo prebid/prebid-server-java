@@ -25,6 +25,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.proto.Uids;
@@ -635,8 +636,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result).isEqualTo(AuctionContext.builder()
                 .requestTypeMetric(MetricName.openrtb2app)
-                .prebidErrors(new ArrayList<>())
-                .debugWarnings(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .hookExecutionContext(hookExecutionContext)
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
@@ -669,8 +669,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final AuctionContext result = target.enrichAuctionContext(
                 AuctionContext.builder()
                         .requestTypeMetric(MetricName.openrtb2app)
-                        .prebidErrors(new ArrayList<>())
-                        .debugWarnings(new ArrayList<>())
+                        .prebidLog(PrebidLog.of())
                         .hookExecutionContext(hookExecutionContext)
                         .txnLog(TxnLog.create())
                         .debugHttpCalls(emptyMap())
@@ -692,8 +691,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
                 .timeout(timeout)
-                .prebidErrors(new ArrayList<>())
-                .debugWarnings(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .hookExecutionContext(hookExecutionContext)
                 .txnLog(TxnLog.create())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
