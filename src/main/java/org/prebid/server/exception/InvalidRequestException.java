@@ -1,9 +1,11 @@
 package org.prebid.server.exception;
 
 import lombok.Getter;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class InvalidRequestException extends RuntimeException {
 

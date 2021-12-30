@@ -954,14 +954,16 @@ public class RequestValidator {
                 validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
             } catch (ValidationException ex) {
                 bidderExtensions.remove();
-                warnings.add(String.format("WARNING: request.imp[%d].ext.prebid.%s was dropped with a reason: %s",
-                        impIndex, bidder, ex.getMessage()));
+                warnings.add(
+                        String.format(
+                                "WARNING: request.imp[%d].ext.prebid.bidder.%s was dropped with a reason: %s",
+                                impIndex, bidder, ex.getMessage()));
             }
         }
 
         if (extPrebidBidder.size() == 0) {
-            warnings.add(String.format("WARNING: request.imp[%d].ext must contain at least one valid bidder",
-                    impIndex));
+            warnings.add(
+                    String.format("WARNING: request.imp[%d].ext must contain at least one valid bidder", impIndex));
         }
     }
 
