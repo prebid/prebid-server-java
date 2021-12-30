@@ -8,8 +8,10 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.auction.model.DebugWarning;
+import org.prebid.server.auction.model.BidderMessageFactory;
+import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
 import org.prebid.server.events.EventsContext;
@@ -17,7 +19,7 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 
-import java.util.ArrayList;
+import java.util.Set;
 
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -303,13 +305,19 @@ public class VastModifierTest {
                 .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), prebidLog, LINEITEM_ID);
 
         // then
+        final PrebidMessage expectedPrebidMessage = BidderMessageFactory.error(
+                BidderMessageType.invalid_tracking_url_for_vastxml,
+                "VastXml does not contain neither InLine nor Wrapper for bidder response");
+
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
-        assertThat(prebidLog).extracting(e -> e.getPrebidMessagesByTag("WARNING"))
-                .extracting(e -> e.contains());
-
-        DebugWarning.of(invalid_tracking_url_for_vastxml.getCode(),
-                "VastXml does not contain neither InLine nor Wrapper for bidder response")
+        assertThat(prebidLog)
+                .extracting(e -> e.getPrebidMessagesByTag("WARNING"))
+                .extracting(Set::size).isEqualTo(1);
+        assertThat(prebidLog)
+                .extracting(e -> e.getPrebidMessagesByTag("WARNING"))
+                .extracting(e -> e.iterator().next()).extracting(PrebidMessage::getMessage)
+                .isEqualTo(expectedPrebidMessage);
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }
 
@@ -318,7 +326,7 @@ public class VastModifierTest {
         // when
         final String admWithNoImpression = "no impression";
         final String result = target.createBidVastXml(BIDDER, admWithNoImpression, BID_NURL, BID_ID,
-                ACCOUNT_ID, eventsContext(), new ArrayList<>(), LINEITEM_ID);
+                ACCOUNT_ID, eventsContext(), PrebidLog.of(), LINEITEM_ID);
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());

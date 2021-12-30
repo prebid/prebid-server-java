@@ -6,7 +6,10 @@ import java.util.Set;
 
 public class UnknownMessageFactory {
 
-    private final static Set<String> tags = Set.of("UNKNOWN");
+    private static final Set<String> UNKNOWN_TAG = Set.of("UNKNOWN");
+
+    private UnknownMessageFactory() {
+    }
 
     public static PrebidMessage error(UnknownMessageType type, String message) {
         return PrebidMessage.of(makeTags(type.getTag(), "ERROR"), message);
@@ -21,7 +24,7 @@ public class UnknownMessageFactory {
     }
 
     private static Set<String> makeTags(String... newTags) {
-        final HashSet<String> resultingTags = new HashSet<>(tags);
+        final HashSet<String> resultingTags = new HashSet<>(UNKNOWN_TAG);
         GenericMessageFactory.addGeneric(resultingTags);
         resultingTags.addAll(Arrays.asList(newTags));
 

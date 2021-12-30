@@ -31,6 +31,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -45,8 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.settings.model.Account;
-
-import java.util.ArrayList;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
@@ -112,7 +111,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .privacyContext(defaultPrivacyContext)
                 .debugContext(DebugContext.of(true, null))
                 .build();

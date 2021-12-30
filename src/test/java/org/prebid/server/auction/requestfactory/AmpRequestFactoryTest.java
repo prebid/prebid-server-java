@@ -32,6 +32,10 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
+import org.prebid.server.auction.model.PrivacyMessageFactory;
+import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -62,7 +66,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +80,6 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -136,7 +138,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
@@ -340,7 +342,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L).result();
 
         // then
-        verify(ortbTypesResolver).normalizeTargeting(any(), anyList(), any());
+        verify(ortbTypesResolver).normalizeTargeting(any(), any(), any());
     }
 
     @Test
@@ -1320,8 +1322,11 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidErrors())
-                .contains("Amp request parameter consent_string or gdpr_consent have invalid format: consent-value");
+        final PrebidMessage prebidMessage = PrivacyMessageFactory.error(
+                PrivacyMessageType.generic_privacy_error,
+                "Amp request parameter consent_string or gdpr_consent have invalid format: consent-value");
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .containsExactly(prebidMessage);
     }
 
     @Test

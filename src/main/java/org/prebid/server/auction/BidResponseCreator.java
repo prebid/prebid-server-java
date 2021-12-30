@@ -1045,7 +1045,9 @@ public class BidResponseCreator {
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
         final List<ExtBidderError> contextWarnings =
                 auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING").stream()
-                        .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
+                        .map(prebidMessage -> ExtBidderError.of(
+                                BidderError.Type.generic.getCode(),
+                                prebidMessage.getMessage()))
                         .collect(Collectors.toList());
 
         return contextWarnings.isEmpty()

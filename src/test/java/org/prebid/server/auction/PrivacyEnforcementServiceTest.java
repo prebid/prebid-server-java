@@ -22,6 +22,7 @@ import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.exception.InvalidRequestException;
@@ -57,7 +58,6 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -152,7 +152,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build();
 
         // when
@@ -192,7 +192,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty(accountId))
                 .requestTypeMetric(requestType)
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build();
 
         // when
@@ -241,7 +241,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
                 .requestTypeMetric(MetricName.openrtb2web)
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build();
 
         // when
@@ -270,7 +270,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build();
 
         // when
@@ -293,7 +293,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.of())
                 .build();
 
         // when

@@ -6,7 +6,10 @@ import java.util.Set;
 
 public class PrivacyMessageFactory {
 
-    private final static Set<String> tags = Set.of("PRIVACY");
+    private static final Set<String> PRIVACY_TAG = Set.of("PRIVACY");
+
+    private PrivacyMessageFactory() {
+    }
 
     public static PrebidMessage error(PrivacyMessageType type, String message) {
         return PrebidMessage.of(makeTags(type.getTag(), "ERROR"), message);
@@ -21,7 +24,7 @@ public class PrivacyMessageFactory {
     }
 
     private static Set<String> makeTags(String... newTags) {
-        final HashSet<String> resultingTags = new HashSet<>(tags);
+        final HashSet<String> resultingTags = new HashSet<>(PRIVACY_TAG);
         GenericMessageFactory.addGeneric(resultingTags);
         resultingTags.addAll(Arrays.asList(newTags));
 
