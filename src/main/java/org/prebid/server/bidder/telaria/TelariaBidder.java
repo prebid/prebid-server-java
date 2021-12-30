@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class TelariaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpTelaria>> TELARIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTelaria>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class NextMilleniumBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpNextMillenium>> NEXTMILLENIUM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpNextMillenium>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

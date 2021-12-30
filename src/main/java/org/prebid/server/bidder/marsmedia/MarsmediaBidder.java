@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMarsmedia>> MARSMEDIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMarsmedia>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

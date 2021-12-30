@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class AxonixBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAxonix>>() {
+            new TypeReference<>() {
             };
     public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
 

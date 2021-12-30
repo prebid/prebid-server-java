@@ -9,7 +9,7 @@ import org.assertj.core.util.Preconditions;
 
 public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE>, Future<VALUE>> {
 
-    private ComparisonStrategy futureValueComparisonStrategy;
+    private final ComparisonStrategy futureValueComparisonStrategy;
 
     private FutureAssertion(Future<VALUE> actual) {
         super(actual, FutureAssertion.class);
@@ -28,12 +28,12 @@ public class FutureAssertion<VALUE> extends AbstractAssert<FutureAssertion<VALUE
         return myself;
     }
 
-    public ThrowableAssert isFailed() {
+    public ThrowableAssert<? extends Throwable> isFailed() {
         isNotNull();
         if (!actual.failed()) {
             failWithMessage("Expected future to be failed");
         }
-        return new ThrowableAssert(actual.cause());
+        return new ThrowableAssert<>(actual.cause());
     }
 
     public FutureAssertion<VALUE> succeededWith(VALUE expectedValue) {

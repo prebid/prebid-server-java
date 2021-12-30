@@ -1,9 +1,7 @@
 package org.prebid.server.bidder.orbidder;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
@@ -18,12 +16,9 @@ import org.prebid.server.bidder.model.Result;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
@@ -92,21 +87,10 @@ public class OrbidderBidderTest extends VertxTest {
                 .containsOnly(Collections.emptyList(), Collections.emptyList());
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
     private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
-    }
-
-    private static Map<String, JsonNode> givenCustomParams(String key, Object values) {
-        return singletonMap(key, mapper.valueToTree(values));
     }
 }

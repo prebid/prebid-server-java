@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class BmtmBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>> BMTM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBmtm>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
