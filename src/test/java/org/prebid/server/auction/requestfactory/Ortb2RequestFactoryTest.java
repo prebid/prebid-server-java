@@ -759,7 +759,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isFailed();
-        assertThat(result.cause()).isEqualTo(new InvalidRequestException("error"));
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("error");
 
         verify(requestValidator).validate(bidRequest);
     }

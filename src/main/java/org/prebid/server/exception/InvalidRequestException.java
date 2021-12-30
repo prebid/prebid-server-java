@@ -26,15 +26,4 @@ public class InvalidRequestException extends RuntimeException {
         super(String.join("\n", messages));
         this.messages = messages;
     }
-
-    @Override
-    public boolean equals(Object other) {
-        return other.getClass() == this.getClass()
-                && CollectionUtils.isEqualCollection(messages, ((InvalidRequestException) other).messages);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(messages.toArray());
-    }
 }
