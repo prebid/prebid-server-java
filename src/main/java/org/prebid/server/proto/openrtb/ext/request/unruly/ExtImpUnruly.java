@@ -11,8 +11,6 @@ import lombok.Value;
 @AllArgsConstructor(staticName = "of")
 public class ExtImpUnruly {
 
-    String uuid;
-
     @JsonProperty("siteid")
-    String siteId;
+    Integer siteId;
 }

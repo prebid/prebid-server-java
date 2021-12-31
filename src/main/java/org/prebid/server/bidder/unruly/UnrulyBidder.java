@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
@@ -14,7 +16,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.unruly.proto.ImpExtUnruly;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -59,7 +60,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         }
 
         final List<HttpRequest<BidRequest>> outgoingRequests = modifiedImps.stream()
-                .map(imp -> createSingleRequest(imp, request, endpointUrl))
+                .map(imp -> createSingleRequest(imp, request))
                 .collect(Collectors.toList());
 
         return Result.of(outgoingRequests, errors);
@@ -74,19 +75,12 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpUnruly extImpUnruly) {
-        final Imp.ImpBuilder modifiedImp = imp.toBuilder();
-
-        try {
-            modifiedImp.ext(mapper.mapper().valueToTree(ImpExtUnruly.of(extImpUnruly)));
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-
-        return modifiedImp.build();
+        final ObjectNode modifiedExt = mapper.mapper().createObjectNode();
+        modifiedExt.set("unruly", mapper.mapper().convertValue(extImpUnruly, JsonNode.class));
+        return imp.toBuilder().ext(modifiedExt).build();
     }
 
-    private HttpRequest<BidRequest> createSingleRequest(Imp modifiedImp, BidRequest request,
-                                                        String endpointUrl) {
+    private HttpRequest<BidRequest> createSingleRequest(Imp modifiedImp, BidRequest request) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
 
         return HttpRequest.<BidRequest>builder()
@@ -132,7 +126,15 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return BidType.video;
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else {
+                    return BidType.banner;
+                }
+            } else {
+                throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));
