@@ -1,5 +1,6 @@
-package org.prebid.server.analytics.processor;
+package org.prebid.server.analytics.reporter;
 
+import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -8,7 +9,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.metric.MetricName;
 
-public class MetricsEventTypeAnalyticsEventProcessor implements AnalyticsEventProcessor<MetricName> {
+public class MetricEventTypeExtractor implements AnalyticsEventProcessor<MetricName> {
 
     @Override
     public MetricName processAmpEvent(AmpEvent event) {

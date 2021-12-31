@@ -1,7 +1,6 @@
-package org.prebid.server.analytics.reporter;
+package org.prebid.server.analytics;
 
 import io.vertx.core.Future;
-import org.prebid.server.analytics.model.AnalyticsEvent;
 
 /**
  * Type of component that does transactional logging.

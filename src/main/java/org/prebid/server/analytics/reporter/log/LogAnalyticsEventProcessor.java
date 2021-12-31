@@ -1,5 +1,6 @@
-package org.prebid.server.analytics.processor;
+package org.prebid.server.analytics.reporter.log;
 
+import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;

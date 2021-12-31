@@ -3,9 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.processor.LogAnalyticsEventProcessor;
-import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
-import org.prebid.server.analytics.reporter.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
@@ -33,37 +31,19 @@ public class AnalyticsConfiguration {
             @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
             PrivacyEnforcementService privacyEnforcementService,
-            Metrics metrics,
-            MetricsEventTypeAnalyticsEventProcessor metricsEventTypeAnalyticsEventProcessor) {
+            Metrics metrics) {
 
         return new AnalyticsReporterDelegator(
                 delegates != null ? delegates : Collections.emptyList(),
                 vertx,
                 privacyEnforcementService,
-                metrics,
-                metricsEventTypeAnalyticsEventProcessor);
+                metrics);
     }
 
     @Bean
-    MetricsEventTypeAnalyticsEventProcessor metricsEventTypeAnalyticsEventProcessor() {
-        return new MetricsEventTypeAnalyticsEventProcessor();
-    }
-
-    @Configuration
     @ConditionalOnProperty(prefix = "analytics.log", name = "enabled", havingValue = "true")
-    public static class LogAnalyticsConfiguration {
-
-        @Bean
-        LogAnalyticsReporter logAnalyticsReporter(LogAnalyticsEventProcessor logAnalyticsEventProcessor,
-                                                  JacksonMapper mapper) {
-
-            return new LogAnalyticsReporter(logAnalyticsEventProcessor, mapper);
-        }
-
-        @Bean
-        LogAnalyticsEventProcessor logAnalyticsEventProcessor() {
-            return new LogAnalyticsEventProcessor();
-        }
+    LogAnalyticsReporter logAnalyticsReporter(JacksonMapper mapper) {
+        return new LogAnalyticsReporter(mapper);
     }
 
     @Configuration

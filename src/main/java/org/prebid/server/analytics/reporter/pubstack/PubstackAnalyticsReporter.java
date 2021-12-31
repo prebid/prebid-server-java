@@ -7,13 +7,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
-import org.prebid.server.analytics.model.AnalyticsEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.reporter.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.EventType;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
@@ -63,6 +63,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
                                      HttpClient httpClient,
                                      JacksonMapper jacksonMapper,
                                      Vertx vertx) {
+
         this.configurationRefreshDelay =
                 Objects.requireNonNull(pubstackAnalyticsProperties.getConfigurationRefreshDelayMs());
         this.timeout = Objects.requireNonNull(pubstackAnalyticsProperties.getTimeoutMs());
@@ -80,6 +81,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
             HttpClient httpClient,
             JacksonMapper jacksonMapper,
             Vertx vertx) {
+
         return Arrays.stream(EventType.values())
                 .collect(Collectors.toMap(Function.identity(),
                         eventType -> new PubstackEventHandler(

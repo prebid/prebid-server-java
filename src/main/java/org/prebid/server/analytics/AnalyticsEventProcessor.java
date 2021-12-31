@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.processor;
+package org.prebid.server.analytics;
 
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;

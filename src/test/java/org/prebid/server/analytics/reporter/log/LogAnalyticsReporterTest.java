@@ -7,15 +7,13 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.processor.LogAnalyticsEventProcessor;
 
 public class LogAnalyticsReporterTest extends VertxTest {
 
     @Test
     public void shouldLogEvent() {
         // dumb test to trigger coverage
-        final LogAnalyticsEventProcessor eventProcessor = new LogAnalyticsEventProcessor();
-        final LogAnalyticsReporter reporter = new LogAnalyticsReporter(eventProcessor, jacksonMapper);
+        final LogAnalyticsReporter reporter = new LogAnalyticsReporter(jacksonMapper);
         reporter.processEvent(AuctionEvent.builder().build());
         reporter.processEvent(AmpEvent.builder().build());
         reporter.processEvent(VideoEvent.builder().build());

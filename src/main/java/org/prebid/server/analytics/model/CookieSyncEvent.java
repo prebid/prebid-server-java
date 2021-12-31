@@ -2,7 +2,8 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.processor.AnalyticsEventProcessor;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 
 import java.util.Collections;

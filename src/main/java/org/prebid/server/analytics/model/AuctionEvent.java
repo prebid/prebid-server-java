@@ -3,7 +3,8 @@ package org.prebid.server.analytics.model;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.processor.AnalyticsEventProcessor;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.HttpRequestContext;
 

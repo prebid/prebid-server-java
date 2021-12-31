@@ -13,7 +13,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.analytics.reporter.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;

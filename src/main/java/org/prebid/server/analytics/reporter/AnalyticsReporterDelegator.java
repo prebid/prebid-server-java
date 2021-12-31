@@ -11,9 +11,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.prebid.server.analytics.model.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
@@ -48,25 +48,24 @@ public class AnalyticsReporterDelegator {
     private final Vertx vertx;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final Metrics metrics;
-    private final MetricsEventTypeAnalyticsEventProcessor metricsEventTypeEventProcessor;
 
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
+    private final MetricEventTypeExtractor metricEventTypeExtractor;
 
     public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
-                                      Metrics metrics,
-                                      MetricsEventTypeAnalyticsEventProcessor metricsEventTypeEventProcessor) {
+                                      Metrics metrics) {
 
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.metrics = Objects.requireNonNull(metrics);
-        this.metricsEventTypeEventProcessor = Objects.requireNonNull(metricsEventTypeEventProcessor);
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
         reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
+        metricEventTypeExtractor = new MetricEventTypeExtractor();
     }
 
     public void processEvent(AnalyticsEvent event) {
@@ -217,6 +216,6 @@ public class AnalyticsReporterDelegator {
     }
 
     private void updateMetricsByEventType(AnalyticsEvent event, String analyticsCode, MetricName result) {
-        metrics.updateAnalyticEventMetric(analyticsCode, event.accept(metricsEventTypeEventProcessor), result);
+        metrics.updateAnalyticEventMetric(analyticsCode, event.accept(metricEventTypeExtractor), result);
     }
 }

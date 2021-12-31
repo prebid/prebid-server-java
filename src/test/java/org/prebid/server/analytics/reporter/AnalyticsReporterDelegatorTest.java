@@ -17,9 +17,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
-import org.prebid.server.analytics.model.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.processor.MetricsEventTypeAnalyticsEventProcessor;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.InvalidRequestException;
@@ -89,7 +89,7 @@ public class AnalyticsReporterDelegatorTest {
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(asList(firstReporter, secondReporter), vertx,
-                privacyEnforcementService, metrics, new MetricsEventTypeAnalyticsEventProcessor());
+                privacyEnforcementService, metrics);
     }
 
     @Test

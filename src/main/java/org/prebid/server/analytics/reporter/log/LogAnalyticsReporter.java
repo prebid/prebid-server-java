@@ -3,9 +3,8 @@ package org.prebid.server.analytics.reporter.log;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.analytics.model.AnalyticsEvent;
-import org.prebid.server.analytics.processor.LogAnalyticsEventProcessor;
-import org.prebid.server.analytics.reporter.AnalyticsReporter;
+import org.prebid.server.analytics.AnalyticsEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.log.model.LogEvent;
 import org.prebid.server.json.JacksonMapper;
 
@@ -18,12 +17,14 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
 
     public static final Logger logger = LoggerFactory.getLogger(LogAnalyticsReporter.class);
 
-    private final LogAnalyticsEventProcessor eventProcessor;
     private final JacksonMapper mapper;
 
-    public LogAnalyticsReporter(LogAnalyticsEventProcessor eventProcessor, JacksonMapper mapper) {
-        this.eventProcessor = Objects.requireNonNull(eventProcessor);
+    private final LogAnalyticsEventProcessor eventProcessor;
+
+    public LogAnalyticsReporter(JacksonMapper mapper) {
         this.mapper = Objects.requireNonNull(mapper);
+
+        eventProcessor = new LogAnalyticsEventProcessor();
     }
 
     @Override
