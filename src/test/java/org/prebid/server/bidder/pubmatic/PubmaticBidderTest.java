@@ -121,11 +121,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(requestExt -> requestExt.getProperty("wrapper"))
-                .containsExactly(
-                        mapper.createObjectNode()
-                                .put("profile", 1)
-                                .put("version", 1));
+                .containsExactly(givenBidRequestExt(1, 1));
     }
 
     @Test
@@ -144,11 +140,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(requestExt -> requestExt.getProperty("wrapper"))
-                .containsExactly(
-                        mapper.createObjectNode()
-                                .put("profile", 123)
-                                .put("version", 456));
+                .containsExactly(givenBidRequestExt(123, 456));
     }
 
     @Test
