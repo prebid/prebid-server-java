@@ -170,9 +170,9 @@ public class AmpRequestFactory {
         }
 
         final ConsentParam consentParam = consentParamFromQueryStringParams(httpRequest);
-        validateConsentParam(consentParam, auctionContext.getPrebidErrors());
-
         final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
+        validateConsentParam(consentParam, consentType, auctionContext.getPrebidErrors());
+
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
@@ -190,17 +190,46 @@ public class AmpRequestFactory {
         return Future.succeededFuture(bidRequest);
     }
 
-    private void validateConsentParam(ConsentParam consentParam, List<String> errors) {
+    private static void validateConsentParam(ConsentParam consentParam, ConsentType consentType, List<String> errors) {
         if (consentParam == null) {
             return;
         }
 
-        if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
-            errors.add(String.format(
-                    "Amp request parameter %s has invalid format: %s",
-                    consentParam.getFromParam(),
-                    consentParam.getConsentString()));
+        if (consentType == ConsentType.tcfV1) {
+            errors.add("Consent type tcfV1 is no longer supported");
+            return;
         }
+
+        final boolean isValidTcfv2 = BooleanUtils.isTrue(consentParam.getTcfV2());
+        if (consentType == ConsentType.tcfV2 && !isValidTcfv2) {
+            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+            return;
+        }
+
+        final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
+        if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
+            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+            return;
+        }
+
+        if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
+            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+        }
+    }
+
+    private static String constructMessageForInvalidParam(ConsentParam consentParam, ConsentType consentType) {
+        final StringBuilder messageBuilder = new StringBuilder("Amp request parameter ")
+                .append(consentParam.getFromParam())
+                .append(" has invalid format");
+
+        if (consentType != null) {
+            messageBuilder.append(" for consent type ")
+                    .append(consentType);
+        }
+        messageBuilder.append(": ")
+                .append(consentParam.getConsentString());
+
+        return messageBuilder.toString();
     }
 
     private static Site createSite(HttpRequestContext httpRequest) {
