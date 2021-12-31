@@ -22,8 +22,9 @@ class AmpRequest {
     String curl
     Integer account
     String gdprConsent
+    String consentString
     String targeting
-    Integer consentType
+    ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
 

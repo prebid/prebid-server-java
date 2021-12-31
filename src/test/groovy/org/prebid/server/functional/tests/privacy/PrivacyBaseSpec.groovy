@@ -12,6 +12,9 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 
+import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
+import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
+
 @PBSTest
 abstract class PrivacyBaseSpec extends BaseSpec {
 
@@ -29,10 +32,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static AmpRequest getCcpaAmpRequest(ConsentString consentString) {
+    protected static AmpRequest getCcpaAmpRequest(ConsentString consentStringVal) {
         AmpRequest.defaultAmpRequest.tap {
-            gdprConsent = consentString
-            consentType = 3
+            consentString = consentStringVal
+            consentType = US_PRIVACY
         }
     }
 
@@ -46,7 +49,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static AmpRequest getGdprAmpRequest(ConsentString consentString) {
         AmpRequest.defaultAmpRequest.tap {
             gdprConsent = consentString
-            consentType = 2
+            consentType = TCF_2
             gdprApplies = true
         }
     }
