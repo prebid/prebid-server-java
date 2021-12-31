@@ -73,11 +73,15 @@ public class MedianetBidder implements Bidder<BidRequest> {
     private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                return imp.getBanner() != null ? BidType.banner
-                        : imp.getVideo() != null ? BidType.video
-                        : imp.getXNative() != null ? BidType.xNative
-                        : imp.getAudio() != null ? BidType.audio
-                        : BidType.banner;
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
+                }
             }
         }
 
