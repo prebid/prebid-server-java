@@ -140,8 +140,8 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private static boolean isWrapperValid(PubmaticWrapper wrapper) {
         return wrapper != null
-                && !Objects.equals(wrapper.getProfile(), 0)
-                && !Objects.equals(wrapper.getVersion(), 0);
+                && ObjectUtils.defaultIfNull(wrapper.getProfile(), 0) != 0
+                && ObjectUtils.defaultIfNull(wrapper.getVersion(), 0) != 0;
     }
 
     private PubmaticBidderImpExt parseImpExt(Imp imp) {

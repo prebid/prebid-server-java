@@ -41,6 +41,7 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -83,6 +84,71 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfBidRequestExtWrapperIsInvalid() {
+        // given
+        final ExtRequest bidRequestExt = jacksonMapper.fillExtension(
+                ExtRequest.empty(),
+                mapper.createObjectNode().set(
+                        "wrapper", mapper.createObjectNode().put("version", "invalid")));
+
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allMatch(bidderError -> bidderError.getType().equals(BidderError.Type.bad_input)
+                        && bidderError.getMessage().startsWith("Cannot deserialize value"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseWrapperFromBidRequestExtIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(1, 1)), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(requestExt -> requestExt.getProperty("wrapper"))
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .put("profile", 1)
+                                .put("version", 1));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMergeWrappersFromImpAndBidRequestExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(123, null)),
+                identity(),
+                extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(requestExt -> requestExt.getProperty("wrapper"))
+                .containsExactly(
+                        mapper.createObjectNode()
+                                .put("profile", 123)
+                                .put("version", 456));
     }
 
     @Test
@@ -865,13 +931,19 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
     }
 
+    private static ExtRequest givenBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+        final ObjectNode wrapperNode = mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion));
+
+        return jacksonMapper.fillExtension(ExtRequest.empty(), mapper.createObjectNode().set("wrapper", wrapperNode));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<ExtImpPubmatic.ExtImpPubmaticBuilder, ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -891,13 +963,13 @@ public class PubmaticBidderTest extends VertxTest {
                                         ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                extCustomizer.apply(ExtImpPubmatic.builder()
-                                                .publisherId("pub id")
-                                                .adSlot("slot@300x250"))
-                                        .build()))))
+                .id("123")
+                .banner(Banner.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        extCustomizer.apply(ExtImpPubmatic.builder()
+                                .publisherId("pub id")
+                                .adSlot("slot@300x250"))
+                                .build()))))
                 .build();
     }
 
