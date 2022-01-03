@@ -47,7 +47,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>> OPENX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpOpenx>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

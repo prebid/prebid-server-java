@@ -21,7 +21,7 @@ public class SampleItBidderRequestHook implements BidderRequestHook {
 
         final BidRequest originalBidRequest = bidderRequestPayload.bidRequest();
 
-        final BidRequest updatedBidRequest = updateBidRequest(originalBidRequest, invocationContext);
+        final BidRequest updatedBidRequest = updateBidRequest(originalBidRequest);
 
         return Future.succeededFuture(InvocationResultImpl.succeeded(payload ->
                 BidderRequestPayloadImpl.of(payload.bidRequest().toBuilder()
@@ -34,9 +34,7 @@ public class SampleItBidderRequestHook implements BidderRequestHook {
         return "bidder-request";
     }
 
-    private BidRequest updateBidRequest(
-            BidRequest originalBidRequest, BidderInvocationContext bidderInvocationContext) {
-
+    private BidRequest updateBidRequest(BidRequest originalBidRequest) {
         final List<Imp> updatedImps = originalBidRequest.getImp().stream()
                 .map(imp -> imp.toBuilder().tagid("tagid-from-bidder-request-hook").build())
                 .collect(Collectors.toList());

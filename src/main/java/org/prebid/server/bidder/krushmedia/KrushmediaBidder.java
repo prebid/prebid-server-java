@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
 public class KrushmediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKrushmedia>> KRUSHMEDIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKrushmedia>>() {
+            new TypeReference<>() {
             };
     private static final String URI_ACCOUNT_ID_MACRO = "{{AccountID}}";
 

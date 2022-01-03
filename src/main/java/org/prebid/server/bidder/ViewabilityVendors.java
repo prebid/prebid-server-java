@@ -10,7 +10,7 @@ public enum ViewabilityVendors {
     sizemek("sizmek.com"),
     whiteops("whiteops.com");
 
-    private String url;
+    private final String url;
 
     ViewabilityVendors(String url) {
         this.url = url;

@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class SomoaudienceBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSomoaudience>> SOMOAUDIENCE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSomoaudience>>() {
+            new TypeReference<>() {
             };
 
     private static final String CONFIG = "hb_pbs_1.0.0";

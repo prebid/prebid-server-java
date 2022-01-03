@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -86,7 +87,7 @@ public class LoggerControlKnobHandlerTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid 'level' parameter value, allowed values '[warn, debug, error, info]'"));
+        verify(httpResponse).end(startsWith("Invalid 'level' parameter value"));
 
         verifyNoInteractions(loggerControlKnob);
     }

@@ -135,7 +135,7 @@ public class HttpInteractionLogger {
 
         return (endpoint == null || endpoint == requestEndpoint)
                 && (account == null || account.equals(requestAccountId))
-                && (bidder != null && bidder.equals(requestBidder));
+                && bidder != null && bidder.equals(requestBidder);
     }
 
     private HttpLogSpec.Endpoint parseHttpLogEndpoint(MetricName requestTypeMetric) {

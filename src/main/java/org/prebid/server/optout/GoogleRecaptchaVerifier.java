@@ -13,8 +13,8 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
@@ -59,11 +59,7 @@ public class GoogleRecaptchaVerifier {
     }
 
     private static String encodeValue(String value) {
-        try {
-            return URLEncoder.encode(value, "utf-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new PreBidException(String.format("Cannot encode request form value: %s", value), e);
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**

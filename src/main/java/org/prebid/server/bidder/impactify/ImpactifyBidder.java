@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class ImpactifyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpImpactify>> IMPACTIFY_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpImpactify>>() {
+            new TypeReference<>() {
             };
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final String BIDDER_CURRENCY = "USD";

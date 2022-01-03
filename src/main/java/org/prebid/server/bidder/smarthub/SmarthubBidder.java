@@ -32,7 +32,7 @@ import java.util.Objects;
 public class SmarthubBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmarthub>> SMARTHUB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmarthub>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointTemplate;

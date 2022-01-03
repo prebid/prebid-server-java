@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class NanointeractiveBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpNanointeractive>> NANOINTERACTIVE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpNanointeractive>>() {
+            new TypeReference<>() {
             };
     private final String endpointUrl;
     private final JacksonMapper mapper;

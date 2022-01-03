@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class LockerdomeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLockerdome>> LOCKERDOME_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpLockerdome>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

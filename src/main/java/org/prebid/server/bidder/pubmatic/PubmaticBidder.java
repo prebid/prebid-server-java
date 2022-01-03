@@ -57,7 +57,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String PREBID = "prebid";
 
     private static final TypeReference<Map<String, Integer>> WRAPPER_TYPE =
-            new TypeReference<Map<String, Integer>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

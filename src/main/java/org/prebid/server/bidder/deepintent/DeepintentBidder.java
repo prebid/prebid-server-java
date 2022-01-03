@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class DeepintentBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpDeepintent>> DEEPINTENT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpDeepintent>>() {
+            new TypeReference<>() {
             };
 
     private static final String DISPLAY_MANAGER = "di_prebid";

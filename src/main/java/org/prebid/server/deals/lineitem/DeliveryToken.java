@@ -14,10 +14,6 @@ public class DeliveryToken implements Comparable<DeliveryToken> {
 
     private final LongAdder spent;
 
-    private DeliveryToken(DeliveryToken deliveryToken) {
-        this(deliveryToken.token, new LongAdder());
-    }
-
     private DeliveryToken(Token token) {
         this(token, new LongAdder());
     }
@@ -28,7 +24,7 @@ public class DeliveryToken implements Comparable<DeliveryToken> {
     }
 
     public static DeliveryToken of(DeliveryToken deliveryToken) {
-        return new DeliveryToken(deliveryToken);
+        return new DeliveryToken(deliveryToken.token);
     }
 
     public static DeliveryToken of(Token token) {

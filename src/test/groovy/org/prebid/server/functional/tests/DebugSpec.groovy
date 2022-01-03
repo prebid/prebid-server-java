@@ -12,14 +12,12 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
-import spock.lang.Unroll
 
 @PBSTest
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString
 
-    @Unroll
     def "PBS should return debug information when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
         def bidRequest = BidRequest.defaultBidRequest
@@ -39,7 +37,6 @@ class DebugSpec extends BaseSpec {
         null  | 1
     }
 
-    @Unroll
     def "PBS shouldn't return debug information when debug flag is #debug and test flag is #test"() {
         given: "Default BidRequest with test flag"
         def bidRequest = BidRequest.defaultBidRequest
@@ -189,7 +186,6 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
     }
 
-    @Unroll
     def "PBS should return debug information when bidder-level setting debug.allowed = #debugAllowedConfig and account-level setting debug-allowed = #debugAllowedAccount is overridden by x-pbs-debug-override header"() {
         given: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -219,7 +215,6 @@ class DebugSpec extends BaseSpec {
                                                                                  "adapters.generic.debug.allow": "false"])
     }
 
-    @Unroll
     def "PBS should not return debug information when x-pbs-debug-override header is incorrect"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(["debug.override-token": overrideToken])
@@ -249,7 +244,6 @@ class DebugSpec extends BaseSpec {
     }
 
     @PendingFeature
-    @Unroll
     def "PBS AMP should return debug information when request flag is #requestDebug and store request flag is #storedRequestDebug"() {
         given: "Default AMP request"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -279,7 +273,6 @@ class DebugSpec extends BaseSpec {
         null         || 1
     }
 
-    @Unroll
     def "PBS AMP shouldn't return debug information when request flag is #requestDebug and stored request flag is #storedRequestDebug"() {
         given: "Default AMP request"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {

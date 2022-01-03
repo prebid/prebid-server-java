@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernel>> ADKERNEL_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdkernel>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointTemplate;

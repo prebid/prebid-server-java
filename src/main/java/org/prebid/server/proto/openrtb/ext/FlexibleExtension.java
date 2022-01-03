@@ -16,7 +16,7 @@ import java.util.Map;
 public abstract class FlexibleExtension {
 
     public static final TypeReference<Map<String, JsonNode>> PROPERTIES_TYPE_REF =
-            new TypeReference<Map<String, JsonNode>>() {
+            new TypeReference<>() {
             };
 
     private final Map<String, JsonNode> properties = new HashMap<>();

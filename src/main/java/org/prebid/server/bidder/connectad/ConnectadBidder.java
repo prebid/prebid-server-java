@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class ConnectadBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConnectAd>> CONNECTAD_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpConnectAd>>() {
+            new TypeReference<>() {
             };
     private static final String HTTPS_PREFIX = "https";
 

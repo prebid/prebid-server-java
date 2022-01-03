@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class OperaadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOperaads>> OPERAADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOperaads>>() {
+            new TypeReference<>() {
             };
     private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";

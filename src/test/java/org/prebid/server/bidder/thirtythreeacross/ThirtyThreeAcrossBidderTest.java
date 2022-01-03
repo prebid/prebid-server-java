@@ -27,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirt
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -109,8 +108,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
     public void makeHttpRequestsShouldChangeOnlyFirstImpExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(identity())))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when

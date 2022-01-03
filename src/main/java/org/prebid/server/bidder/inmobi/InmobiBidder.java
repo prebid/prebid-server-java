@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class InmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpInmobi>> INMOBI_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpInmobi>>() {
+            new TypeReference<>() {
             };
     private static final int FIRST_IMP_INDEX = 0;
 
