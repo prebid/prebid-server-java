@@ -1,11 +1,11 @@
-package org.prebid.server.bidder.ttx.proto;
+package org.prebid.server.bidder.thirtythreeacross.proto;
 
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class TtxImpExtTtx {
+public class ThirtyThreeAcrossImpExtTtx {
 
     String prod;
 

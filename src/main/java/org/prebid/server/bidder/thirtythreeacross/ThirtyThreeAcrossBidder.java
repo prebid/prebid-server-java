@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.ttx;
+package org.prebid.server.bidder.thirtythreeacross;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,15 +18,19 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.TtxImpExt;
-import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.response.TtxBidExt;
-import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossCaller;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExt;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossReqExt;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossReqExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.response.ThirtyThreeAcrossBidExt;
+import org.prebid.server.bidder.thirtythreeacross.response.ThirtyThreeAcrossBidExtTtx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -39,16 +43,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class TtxBidder implements Bidder<BidRequest> {
+public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpTtx>> TTX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTtx>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpThirtyThreeAcross>> TTX_EXT_TYPE_REFERENCE =
+            new TypeReference<ExtPrebid<?, ExtImpThirtyThreeAcross>>() {
             };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public TtxBidder(String endpointUrl, JacksonMapper mapper) {
+    public ThirtyThreeAcrossBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -62,7 +66,7 @@ public class TtxBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 validateImp(imp);
-                final ExtImpTtx extImpTtx = parseImpExt(imp);
+                final ExtImpThirtyThreeAcross extImpTtx = parseImpExt(imp);
                 final Imp updatedImp = updateImp(imp, extImpTtx);
                 impsMap.computeIfAbsent(computeKey(updatedImp), k -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
@@ -84,7 +88,7 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ExtImpTtx parseImpExt(Imp imp) throws PreBidException {
+    private ExtImpThirtyThreeAcross parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), TTX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -92,7 +96,7 @@ public class TtxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpTtx extImpTtx) throws PreBidException {
+    private Imp updateImp(Imp imp, ExtImpThirtyThreeAcross extImpTtx) throws PreBidException {
         final String productId = extImpTtx.getProductId();
         return imp.toBuilder()
                 .video(updatedVideo(imp.getVideo(), productId))
@@ -144,14 +148,29 @@ public class TtxBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode createImpExt(String productId, String zoneId, String siteId) {
-        final TtxImpExt ttxImpExt = TtxImpExt.of(
-                TtxImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
+        final ThirtyThreeAcrossImpExt ttxImpExt = ThirtyThreeAcrossImpExt.of(
+                ThirtyThreeAcrossImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
         return mapper.mapper().valueToTree(ttxImpExt);
+    }
+
+    private ExtRequest createReqExt() {
+        final List<ThirtyThreeAcrossCaller> ttxCaller = new ArrayList<>();
+        ttxCaller.add(ThirtyThreeAcrossCaller.of());
+
+        final ExtRequest ttxReqExt = mapper.fillExtension(
+                ExtRequest.empty(),
+                ThirtyThreeAcrossReqExt.of(
+                        ThirtyThreeAcrossReqExtTtx.of(ttxCaller)
+                )
+        );
+
+        return ttxReqExt;
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
         final BidRequest modifiedRequest = request.toBuilder()
                 .imp(requestImps)
+                .ext(createReqExt())
                 .build();
 
         return HttpRequest.<BidRequest>builder()
@@ -190,17 +209,17 @@ public class TtxBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private BidType getBidType(Bid
-                                       bid) {
+    private BidType getBidType(Bid bid) {
         try {
-            final TtxBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), TtxBidExt.class);
+            final ThirtyThreeAcrossBidExt ttxBidExt =
+                    mapper.mapper().convertValue(bid.getExt(), ThirtyThreeAcrossBidExt.class);
             return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;
         } catch (IllegalArgumentException e) {
             return BidType.banner;
         }
     }
 
-    private static BidType getBidTypeByTtx(TtxBidExtTtx bidExt) {
+    private static BidType getBidTypeByTtx(ThirtyThreeAcrossBidExtTtx bidExt) {
         return bidExt != null && Objects.equals(bidExt.getMediaType(), "video")
                 ? BidType.video
                 : BidType.banner;
