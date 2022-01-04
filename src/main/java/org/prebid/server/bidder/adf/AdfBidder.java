@@ -2,6 +2,7 @@ package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -9,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,6 +21,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -49,15 +52,29 @@ public class AdfBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        String priceType = "";
 
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpAdf adfImp = parseExt(imp);
                 final Imp modifiedImp = imp.toBuilder().tagid(adfImp.getMid()).build();
                 modifiedImps.add(modifiedImp);
+                priceType = StringUtils.isEmpty(priceType)
+                        && StringUtils.isNotEmpty(adfImp.getPriceType()) ? adfImp.getPriceType() : "";
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
+        }
+
+        if (StringUtils.isNotEmpty(priceType)) {
+            final BidRequest.BidRequestBuilder modifyBidRequest = bidRequest.toBuilder();
+
+            final ObjectNode adfNode = mapper.mapper().createObjectNode()
+                    .put("pt", priceType);
+            final ExtRequest fillExtRequest =
+                    mapper.fillExtension(ExtRequest.empty(), adfNode);
+
+            bidRequest = modifyBidRequest.ext(fillExtRequest).build();
         }
 
         if (modifiedImps.isEmpty()) {
