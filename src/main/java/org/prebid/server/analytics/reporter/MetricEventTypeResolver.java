@@ -9,7 +9,7 @@ import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.metric.MetricName;
 
-public class MetricEventTypeExtractor implements AnalyticsEventProcessor<MetricName> {
+public class MetricEventTypeResolver implements AnalyticsEventProcessor<MetricName> {
 
     @Override
     public MetricName processAmpEvent(AmpEvent event) {

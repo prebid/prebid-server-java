@@ -51,7 +51,7 @@ public class AnalyticsReporterDelegator {
 
     private final Set<Integer> reporterVendorIds;
     private final Set<String> reporterNames;
-    private final MetricEventTypeExtractor metricEventTypeExtractor;
+    private final MetricEventTypeResolver metricEventTypeResolver;
 
     public AnalyticsReporterDelegator(List<AnalyticsReporter> delegates,
                                       Vertx vertx,
@@ -65,7 +65,7 @@ public class AnalyticsReporterDelegator {
 
         reporterVendorIds = delegates.stream().map(AnalyticsReporter::vendorId).collect(Collectors.toSet());
         reporterNames = delegates.stream().map(AnalyticsReporter::name).collect(Collectors.toSet());
-        metricEventTypeExtractor = new MetricEventTypeExtractor();
+        metricEventTypeResolver = new MetricEventTypeResolver();
     }
 
     public void processEvent(AnalyticsEvent event) {
@@ -216,6 +216,6 @@ public class AnalyticsReporterDelegator {
     }
 
     private void updateMetricsByEventType(AnalyticsEvent event, String analyticsCode, MetricName result) {
-        metrics.updateAnalyticEventMetric(analyticsCode, event.accept(metricEventTypeExtractor), result);
+        metrics.updateAnalyticEventMetric(analyticsCode, event.accept(metricEventTypeResolver), result);
     }
 }

@@ -28,7 +28,7 @@ public class LogAnalyticsEventProcessor implements AnalyticsEventProcessor<LogEv
 
     @Override
     public LogEvent<?> processNotificationEvent(NotificationEvent event) {
-        return LogEvent.of("unknown", null);
+        return LogEvent.of("/event", event.getType() + event.getBidId());
     }
 
     @Override

@@ -9,11 +9,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.analytics.AnalyticsEvent;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.AmpEvent;
-import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.model.CookieSyncEvent;
-import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.pubstack.model.EventType;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
@@ -27,7 +22,6 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -39,16 +33,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private static final String EVENT_REPORT_ENDPOINT_PATH = "/intake";
     private static final String CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
-    private static final Map<String, EventType> CLASS_TO_EVENT_TYPE;
-
-    static {
-        CLASS_TO_EVENT_TYPE = new HashMap<>();
-        CLASS_TO_EVENT_TYPE.put(AuctionEvent.class.getName(), EventType.auction);
-        CLASS_TO_EVENT_TYPE.put(AmpEvent.class.getName(), EventType.amp);
-        CLASS_TO_EVENT_TYPE.put(VideoEvent.class.getName(), EventType.video);
-        CLASS_TO_EVENT_TYPE.put(SetuidEvent.class.getName(), EventType.setuid);
-        CLASS_TO_EVENT_TYPE.put(CookieSyncEvent.class.getName(), EventType.cookiesync);
-    }
 
     private final long configurationRefreshDelay;
     private final long timeout;
@@ -56,6 +40,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     private final JacksonMapper jacksonMapper;
     private final Vertx vertx;
 
+    private final PubstackAnalyticsEventTypeResolver eventTypeResolver;
     private final Map<EventType, PubstackEventHandler> eventHandlers;
     private PubstackConfig pubstackConfig;
 
@@ -71,6 +56,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.vertx = Objects.requireNonNull(vertx);
 
+        this.eventTypeResolver = new PubstackAnalyticsEventTypeResolver();
         this.eventHandlers = createEventHandlers(pubstackAnalyticsProperties, httpClient, jacksonMapper, vertx);
         this.pubstackConfig = PubstackConfig.of(pubstackAnalyticsProperties.getScopeId(),
                 pubstackAnalyticsProperties.getEndpoint(), Collections.emptyMap());
@@ -98,10 +84,8 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     public Future<Void> processEvent(AnalyticsEvent event) {
-        final EventType eventType = CLASS_TO_EVENT_TYPE.get(event.getClass().getName());
-        if (eventType != null) {
-            eventHandlers.get(eventType).handle(event);
-        }
+        final EventType eventType = event.accept(eventTypeResolver);
+        eventHandlers.get(eventType).handle(event);
         return Future.succeededFuture();
     }
 
