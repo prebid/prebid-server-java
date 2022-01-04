@@ -230,6 +230,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${price-floors.enabled}") boolean priceFloorsProcessingEnabled,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator,
@@ -250,6 +251,7 @@ public class ServiceConfiguration {
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
+                priceFloorsProcessingEnabled,
                 blacklistedAccounts,
                 uidsCookieService,
                 requestValidator,

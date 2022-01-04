@@ -49,9 +49,16 @@ public class PriceFloorsConfiguration {
         return PriceFloorEnforcer.noOp();
     }
 
-    // TODO: Add noOp resolver for price-floors.enabled=false property
     @Bean
-    PriceFloorResolver basicPriceFloorResolver() {
-        return new BasicPriceFloorResolver();
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
+    PriceFloorResolver basicPriceFloorResolver(CurrencyConversionService currencyConversionService) {
+
+        return new BasicPriceFloorResolver(currencyConversionService);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "false", matchIfMissing = true)
+    PriceFloorResolver noOpPriceFloorResolver() {
+        return PriceFloorResolver.noOp();
     }
 }
