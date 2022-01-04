@@ -148,8 +148,8 @@ public class PubstackEventHandler {
     }
 
     private static byte[] gzip(String value) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(
-                obj)) {
+        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+             GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value.getBytes(StandardCharsets.UTF_8));
             gzip.finish();
