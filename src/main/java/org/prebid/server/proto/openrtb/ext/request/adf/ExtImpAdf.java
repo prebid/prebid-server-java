@@ -10,4 +10,6 @@ public class ExtImpAdf {
     Integer inv;
 
     String mname;
+
+    String priceType;
 }

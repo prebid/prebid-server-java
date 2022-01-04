@@ -69,10 +69,10 @@ public class AdfBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null, "net"))))
                                 .build(),
                         Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement"))))
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement", null))))
                                 .build())));
 
         // when
@@ -89,9 +89,9 @@ public class AdfBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).hasSize(3)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement"))));
+                .containsExactly(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null, "gross"))),
+                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null, "net"))),
+                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement", null))));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class AdfBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -203,10 +203,10 @@ public class AdfBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null, "gross"))))
                 .build();
     }
 
