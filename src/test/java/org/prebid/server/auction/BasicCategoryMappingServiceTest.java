@@ -675,9 +675,10 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(Map.Entry::getValue)
                 .containsExactly("10.00_10s");
         assertThat(resultFuture.result().getPrebidLog().getPrebidMessagesByTag("ERROR"))
-                .containsOnly(BidderMessageFactory.error(
-                        BidderMessageType.generic_category_mapping_error,
-                        "Bid was deduplicated"));
+                .containsExactly(
+                        BidderMessageFactory.error(
+                                BidderMessageType.generic_category_mapping_error,
+                                "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
     }
 
     @Test

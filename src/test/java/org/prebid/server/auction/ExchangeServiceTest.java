@@ -2526,10 +2526,8 @@ public class ExchangeServiceTest extends VertxTest {
         final PrebidMessage prebidMessage = BidderMessageFactory.warning(
                 BidderMessageType.bidrequest_contains_both_app_and_site,
                 "BidRequest contains app and site. Removed site object");
-        assertThat(givenContext)
-                .extracting(AuctionContext::getPrebidLog)
-                .extracting(e -> e.getPrebidMessagesByTag("WARNING"))
-                .isEqualTo(singletonList(prebidMessage));
+        assertThat(givenContext.getPrebidLog().getPrebidMessagesByTag("bidrequest contains both app and site"))
+                .containsExactly(prebidMessage);
     }
 
     @Test

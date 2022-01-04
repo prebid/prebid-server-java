@@ -88,8 +88,7 @@ public class VastModifier {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {
             prebidLog.logMessage(BidderMessageFactory.error(
-                    BidderMessageType.invalid_tracking_url_for_vastxml,
-                    e.getMessage()));
+                    BidderMessageType.invalid_tracking_url_for_vastxml, e.getMessage()));
             metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
         }
         return vastXml;

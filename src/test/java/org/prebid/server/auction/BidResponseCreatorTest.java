@@ -961,8 +961,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly("bidId1");
 
         assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("ERROR"))
-                .flatExtracting(PrebidMessage::getMessage)
-                .isEqualTo("Filtered bid 2");
+                .extracting(PrebidMessage::getMessage)
+                .containsExactly("Filtered bid 2");
     }
 
     @Test
@@ -2925,7 +2925,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .debugContext(DebugContext.empty())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .debugHttpCalls(new HashMap<>())
-                .prebidLog(PrebidLog.of())
                 .prebidLog(PrebidLog.of());
 
         return contextCustomizer.apply(auctionContextBuilder).build();

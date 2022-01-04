@@ -1002,7 +1002,7 @@ public class BidResponseCreator {
      * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
      */
     private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
-        return auctionContext.getPrebidLog().getPrebidMessagesByTags(List.of("ERROR", "WARNING")).stream()
+        return auctionContext.getPrebidLog().getPrebidMessagesByTags(List.of("ERROR")).stream()
                 .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }

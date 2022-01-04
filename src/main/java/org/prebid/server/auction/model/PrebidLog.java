@@ -2,10 +2,12 @@ package org.prebid.server.auction.model;
 
 import lombok.Value;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Value(staticConstructor = "of")
@@ -19,16 +21,22 @@ public class PrebidLog {
     }
 
     public Set<PrebidMessage> getPrebidMessagesByTag(String tag) {
-        return log.get(tag);
+        final Set<PrebidMessage> prebidMessages = log.get(tag);
+        return prebidMessages == null ? Collections.emptySet() : prebidMessages;
     }
 
     public Set<PrebidMessage> getPrebidMessagesByTags(List<String> tags) {
         Set<PrebidMessage> result = new HashSet<>();
-        tags.forEach(tag -> result.addAll(log.get(tag)));
+        tags.stream()
+                .map(log::get)
+                .filter(Objects::nonNull)
+                .forEach(result::addAll);
         return result;
     }
 
     public void mergeOtherLog(PrebidLog prebidLog) {
-        log.putAll(prebidLog.getLog());
+        if (prebidLog != null) {
+            log.putAll(prebidLog.getLog());
+        }
     }
 }

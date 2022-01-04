@@ -339,7 +339,7 @@ public class AmpRequestFactory {
                     requestConsentString);
             logger.debug(message);
             auctionContext.getPrebidLog().logMessage(
-                    PrivacyMessageFactory.debug(PrivacyMessageType.generic_privacy_error, message));
+                    PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error, message));
         }
     }
 

@@ -19,8 +19,6 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 
-import java.util.Set;
-
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -311,13 +309,8 @@ public class VastModifierTest {
 
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
-        assertThat(prebidLog)
-                .extracting(e -> e.getPrebidMessagesByTag("WARNING"))
-                .extracting(Set::size).isEqualTo(1);
-        assertThat(prebidLog)
-                .extracting(e -> e.getPrebidMessagesByTag("WARNING"))
-                .extracting(e -> e.iterator().next()).extracting(PrebidMessage::getMessage)
-                .isEqualTo(expectedPrebidMessage);
+        assertThat(prebidLog.getPrebidMessagesByTag("ERROR"))
+                .containsExactly(expectedPrebidMessage);
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }
 
