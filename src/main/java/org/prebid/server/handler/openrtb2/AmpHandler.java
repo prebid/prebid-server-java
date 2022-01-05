@@ -237,8 +237,6 @@ public class AmpHandler implements Handler<RoutingContext> {
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
         final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
 
-        final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
-
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
         final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
 

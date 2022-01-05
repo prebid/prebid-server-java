@@ -753,7 +753,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Future<BidRequest> result = target.validateRequest(bidRequest, new ArrayList<>());
+        final Future<BidRequest> result = target.validateRequest(bidRequest, PrebidLog.of());
 
         // then
         assertThat(result).isFailed();
@@ -772,7 +772,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest, new ArrayList<>()).result();
+        final BidRequest result = target.validateRequest(bidRequest, PrebidLog.of()).result();
 
         // then
         verify(requestValidator).validate(bidRequest);

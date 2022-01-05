@@ -174,7 +174,7 @@ public class AmpRequestFactory {
 
         final ConsentParam consentParam = consentParamFromQueryStringParams(httpRequest);
         final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
-        validateConsentParam(consentParam, consentType, auctionContext.getPrebidErrors());
+        validateConsentParam(consentParam, consentType, auctionContext.getPrebidLog());
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
@@ -193,30 +193,34 @@ public class AmpRequestFactory {
         return Future.succeededFuture(bidRequest);
     }
 
-    private static void validateConsentParam(ConsentParam consentParam, ConsentType consentType, List<String> errors) {
+    private static void validateConsentParam(ConsentParam consentParam, ConsentType consentType, PrebidLog prebidLog) {
         if (consentParam == null) {
             return;
         }
 
         if (consentType == ConsentType.tcfV1) {
-            errors.add("Consent type tcfV1 is no longer supported");
+            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.tcf_error,
+                    "Consent type tcfV1 is no longer supported"));
             return;
         }
 
         final boolean isValidTcfv2 = BooleanUtils.isTrue(consentParam.getTcfV2());
         if (consentType == ConsentType.tcfV2 && !isValidTcfv2) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.tcf_error,
+                    constructMessageForInvalidParam(consentParam, consentType)));
             return;
         }
 
         final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
         if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error,
+                    constructMessageForInvalidParam(consentParam, consentType)));
             return;
         }
 
         if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
+            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error,
+                    constructMessageForInvalidParam(consentParam, consentType)));
         }
     }
 

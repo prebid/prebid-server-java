@@ -21,6 +21,7 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -107,7 +108,7 @@ public class VideoRequestFactory {
                         createBidRequest(httpRequest)
 
                                 .compose(bidRequest ->
-                                        validateRequest(bidRequest, initialAuctionContext.getDebugWarnings()))
+                                        validateRequest(bidRequest, initialAuctionContext.getPrebidLog()))
 
                                 .map(bidRequestWithErrors -> populatePodErrors(
                                         bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -291,9 +292,9 @@ public class VideoRequestFactory {
     }
 
     private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
-                                                              List<String> warnings) {
+                                                              PrebidLog prebidLog) {
 
-        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), warnings)
+        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), prebidLog)
                 .map(bidRequest -> requestWithPodErrors);
     }
 }

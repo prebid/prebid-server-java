@@ -170,7 +170,7 @@ public class AuctionRequestFactory {
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
 
                 .compose(resolvedBidRequest ->
-                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
+                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getPrebidLog()))
 
                 .map(interstitialProcessor::process);
     }

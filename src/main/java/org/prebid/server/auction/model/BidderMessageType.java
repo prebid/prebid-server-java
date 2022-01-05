@@ -6,7 +6,8 @@ public enum BidderMessageType {
     invalid_tracking_url_for_vastxml(10006, "invalid tracking URL for vastxml"),
     bidrequest_contains_both_app_and_site(10007, "bidrequest contains both app and site"),
     invalid_price_in_bid(10008, "invalid price in bid"),
-    generic_category_mapping_error(10009, "generic category mapping error");
+    generic_category_mapping_error(10009, "generic category mapping error"),
+    validation(10010, "generic category mapping error");
 
     private final int code;
     private final String tag;

@@ -1324,7 +1324,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         final PrebidMessage prebidMessage = PrivacyMessageFactory.error(
                 PrivacyMessageType.generic_privacy_error,
-                "Amp request parameter consent_string or gdpr_consent have invalid format: consent-value");
+                "Amp request parameter gdpr_consent has invalid format: consent-value");
         assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
                 .containsExactly(prebidMessage);
     }
@@ -1431,7 +1431,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog()).isEmpty();
+        assertThat(result.getPrebidLog().getLog()).isEmpty();
     }
 
     @Test
@@ -1445,23 +1445,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
-    }
-
-    @Test
-    public void shouldAddErrorToAuctionContextWhenGdprConsentQueryParamIsInvalid() {
-        // given
-        routingContext.queryParams().add("gdpr_consent", "consent-value");
-
-        givenBidRequest();
-
-        // when
-        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
-
-        // then
-        assertThat(result.getPrebidLog())
-                .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
     }
 
     @Test
@@ -1477,7 +1463,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter gdpr_consent has invalid format for consent type tcfV2: 1YY-");
     }
 
@@ -1494,7 +1481,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly(
                         "Amp request parameter consent_string has invalid format for consent type tcfV2: 1YY-");
     }
@@ -1512,9 +1500,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter consent_string has invalid format for "
-                                + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
+                        + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
     }
 
     @Test
@@ -1530,9 +1519,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter gdpr_consent has invalid format for "
-                                + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
+                        + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
     }
 
     @Test
@@ -1548,7 +1538,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog())
+        assertThat(result.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+                .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Consent type tcfV1 is no longer supported");
     }
 

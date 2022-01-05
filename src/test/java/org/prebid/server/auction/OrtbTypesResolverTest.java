@@ -47,8 +47,8 @@ public class OrtbTypesResolverTest extends VertxTest {
         assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
                 .extracting(PrebidMessage::getMessage)
                 .containsOnly("Incorrect type for first party data field targeting.user.gender,"
-                        + " expected is string, but was an array of strings. Converted to string by taking first element "
-                        + "of array.");
+                        + " expected is string, but was an array of strings. Converted to string "
+                        + "by taking first element of array.");
     }
 
     @Test
@@ -67,8 +67,8 @@ public class OrtbTypesResolverTest extends VertxTest {
         assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
                 .extracting(PrebidMessage::getMessage)
                 .containsOnly("Incorrect type for first party data field targeting.user.keywords,"
-                        + " expected is string, but was an array of strings. Converted to string by separating values with"
-                        + " comma.");
+                        + " expected is string, but was an array of strings. Converted to string "
+                        + "by separating values with comma.");
     }
 
     @Test

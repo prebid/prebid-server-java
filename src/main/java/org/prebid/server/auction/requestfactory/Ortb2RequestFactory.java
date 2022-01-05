@@ -18,6 +18,8 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidderMessageFactory;
+import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PrebidLog;
@@ -157,11 +159,12 @@ public class Ortb2RequestFactory {
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
+    public Future<BidRequest> validateRequest(BidRequest bidRequest, PrebidLog prebidLog) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
 
         if (validationResult.hasWarnings()) {
-            warnings.addAll(validationResult.getWarnings());
+            validationResult.getWarnings()
+                    .forEach(e -> prebidLog.logMessage(BidderMessageFactory.warning(BidderMessageType.validation, e)));
         }
 
         return validationResult.hasErrors()
