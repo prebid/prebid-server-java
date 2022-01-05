@@ -654,7 +654,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         assertThat(bidResponse)
-                .isEqualToIgnoringGivenFields(responseWithExpectedFields, "nbr", "seatbid");
+                .usingRecursiveComparison()
+                .ignoringFields("nbr", "seatbid")
+                .isEqualTo(responseWithExpectedFields);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }

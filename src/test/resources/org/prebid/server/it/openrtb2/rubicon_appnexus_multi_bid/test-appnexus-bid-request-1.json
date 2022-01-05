@@ -129,15 +129,7 @@
           "bidder": "appnexus",
           "maxbids": 2
         }
-      ],
-      "auctiontimestamp": 1000,
-      "events": {},
-      "channel": {
-        "name": "web"
-      },
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      }
+      ]
     }
   }
 }

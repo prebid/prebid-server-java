@@ -41,7 +41,7 @@ import java.util.stream.IntStream;
 public class ConversantBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpConversant>>() {
+            new TypeReference<>() {
             };
 
     // List of API frameworks supported by the publisher

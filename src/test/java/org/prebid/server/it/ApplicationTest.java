@@ -483,7 +483,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final Map<String, JsonNode> responseAsMap = jacksonMapper.decodeValue(response.asString(),
-                new TypeReference<Map<String, JsonNode>>() {
+                new TypeReference<>() {
                 });
 
         final List<String> bidders = getBidderNamesFromParamFiles();
@@ -493,7 +493,7 @@ public class ApplicationTest extends IntegrationTest {
                         Function.identity(),
                         bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
 
-        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap.keySet()).hasSameElementsAs(expectedMap.keySet());
         assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
 
         JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -509,14 +509,14 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
-                new TypeReference<List<String>>() {
+                new TypeReference<>() {
                 });
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
         final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
 
-        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
+        assertThat(responseAsList).hasSameElementsAs(expectedBidders);
     }
 
     @Test

@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 public class GridKeywordsProcessor {
 
     private static final TypeReference<Map<String, JsonNode>> MAP_TYPE_REF =
-            new TypeReference<Map<String, JsonNode>>() {
+            new TypeReference<>() {
             };
     private static final String KEYWORDS_PROPERTY = "keywords";
     private static final String USER_PROPERTY = "user";

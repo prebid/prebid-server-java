@@ -168,7 +168,7 @@ public class AmxBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfStartDelayIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.put("himp", mapper.convertValue(Arrays.asList("someHintVAlue1", "someHintValue2"), JsonNode.class));
+        bidExt.set("himp", mapper.convertValue(Arrays.asList("someHintVAlue1", "someHintValue2"), JsonNode.class));
         bidExt.put("startdelay", "2");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(

@@ -113,7 +113,7 @@ public class TargetingCategory {
         dow("user.ext.time.userdow"),
         hour("user.ext.time.userhour");
 
-        private String attribute;
+        private final String attribute;
 
         Type(String attribute) {
             this.attribute = attribute;

@@ -179,9 +179,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(BidType.video);
-                });
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.video));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -197,9 +195,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(BidType.xNative);
-                });
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.xNative));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -215,9 +211,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> {
-                    assertThat(value.getType()).isEqualTo(BidType.banner);
-                });
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.banner));
         assertThat(result.getErrors()).isEmpty();
     }
 

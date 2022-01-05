@@ -18,7 +18,7 @@ public class SimulationAwareDeliveryProgressService extends DeliveryProgressServ
 
     private static final String PG_SIM_TIMESTAMP = "pg-sim-timestamp";
 
-    private long readyAtAdjustment;
+    private final long readyAtAdjustment;
     private volatile boolean firstReportUpdate;
 
     public SimulationAwareDeliveryProgressService(DeliveryProgressProperties deliveryProgressProperties,

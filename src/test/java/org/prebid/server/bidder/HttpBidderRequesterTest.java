@@ -10,16 +10,13 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -99,8 +96,8 @@ public class HttpBidderRequesterTest extends VertxTest {
     public void setUp() {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);
-        given(httpServerRequest.headers()).willReturn(new CaseInsensitiveHeaders());
-        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(new CaseInsensitiveHeaders());
+        given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -154,7 +151,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldPassStoredResponseToBidderMakeBidsMethodAndReturnSeatBids() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("header1", "value1");
         headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
@@ -183,14 +180,14 @@ public class HttpBidderRequesterTest extends VertxTest {
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
                 .isEqualTo("storedResponse");
-        assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
+        assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
     }
 
     @Test
     public void shouldMakeRequestToBidderWhenStoredResponseDefinedButBidderCreatesMoreThanOneRequest() {
         // given
         givenHttpClientResponse(200, null);
-        final MultiMap headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("header1", "value1");
         headers.add("header2", "value2");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
@@ -249,13 +246,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(mapper.writeValueAsBytes(bidRequest))
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(mapper.writeValueAsBytes(bidRequest))
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 emptyList()));
 
@@ -276,7 +273,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 emptyList()));
 
@@ -293,20 +290,20 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        assertThat(bidderSeatBid.getBids()).containsOnlyElementsOf(bids);
+        assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
     }
 
     @Test
     public void shouldCompressRequestBodyIfContentEncodingHeaderIsGzip() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders()
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.CONTENT_ENCODING_HEADER, HttpHeaderValues.GZIP);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 emptyList()));
 
@@ -346,28 +343,28 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(firstRequestBody)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal1"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(secondRequestBody)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal1"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(thirdRequestBody)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal2"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(forthRequestBody)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal1"))
                                 .build()),
                 emptyList()));
@@ -417,28 +414,28 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal1"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal2"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal2"))
                                 .build(),
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .payload(bidRequestWithDeals("deal2"))
                                 .build()),
                 emptyList()));
@@ -465,7 +462,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldReturnFullDebugInfoIfDebugEnabled() throws JsonProcessingException {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders().add("headerKey", "headerValue");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest firstBidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.id("firstId"));
         final BidRequest secondBidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.id("secondId"));
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(asList(
@@ -515,7 +512,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotReturnSensitiveHeadersInFullDebugInfo() {
         // given
-        final CaseInsensitiveHeaders headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("headerKey", "headerValue");
         headers.add("Authorization", "authorizationValue");
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
@@ -549,7 +546,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     public void shouldReturnPartialDebugInfoIfDebugEnabledAndGlobalTimeoutAlreadyExpired()
             throws JsonProcessingException {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders().add("headerKey", "headerValue");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -580,7 +577,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldReturnPartialDebugInfoIfDebugEnabledAndHttpErrorOccurs() throws JsonProcessingException {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders().add("headerKey", "headerValue");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -614,7 +611,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldReturnFullDebugInfoIfDebugEnabledAndErrorStatus() throws JsonProcessingException {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders().add("headerKey", "headerValue");
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap().add("headerKey", "headerValue");
         final BidRequest givenBidRequest = givenBidRequest(identity());
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -656,7 +653,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 emptyList()));
 
@@ -707,45 +704,46 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         // this request will fail with timeout
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         // this request will fail with 500 status
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         // this request will fail with 400 status
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         // this request will get 204 status
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build(),
                         // finally this request will succeed
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 singletonList(BidderError.badInput("makeHttpRequestsError"))));
-        when(requestEnricher.enrichHeaders(any(), any(), any())).thenAnswer(invocation -> new CaseInsensitiveHeaders());
+        when(requestEnricher.enrichHeaders(any(), any(), any()))
+                .thenAnswer(invocation -> MultiMap.caseInsensitiveMultiMap());
         given(httpClient.request(any(), anyString(), any(), any(byte[].class), anyLong()))
                 // simulate response error for the first request
                 .willReturn(Future.failedFuture(new RuntimeException("Response exception")))
@@ -792,7 +790,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .method(HttpMethod.POST)
                                 .uri(EMPTY)
                                 .body(EMPTY_BYTE_BODY)
-                                .headers(new CaseInsensitiveHeaders())
+                                .headers(MultiMap.caseInsensitiveMultiMap())
                                 .build()),
                 emptyList()));
 
@@ -850,18 +848,6 @@ public class HttpBidderRequesterTest extends VertxTest {
         // setup multiple answers
         for (HttpClientResponse httpClientResponse : httpClientResponses) {
             stubbing = stubbing.willReturn(Future.succeededFuture(httpClientResponse));
-        }
-    }
-
-    @AllArgsConstructor
-    public static class MultiMapMatcher implements ArgumentMatcher<MultiMap> {
-
-        private final MultiMap left;
-
-        @Override
-        public boolean matches(MultiMap right) {
-            return left.size() == right.size() && left.entries().stream()
-                    .allMatch(entry -> right.contains(entry.getKey(), entry.getValue(), true));
         }
     }
 }

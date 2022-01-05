@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 public class OrbidderBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOrbidder>> ORBIDDER_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOrbidder>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

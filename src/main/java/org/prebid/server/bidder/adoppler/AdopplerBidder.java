@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 public class AdopplerBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
+            new TypeReference<>() {
             };
     private static final String DEFAULT_CLIENT = "app";
 

@@ -7,12 +7,10 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 @PBSTest
 class DealsSpec extends BaseSpec {
 
-    @Unroll
     def "PBS should choose bid with deal when preferdeals flag equal true"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest
@@ -129,7 +127,6 @@ class DealsSpec extends BaseSpec {
         assert bidPrices == bidResponse.seatbid.first().bid.collect { it.price }.sort().reverse()
     }
 
-    @Unroll
     def "PBS should not choose lower deal price with preferdeals equal #preferdeals flag"() {
         given: "Default basic  BidRequest with generic bidder with preferdeals"
         def bidRequest = BidRequest.defaultBidRequest

@@ -127,7 +127,7 @@ public class DealsProcessor {
         // So, in handler it is ignored and original CompositeFuture used to process obtained results
         // to avoid explicit casting to CompositeFuture implementation.
         final Promise<Tuple3<DeviceInfo, GeoInfo, UserDetails>> promise = Promise.promise();
-        compositeFuture.setHandler(ignored -> handleDealsInfo(compositeFuture, promise, context.getAccount().getId()));
+        compositeFuture.onComplete(ignored -> handleDealsInfo(compositeFuture, promise, context.getAccount().getId()));
         return promise.future()
                 .map((Tuple3<DeviceInfo, GeoInfo, UserDetails> tuple) ->
                         enrichAuctionContext(context, tuple.getLeft(), tuple.getMiddle(), tuple.getRight()))

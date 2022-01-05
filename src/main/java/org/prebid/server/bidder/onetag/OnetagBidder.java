@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class OnetagBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOnetag>> ONETAG_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOnetag>>() {
+            new TypeReference<>() {
             };
     private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
 

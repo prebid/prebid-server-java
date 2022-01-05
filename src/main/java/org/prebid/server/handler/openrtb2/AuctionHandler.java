@@ -94,7 +94,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 // populate event with updated context
                 .map(context -> addToEvent(context, auctionEventBuilder::auctionContext, context))
                 .map(context -> addToEvent(context.getBidResponse(), auctionEventBuilder::bidResponse, context))
-                .setHandler(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
+                .onComplete(context -> handleResult(context, auctionEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {

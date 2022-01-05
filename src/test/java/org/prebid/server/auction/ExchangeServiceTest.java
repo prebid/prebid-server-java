@@ -1319,7 +1319,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .allSatisfy(map -> assertThat(map).isNull());
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldTolerateResponseBidValidationErrors() {
         // given
@@ -1358,7 +1357,6 @@ public class ExchangeServiceTest extends VertxTest {
                         BidderError.generic("bid validation error"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldTolerateResponseBidValidationWarnings() {
         // given
@@ -2672,7 +2670,6 @@ public class ExchangeServiceTest extends VertxTest {
                 .updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldDropBidIfPrebidExceptionWasThrownDuringCurrencyConversion() {
         // given
@@ -2700,7 +2697,6 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void shouldUpdateBidPriceWithCurrencyConversionAndPriceAdjustmentFactor() {
         // given

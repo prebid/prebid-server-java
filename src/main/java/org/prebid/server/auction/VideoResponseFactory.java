@@ -156,6 +156,7 @@ public class VideoResponseFactory {
         final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
 
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+        final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
 
         final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
 
