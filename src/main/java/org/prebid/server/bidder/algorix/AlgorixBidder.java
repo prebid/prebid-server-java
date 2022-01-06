@@ -1,16 +1,21 @@
 package org.prebid.server.bidder.algorix;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.algorix.model.AlgorixResponseBidExt;
+import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -20,6 +25,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -36,7 +42,7 @@ import java.util.stream.Collectors;
  */
 public class AlgorixBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -64,7 +70,8 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 extImpAlgorix = extImpAlgorix == null ? parseImpExt(imp) : extImpAlgorix;
-                updatedImps.add(updateImp(imp));
+                final ExtImpPrebid extImpPrebid = parseImpPrebidExt(imp);
+                updatedImps.add(updateImp(imp, extImpPrebid));
             } catch (PreBidException error) {
                 errors.add(BidderError.badInput(error.getMessage()));
             }
@@ -100,22 +107,40 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
     }
 
+    private ExtImpPrebid parseImpPrebidExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE).getPrebid();
+        } catch (IllegalArgumentException error) {
+            throw new PreBidException(String.format("Impression Id=%s, has invalid Ext", imp.getId()));
+        }
+    }
+
     /**
      * Update Imp for transform banner Size
      *
      * @param imp imp
      * @return new imp
      */
-    private static Imp updateImp(Imp imp) {
+    private Imp updateImp(Imp imp, ExtImpPrebid extImpPrebid) {
         if (imp.getBanner() != null) {
             final Banner banner = imp.getBanner();
             if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                     && CollectionUtils.isNotEmpty(banner.getFormat())) {
                 final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
-                imp = imp.toBuilder()
+                return imp.toBuilder()
                         .banner(banner.toBuilder()
                                 .w(firstFormat.getW())
                                 .h(firstFormat.getH())
+                                .build())
+                        .build();
+            }
+        }
+        if (imp.getVideo() != null) {
+            if (Objects.nonNull(extImpPrebid) && Objects.equals(extImpPrebid.getIsRewardedInventory(), 1)) {
+                final Video video = imp.getVideo();
+                return imp.toBuilder()
+                        .video(video.toBuilder()
+                                .ext(mapper.mapper().valueToTree(AlgorixVideoExt.of(1)))
                                 .build())
                         .build();
             }
@@ -196,19 +221,40 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private AlgorixResponseBidExt parseAlgorixResponseBidExt(Bid bid) {
+        try {
+            return mapper.mapper().treeToValue(bid.getExt(), AlgorixResponseBidExt.class);
+        } catch (IllegalArgumentException | JsonProcessingException error) {
+            return null;
+        }
+    }
+
+    private BidType getBidType(Bid bid, List<Imp> imps) {
+        final AlgorixResponseBidExt bidExt = parseAlgorixResponseBidExt(bid);
+        if (Objects.nonNull(bidExt)) {
+            switch (bidExt.getMediaType()) {
+                case "banner":
+                    return BidType.banner;
+                case "native":
+                    return BidType.xNative;
+                case "video":
+                    return BidType.video;
+                default:
+                    break;
+            }
+        }
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
                 } else if (imp.getVideo() != null) {
