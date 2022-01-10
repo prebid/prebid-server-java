@@ -101,8 +101,8 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBizzclick ext) {
-        return endpointUrl.replace(URL_SOURCE_ID_MACRO, ext.getPlacementId())
-                .replace(URL_ACCOUNT_ID_MACRO, ext.getAccountId());
+        return endpointUrl.replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(ext.getPlacementId()))
+                .replace(URL_ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(ext.getAccountId()));
     }
 
     @Override
