@@ -17,7 +17,7 @@ import javax.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/bizzclick.yaml", factory = YamlPropertySourceFactory.class)
-public class BizzclickBidderConfiguration {
+public class BizzclickConfiguration {
 
     private static final String BIDDER_NAME = "bizzclick";
 

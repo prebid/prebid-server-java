@@ -17,3 +17,5 @@ adapters:
       url:
       redirect-url:
       cookie-family-name: bizzclick
+      type: redirect
+      support-cors: false
