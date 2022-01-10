@@ -228,7 +228,6 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .isEqualTo(BigDecimal.TEN);
     }
 
-
     @Test
     public void resolveShouldReturnNullWhenNoBundlePresent() {
         // given
@@ -344,7 +343,8 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     // TODO Uncomment or delete after instream-video question resolution
-/*    @Test
+    /*
+    @Test
     public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsVideoInStreamAndRuleMediaTypeIsVideoInstream() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
@@ -397,7 +397,6 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 "USD").getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
     }
-
 
     @Test
     public void resolveShouldReturnNullWhenSizeDoesNotMatchRuleSize() {
