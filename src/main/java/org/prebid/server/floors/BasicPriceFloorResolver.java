@@ -28,10 +28,11 @@ import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorSchema;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
@@ -66,14 +67,18 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             "touch.*Windows NT", "Android");
 
     private final CurrencyConversionService currencyConversionService;
+    private final CountryCodeMapper countryCodeMapper;
 
-    public BasicPriceFloorResolver(CurrencyConversionService currencyConversionService) {
+    public BasicPriceFloorResolver(CurrencyConversionService currencyConversionService,
+                                   CountryCodeMapper countryCodeMapper) {
+
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
     }
 
     @Override
     public PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp,
-                                    BidAdjustmentMediaType mediaType, Format format, String currency) {
+                                    ImpMediaType mediaType, Format format, String currency) {
 
         if (modelGroup == null) {
             return null;
@@ -104,8 +109,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private List<String> createRuleKey(PriceFloorSchema schema,
                                        BidRequest bidRequest,
                                        Imp imp,
-                                       BidAdjustmentMediaType mediaType,
+                                       ImpMediaType mediaType,
                                        Format format) {
+
         return schema.getFields().stream()
                 .map(field -> toFieldValue(field, bidRequest, imp, mediaType, format))
                 .map(fieldValue -> ObjectUtils.firstNonNull(fieldValue, StringUtils.EMPTY))
@@ -116,9 +122,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private String toFieldValue(PriceFloorField field,
                                 BidRequest bidRequest,
                                 Imp imp,
-                                BidAdjustmentMediaType mediaType,
+                                ImpMediaType mediaType,
                                 Format format) {
-        final BidAdjustmentMediaType resolvedMediaType = ObjectUtils.defaultIfNull(mediaType, mediaTypeFromImp(imp));
+        final ImpMediaType resolvedMediaType = ObjectUtils.defaultIfNull(mediaType, mediaTypeFromImp(imp));
 
         switch (field) {
             case siteDomain:
@@ -130,9 +136,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case channel:
                 return channelFromRequest(bidRequest);
             case mediaType:
-                return resolvedMediaType.name();
+                return resolvedMediaType.toString();
             case size:
-                return sizeFromFormat(ObjectUtils.defaultIfNull(format, formatFromImp(imp, mediaType)));
+                return sizeFromFormat(ObjectUtils.defaultIfNull(format, formatFromImp(imp, resolvedMediaType)));
             case gptSlot:
                 return gptAdSlotFromImp(imp);
             case pbAdSlot:
@@ -188,34 +194,35 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
     }
 
-    private static BidAdjustmentMediaType mediaTypeFromImp(Imp imp) {
+    private static ImpMediaType mediaTypeFromImp(Imp imp) {
         if (imp.getBanner() != null) {
-            return BidAdjustmentMediaType.banner;
+            return ImpMediaType.banner;
         }
 
         final Video video = imp.getVideo();
         if (imp.getVideo() != null) {
             if (Objects.equals(video.getPlacement(), 1)) {
-                return BidAdjustmentMediaType.video;
+                // TODO: How to manage instream-video in rule?
+                return ImpMediaType.video;
             }
 
-            return BidAdjustmentMediaType.video_outstream;
+            return ImpMediaType.video_outstream;
         }
 
         if (imp.getXNative() != null) {
-            return BidAdjustmentMediaType.xNative;
+            return ImpMediaType.xNative;
         }
 
         if (imp.getAudio() != null) {
-            return BidAdjustmentMediaType.audio;
+            return ImpMediaType.audio;
         }
 
         // TODO: Think of default value
         throw new IllegalStateException("Impossible do define type for imp with id: " + imp.getId());
     }
 
-    private static Format formatFromImp(Imp imp, BidAdjustmentMediaType mediaType) {
-        if (mediaType == BidAdjustmentMediaType.banner) {
+    private static Format formatFromImp(Imp imp, ImpMediaType mediaType) {
+        if (mediaType == ImpMediaType.banner) {
             final Banner banner = imp.getBanner();
             final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
 
@@ -231,7 +238,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                     : null;
         }
 
-        if (mediaType == BidAdjustmentMediaType.video) {
+        if (mediaType == ImpMediaType.video) {
             final Video video = imp.getVideo();
 
             final Integer videoWidth = ObjectUtil.getIfNotNull(video, Video::getW);
@@ -278,11 +285,13 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
     }
 
-    private static String countryFromRequest(BidRequest bidRequest) {
+    private String countryFromRequest(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final String country = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
+        final String alpha3Code = StringUtils.isNotBlank(country) ? countryCodeMapper.mapToAlpha3(country) : null;
 
-        return ObjectUtil.getIfNotNull(geo, Geo::getCountry);
+        return StringUtils.isNotBlank(alpha3Code) ? alpha3Code : country;
     }
 
     public static String resolveDeviceTypeFromRequest(BidRequest bidRequest) {
@@ -292,6 +301,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         if (StringUtils.isBlank(userAgent)) {
             return null;
         }
+
+        // TODO Should they contain or match?
         for (String pattern : PHONE_PATTERNS) {
             if (userAgent.matches(pattern)) {
                 return DeviceType.phone.name();

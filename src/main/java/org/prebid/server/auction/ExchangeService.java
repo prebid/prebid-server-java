@@ -71,7 +71,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
@@ -1413,17 +1413,17 @@ public class ExchangeService {
         return bidderBid.with(bidBuilder.build());
     }
 
-    private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,
-                                                                        List<Imp> imps,
-                                                                        BidType bidType) {
+    private static ImpMediaType resolveBidAdjustmentMediaType(String bidImpId,
+                                                              List<Imp> imps,
+                                                              BidType bidType) {
 
         switch (bidType) {
             case banner:
-                return BidAdjustmentMediaType.banner;
+                return ImpMediaType.banner;
             case xNative:
-                return BidAdjustmentMediaType.xNative;
+                return ImpMediaType.xNative;
             case audio:
-                return BidAdjustmentMediaType.audio;
+                return ImpMediaType.audio;
             case video:
                 return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
             default:
@@ -1431,7 +1431,7 @@ public class ExchangeService {
         }
     }
 
-    private static BidAdjustmentMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
+    private static ImpMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
         final Video bidImpVideo = imps.stream()
                 .filter(imp -> imp.getId().equals(bidImpId))
                 .map(Imp::getVideo)
@@ -1445,8 +1445,8 @@ public class ExchangeService {
 
         final Integer placement = bidImpVideo.getPlacement();
         return placement == null || Objects.equals(placement, 1)
-                ? BidAdjustmentMediaType.video
-                : BidAdjustmentMediaType.video_outstream;
+                ? ImpMediaType.video
+                : ImpMediaType.video_outstream;
     }
 
     private static BigDecimal bidAdjustmentForBidder(String bidder,
@@ -1459,16 +1459,16 @@ public class ExchangeService {
         if (extBidadjustmentfactors == null) {
             return null;
         }
-        final BidAdjustmentMediaType mediaType =
+        final ImpMediaType mediaType =
                 resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
         return resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
     }
 
     private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
-                                                         BidAdjustmentMediaType mediaType,
+                                                         ImpMediaType mediaType,
                                                          String bidder) {
-        final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> mediatypes =
+        final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
                 extBidadjustmentfactors.getMediatypes();
         final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
         final BigDecimal adjustmentFactorByMediaType =

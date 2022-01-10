@@ -87,7 +87,7 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -3083,7 +3083,7 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.video,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3117,7 +3117,7 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.video,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3151,7 +3151,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3184,7 +3184,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));

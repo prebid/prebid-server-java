@@ -37,7 +37,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -2896,7 +2896,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAdjustmentMediaFactorNegative() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(-1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2939,7 +2939,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenMediaBidderUnknown() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("unknownBidder", BigDecimal.valueOf(1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2961,7 +2961,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor("rubicon", BigDecimal.valueOf(1.1));
@@ -2984,7 +2984,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final String rubiconAlias = "rubicon_alias";
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.xNative,
                         Collections.singletonMap("rubicon_alias", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor(rubiconAlias, BigDecimal.valueOf(1.1));

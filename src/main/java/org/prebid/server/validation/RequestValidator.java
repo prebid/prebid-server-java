@@ -36,7 +36,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -220,7 +220,7 @@ public class RequestValidator {
                         bidder, format(adjustmentFactor));
             }
         }
-        final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors =
+        final Map<ImpMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors =
                 adjustmentFactors != null
                         ? adjustmentFactors.getMediatypes()
                         : null;
@@ -229,13 +229,13 @@ public class RequestValidator {
             return;
         }
 
-        for (Map.Entry<BidAdjustmentMediaType, Map<String, BigDecimal>> entry
+        for (Map.Entry<ImpMediaType, Map<String, BigDecimal>> entry
                 : adjustmentsMediaTypeFactors.entrySet()) {
             validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue(), aliases);
         }
     }
 
-    private void validateBidAdjustmentFactorsByMediatype(BidAdjustmentMediaType mediaType,
+    private void validateBidAdjustmentFactorsByMediatype(ImpMediaType mediaType,
                                                          Map<String, BigDecimal> bidderAdjustments,
                                                          Map<String, String> aliases) throws ValidationException {
 

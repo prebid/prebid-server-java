@@ -8,6 +8,7 @@ import org.prebid.server.floors.BasicPriceFloorResolver;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
 import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
@@ -51,9 +52,10 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorResolver basicPriceFloorResolver(CurrencyConversionService currencyConversionService) {
+    PriceFloorResolver basicPriceFloorResolver(CurrencyConversionService currencyConversionService,
+                                               CountryCodeMapper countryCodeMapper) {
 
-        return new BasicPriceFloorResolver(currencyConversionService);
+        return new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper);
     }
 
     @Bean

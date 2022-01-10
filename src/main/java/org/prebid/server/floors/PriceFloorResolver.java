@@ -5,12 +5,12 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 public interface PriceFloorResolver {
 
     PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup,
-                             Imp imp, BidAdjustmentMediaType mediaType, Format format, String currency);
+                             Imp imp, ImpMediaType mediaType, Format format, String currency);
 
     default PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp, String currency) {
         return resolve(bidRequest, modelGroup, imp, null, null, currency);
@@ -26,7 +26,7 @@ public interface PriceFloorResolver {
         public PriceFloorResult resolve(BidRequest bidRequest,
                                         PriceFloorModelGroup modelGroup,
                                         Imp imp,
-                                        BidAdjustmentMediaType mediaType,
+                                        ImpMediaType mediaType,
                                         Format format,
                                         String currency) {
             return PriceFloorResult.empty();
