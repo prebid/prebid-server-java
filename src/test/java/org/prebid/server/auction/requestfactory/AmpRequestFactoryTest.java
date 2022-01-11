@@ -1655,6 +1655,23 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddErrorToAuctionContextWhenConsentTypeIsOfUnknownType() {
+        // given
+        routingContext.queryParams()
+                .add("consent_string", "1Y-N")
+                .add("consent_type", "4");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Invalid consent_type param passed");
+    }
+
+    @Test
     public void shouldReturnBidRequestWithCreatedExtPrebidAmpData() {
         // given
         routingContext.queryParams()
