@@ -13,7 +13,7 @@ public interface AnalyticsReporter {
      * <p>
      * Implementation note: this method is executed on Vert.x event loop thread so it must never use blocking API.
      */
-    Future<Void> processEvent(AnalyticsEvent event);
+    <T> Future<Void> processEvent(T event);
 
     /**
      * Method for defining analytics reporter ID for TCF checks.

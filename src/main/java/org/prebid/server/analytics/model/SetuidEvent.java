@@ -2,15 +2,13 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsEvent;
-import org.prebid.server.analytics.AnalyticsEventProcessor;
 
 /**
  * Represents a transaction at /setuid endpoint.
  */
 @Builder
 @Value
-public class SetuidEvent implements AnalyticsEvent {
+public class SetuidEvent {
 
     Integer status;
 
@@ -22,10 +20,5 @@ public class SetuidEvent implements AnalyticsEvent {
 
     public static SetuidEvent error(int status) {
         return SetuidEvent.builder().status(status).build();
-    }
-
-    @Override
-    public <T> T accept(AnalyticsEventProcessor<T> processor) {
-        return processor.processSetuidEvent(this);
     }
 }

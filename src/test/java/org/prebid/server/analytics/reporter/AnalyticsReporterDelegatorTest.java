@@ -9,6 +9,7 @@ import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -17,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
-import org.prebid.server.analytics.AnalyticsEvent;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.verify;
 
 public class AnalyticsReporterDelegatorTest {
 
-    private static final AnalyticsEvent EVENT = AuctionEvent.builder().build();
+    private static final String EVENT = StringUtils.EMPTY;
     private static final Integer FIRST_REPORTER_ID = 1;
     private static final Integer SECOND_REPORTER_ID = 2;
 
@@ -278,8 +278,8 @@ public class AnalyticsReporterDelegatorTest {
         };
     }
 
-    private static AnalyticsEvent captureEvent(AnalyticsReporter reporter) {
-        final ArgumentCaptor<AnalyticsEvent> auctionEventCaptor = ArgumentCaptor.forClass(AnalyticsEvent.class);
+    private static String captureEvent(AnalyticsReporter reporter) {
+        final ArgumentCaptor<String> auctionEventCaptor = ArgumentCaptor.forClass(String.class);
         verify(reporter).processEvent(auctionEventCaptor.capture());
         return auctionEventCaptor.getValue();
     }

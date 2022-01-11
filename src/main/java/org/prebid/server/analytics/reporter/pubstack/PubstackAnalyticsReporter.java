@@ -7,8 +7,13 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
-import org.prebid.server.analytics.AnalyticsEvent;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.pubstack.model.EventType;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
@@ -40,7 +45,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     private final JacksonMapper jacksonMapper;
     private final Vertx vertx;
 
-    private final PubstackAnalyticsEventTypeResolver eventTypeResolver;
     private final Map<EventType, PubstackEventHandler> eventHandlers;
     private PubstackConfig pubstackConfig;
 
@@ -56,7 +60,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.vertx = Objects.requireNonNull(vertx);
 
-        this.eventTypeResolver = new PubstackAnalyticsEventTypeResolver();
         this.eventHandlers = createEventHandlers(pubstackAnalyticsProperties, httpClient, jacksonMapper, vertx);
         this.pubstackConfig = PubstackConfig.of(pubstackAnalyticsProperties.getScopeId(),
                 pubstackAnalyticsProperties.getEndpoint(), Collections.emptyMap());
@@ -83,9 +86,30 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
     }
 
-    public Future<Void> processEvent(AnalyticsEvent event) {
-        final EventType eventType = event.accept(eventTypeResolver);
-        eventHandlers.get(eventType).handle(event);
+    @Override
+    public <T> Future<Void> processEvent(T event) {
+        final EventType eventType;
+
+        if (event instanceof AmpEvent) {
+            eventType = EventType.amp;
+        } else if (event instanceof AuctionEvent) {
+            eventType = EventType.auction;
+        } else if (event instanceof CookieSyncEvent) {
+            eventType = EventType.cookiesync;
+        } else if (event instanceof NotificationEvent) {
+            eventType = EventType.notification;
+        } else if (event instanceof SetuidEvent) {
+            eventType = EventType.setuid;
+        } else if (event instanceof VideoEvent) {
+            eventType = EventType.video;
+        } else {
+            eventType = null;
+        }
+
+        if (eventType != null) {
+            eventHandlers.get(eventType).handle(event);
+        }
+
         return Future.succeededFuture();
     }
 

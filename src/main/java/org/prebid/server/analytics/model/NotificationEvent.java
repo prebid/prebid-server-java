@@ -2,8 +2,6 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsEvent;
-import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
@@ -12,7 +10,7 @@ import org.prebid.server.settings.model.Account;
  */
 @Builder
 @Value
-public class NotificationEvent implements AnalyticsEvent {
+public class NotificationEvent {
 
     Type type;
 
@@ -29,11 +27,6 @@ public class NotificationEvent implements AnalyticsEvent {
     String integration;
 
     HttpRequestContext httpContext;
-
-    @Override
-    public <T> T accept(AnalyticsEventProcessor<T> processor) {
-        return processor.processNotificationEvent(this);
-    }
 
     public enum Type {
         win, imp

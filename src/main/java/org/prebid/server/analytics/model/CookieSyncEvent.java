@@ -2,8 +2,6 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsEvent;
-import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.proto.response.BidderUsersyncStatus;
 
 import java.util.Collections;
@@ -14,7 +12,7 @@ import java.util.List;
  */
 @Builder
 @Value
-public class CookieSyncEvent implements AnalyticsEvent {
+public class CookieSyncEvent {
 
     Integer status;
 
@@ -24,10 +22,5 @@ public class CookieSyncEvent implements AnalyticsEvent {
 
     public static CookieSyncEvent error(int status, String message) {
         return builder().status(status).errors(Collections.singletonList(message)).build();
-    }
-
-    @Override
-    public <T> T accept(AnalyticsEventProcessor<T> processor) {
-        return processor.processCookieSyncEvent(this);
     }
 }

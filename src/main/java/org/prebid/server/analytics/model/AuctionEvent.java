@@ -3,8 +3,6 @@ package org.prebid.server.analytics.model;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsEvent;
-import org.prebid.server.analytics.AnalyticsEventProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.HttpRequestContext;
 
@@ -15,7 +13,7 @@ import java.util.List;
  */
 @Builder(toBuilder = true)
 @Value
-public class AuctionEvent implements AnalyticsEvent {
+public class AuctionEvent {
 
     Integer status;
 
@@ -26,9 +24,4 @@ public class AuctionEvent implements AnalyticsEvent {
     AuctionContext auctionContext;
 
     BidResponse bidResponse;
-
-    @Override
-    public <T> T accept(AnalyticsEventProcessor<T> processor) {
-        return processor.processAuctionEvent(this);
-    }
 }
