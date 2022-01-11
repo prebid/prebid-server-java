@@ -6,13 +6,13 @@ import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
+
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 @PBSTest
 class StoredResponseSpec extends BaseSpec {
 
-    @PendingFeature
-    def "PBS should not fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
+    def "PBS should fail auction with storedAuctionResponse when request bidder params doesn't satisfy json-schema"() {
         given: "BidRequest with bad bidder datatype and storedAuctionResponse"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -28,11 +28,15 @@ class StoredResponseSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should not contain errors and warnings"
-        assert !response.ext?.errors
-        assert !response.ext?.warnings
+        then: "Response should contain warnings"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
+                         "\$.exampleProperty: integer found, string expected",
+                 "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
-        and: "Response should correspond to stored response"
-        assert response.seatbid == responseData.seatbid
+        and: "Response seatbid should be empty"
+        assert response.seatbid.isEmpty()
     }
 }
