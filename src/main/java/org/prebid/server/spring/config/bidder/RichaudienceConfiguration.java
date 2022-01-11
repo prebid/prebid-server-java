@@ -17,7 +17,7 @@ import javax.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/richaudience.yaml", factory = YamlPropertySourceFactory.class)
-public class RichaudienceBidderConfiguration {
+public class RichaudienceConfiguration {
 
     private static final String BIDDER_NAME = "richaudience";
 
