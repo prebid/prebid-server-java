@@ -65,7 +65,8 @@ public class BizzclickBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).extracting(BidderError::getMessage)
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
                 .containsExactly("ext.bidder not provided");
     }
 
@@ -80,7 +81,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(2);
         assertThat(result.getErrors()).isEmpty();
@@ -97,7 +99,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsOnlyNulls();
@@ -113,7 +116,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getHeaders)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnlyOnce(tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5"));
@@ -131,7 +135,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getHeaders)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnlyOnce(tuple(HttpUtil.USER_AGENT_HEADER.toString(), "ua"));
@@ -149,7 +154,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getHeaders)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnlyOnce(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ipv6"));
@@ -167,7 +173,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getHeaders)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnlyOnce(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"));
@@ -185,7 +192,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getHeaders)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnlyOnce(tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "ip"));
@@ -201,7 +209,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
                 .containsExactly(String.format(URL_TEMPLATE,
                         HttpUtil.encodeUrl("placement id"), HttpUtil.encodeUrl("account id")));
         assertThat(result.getErrors()).isEmpty();
@@ -267,8 +276,8 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(response -> response
-                .seatbid(emptyList())), null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(response -> response.seatbid(emptyList())), null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -291,7 +300,8 @@ public class BizzclickBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).extracting(BidderBid::getBid)
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
                 .extracting(Bid::getId)
                 .containsExactly("1");
         assertThat(result.getErrors()).isEmpty();
@@ -300,8 +310,8 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(response -> response
-                .seatbid(singletonList(null))), null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(response -> response.seatbid(singletonList(null))), null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -314,8 +324,8 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(response -> response
-                .seatbid(singletonList(SeatBid.builder().build()))), null);
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(response -> response.seatbid(singletonList(SeatBid.builder().build()))), null);
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
@@ -326,24 +336,58 @@ public class BizzclickBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithCorrectMediaType() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidsWithBannerMediaTypeByDefault() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(response -> response.seatbid(singletonList(SeatBid.builder().bid(List.of(
-                        Bid.builder().impid("1").build(),
-                        Bid.builder().impid("2").build(),
-                        Bid.builder().impid("3").build())).build()))),
-                givenBidRequest(
-                        givenImp(imp -> imp.id("1")),
-                        givenImp(imp -> imp.id("2").video(Video.builder().build())),
-                        givenImp(imp -> imp.id("3").xNative(Native.builder().build()))));
+                givenBidResponse(response -> response.seatbid(singletonList(
+                        SeatBid.builder().bid(singletonList(Bid.builder().impid("1").build())).build()))),
+                givenBidRequest(givenImp(imp -> imp.id("1"))));
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.video, BidType.xNative);
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.banner);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidsWithVideoMediaTypeIfImpVideoPresent() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(response -> response.seatbid(singletonList(
+                        SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
+                givenBidRequest(givenImp(imp -> imp.id("1").video(Video.builder().build()))));
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.video);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidsWithXNativeMediaTypeIfImpVideoAbsentAndImpXNativePresent()
+            throws JsonProcessingException {
+
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(response -> response.seatbid(singletonList(
+                        SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
+                givenBidRequest(givenImp(imp -> imp.id("1").xNative(Native.builder().build()))));
+
+        // when
+        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(BidType.xNative);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -351,15 +395,17 @@ public class BizzclickBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(response -> response.seatbid(singletonList(SeatBid.builder().bid(singletonList(
-                        Bid.builder().build())).build()))),
+                givenBidResponse(response -> response.seatbid(singletonList(
+                        SeatBid.builder().bid(singletonList(Bid.builder().build())).build()))),
                 givenBidRequest(givenImp(identity())));
 
         // when
         final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).extracting(BidderBid::getBidCurrency).containsExactly("USD");
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsExactly("USD");
         assertThat(result.getErrors()).isEmpty();
     }
 
