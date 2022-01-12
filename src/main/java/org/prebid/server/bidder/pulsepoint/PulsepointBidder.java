@@ -62,8 +62,7 @@ public class PulsepointBidder implements Bidder<BidRequest> {
                 continue;
             }
 
-            final Imp modifiedImp = modifyImp(imp, extImpPulsepoint);
-            modifiedImps.add(modifiedImp);
+            modifiedImps.add(modifyImp(imp, extImpPulsepoint));
 
             final Integer extPublisherId = extImpPulsepoint.getPublisherId();
             if (publisherId == null && extPublisherId != null && extPublisherId > 0) {
@@ -74,7 +73,7 @@ public class PulsepointBidder implements Bidder<BidRequest> {
         if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
-        publisherId = Objects.requireNonNullElse(publisherId, StringUtils.EMPTY);
+        publisherId = StringUtils.defaultString(publisherId);
 
         final BidRequest modifiedRequest = modifyRequest(bidRequest, publisherId, modifiedImps);
         return Result.of(Collections.singletonList(createHttpRequest(modifiedRequest)), errors);
@@ -89,30 +88,27 @@ public class PulsepointBidder implements Bidder<BidRequest> {
     }
 
     private static Imp modifyImp(Imp imp, ExtImpPulsepoint extImpPulsepoint) {
-        return imp.toBuilder().tagid(Objects.toString(extImpPulsepoint.getTagId())).build();
+        return imp.toBuilder().tagid(extImpPulsepoint.getTagId().toString()).build();
     }
 
     private static BidRequest modifyRequest(BidRequest request, String publisherId, List<Imp> imps) {
-        final BidRequest.BidRequestBuilder builder = request.toBuilder();
-
-        final Site site = request.getSite();
-        final App app = request.getApp();
-        if (site != null) {
-            builder.site(modifySite(site, publisherId));
-        } else if (app != null) {
-            builder.app(modifyApp(app, publisherId));
-        }
-        builder.imp(imps);
-
-        return builder.build();
+        return request.toBuilder()
+                .site(modifySite(request.getSite(), publisherId))
+                .app(modifyApp(request.getApp(), publisherId))
+                .imp(imps)
+                .build();
     }
 
     private static Site modifySite(Site site, String publisherId) {
-        return site.toBuilder().publisher(modifyPublisher(site.getPublisher(), publisherId)).build();
+        return site != null
+                ? site.toBuilder().publisher(modifyPublisher(site.getPublisher(), publisherId)).build()
+                : null;
     }
 
     private static App modifyApp(App app, String publisherId) {
-        return app.toBuilder().publisher(modifyPublisher(app.getPublisher(), publisherId)).build();
+        return app != null
+                ? app.toBuilder().publisher(modifyPublisher(app.getPublisher(), publisherId)).build()
+                : null;
     }
 
     private static Publisher modifyPublisher(Publisher publisher, String publisherId) {
@@ -165,11 +161,16 @@ public class PulsepointBidder implements Bidder<BidRequest> {
     private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                return imp.getBanner() != null ? BidType.banner
-                        : imp.getVideo() != null ? BidType.video
-                        : imp.getAudio() != null ? BidType.audio
-                        : imp.getXNative() != null ? BidType.xNative
-                        : null;
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                } else if (imp.getAudio() != null) {
+                    return BidType.audio;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+                break;
             }
         }
 
