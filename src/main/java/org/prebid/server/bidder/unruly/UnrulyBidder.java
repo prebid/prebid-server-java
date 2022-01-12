@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -56,6 +56,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 modifiedImps.add(modifyImp(imp, extImpUnruly));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withErrors(errors);
             }
         }
 
@@ -70,13 +71,14 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), UNRULY_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
+            throw new PreBidException(String.format("ext data not provided in imp id=%s. Abort all Request",
+                    imp.getId()));
         }
     }
 
     private Imp modifyImp(Imp imp, ExtImpUnruly extImpUnruly) {
         final ObjectNode modifiedExt = mapper.mapper().createObjectNode();
-        modifiedExt.set("unruly", mapper.mapper().convertValue(extImpUnruly, JsonNode.class));
+        modifiedExt.set("bidder", mapper.mapper().convertValue(extImpUnruly, JsonNode.class));
         return imp.toBuilder().ext(modifiedExt).build();
     }
 
@@ -86,44 +88,58 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(getHeaders())
+                .headers(HttpUtil.headers())
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }
 
-    private static MultiMap getHeaders() {
-        return HttpUtil.headers()
-                .add("X-Unruly-Origin", "Prebid-Server");
-    }
-
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse, errors), errors);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse,
+                                               List<BidderError> errors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidRequest, bidResponse);
+                : bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse,
+                                                    List<BidderError> errors) {
+        return bidResponse.getSeatbid()
+                .stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .map(bid -> resolveBidderBid(bid, bidResponse.getCur(), bidRequest.getImp(), errors))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
+    private static BidderBid resolveBidderBid(Bid bid, String currency, List<Imp> imps, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = getBidType(bid.getImpid(), imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+        return BidderBid.of(bid, bidType, currency);
+    }
+
     private static BidType getBidType(String impId, List<Imp> imps) {
+        final List<String> noMatchingImps = new ArrayList<>();
+
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
@@ -134,9 +150,12 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                     return BidType.banner;
                 }
             } else {
-                throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
+                noMatchingImps.add(imp.getId());
             }
         }
-        throw new PreBidException(String.format("Failed to find impression %s", impId));
+
+        throw new PreBidException(String
+                .format("Bid response imp ID %s not found in bid request containing imps %s",
+                        impId, noMatchingImps));
     }
 }

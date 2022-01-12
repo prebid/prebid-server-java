@@ -30,6 +30,8 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.bidder.model.BidderError.Type.bad_input;
+import static org.prebid.server.bidder.model.BidderError.Type.bad_server_response;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
@@ -60,9 +62,11 @@ public class UnrulyBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = unrulyBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("ext data not provided in imp id=123");
+                    assertThat(error.getType()).isEqualTo(bad_input);
+                });
     }
 
     @Test
@@ -81,8 +85,7 @@ public class UnrulyBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"),
-                        tuple("X-Unruly-Origin", "Prebid-Server"));
+                        tuple("Accept", "application/json"));
     }
 
     @Test
@@ -186,22 +189,25 @@ public class UnrulyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfImpressionWasNotFound() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorNotFoundBidRequest() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("321").build()))
+                        .imp(singletonList(Imp.builder().id("112").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("111"))));
 
         // when
         final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badServerResponse("Failed to find impression 123"));
+        assertThat(result.getErrors())
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Bid response imp ID 111 not found");
+                    assertThat(error.getType()).isEqualTo(bad_server_response);
+                });
     }
 
     private static BidRequest givenBidRequest(
