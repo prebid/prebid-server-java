@@ -84,8 +84,10 @@ public class RequestContext {
         switch (type) {
             case domain:
                 return ObjectUtils.defaultIfNull(
-                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain),
-                        getIfNotNull(bidRequest.getSite(), Site::getDomain));
+                        getIfNotNull(bidRequest.getSite(), Site::getDomain),
+                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
+            case publisherDomain:
+                return getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain);
             case referrer:
                 return getIfNotNull(bidRequest.getSite(), Site::getPage);
             case appBundle:

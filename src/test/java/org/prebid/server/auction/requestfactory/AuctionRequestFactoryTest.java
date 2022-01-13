@@ -133,11 +133,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
 
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(ortb2RequestFactory.validateRequest(any()))
-                .will(invocationOnMock -> invocationOnMock.getArgument(0));
+
         given(interstitialProcessor.process(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
@@ -554,8 +555,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        given(ortb2RequestFactory.validateRequest(any()))
-                .willThrow(new InvalidRequestException("errors"));
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
