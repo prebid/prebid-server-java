@@ -1,8 +1,8 @@
 package org.prebid.server.bidder.marsmedia;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -74,25 +74,11 @@ public class MarsmediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtZoneIsBlank() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of(" ")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = marsmediaBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("ZoneId is empty"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldResolveZoneFromJsonZoneIdField() {
         // given
         final ExtPrebid<?, ObjectNode> impExt = ExtPrebid.of(
                 null,
-                mapper.createObjectNode().set("zoneId", TextNode.valueOf("zoneId")));
+                mapper.createObjectNode().set("zoneId", IntNode.valueOf(123)));
 
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(impExt)));
 
@@ -107,7 +93,7 @@ public class MarsmediaBidderTest extends VertxTest {
                     final String regex = "[a-zA-Z0-9:/._\\-?&=]+zone=(?<zone>[a-zA-Z0-9]+)";
                     final Matcher matcher = Pattern.compile(regex).matcher(uri);
                     assertThat(matcher.find()).isTrue();
-                    assertThat(matcher.group("zone")).isEqualTo("zoneId");
+                    assertThat(matcher.group("zone")).isEqualTo("123");
                 });
     }
 
@@ -247,7 +233,7 @@ public class MarsmediaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/test&zone=zoneId");
+                .containsExactly("https://test.endpoint.com/test&zone=123");
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
@@ -399,7 +385,7 @@ public class MarsmediaBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impModifier) {
         return impModifier.apply(Imp.builder()
                         .banner(Banner.builder().h(150).w(300).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of("zoneId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMarsmedia.of(123)))))
                 .build();
     }
 

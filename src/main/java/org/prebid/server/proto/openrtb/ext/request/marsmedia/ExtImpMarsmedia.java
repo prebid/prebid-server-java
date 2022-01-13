@@ -7,5 +7,5 @@ import lombok.Value;
 public class ExtImpMarsmedia {
 
     @JsonProperty("zoneId")
-    String zoneId;
+    Number zoneId;
 }
