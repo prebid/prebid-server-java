@@ -54,8 +54,8 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context =
                 new RequestContext(
                         request(r -> r.site(site(s -> s
-                                .domain("anotherdomain.com")
-                                .publisher(Publisher.builder().domain("domain.com").build())))),
+                                .domain("domain.com")
+                                .publisher(Publisher.builder().domain("anotherdomain.com").build())))),
                         imp(identity()),
                         txnLog,
                         jacksonMapper);
@@ -70,7 +70,8 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context =
                 new RequestContext(
-                        request(r -> r.site(site(s -> s.publisher(Publisher.builder().domain("domain.com").build())))),
+                        request(r -> r.site(site(s -> s
+                                .publisher(Publisher.builder().domain("domain.com").build())))),
                         imp(identity()),
                         txnLog,
                         jacksonMapper);
@@ -91,9 +92,36 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenSiteIsMissing() {
+    public void lookupStringShouldReturnNullForDomainWhenSiteIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final RequestContext context =
+                new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category)).isNull();
+    }
+
+    @Test
+    public void lookupStringShouldReturnPublisherDomainFromSitePublisher() {
+        // given
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
+        final RequestContext context =
+                new RequestContext(
+                        request(r -> r.site(site(s -> s
+                                .publisher(Publisher.builder().domain("domain.com").build())))),
+                        imp(identity()),
+                        txnLog,
+                        jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category)).isEqualTo("domain.com");
+    }
+
+    @Test
+    public void lookupStringShouldReturnNullForPublisherDomainWhenSiteIsMissing() {
+        // given
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
         final RequestContext context =
                 new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
 
@@ -287,9 +315,7 @@ public class RequestContextTest extends VertxTest {
         extDevice.addProperty("vendor", obj("attribute", "value"));
 
         final RequestContext context = new RequestContext(
-                request(r -> r.device(device(d -> d.ext(
-                        extDevice
-                )))),
+                request(r -> r.device(device(d -> d.ext(extDevice)))),
                 imp(identity()), txnLog, jacksonMapper);
 
         // when and then
@@ -304,9 +330,7 @@ public class RequestContextTest extends VertxTest {
         final ExtDevice extDevice = ExtDevice.of(null, null);
         extDevice.addProperty("vendor", obj("nested", obj("attribute", "value")));
         final RequestContext context = new RequestContext(
-                request(r -> r.device(device(d -> d.ext(
-                        extDevice
-                )))),
+                request(r -> r.device(device(d -> d.ext(extDevice)))),
                 imp(identity()), txnLog, jacksonMapper);
 
         // when and then
