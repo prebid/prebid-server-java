@@ -80,9 +80,11 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         switch (type) {
             case domain:
-                return org.apache.commons.lang3.ObjectUtils.firstNonNull(
-                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain),
-                        getIfNotNull(bidRequest.getSite(), Site::getDomain));
+                return org.apache.commons.lang3.ObjectUtils.defaultIfNull(
+                        getIfNotNull(bidRequest.getSite(), Site::getDomain),
+                        getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
+            case publisherDomain:
+                return getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain);
             case referrer:
                 return getIfNotNull(bidRequest.getSite(), Site::getPage);
             case appBundle:
