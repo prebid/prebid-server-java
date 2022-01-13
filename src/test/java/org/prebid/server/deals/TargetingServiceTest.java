@@ -72,20 +72,16 @@ public class TargetingServiceTest extends VertxTest {
                                                 "*nba.com*"), "lineItemId"),
                                         new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
                                                 "*nba.com*"), "lineItemId"))),
-
                                 new Or(asList(
                                         new DomainMetricAwareExpression(new Matches(category(Type.domain),
                                                 "nba.com*"), "lineItemId"),
                                         new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
-                                                "nba.com*"), "lineItemId")
-                                )),
-
+                                                "nba.com*"), "lineItemId"))),
                                 new Or(asList(
                                         new DomainMetricAwareExpression(new InStrings(category(Type.domain),
                                                 asList("nba.com", "cnn.com")), "lineItemId"),
                                         new DomainMetricAwareExpression(new InStrings(category(Type.publisherDomain),
-                                                asList("nba.com", "cnn.com")), "lineItemId")
-                                ))
+                                                asList("nba.com", "cnn.com")), "lineItemId")))
                         )),
                         new Or(asList(
                                 new Matches(category(Type.referrer), "*sports*"),
