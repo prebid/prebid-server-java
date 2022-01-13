@@ -141,16 +141,14 @@ public class RequestContext {
             case mediaType:
                 return getMediaTypes();
             case bidderParam:
-                return impBidderAttributeReader.readFromExt(imp, category,
-                        node -> nodeToListOfStrings(node, RequestContext::nodeToString));
+                return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfStrings);
             case userSegment:
                 return getSegments(category);
             case userFirstPartyData:
                 return userAttributeReader.readFromExt(bidRequest.getUser(), category,
-                        node -> nodeToListOfStrings(node, RequestContext::nodeToString));
+                        RequestContext::nodeToListOfStrings);
             case siteFirstPartyData:
-                return getSiteFirstPartyData(category,
-                        node -> nodeToListOfStrings(node, RequestContext::nodeToString));
+                return getSiteFirstPartyData(category, RequestContext::nodeToListOfStrings);
             default:
                 throw new TargetingSyntaxException(
                         String.format("Unexpected category for fetching string values for: %s", type));
@@ -161,14 +159,12 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         switch (type) {
             case bidderParam:
-                return impBidderAttributeReader.readFromExt(imp, category,
-                        node -> nodeToListOfIntegers(node, RequestContext::nodeToInteger));
+                return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfIntegers);
             case userFirstPartyData:
                 return userAttributeReader.readFromExt(bidRequest.getUser(), category,
-                        node -> nodeToListOfIntegers(node, RequestContext::nodeToInteger));
+                        RequestContext::nodeToListOfIntegers);
             case siteFirstPartyData:
-                return getSiteFirstPartyData(category,
-                        node -> nodeToListOfIntegers(node, RequestContext::nodeToInteger));
+                return getSiteFirstPartyData(category, RequestContext::nodeToListOfIntegers);
             default:
                 throw new TargetingSyntaxException(
                         String.format("Unexpected category for fetching integer values for: %s", type));
@@ -284,13 +280,15 @@ public class RequestContext {
         return node.isInt() ? node.asInt() : null;
     }
 
-    private static <T> List<T> nodeToListOfStrings(JsonNode node, Function<JsonNode, T> valueExtractor) {
+    private static List<String> nodeToListOfStrings(JsonNode node) {
+        final Function<JsonNode, String> valueExtractor = RequestContext::nodeToString;
         return node.isTextual()
                 ? Collections.singletonList(valueExtractor.apply(node))
                 : nodeToList(node, valueExtractor);
     }
 
-    private static <T> List<T> nodeToListOfIntegers(JsonNode node, Function<JsonNode, T> valueExtractor) {
+    private static List<Integer> nodeToListOfIntegers(JsonNode node) {
+        final Function<JsonNode, Integer> valueExtractor = RequestContext::nodeToInteger;
         return node.isInt()
                 ? Collections.singletonList(valueExtractor.apply(node))
                 : nodeToList(node, valueExtractor);
