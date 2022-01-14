@@ -1402,7 +1402,7 @@ public class ExchangeService {
             bidBuilder.ext(updatedBidExt);
         }
 
-        return bidderBid.toBuilder().bid(bidBuilder.build()).build();
+        return bidderBid.with(bidBuilder.build());
     }
 
     private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,

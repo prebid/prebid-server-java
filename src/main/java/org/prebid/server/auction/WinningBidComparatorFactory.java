@@ -43,8 +43,8 @@ public class WinningBidComparatorFactory {
 
         @Override
         public int compare(BidInfo bidInfo1, BidInfo bidInfo2) {
-            final boolean isPresentBidDealId1 = bidInfo1.getBidderBid().getBid().getDealid() != null;
-            final boolean isPresentBidDealId2 = bidInfo2.getBidderBid().getBid().getDealid() != null;
+            final boolean isPresentBidDealId1 = bidInfo1.getBid().getDealid() != null;
+            final boolean isPresentBidDealId2 = bidInfo2.getBid().getDealid() != null;
 
             if (!Boolean.logicalXor(isPresentBidDealId1, isPresentBidDealId2)) {
                 return 0;
@@ -76,8 +76,8 @@ public class WinningBidComparatorFactory {
                 return 0;
             }
 
-            final Bid bid1 = bidInfo1.getBidderBid().getBid();
-            final Bid bid2 = bidInfo2.getBidderBid().getBid();
+            final Bid bid1 = bidInfo1.getBid();
+            final Bid bid2 = bidInfo2.getBid();
 
             int indexOfBidDealId1 = -1;
             int indexOfBidDealId2 = -1;
@@ -111,8 +111,7 @@ public class WinningBidComparatorFactory {
      */
     private static class WinningBidPriceComparator implements Comparator<BidInfo> {
 
-        private static final Comparator<BidInfo> PRICE_COMPARATOR =
-                Comparator.comparing(o -> o.getBidderBid().getBid().getPrice());
+        private static final Comparator<BidInfo> PRICE_COMPARATOR = Comparator.comparing(o -> o.getBid().getPrice());
 
         @Override
         public int compare(BidInfo bidInfo1, BidInfo bidInfo2) {

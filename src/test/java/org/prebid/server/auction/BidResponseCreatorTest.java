@@ -410,7 +410,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .auctionTimestamp(1000L)
                         .build()));
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getId())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId1", "bidId2", "bidId3", "bidId4");
         assertThat(contextArgumentCaptor.getValue())
                 .satisfies(context -> {
@@ -468,7 +468,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 any(),
                 eq(EventsContext.builder().auctionId("123").auctionTimestamp(1000L).build()));
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getId())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId1", "bidId2");
     }
 
@@ -547,9 +547,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(expectedEventContext));
 
         assertThat(bidInfoCaptor.getValue())
-                .extracting(BidInfo::getBidderBid)
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getId, Bid::getAdm)
+                .extracting(bidInfo -> bidInfo.getBid().getId(), bidInfo -> bidInfo.getBid().getAdm())
                 .containsOnly(tuple("bidId1", "modifiedAdm"), tuple("bidId2", "adm2"));
     }
 
@@ -623,7 +621,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(CacheContext.builder().build()),
                 eq(EventsContext.builder().auctionId("123").auctionTimestamp(1000L).build()));
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getId())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId1");
     }
 
@@ -865,7 +863,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getExt())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getExt())
                 .containsOnly(expectedBidExt);
 
         assertThat(bidResponse.getSeatbid())
@@ -1021,7 +1019,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getExt())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getExt())
                 .containsOnly(expectedBidExt);
 
         assertThat(bidResponse.getSeatbid())
@@ -2072,7 +2070,7 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
-                .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBidderBid().getBid().getExt()).getEvents())
+                .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getEvents())
                 .containsOnly(events);
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -2202,7 +2200,7 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
-                .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBidderBid().getBid().getExt()).getVideo())
+                .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getVideo())
                 .containsOnly(ExtBidPrebidVideo.of(1, "category"));
 
         assertThat(bidResponse.getSeatbid()).hasSize(1)
@@ -2532,7 +2530,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
-        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBidderBid().getBid().getId())
+        assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId2");
     }
 
@@ -2676,11 +2674,7 @@ public class BidResponseCreatorTest extends VertxTest {
         verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
-                .extracting(BidInfo::getBidderBid)
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getExt)
-                .extracting(BidResponseCreatorTest::toExtBidPrebid)
-                .extracting(ExtBidPrebid::getStoredRequestAttributes)
+                .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getStoredRequestAttributes())
                 .containsOnly(storedVideo, null, null);
 
         assertThat(result.result().getSeatbid())
@@ -2948,7 +2942,7 @@ public class BidResponseCreatorTest extends VertxTest {
     private static Map<Bid, CacheInfo> zipBidsWithCacheInfos(List<BidInfo> bidInfos, List<CacheInfo> cacheInfos) {
         return IntStream.range(0, Math.min(bidInfos.size(), cacheInfos.size()))
                 .boxed()
-                .collect(Collectors.toMap(i -> bidInfos.get(i).getBidderBid().getBid(), cacheInfos::get));
+                .collect(Collectors.toMap(i -> bidInfos.get(i).getBid(), cacheInfos::get));
     }
 
     private static BidInfo toBidInfo(Bid bid,
@@ -2958,9 +2952,10 @@ public class BidResponseCreatorTest extends VertxTest {
                                      boolean isWinningBid) {
 
         return BidInfo.builder()
-                .bidderBid(BidderBid.builder().bid(bid).type(bidType).build())
+                .bid(bid)
                 .correspondingImp(correspondingImp)
                 .bidder(bidder)
+                .bidType(bidType)
                 .targetingInfo(TargetingInfo.builder()
                         .bidderCode(bidder)
                         .isTargetingEnabled(true)

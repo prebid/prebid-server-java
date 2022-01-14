@@ -6,18 +6,22 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.cache.model.CacheInfo;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 @Builder(toBuilder = true)
 @Value
 public class BidInfo {
 
-    BidderBid bidderBid;
+    Bid bid;
 
     Imp correspondingImp;
 
+    String bidCurrency;
+
     String bidder;
+
+    BidType bidType;
 
     CacheInfo cacheInfo;
 
@@ -32,7 +36,6 @@ public class BidInfo {
     Boolean satisfiedPriority;
 
     public String getBidId() {
-        final Bid bid = bidderBid != null ? bidderBid.getBid() : null;
         final ObjectNode extNode = bid != null ? bid.getExt() : null;
         final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;
         final String generatedBidId = bidIdNode != null && bidIdNode.isTextual() ? bidIdNode.textValue() : null;

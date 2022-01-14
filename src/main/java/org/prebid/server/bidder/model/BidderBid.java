@@ -10,7 +10,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 /**
  * Bid returned by a {@link Bidder}.
  */
-@Builder(toBuilder = true)
+@Builder
 @Value
 public class BidderBid {
 
@@ -45,5 +45,9 @@ public class BidderBid {
                 .type(bidType)
                 .bidCurrency(bidCurrency)
                 .build();
+    }
+
+    public BidderBid with(Bid bid) {
+        return BidderBid.of(bid, this.type, this.bidCurrency);
     }
 }
