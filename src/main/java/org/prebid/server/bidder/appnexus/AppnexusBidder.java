@@ -548,12 +548,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             cat = Collections.emptyList();
         }
 
-        return BidderBid.of(
-                bid.toBuilder().cat(cat).build(),
-                bidType(appnexus.getBidAdType()),
-                currency,
-                appnexus.getDealPriority(),
-                makeExtBidVideo(appnexus));
+        return BidderBid.builder()
+                .bid(bid.toBuilder().cat(cat).build())
+                .type(bidType(appnexus.getBidAdType()))
+                .bidCurrency(currency)
+                .dealPriority(appnexus.getDealPriority())
+                .videoInfo(makeExtBidVideo(appnexus))
+                .build();
     }
 
     private static ExtBidPrebidVideo makeExtBidVideo(AppnexusBidExtAppnexus extAppnexus) {

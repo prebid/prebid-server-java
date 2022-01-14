@@ -1194,11 +1194,16 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
     }
 
     private static BidderBid givenBidderBid(Bid bid, BidType bidType, Integer duration) {
-        return BidderBid.of(bid, bidType, null, 5, ExtBidPrebidVideo.of(duration, null));
+        return givenBidderBid(bid, bidType, duration, null);
     }
 
     private static BidderBid givenBidderBid(Bid bid, BidType bidType, Integer duration, String primaryCategory) {
-        return BidderBid.of(bid, bidType, null, 5, ExtBidPrebidVideo.of(duration, primaryCategory));
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .dealPriority(5)
+                .videoInfo(ExtBidPrebidVideo.of(duration, primaryCategory))
+                .build();
     }
 
     private static Bid givenBid(String bidId, String impId, String price, List<String> cat) {
