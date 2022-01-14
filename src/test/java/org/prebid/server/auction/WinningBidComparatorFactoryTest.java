@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.response.Bid;
 import org.junit.Test;
 import org.prebid.server.auction.model.BidInfo;
+import org.prebid.server.bidder.model.BidderBid;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -376,21 +377,23 @@ public class WinningBidComparatorFactoryTest {
     }
 
     private static BidInfo givenBidInfo(float price, String dealId) {
+        final Bid bid = Bid.builder().impid(IMP_ID).price(BigDecimal.valueOf(price)).dealid(dealId).build();
         return BidInfo.builder()
                 .correspondingImp(Imp.builder().build())
-                .bid(Bid.builder().impid(IMP_ID).price(BigDecimal.valueOf(price)).dealid(dealId).build())
+                .bidderBid(BidderBid.builder().bid(bid).build())
                 .correspondingImp(Imp.builder().id(IMP_ID).build())
                 .build();
     }
 
     private static BidInfo givenBidInfo(float price, String dealId, List<String> impDealIds) {
+        final Bid bid = Bid.builder().impid(IMP_ID).price(BigDecimal.valueOf(price)).dealid(dealId).build();
         final List<Deal> impDeals = impDealIds.stream()
                 .map(impDealId -> Deal.builder().id(impDealId).build())
                 .collect(Collectors.toList());
         final Pmp pmp = Pmp.builder().deals(impDeals).build();
 
         return BidInfo.builder()
-                .bid(Bid.builder().impid(IMP_ID).price(BigDecimal.valueOf(price)).dealid(dealId).build())
+                .bidderBid(BidderBid.builder().bid(bid).build())
                 .correspondingImp(Imp.builder().id(IMP_ID).pmp(pmp).build())
                 .build();
     }

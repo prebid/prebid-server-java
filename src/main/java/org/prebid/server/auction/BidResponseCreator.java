@@ -228,7 +228,7 @@ public class BidResponseCreator {
 
                 final Bid updatedBid = updateBid(
                         receivedBid, bidType, bidder, videoStoredDataResult, auctionContext, eventsContext, lineItemId);
-                modifiedBidderBids.add(bidderBid.with(updatedBid));
+                modifiedBidderBids.add(bidderBid.toBuilder().bid(updatedBid).build());
             }
 
             final BidderSeatBid modifiedSeatBid = seatBid.with(modifiedBidderBids);
@@ -410,8 +410,7 @@ public class BidResponseCreator {
         final String lineItemId = extDealLine != null ? extDealLine.getLineItemId() : null;
 
         return BidInfo.builder()
-                .bid(bid)
-                .bidType(type)
+                .bidderBid(BidderBid.builder().bid(bid).type(type).build())
                 .bidder(bidder)
                 .correspondingImp(correspondingImp)
                 .lineItemId(lineItemId)
@@ -642,7 +641,7 @@ public class BidResponseCreator {
             if (winningLineItemId != null) {
                 txnLog.lineItemSentToClientAsTopMatch().add(winningLineItemId);
 
-                final String impIdOfWinningBid = winningBidInfo.getBid().getImpid();
+                final String impIdOfWinningBid = winningBidInfo.getBidderBid().getBid().getImpid();
                 impToLineItemIds.get(impIdOfWinningBid).stream()
                         .filter(lineItemId -> !Objects.equals(lineItemId, winningLineItemId))
                         .forEach(lineItemId -> txnLog.lostAuctionToLineItems().get(lineItemId).add(winningLineItemId));
@@ -808,7 +807,7 @@ public class BidResponseCreator {
     }
 
     private static boolean isValidForCaching(BidInfo bidInfo) {
-        final Bid bid = bidInfo.getBid();
+        final Bid bid = bidInfo.getBidderBid().getBid();
         final BigDecimal price = bid.getPrice();
         return bid.getDealid() != null ? price.compareTo(BigDecimal.ZERO) >= 0 : price.compareTo(BigDecimal.ZERO) > 0;
     }
@@ -818,7 +817,8 @@ public class BidResponseCreator {
      */
     private static Map<Bid, CacheInfo> toMapBidsWithEmptyCacheIds(Set<BidInfo> bids) {
         return bids.stream()
-                .map(BidInfo::getBid)
+                .map(BidInfo::getBidderBid)
+                .map(BidderBid::getBid)
                 .collect(Collectors.toMap(Function.identity(), ignored -> CacheInfo.empty()));
     }
 
@@ -831,7 +831,7 @@ public class BidResponseCreator {
         if (bidInfos.size() > bidToCacheId.size()) {
             final Map<Bid, CacheInfo> updatedBidToCacheInfo = new HashMap<>(bidToCacheId);
             for (BidInfo bidInfo : bidInfos) {
-                final Bid bid = bidInfo.getBid();
+                final Bid bid = bidInfo.getBidderBid().getBid();
                 if (!updatedBidToCacheInfo.containsKey(bid)) {
                     updatedBidToCacheInfo.put(bid, CacheInfo.empty());
                 }
@@ -1206,8 +1206,8 @@ public class BidResponseCreator {
                                            Map<Bid, CacheInfo> bidsWithCacheIds,
                                            Map<String, List<ExtBidderError>> bidErrors) {
 
-        final Bid bid = bidInfo.getBid();
-        final BidType bidType = bidInfo.getBidType();
+        final BidderBid bidderBid = bidInfo.getBidderBid();
+        final Bid bid = bidderBid.getBid();
         final String bidder = bidInfo.getBidder();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
 
@@ -1221,7 +1221,7 @@ public class BidResponseCreator {
             modifiedBidAdm = null;
         }
 
-        if (bidType.equals(BidType.xNative) && modifiedBidAdm != null) {
+        if (bidderBid.getType().equals(BidType.xNative) && modifiedBidAdm != null) {
             try {
                 modifiedBidAdm = createNativeMarkup(modifiedBidAdm, correspondingImp);
             } catch (PreBidException e) {
@@ -1233,7 +1233,7 @@ public class BidResponseCreator {
 
         final Bid modifiedBid = bid.toBuilder().adm(modifiedBidAdm).build();
         return bidInfo.toBuilder()
-                .bid(modifiedBid)
+                .bidderBid(bidderBid.toBuilder().bid(modifiedBid).build())
                 .cacheInfo(cacheInfo)
                 .build();
     }
@@ -1243,8 +1243,9 @@ public class BidResponseCreator {
      */
     private Bid toBid(BidInfo bidInfo, ExtRequestTargeting targeting, BidRequest bidRequest, Account account) {
         final TargetingInfo targetingInfo = bidInfo.getTargetingInfo();
-        final BidType bidType = bidInfo.getBidType();
-        final Bid bid = bidInfo.getBid();
+        final BidderBid bidderBid = bidInfo.getBidderBid();
+        final BidType bidType = bidderBid.getType();
+        final Bid bid = bidderBid.getBid();
 
         final CacheInfo cacheInfo = bidInfo.getCacheInfo();
         final String cacheId = cacheInfo != null ? cacheInfo.getCacheId() : null;

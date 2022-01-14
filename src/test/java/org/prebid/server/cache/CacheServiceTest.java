@@ -19,6 +19,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
+import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
@@ -265,7 +266,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(RuntimeException.class).hasMessage("Response exception");
 
-        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBidderBid().getBid());
         assertThat(result.getHttpCall())
                 .isEqualTo(DebugHttpCall.builder()
                         .requestHeaders(givenDebugHeaders())
@@ -296,7 +297,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(PreBidException.class).hasMessage("HTTP status code 503");
 
-        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBidderBid().getBid());
         assertThat(result.getHttpCall())
                 .isEqualTo(DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -329,7 +330,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getCacheBids()).isEmpty();
         assertThat(result.getError()).isInstanceOf(PreBidException.class).hasMessage("Cannot parse response: response");
 
-        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBidderBid().getBid());
         assertThat(result.getHttpCall())
                 .isEqualTo(DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -364,7 +365,7 @@ public class CacheServiceTest extends VertxTest {
         assertThat(result.getError()).isInstanceOf(PreBidException.class)
                 .hasMessage("The number of response cache objects doesn't match with bids");
 
-        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBidderBid().getBid());
         assertThat(result.getHttpCall()).isNotNull()
                 .isEqualTo(DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -392,7 +393,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         final CacheServiceResult result = future.result();
-        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBid());
+        final CacheHttpRequest request = givenCacheHttpRequest(bidinfo.getBidderBid().getBid());
         assertThat(result.getHttpCall())
                 .isEqualTo(DebugHttpCall.builder()
                         .endpoint("http://cache-service/cache")
@@ -422,7 +423,7 @@ public class CacheServiceTest extends VertxTest {
         // then
         final CacheServiceResult result = future.result();
         assertThat(result.getCacheBids()).hasSize(1)
-                .containsEntry(bidinfo.getBid(), CacheInfo.of("uuid1", null, null, null));
+                .containsEntry(bidinfo.getBidderBid().getBid(), CacheInfo.of("uuid1", null, null, null));
     }
 
     @Test
@@ -457,8 +458,8 @@ public class CacheServiceTest extends VertxTest {
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
         verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
-        final Bid bid1 = bidInfo1.getBid();
-        final Bid bid2 = bidInfo2.getBid();
+        final Bid bid1 = bidInfo1.getBidderBid().getBid();
+        final Bid bid2 = bidInfo2.getBidderBid().getBid();
 
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts())
@@ -705,7 +706,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
-                .containsEntry(bidInfo.getBid(), CacheInfo.of("uuid1", null, null, null));
+                .containsEntry(bidInfo.getBidderBid().getBid(), CacheInfo.of("uuid1", null, null, null));
     }
 
     @Test
@@ -725,7 +726,7 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         assertThat(future.result().getCacheBids()).hasSize(1)
-                .containsEntry(bidInfo.getBid(), CacheInfo.of(null, "uuid1", null, null));
+                .containsEntry(bidInfo.getBidderBid().getBid(), CacheInfo.of(null, "uuid1", null, null));
     }
 
     @Test
@@ -778,8 +779,8 @@ public class CacheServiceTest extends VertxTest {
         // then
         assertThat(future.result().getCacheBids()).hasSize(2)
                 .containsOnly(
-                        entry(bidInfo1.getBid(), CacheInfo.of("uuid1", "videoUuid1", null, null)),
-                        entry(bidInfo2.getBid(), CacheInfo.of("uuid2", null, null, null)));
+                        entry(bidInfo1.getBidderBid().getBid(), CacheInfo.of("uuid1", "videoUuid1", null, null)),
+                        entry(bidInfo2.getBidderBid().getBid(), CacheInfo.of("uuid2", null, null, null)));
     }
 
     @Test
@@ -839,7 +840,7 @@ public class CacheServiceTest extends VertxTest {
                         PutObject.builder()
                                 .type("json")
                                 .aid("auctionId")
-                                .value(mapper.valueToTree(bidInfo1.getBid()))
+                                .value(mapper.valueToTree(bidInfo1.getBidderBid().getBid()))
                                 .build(),
                         PutObject.builder().type("xml").aid("auctionId").value(new TextNode("adm")).build());
     }
@@ -993,22 +994,24 @@ public class CacheServiceTest extends VertxTest {
 
     private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer,
                                         UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
+        final Bid bid = bidCustomizer.apply(Bid.builder()).build();
         return BidInfo.builder()
-                .bid(bidCustomizer.apply(Bid.builder()).build())
+                .bidderBid(BidderBid.builder().bid(bid).type(BidType.banner).build())
                 .correspondingImp(impCustomizer.apply(Imp.builder()).build())
                 .bidder("bidder")
-                .bidType(BidType.banner)
                 .build();
     }
 
     private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer,
                                         BidType bidType,
                                         String bidder) {
+
+        final Bid bid = bidCustomizer.apply(Bid.builder()).build();
         return BidInfo.builder()
-                .bid(bidCustomizer.apply(Bid.builder()).build())
-                .correspondingImp(givenImp(UnaryOperator.identity()))
+                .bidderBid(BidderBid.builder().bid(bid).type(bidType).build())
+                .correspondingImp(givenImp(identity()))
                 .bidder(bidder)
-                .bidType(bidType)
                 .build();
     }
 
