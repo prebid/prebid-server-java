@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
@@ -13,6 +14,7 @@ import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.deals.model.TxnLog;
@@ -37,7 +39,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,13 +66,15 @@ public class RequestContext {
         this.imp = Objects.requireNonNull(imp);
         this.deviceExt = getExtNode(bidRequest.getDevice(), Device::getExt, mapper);
         this.geoExt = getExtNode(bidRequest.getDevice(),
-                dev -> getIfNotNull(getIfNotNull(dev, Device::getGeo), Geo::getExt), mapper);
+                device -> getIfNotNull(getIfNotNull(device, Device::getGeo), Geo::getExt), mapper);
         this.userExt = getExtNode(bidRequest.getUser(), User::getExt, mapper);
         this.txnLog = Objects.requireNonNull(txnLog);
     }
 
-    private static <T> ObjectNode getExtNode(T target, Function<T, FlexibleExtension> extExtractor,
+    private static <T> ObjectNode getExtNode(T target,
+                                             Function<T, FlexibleExtension> extExtractor,
                                              JacksonMapper mapper) {
+
         final FlexibleExtension ext = target != null ? extExtractor.apply(target) : null;
         return ext != null ? (ObjectNode) mapper.mapper().valueToTree(ext) : null;
     }
@@ -80,7 +83,7 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         switch (type) {
             case domain:
-                return org.apache.commons.lang3.ObjectUtils.defaultIfNull(
+                return ObjectUtils.defaultIfNull(
                         getIfNotNull(bidRequest.getSite(), Site::getDomain),
                         getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
             case publisherDomain:
@@ -102,8 +105,8 @@ public class RequestContext {
             case bidderParam:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToString);
             case userFirstPartyData:
-                return userAttributeReader.read(
-                        bidRequest.getUser(), category, RequestContext::nodeToString, String.class);
+                return userAttributeReader.read(bidRequest.getUser(), category,
+                        RequestContext::nodeToString, String.class);
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToString);
             default:
@@ -124,8 +127,8 @@ public class RequestContext {
             case bidderParam:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToInteger);
             case userFirstPartyData:
-                return userAttributeReader.read(
-                        bidRequest.getUser(), category, RequestContext::nodeToInteger, Integer.class);
+                return userAttributeReader.read(bidRequest.getUser(), category,
+                        RequestContext::nodeToInteger, Integer.class);
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToInteger);
             default:
@@ -140,15 +143,14 @@ public class RequestContext {
             case mediaType:
                 return getMediaTypes();
             case bidderParam:
-                return impBidderAttributeReader
-                        .readFromExt(imp, category, node -> nodeToList(node, RequestContext::nodeToString));
+                return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfStrings);
             case userSegment:
                 return getSegments(category);
             case userFirstPartyData:
-                return userAttributeReader.readFromExt(
-                        bidRequest.getUser(), category, node -> nodeToList(node, RequestContext::nodeToString));
+                return userAttributeReader.readFromExt(bidRequest.getUser(), category,
+                        RequestContext::nodeToListOfStrings);
             case siteFirstPartyData:
-                return getSiteFirstPartyData(category, node -> nodeToList(node, RequestContext::nodeToString));
+                return getSiteFirstPartyData(category, RequestContext::nodeToListOfStrings);
             default:
                 throw new TargetingSyntaxException(
                         String.format("Unexpected category for fetching string values for: %s", type));
@@ -159,13 +161,12 @@ public class RequestContext {
         final TargetingCategory.Type type = category.type();
         switch (type) {
             case bidderParam:
-                return impBidderAttributeReader
-                        .readFromExt(imp, category, node -> nodeToList(node, RequestContext::nodeToInteger));
+                return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfIntegers);
             case userFirstPartyData:
-                return userAttributeReader.readFromExt(
-                        bidRequest.getUser(), category, node -> nodeToList(node, RequestContext::nodeToInteger));
+                return userAttributeReader.readFromExt(bidRequest.getUser(), category,
+                        RequestContext::nodeToListOfIntegers);
             case siteFirstPartyData:
-                return getSiteFirstPartyData(category, node -> nodeToList(node, RequestContext::nodeToInteger));
+                return getSiteFirstPartyData(category, RequestContext::nodeToListOfIntegers);
             default:
                 throw new TargetingSyntaxException(
                         String.format("Unexpected category for fetching integer values for: %s", type));
@@ -204,7 +205,11 @@ public class RequestContext {
     }
 
     private String getFirstNonNullStringFromImpExt(String... path) {
-        return Arrays.stream(path).map(this::getStringFromImpExt).filter(Objects::nonNull).findFirst().orElse(null);
+        return Arrays.stream(path)
+                .map(this::getStringFromImpExt)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
     }
 
     private String getStringFromImpExt(String path) {
@@ -235,8 +240,10 @@ public class RequestContext {
         return mediaTypes;
     }
 
-    private static <T> T getValueFrom(ObjectNode objectNode, TargetingCategory category,
+    private static <T> T getValueFrom(ObjectNode objectNode,
+                                      TargetingCategory category,
                                       Function<JsonNode, T> valueExtractor) {
+
         final JsonNode jsonNode = getIfNotNull(objectNode, node -> node.at(toJsonPointer(category.path())));
         return getIfNotNull(jsonNode, valueExtractor);
     }
@@ -249,7 +256,10 @@ public class RequestContext {
     }
 
     public List<String> getSegments(TargetingCategory category) {
-        return ListUtils.emptyIfNull(getIfNotNull(getIfNotNull(bidRequest, BidRequest::getUser), User::getData))
+        final User user = getIfNotNull(bidRequest, BidRequest::getUser);
+        final List<Data> userData = getIfNotNull(user, User::getData);
+
+        return ListUtils.emptyIfNull(userData)
                 .stream()
                 .filter(Objects::nonNull)
                 .filter(data -> Objects.equals(data.getId(), category.path()))
@@ -260,7 +270,8 @@ public class RequestContext {
     }
 
     private static String toJsonPointer(String path) {
-        return Arrays.stream(path.split("\\.")).collect(Collectors.joining("/", "/", StringUtils.EMPTY));
+        return Arrays.stream(path.split("\\."))
+                .collect(Collectors.joining("/", "/", StringUtils.EMPTY));
     }
 
     private static String nodeToString(JsonNode node) {
@@ -269,6 +280,20 @@ public class RequestContext {
 
     private static Integer nodeToInteger(JsonNode node) {
         return node.isInt() ? node.asInt() : null;
+    }
+
+    private static List<String> nodeToListOfStrings(JsonNode node) {
+        final Function<JsonNode, String> valueExtractor = RequestContext::nodeToString;
+        return node.isTextual()
+                ? Collections.singletonList(valueExtractor.apply(node))
+                : nodeToList(node, valueExtractor);
+    }
+
+    private static List<Integer> nodeToListOfIntegers(JsonNode node) {
+        final Function<JsonNode, Integer> valueExtractor = RequestContext::nodeToInteger;
+        return node.isInt()
+                ? Collections.singletonList(valueExtractor.apply(node))
+                : nodeToList(node, valueExtractor);
     }
 
     private static <T> List<T> nodeToList(JsonNode node, Function<JsonNode, T> valueExtractor) {
@@ -284,8 +309,7 @@ public class RequestContext {
 
     private static class AttributeReader<T> {
 
-        private static final Set<Class<?>> SUPPORTED_PROPERTY_TYPES = new HashSet<>(Arrays.asList(
-                String.class, Integer.class, int.class));
+        private static final Set<Class<?>> SUPPORTED_PROPERTY_TYPES = Set.of(String.class, Integer.class, int.class);
 
         private static final String EXT_PREBID = "prebid";
         private static final String EXT_BIDDER = "bidder";
@@ -336,8 +360,10 @@ public class RequestContext {
                             node -> node.get(EXT_BIDDER)));
         }
 
-        public <A> A read(
-                T target, TargetingCategory category, Function<JsonNode, A> valueExtractor, Class<A> attributeType) {
+        public <A> A read(T target,
+                          TargetingCategory category,
+                          Function<JsonNode, A> valueExtractor,
+                          Class<A> attributeType) {
 
             return ObjectUtil.firstNonNull(
                     // look in the object itself
@@ -347,17 +373,15 @@ public class RequestContext {
         }
 
         public <A> A readFromObject(T target, TargetingCategory category, Class<A> attributeType) {
-            if (isTopLevelAttribute(category.path())) {
-                return getIfNotNull(target, user -> readProperty(user, category.path(), attributeType));
-            }
-            return null;
+            return isTopLevelAttribute(category.path())
+                    ? getIfNotNull(target, user -> readProperty(user, category.path(), attributeType))
+                    : null;
         }
 
         public <A> A readFromExt(T target, TargetingCategory category, Function<JsonNode, A> valueExtractor) {
-            return getIfNotNull(
-                    getIfNotNull(
-                            getIfNotNull(target, extPathExtractor), node -> node.at(toJsonPointer(category.path()))),
-                    valueExtractor);
+            final JsonNode path = getIfNotNull(target, extPathExtractor);
+            final JsonNode value = getIfNotNull(path, node -> node.at(toJsonPointer(category.path())));
+            return getIfNotNull(value, valueExtractor);
         }
 
         private boolean isTopLevelAttribute(String path) {
@@ -368,7 +392,7 @@ public class RequestContext {
             try {
                 final BeanInfo beanInfo = Introspector.getBeanInfo(beanClass, Object.class);
                 return Arrays.stream(beanInfo.getPropertyDescriptors())
-                        .filter(pd -> SUPPORTED_PROPERTY_TYPES.contains(pd.getPropertyType()))
+                        .filter(descriptor -> SUPPORTED_PROPERTY_TYPES.contains(descriptor.getPropertyType()))
                         .collect(Collectors.toMap(FeatureDescriptor::getName, Function.identity()));
             } catch (IntrospectionException e) {
                 return ExceptionUtils.rethrow(e);
