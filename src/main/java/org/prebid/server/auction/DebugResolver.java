@@ -81,7 +81,8 @@ public class DebugResolver {
         final boolean debugAllowedByBidder = bidderCatalog.isDebugAllowed(bidder);
 
         if (debugEnabled && !debugOverride && !debugAllowedByBidder) {
-            auctionContext.getPrebidLog().debug().bidderLevelDebugDisabled(String.format("Debug turned off for bidder: %s", bidder));
+            auctionContext.getPrebidLog().debug().bidderLevelDebugDisabled(
+                    String.format("Debug turned off for bidder: %s", bidder));
         }
 
         return debugOverride || (debugEnabled && debugAllowedByBidder);

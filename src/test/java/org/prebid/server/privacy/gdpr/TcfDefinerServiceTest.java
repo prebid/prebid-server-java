@@ -230,8 +230,9 @@ public class TcfDefinerServiceTest {
         assertThat(result).isSucceeded();
         assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
         assertThat(prebidLog.warning().getAllMessages())
-                .containsExactly(PrebidMessage.of(10011, "Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
-                        + "TCF version 1 is deprecated and treated as corrupted TCF version 2"));
+                .containsExactly(PrebidMessage.of(10011,
+                        "Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
+                                + "TCF version 1 is deprecated and treated as corrupted TCF version 2"));
     }
 
     @Test

@@ -379,7 +379,8 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, prebidLog);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    prebidLog.warning().multibid(String.format("Invalid MultiBid: CodePrefix %s that was specified for bidders %s "
+                    prebidLog.warning().multibid(String.format("Invalid MultiBid: CodePrefix %s "
+                            + "that was specified for bidders %s "
                             + "will be skipped.", codePrefix, bidders));
                 }
 
@@ -399,7 +400,8 @@ public class ExchangeService {
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                                  PrebidLog prebidLog) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            prebidLog.warning().multibid(String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            prebidLog.warning().multibid(
+                    String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
             return;
         }
 
