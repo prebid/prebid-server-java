@@ -21,8 +21,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.CpmRange;
 import org.prebid.server.auction.PriceGranularity;
-import org.prebid.server.auction.model.BidderMessageFactory;
-import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.PrebidLog;
@@ -335,7 +333,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
         final List<Integer> durations = ListUtils.emptyIfNull(targeting.getDurationrangesec()).stream()
                 .sorted().collect(Collectors.toList());
 
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
         final Map<String, Map<String, ExtDealTier>> impIdToBiddersDealTear = isSupportedForDeals(bidRequest)
                 ? extractDealTierPerImpAndBidder(bidRequest.getImp(), prebidLog)
                 : Collections.emptyMap();
@@ -349,10 +347,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
 
         rejectedBids.addAll(collectRejectedDuplicatedBids(uniqueCatKeysToCategoryBids));
-        rejectedBids.stream()
-                .map(e -> BidderMessageFactory.error(
-                        BidderMessageType.generic_category_mapping_error, e.getErrorMessage()))
-                .forEach(prebidLog::logMessage);
+        rejectedBids.forEach(e -> prebidLog.error().categoryMapping(e.getErrorMessage()));
 
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
@@ -471,27 +466,24 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final ExtDealTier dealTier = ObjectUtil.getIfNotNull(dealTierContainer, DealTierContainer::getDealTier);
         if (dealTier == null) {
-            prebidLog.logMessage(BidderMessageFactory.error(
-                    BidderMessageType.generic_category_mapping_error,
-                    String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId)));
+            prebidLog.error().categoryMapping(
+                    String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId));
             return false;
         }
 
         if (StringUtils.isBlank(dealTier.getPrefix())) {
-            prebidLog.logMessage(BidderMessageFactory.error(
-                    BidderMessageType.generic_category_mapping_error,
+            prebidLog.error().categoryMapping(
                     String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
-                            + " dealTier.prefix empty string or null", bidder, impId)));
+                            + " dealTier.prefix empty string or null", bidder, impId));
             return false;
         }
 
         final Integer minDealTier = dealTier.getMinDealTier();
         if (minDealTier == null || minDealTier <= 0) {
-            prebidLog.logMessage(BidderMessageFactory.error(
-                    BidderMessageType.generic_category_mapping_error,
+            prebidLog.error().categoryMapping(
                     String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
                                     + " dealTier.minDealTier should be larger than 0, but was %s",
-                            bidder, impId, minDealTier)));
+                            bidder, impId, minDealTier));
             return false;
         }
 

@@ -31,8 +31,6 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.auction.model.PrebidLog;
-import org.prebid.server.auction.model.PrivacyMessageFactory;
-import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -199,28 +197,24 @@ public class AmpRequestFactory {
         }
 
         if (consentType == ConsentType.tcfV1) {
-            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.tcf_error,
-                    "Consent type tcfV1 is no longer supported"));
+            prebidLog.error().tcf("Consent type tcfV1 is no longer supported");
             return;
         }
 
         final boolean isValidTcfv2 = BooleanUtils.isTrue(consentParam.getTcfV2());
         if (consentType == ConsentType.tcfV2 && !isValidTcfv2) {
-            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.tcf_error,
-                    constructMessageForInvalidParam(consentParam, consentType)));
+            prebidLog.error().tcf(constructMessageForInvalidParam(consentParam, consentType));
             return;
         }
 
         final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
         if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
-            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error,
-                    constructMessageForInvalidParam(consentParam, consentType)));
+            prebidLog.error().generic(constructMessageForInvalidParam(consentParam, consentType));
             return;
         }
 
         if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
-            prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error,
-                    constructMessageForInvalidParam(consentParam, consentType)));
+            prebidLog.error().generic(constructMessageForInvalidParam(consentParam, consentType));
         }
     }
 

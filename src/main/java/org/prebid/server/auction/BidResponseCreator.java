@@ -468,7 +468,7 @@ public class BidResponseCreator {
     private static CategoryMappingResult addCategoryMappingErrors(CategoryMappingResult categoryMappingResult,
                                                                   AuctionContext auctionContext) {
 
-        auctionContext.getPrebidLog().mergeOtherLog(categoryMappingResult.getPrebidLog());
+        auctionContext.getPrebidLog().merge(categoryMappingResult.getPrebidLog());
 
         return categoryMappingResult;
     }
@@ -1002,8 +1002,8 @@ public class BidResponseCreator {
      * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
      */
     private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
-        return auctionContext.getPrebidLog().getPrebidMessagesByTag("ERROR").stream()
-                .map(prebidMessage -> ExtBidderError.of(BidderError.Type.generic.getCode(), prebidMessage.getMessage()))
+        return auctionContext.getPrebidLog().error().getAllMessages().stream()
+                .map(prebidMessage -> ExtBidderError.of(prebidMessage.getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }
 
@@ -1043,10 +1043,9 @@ public class BidResponseCreator {
     }
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
-        final List<ExtBidderError> contextWarnings = auctionContext.getPrebidLog().getPrebidMessagesByTag("WARNING")
-                .stream()
+        final List<ExtBidderError> contextWarnings = auctionContext.getPrebidLog().warning().getAllMessages().stream()
                 .map(prebidMessage -> ExtBidderError.of(
-                        BidderError.Type.generic.getCode(),
+                        prebidMessage.getCode(),
                         prebidMessage.getMessage()))
                 .collect(Collectors.toList());
 

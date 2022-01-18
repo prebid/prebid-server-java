@@ -208,7 +208,7 @@ public class TcfDefinerServiceTest {
                 .enabled(true)
                 .consentStringMeansInScope(true)
                 .build();
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         tcfDefinerService = new TcfDefinerService(
                 gdprConfig,
@@ -229,10 +229,9 @@ public class TcfDefinerServiceTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
-        assertThat(prebidLog.getPrebidMessagesByTag("TCF"))
-                .flatExtracting(PrebidMessage::getMessage)
-                .containsOnly("Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
-                        + "TCF version 1 is deprecated and treated as corrupted TCF version 2");
+        assertThat(prebidLog.warning().getAllMessages())
+                .containsExactly(PrebidMessage.of(10011, "Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
+                        + "TCF version 1 is deprecated and treated as corrupted TCF version 2"));
     }
 
     @Test

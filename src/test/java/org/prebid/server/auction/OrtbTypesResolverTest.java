@@ -25,7 +25,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final JsonNode inputParam = mapper.createArrayNode();
 
         // when
-        ortbTypesResolver.normalizeTargeting(inputParam, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(inputParam, PrebidLog.empty(), "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createArrayNode());
@@ -36,7 +36,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("gender", array("male", "female")));
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeTargeting(inputParam, prebidLog, "referer");
@@ -44,11 +44,10 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("gender", "male")));
-        assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
-                .extracting(PrebidMessage::getMessage)
-                .containsOnly("Incorrect type for first party data field targeting.user.gender,"
+        assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field targeting.user.gender,"
                         + " expected is string, but was an array of strings. Converted to string "
-                        + "by taking first element of array.");
+                        + "by taking first element of array."));
     }
 
     @Test
@@ -56,7 +55,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("keywords", array("keyword1", "keyword2")));
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeTargeting(inputParam, prebidLog, "referer");
@@ -64,17 +63,16 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user",
                 mapper.createObjectNode().put("keywords", "keyword1,keyword2")));
-        assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
-                .extracting(PrebidMessage::getMessage)
-                .containsOnly("Incorrect type for first party data field targeting.user.keywords,"
+        assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field targeting.user.keywords,"
                         + " expected is string, but was an array of strings. Converted to string "
-                        + "by separating values with comma.");
+                        + "by separating values with comma."));
     }
 
     @Test
     public void normalizeTargetingShouldRemoveUserIfNull() {
         final JsonNode inputParam = mapper.createObjectNode().set("user", null);
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeTargeting(inputParam, prebidLog, "referer");
@@ -88,17 +86,16 @@ public class OrtbTypesResolverTest extends VertxTest {
         // given
         final JsonNode inputParam = mapper.createObjectNode().set("user",
                 mapper.createObjectNode().set("keywords", mapper.createArrayNode().add("keyword1").add(2)));
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeTargeting(inputParam, prebidLog, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
-        assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
-                .extracting(PrebidMessage::getMessage)
-                .containsOnly("Incorrect type for first party data field targeting.user.keywords,"
-                        + " expected strings, but was `ARRAY of different types`. Failed to convert to correct type.");
+        assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field targeting.user.keywords,"
+                        + " expected strings, but was `ARRAY of different types`. Failed to convert to correct type."));
     }
 
     @Test
@@ -106,17 +103,16 @@ public class OrtbTypesResolverTest extends VertxTest {
         // given
         final JsonNode inputParam = mapper.createObjectNode()
                 .set("user", mapper.createObjectNode().set("gender", new IntNode(1)));
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeTargeting(inputParam, prebidLog, "referer");
 
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
-        assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
-                .extracting(PrebidMessage::getMessage)
-                .containsOnly("Incorrect type for first party data field targeting.user.gender,"
-                        + " expected strings, but was `NUMBER`. Failed to convert to correct type.");
+        assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field targeting.user.gender,"
+                        + " expected strings, but was `NUMBER`. Failed to convert to correct type."));
     }
 
     @Test
@@ -128,7 +124,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("user", user);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()
@@ -149,7 +145,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("app", app);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("app", mapper.createObjectNode()
@@ -175,7 +171,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().set("site", site);
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode().set("site", mapper.createObjectNode()
@@ -195,7 +191,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("site", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -207,7 +203,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("app", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -219,7 +215,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = mapper.createObjectNode().put("user", "notObjectType");
 
         // when
-        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeTargeting(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(mapper.createObjectNode());
@@ -233,7 +229,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -248,7 +244,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("site", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -263,7 +259,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                         .put("dataField", "dataValue2"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("app", obj("ext", obj("data", obj("extDataField", "extDataValue")
@@ -276,7 +272,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue"))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("extDataField", "extDataValue")))));
@@ -289,7 +285,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .set("data", mapper.createArrayNode().add(obj("id", "123")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(
@@ -304,7 +300,7 @@ public class OrtbTypesResolverTest extends VertxTest {
                 .set("ext", obj("extField", "extValue")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue"))
@@ -317,7 +313,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue")));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(containerNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
@@ -328,17 +324,16 @@ public class OrtbTypesResolverTest extends VertxTest {
         // given
         final ObjectNode containerNode = obj("user", obj("data", obj("dataField", "dataValue"))
                 .set("ext", mapper.createArrayNode()));
-        final PrebidLog prebidLog = PrebidLog.of();
+        final PrebidLog prebidLog = PrebidLog.empty();
 
         // when
         ortbTypesResolver.normalizeBidRequest(containerNode, prebidLog, "referer");
 
         // then
         assertThat(containerNode).isEqualTo(obj("user", obj("ext", obj("data", obj("dataField", "dataValue")))));
-        assertThat(prebidLog.getPrebidMessagesByTag("WARNING")).hasSize(1)
-                .extracting(PrebidMessage::getMessage)
-                .containsOnly("Incorrect type for first party data field"
-                        + " bidrequest.user.ext, expected is object, but was ARRAY. Replaced with object");
+        assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field"
+                        + " bidrequest.user.ext, expected is object, but was ARRAY. Replaced with object"));
     }
 
     @Test
@@ -382,7 +377,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         requestNode.set("ext", obj("prebid", obj("bidderconfig", array(obj("config", obj("ortb2", ortbConfig))))));
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.empty(), "referer");
 
         // then
         assertThat(requestNode.get("site"))
@@ -465,7 +460,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode requestedFpdContext = fpdContext.deepCopy();
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.empty(), "referer");
 
         // then
         final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);
@@ -510,7 +505,7 @@ public class OrtbTypesResolverTest extends VertxTest {
         final ObjectNode requestFpdUser = fpdUser.deepCopy();
 
         // when
-        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.of(), "referer");
+        ortbTypesResolver.normalizeBidRequest(requestNode, PrebidLog.empty(), "referer");
 
         // then
         final JsonNode config = requestNode.path("ext").path("prebid").path("bidderconfig").path(0);

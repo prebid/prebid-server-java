@@ -36,8 +36,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
-import org.prebid.server.auction.model.BidderMessageFactory;
-import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
@@ -45,8 +43,6 @@ import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.auction.model.PrebidMessage;
-import org.prebid.server.auction.model.PrivacyMessageFactory;
-import org.prebid.server.auction.model.PrivacyMessageType;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -542,7 +538,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         verify(vastModifier)
                 .createBidVastXml(eq(bidder1), eq(null), eq(BID_NURL), eq(bidId1),
-                        eq(accountId), eq(expectedEventContext), eq(PrebidLog.of()), eq(null));
+                        eq(accountId), eq(expectedEventContext), eq(PrebidLog.empty()), eq(null));
 
         final ArgumentCaptor<List<BidInfo>> bidInfoCaptor = ArgumentCaptor.forClass(List.class);
         verify(cacheService).cacheBidsOpenrtb(
@@ -939,10 +935,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
-        final PrebidLog prebidLog = PrebidLog.of();
-        prebidLog.logMessage(BidderMessageFactory.error(
-                BidderMessageType.invalid_tracking_url_for_vastxml,
-                "Filtered bid 2"));
+        final PrebidLog prebidLog = PrebidLog.empty();
+        prebidLog.error().invalidTrackingUrl("Filtered bid 2");
 
         given(categoryMappingService.createCategoryMapping(any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
@@ -962,7 +956,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getId)
                 .containsOnly("bidId1");
 
-        assertThat(auctionContext.getPrebidLog().getPrebidMessagesByTag("ERROR"))
+        assertThat(auctionContext.getPrebidLog().error().getAllMessages())
                 .extracting(PrebidMessage::getMessage)
                 .containsExactly("Filtered bid 2");
     }
@@ -2233,7 +2227,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(categoryMappingService.createCategoryMapping(any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(),
                         Collections.singletonMap(bid, true),
-                        bidderResponses, PrebidLog.of())));
+                        bidderResponses, PrebidLog.empty())));
 
         // when
         final BidResponse bidResponse =
@@ -2773,8 +2767,8 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldProcessRequestAndAddErrorFromAuctionContext() {
         // given
-        final PrebidLog prebidLog = PrebidLog.of();
-        prebidLog.logMessage(PrivacyMessageFactory.error(PrivacyMessageType.generic_privacy_error, "privacy error"));
+        final PrebidLog prebidLog = PrebidLog.empty();
+        prebidLog.error().generic("privacy error");
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
@@ -2795,7 +2789,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 ExtBidResponse.builder()
                         .errors(singletonMap(
                                 "prebid",
-                                singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(), "privacy error"))))
+                                singletonList(ExtBidderError.of(10014, "privacy error"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
                         .prebid(ExtBidResponsePrebid.of(1000L, null))
@@ -2806,11 +2800,9 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldPopulateResponseDebugExtensionAndWarningsIfDebugIsEnabled() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
-        final PrebidLog prebidLog = PrebidLog.of();
-        prebidLog.logMessage(BidderMessageFactory.warning(
-                BidderMessageType.invalid_tracking_url_for_vastxml, "warning1"));
-        prebidLog.logMessage(BidderMessageFactory.warning(
-                BidderMessageType.invalid_tracking_url_for_vastxml, "warning2"));
+        final PrebidLog prebidLog = PrebidLog.empty();
+        prebidLog.error().invalidTrackingUrl("warning1");
+        prebidLog.error().invalidTrackingUrl("warning2");
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2857,11 +2849,11 @@ public class BidResponseCreatorTest extends VertxTest {
 
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
 
-        assertThat(responseExt.getWarnings())
+        assertThat(responseExt.getErrors())
                 .containsOnly(
                         entry("prebid", Arrays.asList(
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning1"),
-                                ExtBidderError.of(BidderError.Type.generic.getCode(), "warning2"))));
+                                ExtBidderError.of(10006, "warning1"),
+                                ExtBidderError.of(10006, "warning2"))));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -2927,7 +2919,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .debugContext(DebugContext.empty())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .debugHttpCalls(new HashMap<>())
-                .prebidLog(PrebidLog.of());
+                .prebidLog(PrebidLog.empty());
 
         return contextCustomizer.apply(auctionContextBuilder).build();
     }

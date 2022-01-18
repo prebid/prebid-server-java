@@ -39,8 +39,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
-import org.prebid.server.auction.model.BidderMessageFactory;
-import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
@@ -1184,27 +1182,27 @@ public class ExchangeServiceTest extends VertxTest {
 
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .auctionParticipations(auctionParticipations)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
         //adding all prebid log entries
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
+        expectedAuctionContext.getPrebidLog().warning().multibid(
                 "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
-                        + " Only bidder bidder2 will be used."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
+                        + " Only bidder bidder2 will be used.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
                 "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
-                        + " Only bidder bidder3 will be used."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
-                "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
-                "Invalid MultiBid: Bidder bidder1 specified multiple times."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
+                        + " Only bidder bidder3 will be used.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
+                "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
+                "Invalid MultiBid: Bidder bidder1 specified multiple times.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
                 "Invalid MultiBid: CodePrefix bi1_3 that was "
-                        + "specified for bidders [bidder1] will be skipped."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
-                "Invalid MultiBid: Bidder bidder1 specified multiple times."));
-        expectedAuctionContext.getPrebidLog().logMessage(BidderMessageFactory.warning(BidderMessageType.multibid,
+                        + "specified for bidders [bidder1] will be skipped.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
+                "Invalid MultiBid: Bidder bidder1 specified multiple times.");
+        expectedAuctionContext.getPrebidLog().warning().multibid(
                 "Invalid MultiBid: CodePrefix ignored that "
-                        + "was specified for bidders [bidder4, bidder5] will be skipped."));
+                        + "was specified for bidders [bidder4, bidder5] will be skipped.");
 
         assertThat(contextArgumentCaptor.getValue()).isEqualTo(expectedAuctionContext);
     }
@@ -2520,12 +2518,12 @@ public class ExchangeServiceTest extends VertxTest {
 
         // when
         exchangeService.holdAuction(givenContext);
+
         // then
-        final PrebidMessage prebidMessage = BidderMessageFactory.warning(
-                BidderMessageType.bidrequest_contains_both_app_and_site,
+        final PrebidMessage prebidMessage = PrebidMessage.of(10007,
                 "BidRequest contains app and site. Removed site object");
-        assertThat(givenContext.getPrebidLog().getPrebidMessagesByTag("bidrequest contains both app and site"))
-                .containsExactly(prebidMessage);
+        assertThat(givenContext.getPrebidLog().warning().getAllMessages())
+                .containsOnly(prebidMessage);
     }
 
     @Test
@@ -2654,16 +2652,16 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final Set<PrebidMessage> messages = Set.of(
-                BidderMessageFactory.warning(BidderMessageType.invalid_price_in_bid, "Dropped bid 'invalid_bid_1'. "
+                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_1'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'"),
-                BidderMessageFactory.warning(BidderMessageType.invalid_price_in_bid, "Dropped bid 'invalid_bid_2'. "
+                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_2'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'"),
-                BidderMessageFactory.warning(BidderMessageType.invalid_price_in_bid, "Dropped bid 'invalid_bid_3'. "
+                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_3'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'")
         );
         assertThat(result.getBidResponse().getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(1);
-        assertThat(givenContext.getPrebidLog().getPrebidMessagesByTag("WARNING"))
+        assertThat(givenContext.getPrebidLog().warning().getAllMessages())
                 .containsExactlyInAnyOrderElementsOf(messages);
 
         verify(metrics, times(3))
@@ -3902,7 +3900,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .httpRequest(HttpRequestContext.builder().headers(CaseInsensitiveMultiMap.empty()).build())
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeout(timeout)

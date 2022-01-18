@@ -635,7 +635,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result).isEqualTo(AuctionContext.builder()
                 .requestTypeMetric(MetricName.openrtb2app)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .hookExecutionContext(hookExecutionContext)
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
@@ -668,7 +668,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final AuctionContext result = target.enrichAuctionContext(
                 AuctionContext.builder()
                         .requestTypeMetric(MetricName.openrtb2app)
-                        .prebidLog(PrebidLog.of())
+                        .prebidLog(PrebidLog.empty())
                         .hookExecutionContext(hookExecutionContext)
                         .txnLog(TxnLog.create())
                         .debugHttpCalls(emptyMap())
@@ -690,7 +690,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2app)
                 .timeout(timeout)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .hookExecutionContext(hookExecutionContext)
                 .txnLog(TxnLog.create())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
@@ -753,7 +753,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Future<BidRequest> result = target.validateRequest(bidRequest, PrebidLog.of());
+        final Future<BidRequest> result = target.validateRequest(bidRequest, PrebidLog.empty());
 
         // then
         assertThat(result).isFailed();
@@ -772,7 +772,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest, PrebidLog.of()).result();
+        final BidRequest result = target.validateRequest(bidRequest, PrebidLog.empty()).result();
 
         // then
         verify(requestValidator).validate(bidRequest);

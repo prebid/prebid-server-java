@@ -23,7 +23,7 @@ public class CategoryMappingResult {
                 Collections.emptyMap(),
                 Collections.emptyMap(),
                 bidderResponses,
-                PrebidLog.of());
+                PrebidLog.empty());
     }
 
     public String getCategory(Bid bid) {

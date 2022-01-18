@@ -111,7 +111,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .privacyContext(defaultPrivacyContext)
                 .debugContext(DebugContext.of(true, null))
                 .build();

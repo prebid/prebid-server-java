@@ -152,7 +152,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
 
         // when
@@ -192,7 +192,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty(accountId))
                 .requestTypeMetric(requestType)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
 
         // when
@@ -241,7 +241,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
                 .requestTypeMetric(MetricName.openrtb2web)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
 
         // when
@@ -270,7 +270,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
 
         // when
@@ -293,7 +293,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .build();
 
         // when

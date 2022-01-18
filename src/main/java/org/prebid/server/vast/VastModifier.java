@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.auction.model.BidderMessageFactory;
-import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -87,8 +85,7 @@ public class VastModifier {
         try {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {
-            prebidLog.logMessage(BidderMessageFactory.error(
-                    BidderMessageType.invalid_tracking_url_for_vastxml, e.getMessage()));
+            prebidLog.error().invalidTrackingUrl(e.getMessage());
             metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
         }
         return vastXml;

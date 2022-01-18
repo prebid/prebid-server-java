@@ -18,8 +18,6 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidderMessageFactory;
-import org.prebid.server.auction.model.BidderMessageType;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PrebidLog;
@@ -118,7 +116,7 @@ public class Ortb2RequestFactory {
     public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
         return AuctionContext.builder()
                 .requestTypeMetric(requestTypeMetric)
-                .prebidLog(PrebidLog.of())
+                .prebidLog(PrebidLog.empty())
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
@@ -164,7 +162,7 @@ public class Ortb2RequestFactory {
 
         if (validationResult.hasWarnings()) {
             validationResult.getWarnings()
-                    .forEach(e -> prebidLog.logMessage(BidderMessageFactory.warning(BidderMessageType.validation, e)));
+                    .forEach(e -> prebidLog.warning().validation(e));
         }
 
         return validationResult.hasErrors()
