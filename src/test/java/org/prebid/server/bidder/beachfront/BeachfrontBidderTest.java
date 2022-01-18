@@ -80,16 +80,15 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void creationShouldFailWhenEitherOfUrlIsInvalid() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder("invalid", null,
-                        currencyConversionService, jacksonMapper));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder(BANNER_ENDPOINT, "invalid", null,
-                        jacksonMapper));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder(BANNER_ENDPOINT, "invalid", currencyConversionService,
-                        jacksonMapper));
+    public void creationShouldFailOnInvalidBannerUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new BeachfrontBidder(
+                "invalid", null, currencyConversionService, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidVideoUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new BeachfrontBidder(
+                BANNER_ENDPOINT, "invalid", null, jacksonMapper));
     }
 
     @Test
