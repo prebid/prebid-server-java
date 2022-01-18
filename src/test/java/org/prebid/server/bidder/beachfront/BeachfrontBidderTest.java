@@ -234,6 +234,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                 + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
                                 + "currency.\nThe provided value of imp.ext.beachfront.bidfloor,"
                                 + " 1 USD is being used as a fallback.");
+
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
                 .containsExactly(BeachfrontVideoRequest.builder()
