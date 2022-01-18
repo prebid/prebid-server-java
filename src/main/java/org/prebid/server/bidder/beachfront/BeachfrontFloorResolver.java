@@ -57,9 +57,10 @@ public class BeachfrontFloorResolver {
 
     private BidFloorResult convertBidFloor(String bidFloorCur, BigDecimal bidFloor, BidRequest bidRequest) {
         try {
-            final BigDecimal convertationResult = currencyConversionService.convertCurrency(
+            final BigDecimal conversionResult = currencyConversionService.convertCurrency(
                     bidFloor, bidRequest, bidFloorCur, DEFAULT_BID_CURRENCY);
-            return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, convertationResult));
+            
+            return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, conversionResult));
         } catch (PreBidException e) {
             return BidFloorResult.error(BidderError.badInput(e.getMessage()));
         }
@@ -68,30 +69,29 @@ public class BeachfrontFloorResolver {
     private static BidFloorResult processBidFloorFallback(BigDecimal impBidFloor,
                                                           BigDecimal extImpBidFloor,
                                                           String bidFloorCur) {
-
-        final String currencyConversionErrorMessage = "Currency service was unable to convert currency.";
-
         if (extImpBidFloor.compareTo(MIN_BID_FLOOR) > 0) {
             final String errorMessage = String.format(
                     "The following error was received from the currency converter while attempting "
-                            + "to convert the imp.bidfloor value of %s from %s to USD:\n%s\n"
+                            + "to convert the imp.bidfloor value of %s from %s to USD:\n"
+                            + "Currency service was unable to convert currency.\n"
                             + "The provided value of "
                             + "imp.ext.beachfront.bidfloor, %s USD is being used as a fallback.",
                     impBidFloor,
                     bidFloorCur,
-                    currencyConversionErrorMessage,
                     extImpBidFloor);
+            
             return BidFloorResult.fallback(
                     Price.of(DEFAULT_BID_CURRENCY, extImpBidFloor),
                     BidderError.badInput(errorMessage));
         } else {
             final String errorMessage = String.format(
                     "The following error was received from the currency converter while attempting "
-                            + "to convert the imp.bidfloor value of %s from %s to USD:\n%s\nA value of "
+                            + "to convert the imp.bidfloor value of %s from %s to USD:\n" 
+                            + "Currency service was unable to convert currency.\nA value of "
                             + "imp.ext.beachfront.bidfloor was not provided. The bid is being skipped.",
                     impBidFloor,
-                    bidFloorCur,
-                    currencyConversionErrorMessage);
+                    bidFloorCur);
+            
             return BidFloorResult.fatalError(BidderError.badInput(errorMessage));
         }
     }
