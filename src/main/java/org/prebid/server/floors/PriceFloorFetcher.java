@@ -92,7 +92,7 @@ public class PriceFloorFetcher {
         final AccountPriceFloorsFetchConfig fetchConfig = getFetchConfig(account);
         final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
 
-        if (!shouldFetchRules(fetchEnabled)) {
+        if (BooleanUtils.isFalse(fetchEnabled)) {
             return FetchResult.of(null, FetchStatus.none);
         }
 
@@ -107,11 +107,6 @@ public class PriceFloorFetcher {
         }
 
         return FetchResult.of(null, FetchStatus.inprogress);
-    }
-
-    private boolean shouldFetchRules(Boolean fetchEnabled) {
-
-        return !BooleanUtils.isFalse(fetchEnabled);
     }
 
     private boolean isUrlValid(String url) {
