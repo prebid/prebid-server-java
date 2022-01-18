@@ -183,7 +183,9 @@ public class BeachfrontBidder implements Bidder<Void> {
                 continue;
             }
 
-            slots.add(BeachfrontSlot.of(imp.getId(), appId, bidFloorResult.getPrice().getValue(), makeBeachfrontSizes(imp.getBanner())));
+            final BeachfrontSlot beachfrontSlot = BeachfrontSlot.of(
+                    imp.getId(), appId, bidFloorResult.getPrice().getValue(), makeBeachfrontSizes(imp.getBanner()));
+            slots.add(beachfrontSlot);
         }
         if (slots.isEmpty()) {
             return null;
