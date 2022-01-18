@@ -96,9 +96,9 @@ public class OrtbTypesResolverTest extends VertxTest {
         // then
         assertThat(inputParam).isEqualTo(mapper.createObjectNode().set("user", mapper.createObjectNode()));
         assertThat(prebidLog.debug().getAllMessages()).hasSize(1)
-                .containsExactly(PrebidMessage.of(10015,
-                        "Incorrect type for first party data field targeting.user.keywords,"
-                                + " expected strings, but was `ARRAY of different types`. Failed to convert to correct type."));
+                .containsExactly(PrebidMessage.of(10015, "Incorrect type for first party data field "
+                        + "targeting.user.keywords, expected strings, but was `ARRAY of different types`. "
+                        + "Failed to convert to correct type."));
     }
 
     @Test
