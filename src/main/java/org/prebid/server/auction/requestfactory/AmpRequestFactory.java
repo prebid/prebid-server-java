@@ -197,7 +197,7 @@ public class AmpRequestFactory {
         }
 
         if (consentType == ConsentType.unknown) {
-            errors.add("Invalid consent_type param passed");
+            prebidLog.error().generic("Invalid consent_type param passed");
             return;
         }
 

@@ -1675,8 +1675,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidErrors())
-                .containsExactly("Invalid consent_type param passed");
+        assertThat(result.getPrebidLog().error().getAllMessages())
+                .containsExactly(PrebidMessage.of(10014, "Invalid consent_type param passed"));
     }
 
     @Test
