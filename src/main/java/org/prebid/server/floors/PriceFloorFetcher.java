@@ -81,9 +81,6 @@ public class PriceFloorFetcher {
     }
 
     public FetchResult fetch(Account account) {
-        if (account == null) {
-            return FetchResult.of(null, FetchStatus.none);
-        }
         final AccountFetchContext accountFetchContext = fetchedData.get(account.getId());
 
         return accountFetchContext != null
@@ -93,15 +90,14 @@ public class PriceFloorFetcher {
 
     private FetchResult fetchPriceFloorRules(Account account) {
         final AccountPriceFloorsFetchConfig fetchConfig = getFetchConfig(account);
-
         final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
-        final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
 
-        if (!isFloorsFeatureEnabled(fetchEnabled, fetchUrl)) {
+        if (!shouldFetchRules(fetchEnabled)) {
             return FetchResult.of(null, FetchStatus.none);
         }
 
         final String accountId = account.getId();
+        final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
             logger.warn(String.format("Malformed fetch.url passed for account %s", accountId));
             return FetchResult.of(null, FetchStatus.error);
@@ -113,12 +109,16 @@ public class PriceFloorFetcher {
         return FetchResult.of(null, FetchStatus.inprogress);
     }
 
-    private boolean isFloorsFeatureEnabled(Boolean fetchEnabled, String fetchUrl) {
+    private boolean shouldFetchRules(Boolean fetchEnabled) {
 
-        return !BooleanUtils.isFalse(fetchEnabled) && StringUtils.isNotBlank(fetchUrl);
+        return !BooleanUtils.isFalse(fetchEnabled);
     }
 
     private boolean isUrlValid(String url) {
+        if (StringUtils.isBlank(url)) {
+            return false;
+        }
+
         try {
             HttpUtil.validateUrl(url);
         } catch (IllegalArgumentException e) {
@@ -269,12 +269,13 @@ public class PriceFloorFetcher {
     private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable, String accountId) {
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
-        FetchStatus fetchStatus = FetchStatus.error;
+        final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
             fetchStatus = FetchStatus.timeout;
             logger.warn(
                     String.format("Fetch price floor request timeout for account %s exceeded.", accountId));
-        } else if (throwable instanceof PreBidException) {
+        } else {
+            fetchStatus = FetchStatus.error;
             logger.warn(
                     String.format("Failed to fetch price floor from provider for account = %s with a reason : %s ",
                             accountId, throwable.getMessage()));

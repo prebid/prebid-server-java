@@ -199,38 +199,26 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotPrepareAnyRequestsWhenAccountIsNotProvidedAndReturnNoneStatus() {
-        // when
-        final FetchResult fetchResult = priceFloorFetcher.fetch(null);
-
-        // then
-        verifyNoInteractions(httpClient);
-        assertThat(fetchResult.getRules()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
-        verifyNoInteractions(vertx);
-    }
-
-    @Test
-    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsBlankAndReturnNoneStatus() {
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsBlankAndReturnErrorStatus() {
         // when
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.url("   ")));
 
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRules()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotProvidedAndReturnNoneStatus() {
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotProvidedAndReturnErrorStatus() {
         // when
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.url(null)));
 
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRules()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
