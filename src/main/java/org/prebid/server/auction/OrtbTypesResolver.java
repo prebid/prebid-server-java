@@ -348,7 +348,7 @@ public class OrtbTypesResolver {
     private void processWarnings(PrebidLog prebidLog, String containerValue,
                                  String referer, String containerName) {
 
-        List<String> messages = prebidLog.debug().getIncorrectTypeMessages();
+        final List<String> messages = prebidLog.debug().getIncorrectTypeMessages();
         if (CollectionUtils.isNotEmpty(messages)) {
             // log only 1% of cases
             ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",
