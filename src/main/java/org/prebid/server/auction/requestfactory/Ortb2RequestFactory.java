@@ -289,51 +289,38 @@ public class Ortb2RequestFactory {
     }
 
     public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final ExtRequestPrebidFloors extFloors = extractExtFloors(bidRequest);
-        final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
-                AccountAuctionConfig::getPriceFloors);
 
-        if (isPriceFloorsProcessingDisabled(extFloors, accountPriceFloorsConfig)) {
-
+        if (isPriceFloorsProcessingDisabled(account, extFloors)) {
             return auctionContext;
         }
 
-        final PriceFloorRuleExtractResult rulesExtractionResult = resolveRules(extFloors, account);
-        final PriceFloorData priceFloorData =
-                ObjectUtil.getIfNotNull(rulesExtractionResult.getRules(), PriceFloorRules::getData);
-        final List<PriceFloorModelGroup> modelGroups =
-                ObjectUtil.getIfNotNull(priceFloorData, PriceFloorData::getModelGroups);
+        final PriceFloorRuleExtractResult rulesExtractionResult = resolveRules(account, extFloors);
 
-        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
-                ? selectFloorModelGroup(modelGroups)
-                : null;
-
-        return auctionContext.with(updateBidRequestWithFloors(bidRequest, modelGroup, rulesExtractionResult));
+        return auctionContext.with(updateBidRequestWithFloors(bidRequest, rulesExtractionResult));
     }
 
-    private boolean isPriceFloorsProcessingDisabled(ExtRequestPrebidFloors extFloors,
-                                                    AccountPriceFloorsConfig accountPriceFloorsConfig) {
+    private boolean isPriceFloorsProcessingDisabled(Account account, ExtRequestPrebidFloors extFloors) {
+        final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
+                AccountAuctionConfig::getPriceFloors);
 
         return !priceFloorsProcessingEnabled
-                || BooleanUtils.isFalse(ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getEnabled))
                 || BooleanUtils.isFalse(ObjectUtil.getIfNotNull(accountPriceFloorsConfig,
-                AccountPriceFloorsConfig::getEnabled));
+                AccountPriceFloorsConfig::getEnabled))
+                || BooleanUtils.isFalse(ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getEnabled));
     }
 
     private static ExtRequestPrebidFloors extractExtFloors(BidRequest bidRequest) {
-
         final ExtRequestPrebid extRequestPrebid =
                 ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         return ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getFloors);
     }
 
-    private PriceFloorRuleExtractResult resolveRules(ExtRequestPrebidFloors extFloors, Account account) {
+    private PriceFloorRuleExtractResult resolveRules(Account account, ExtRequestPrebidFloors extFloors) {
         final PriceFloorRules fetchedFloorRules = floorFetcher.fetch(account);
-
         if (fetchedFloorRules != null) {
             return PriceFloorRuleExtractResult.of(fetchedFloorRules, PriceFloorLocation.provider);
         }
@@ -375,8 +362,15 @@ public class Ortb2RequestFactory {
     }
 
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
-                                                  PriceFloorModelGroup modelGroup,
                                                   PriceFloorRuleExtractResult ruleExtractResult) {
+
+        final PriceFloorData priceFloorData =
+                ObjectUtil.getIfNotNull(ruleExtractResult.getRules(), PriceFloorRules::getData);
+        final List<PriceFloorModelGroup> modelGroups =
+                ObjectUtil.getIfNotNull(priceFloorData, PriceFloorData::getModelGroups);
+        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
+                ? selectFloorModelGroup(modelGroups)
+                : null;
 
         final ExtRequestPrebidFloors extFloors = extractExtFloors(bidRequest);
         final ExtRequestPrebidFloors updatedExtFloors = updateExtFloors(extFloors, modelGroup, ruleExtractResult);
@@ -447,12 +441,11 @@ public class Ortb2RequestFactory {
         return imp.toBuilder()
                 .bidfloor(priceFloorResult.getFloorValue())
                 .bidfloorcur(priceFloorResult.getCurrency())
-                .ext(updateExtWithFloors(imp.getExt(), priceFloorResult))
+                .ext(updateImpExtWithFloors(imp.getExt(), priceFloorResult))
                 .build();
     }
 
-    private ObjectNode updateExtWithFloors(ObjectNode ext, PriceFloorResult priceFloorResult) {
-
+    private ObjectNode updateImpExtWithFloors(ObjectNode ext, PriceFloorResult priceFloorResult) {
         final JsonNode extPrebid = ext.path("prebid");
         final ObjectNode extPrebidAsObject = extPrebid.isObject()
                 ? (ObjectNode) extPrebid

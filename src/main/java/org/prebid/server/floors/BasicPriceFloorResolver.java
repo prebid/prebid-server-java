@@ -53,7 +53,7 @@ import java.util.stream.StreamSupport;
 
 public class BasicPriceFloorResolver implements PriceFloorResolver {
 
-    private static final Logger logger = LoggerFactory.getLogger(PriceFloorResolver.class);
+    private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorResolver.class);
 
     private static final String DEFAULT_RULES_CURRENCY = "USD";
     private static final String SCHEMA_DEFAULT_DELIMITER = "|";
@@ -93,7 +93,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return null;
         }
 
-        final String delimiter = ObjectUtils.firstNonNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER);
+        final String delimiter = ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER);
         final List<String> desiredRuleKey = createRuleKey(schema, bidRequest, imp, mediaType, format);
 
         final Map<String, BigDecimal> rules = keysToLowerCase(modelGroup.getValues());
@@ -124,6 +124,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                 Imp imp,
                                 ImpMediaType mediaType,
                                 Format format) {
+
         final ImpMediaType resolvedMediaType = ObjectUtils.defaultIfNull(mediaType, mediaTypeFromImp(imp));
 
         switch (field) {
@@ -226,8 +227,11 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             final Banner banner = imp.getBanner();
             final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
 
-            if (CollectionUtils.isNotEmpty(formats)) {
+            final int formatsSize = CollectionUtils.size(formats);
+            if (formatsSize == 1) {
                 return formats.get(0);
+            } else if (formatsSize > 1) {
+                return null;
             }
 
             final Integer bannerWidth = ObjectUtil.getIfNotNull(banner, Banner::getW);

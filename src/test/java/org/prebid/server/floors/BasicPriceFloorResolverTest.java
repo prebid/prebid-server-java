@@ -34,6 +34,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -429,6 +430,30 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                                 .w(100)
                                 .h(150)
                                 .format(singletonList(Format.builder().w(250).h(300).build()))
+                                .build())),
+                "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForCatchAllWildcardWhenMultipleFormats() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.size)))
+                        .value("400x500", BigDecimal.ONE)
+                        .value("*", BigDecimal.TEN)
+                        .value("250x300", BigDecimal.ONE)
+                        .build(),
+                givenImp(impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .w(100)
+                                .h(150)
+                                .format(asList(Format.builder().w(250).h(300).build(),
+                                        Format.builder().w(400).h(500).build()))
                                 .build())),
                 "USD").getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
