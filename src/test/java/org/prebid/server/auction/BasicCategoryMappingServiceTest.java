@@ -125,7 +125,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .containsOnly("2", "3", "4");
 
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated"));
     }
 
@@ -284,7 +284,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Timeout"));
 
     }
@@ -313,7 +313,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid has more than one"
                                 + " category"));
     }
@@ -342,7 +342,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid did not contain a"
                                 + " category"));
     }
@@ -371,7 +371,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Category mapping data for"
                                 + " primary ad server: 'freewheel', publisher: 'publisher' not found"));
     }
@@ -428,7 +428,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid duration '20' "
                                 + "exceeds maximum '15'"));
     }
@@ -607,7 +607,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
 
     }
@@ -636,7 +636,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_cat1_10s"));
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
     }
 
@@ -1051,7 +1051,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "DealTier configuration not defined for bidder 'rubicon', imp ID 'impId1'"));
     }
 
@@ -1090,7 +1090,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' "
                                 + "with a reason: dealTier.prefix empty string or null"));
     }
@@ -1130,7 +1130,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
                                 + " dealTier.minDealTier should be larger than 0, but was null"));
     }
@@ -1168,7 +1168,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsOnly(PrebidMessage.of(10009,
+                .containsExactly(PrebidMessage.of(10009,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
                                 + " dealTier.minDealTier should be larger than 0, but was -1"));
     }

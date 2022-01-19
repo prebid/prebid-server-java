@@ -69,7 +69,7 @@ public class PrebidLog {
             warning.add(PrebidMessage.of(INCORRECT_NODE, message));
         }
 
-        public void incorrectFirstPartyData(String message) {
+        public void incorrectFirstPartyDataType(String message) {
             warning.add(PrebidMessage.of(INCORRECT_FIRST_PARTY_DATA, message));
         }
 
