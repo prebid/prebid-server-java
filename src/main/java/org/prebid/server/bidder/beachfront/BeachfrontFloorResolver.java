@@ -24,16 +24,13 @@ public class BeachfrontFloorResolver {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
     }
 
-    public BidFloorResult resolveBidFloor(BigDecimal extImpBidfloor, Imp imp, BidRequest bidRequest) {
-        final BigDecimal resolvedImpBidFloor = ObjectUtils.defaultIfNull(imp.getBidfloor(), BigDecimal.ZERO);
-        final BigDecimal resolvedExtImpBidFloor = ObjectUtils.defaultIfNull(extImpBidfloor, BigDecimal.ZERO);
-
+    public BidFloorResult resolveBidFloor(BigDecimal extImpBidFloor, Imp imp, BidRequest bidRequest) {
         final BidFloorResult bidFloorResult = convertBidFloor(
-                bidRequest, resolvedImpBidFloor, resolvedExtImpBidFloor, imp.getBidfloorcur());
+                bidRequest, imp.getBidfloor(), extImpBidFloor, imp.getBidfloorcur());
 
-        return bidFloorResult.isError()
+        return bidFloorResult.isError() || bidFloorResult.isWarning()
                 ? bidFloorResult
-                : postProcessBidFloor(resolvedExtImpBidFloor, bidFloorResult.getPrice().getValue());
+                : proceedWithHigherFloor(extImpBidFloor, bidFloorResult.getPrice().getValue());
     }
 
     private BidFloorResult convertBidFloor(BidRequest bidRequest,
@@ -41,21 +38,22 @@ public class BeachfrontFloorResolver {
                                            BigDecimal extImpBidFloor,
                                            String impBidFloorCur) {
 
-        if (!BidderUtil.shouldConvertBidFloor(Price.of(impBidFloorCur, impBidFloor), DEFAULT_BID_CURRENCY)) {
-            return BidFloorResult.succeeded(Price.of(impBidFloorCur, impBidFloor));
+        final Price initialBidFloorPrice = Price.of(impBidFloorCur, impBidFloor);
+        if (!BidderUtil.shouldConvertBidFloor(initialBidFloorPrice, DEFAULT_BID_CURRENCY)) {
+            return BidFloorResult.succeeded(initialBidFloorPrice);
         }
 
-        final BidFloorResult result = convertBidFloor(impBidFloorCur, impBidFloor, bidRequest);
+        final BidFloorResult result = convertBidFloor(initialBidFloorPrice, bidRequest);
 
         return result.isError()
                 ? processBidFloorFallback(impBidFloor, extImpBidFloor, impBidFloorCur)
                 : result;
     }
 
-    private BidFloorResult convertBidFloor(String bidFloorCur, BigDecimal bidFloor, BidRequest bidRequest) {
+    private BidFloorResult convertBidFloor(Price bidFloor, BidRequest bidRequest) {
         try {
             final BigDecimal conversionResult = currencyConversionService.convertCurrency(
-                    bidFloor, bidRequest, bidFloorCur, DEFAULT_BID_CURRENCY);
+                    bidFloor.getValue(), bidRequest, bidFloor.getCurrency(), DEFAULT_BID_CURRENCY);
 
             return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, conversionResult));
         } catch (PreBidException e) {
@@ -67,16 +65,16 @@ public class BeachfrontFloorResolver {
                                                           BigDecimal extImpBidFloor,
                                                           String bidFloorCur) {
 
-        return extImpBidFloor.compareTo(MIN_BID_FLOOR) > 0
-                ? fallback(impBidFloor, extImpBidFloor, bidFloorCur)
-                : fatalCurrencyConversionError(impBidFloor, bidFloorCur);
+        return extImpBidFloor != null && extImpBidFloor.compareTo(MIN_BID_FLOOR) > 0
+                ? fallbackWithWarning(impBidFloor, extImpBidFloor, bidFloorCur)
+                : currencyConversionError(impBidFloor, bidFloorCur);
     }
 
-    private static BidFloorResult fallback(BigDecimal impBidFloor,
-                                           BigDecimal extImpBidFloor,
-                                           String bidFloorCur) {
+    private static BidFloorResult fallbackWithWarning(BigDecimal impBidFloor,
+                                                      BigDecimal extImpBidFloor,
+                                                      String bidFloorCur) {
 
-        final BidderError fallbackError = BidderError.badInput(
+        final BidderError fallbackWarning = BidderError.badInput(
                 String.format(
                         "The following error was received from the currency converter while attempting "
                                 + "to convert the imp.bidfloor value of %s from %s to USD:\n"
@@ -85,13 +83,13 @@ public class BeachfrontFloorResolver {
                                 + "imp.ext.beachfront.bidfloor, %s USD is being used as a fallback.",
                         impBidFloor, bidFloorCur, extImpBidFloor));
 
-        return BidFloorResult.fallback(Price.of(DEFAULT_BID_CURRENCY, extImpBidFloor), fallbackError);
+        return BidFloorResult.fallbackWithWarning(Price.of(DEFAULT_BID_CURRENCY, extImpBidFloor), fallbackWarning);
     }
 
-    private static BidFloorResult fatalCurrencyConversionError(BigDecimal impBidFloor,
-                                                               String bidFloorCur) {
+    private static BidFloorResult currencyConversionError(BigDecimal impBidFloor,
+                                                          String bidFloorCur) {
 
-        return BidFloorResult.fatalError(
+        return BidFloorResult.error(
                 BidderError.badInput(
                         String.format(
                                 "The following error was received from the currency converter while attempting "
@@ -101,47 +99,46 @@ public class BeachfrontFloorResolver {
                                 impBidFloor, bidFloorCur)));
     }
 
-    private static BidFloorResult postProcessBidFloor(BigDecimal extImpBidFloor,
-                                                      BigDecimal convertedBidFloor) {
-
-        if (convertedBidFloor.compareTo(extImpBidFloor) < 0) {
-            final Price resultingPrice = extImpBidFloor.compareTo(MIN_BID_FLOOR) > 0
-                    ? Price.of(DEFAULT_BID_CURRENCY, extImpBidFloor)
-                    : Price.of("", BigDecimal.ZERO);
-
-            return BidFloorResult.succeeded(resultingPrice);
+    private static BidFloorResult proceedWithHigherFloor(BigDecimal extImpBidFloor, BigDecimal convertedBidFloor) {
+        final BigDecimal resolvedExtImpBidFloor = ObjectUtils.defaultIfNull(extImpBidFloor, BigDecimal.ZERO);
+        if (convertedBidFloor != null && convertedBidFloor.compareTo(resolvedExtImpBidFloor) >= 0) {
+            return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, convertedBidFloor));
         }
 
-        return BidFloorResult.succeeded(Price.of(DEFAULT_BID_CURRENCY, convertedBidFloor));
+        final Price resultingPrice = extImpBidFloor != null && extImpBidFloor.compareTo(MIN_BID_FLOOR) > 0
+                ? Price.of(DEFAULT_BID_CURRENCY, resolvedExtImpBidFloor)
+                : Price.of("", BigDecimal.ZERO);
+
+        return BidFloorResult.succeeded(resultingPrice);
     }
 
     @Value(staticConstructor = "of")
     public static class BidFloorResult {
 
-        boolean fatal;
+        BidderError warning;
 
         BidderError error;
 
         Price price;
 
-        public static BidFloorResult fatalError(BidderError error) {
-            return of(true, error, null);
-        }
-
         public static BidFloorResult error(BidderError error) {
-            return of(false, error, null);
+            return of(null, error, null);
         }
 
-        public static BidFloorResult fallback(Price fallback, BidderError error) {
-            return of(false, error, fallback);
+        public static BidFloorResult fallbackWithWarning(Price fallback, BidderError warning) {
+            return of(warning, null, fallback);
         }
 
         public static BidFloorResult succeeded(Price price) {
-            return of(false, null, price);
+            return of(null, null, price);
         }
 
         public boolean isError() {
             return error != null;
+        }
+
+        public boolean isWarning() {
+            return warning != null;
         }
     }
 }

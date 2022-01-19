@@ -53,6 +53,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BeachfrontBidder implements Bidder<Void> {
 
@@ -176,10 +177,8 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             final BeachfrontFloorResolver.BidFloorResult bidFloorResult =
                     beachfrontFloorResolver.resolveBidFloor(extImpBeachfront.getBidfloor(), imp, bidRequest);
+            storeBidFloorConversionResultLog(bidFloorResult, errors);
             if (bidFloorResult.isError()) {
-                errors.add(bidFloorResult.getError());
-            }
-            if (bidFloorResult.isFatal()) {
                 continue;
             }
 
@@ -385,10 +384,8 @@ public class BeachfrontBidder implements Bidder<Void> {
 
             final BeachfrontFloorResolver.BidFloorResult bidFloorResult =
                     beachfrontFloorResolver.resolveBidFloor(extImpBeachfront.getBidfloor(), imp, bidRequest);
+            storeBidFloorConversionResultLog(bidFloorResult, errors);
             if (bidFloorResult.isError()) {
-                errors.add(bidFloorResult.getError());
-            }
-            if (bidFloorResult.isFatal()) {
                 continue;
             }
 
@@ -424,6 +421,14 @@ public class BeachfrontBidder implements Bidder<Void> {
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
+    }
+
+    private static void storeBidFloorConversionResultLog(BeachfrontFloorResolver.BidFloorResult result,
+                                                         List<BidderError> log) {
+
+        Stream.of(result.getError(), result.getWarning())
+                .filter(Objects::nonNull)
+                .forEach(log::add);
     }
 
     /**
