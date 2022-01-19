@@ -3084,7 +3084,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            UnaryOperator<Native.NativeBuilder<?, ?>> nativeCustomizer) {
+            UnaryOperator<Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
