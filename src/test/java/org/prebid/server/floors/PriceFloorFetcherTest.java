@@ -19,6 +19,8 @@ import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
+import org.prebid.server.floors.proto.FetchResult;
+import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -29,6 +31,7 @@ import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.math.BigDecimal;
+import java.util.concurrent.TimeoutException;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -67,8 +70,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     @Before
     public void setUp() {
-        priceFloorFetcher = new PriceFloorFetcher(applicationSettings, metrics,
-                vertx, timeoutFactory, httpClient, jacksonMapper);
+        priceFloorFetcher = new PriceFloorFetcher(applicationSettings,
+                metrics,
+                vertx,
+                timeoutFactory,
+                httpClient,
+                jacksonMapper);
     }
 
     @Test
@@ -79,41 +86,83 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
                         jacksonMapper.encodeToString(givenPriceFloorRules()))));
         // when
-        final PriceFloorRules priceFloorRules = priceFloorFetcher.fetch(givenAccount);
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount);
 
         // then
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(httpClient).get("http://test.host.com", 1300, 10240);
 
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         verifyNoMoreInteractions(httpClient);
 
-        final PriceFloorRules priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
-        assertThat(priceFloorRulesCached).isEqualTo(givenPriceFloorRules());
+        final FetchResult priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
+        assertThat(priceFloorRulesCached.getFetchStatus()).isEqualTo(FetchStatus.success);
+        assertThat(priceFloorRulesCached.getRules()).isEqualTo(givenPriceFloorRules());
+
     }
 
     @Test
-    public void fetchShouldReturnNullForTheFirstInvocation() {
+    public void fetchShouldReturnEmptyRulesAndInProgressStatusForTheFirstInvocation() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.failedFuture(new PreBidException("failed")));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(priceFloorRules).isNull();
+        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
+    }
+
+    @Test
+    public void fetchShouldReturnEmptyRulesAndInProgressStatusForTheFirstInvocationAndErrorStatusForSecond() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.failedFuture(new PreBidException("failed")));
+
+        // when
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        verify(vertx).setTimer(eq(1700000L), any());
+
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+    }
+
+    @Test
+    public void fetchShouldReturnEmptyRulesAndInProgressStatusForTheFirstInvocationAndTimeoutStatusForSecond() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.failedFuture(new TimeoutException("failed")));
+
+        // when
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        verify(vertx).setTimer(eq(1700000L), any());
+
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.timeout);
     }
 
     @Test
     public void fetchShouldCacheResponseForTimeFromResponseCacheControlHeader() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
-                        MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
-                        jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
+                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -138,102 +187,138 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
-    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotDefined() {
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsMalformedAndReturnErrorStatus() {
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(config -> config.url(null)));
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.url("MalformedURl")));
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(priceFloorRules).isNull();
+        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsMalformed() {
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsBlankAndReturnErrorStatus() {
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(config -> config.url("MalformedURl")));
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.url("   ")));
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(priceFloorRules).isNull();
+        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseIsNot200Ok() {
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchUrlIsNotProvidedAndReturnErrorStatus() {
+        // when
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.url(null)));
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        verifyNoInteractions(vertx);
+    }
+
+    @Test
+    public void fetchShouldNotPrepareAnyRequestsWhenFetchEnabledIsFalseAndReturnNoneStatus() {
+        // when
+        final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(config -> config.enabled(false)));
+
+        // then
+        verifyNoInteractions(httpClient);
+        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
+        verifyNoInteractions(vertx);
+    }
+
+    @Test
+    public void fetchShouldReturnEmptyRulesAndErrorStatusForSecondCallAndCreatePeriodicTimerWhenResponseIsNot200Ok() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(400, MultiMap.caseInsensitiveMultiMap(),
                         jacksonMapper.encodeToString(PriceFloorRules.builder().build()))));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules).isNull();
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseHasInvalidFormat() {
+    public void fetchShouldReturnEmptyRulesWithErrorStatusAndCreatePeriodicTimerWhenResponseHasInvalidFormat() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        "{")));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "{")));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules).isNull();
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseBodyIsEmpty() {
+    public void fetchShouldReturnEmptyRulesWithErrorStatusForSecondCallAndCreatePeriodicTimerWhenResponseBodyIsEmpty() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        null)));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), null)));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules).isNull();
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
     @Test
-    public void fetchShouldReturnNullAndCreatePeriodicTimerWhenCantResolveRules() {
+    public void fetchShouldReturnEmptyRulesWithErrorStatusForSecondCallAndCreatePeriodicTimerWhenCantResolveRules() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        null)));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), null)));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules).isNull();
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -241,24 +326,25 @@ public class PriceFloorFetcherTest extends VertxTest {
     public void fetchShouldNotCallPriceFloorProviderWhileFetchIsAlreadyInProgress() {
         // given
         final Promise<HttpClientResponse> fetchPromise = Promise.promise();
-        given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(fetchPromise.future());
+        given(httpClient.get(anyString(), anyLong(), anyLong())).willReturn(fetchPromise.future());
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
-        final PriceFloorRules secondFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        final FetchResult secondFetch = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         verifyNoMoreInteractions(httpClient);
 
-        assertThat(secondFetch).isNull();
+        assertThat(secondFetch.getRules()).isNull();
+        assertThat(secondFetch.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
 
-        fetchPromise.tryComplete(HttpClientResponse.of(200,
-                MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
-                jacksonMapper.encodeToString(givenPriceFloorRules())));
+        fetchPromise.tryComplete(
+                HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                .add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
+                        jacksonMapper.encodeToString(givenPriceFloorRules())));
 
-        final PriceFloorRules thirdFetch = priceFloorFetcher.fetch(givenAccount(identity()));
+        final PriceFloorRules thirdFetch = priceFloorFetcher.fetch(givenAccount(identity())).getRules();
         assertThat(thirdFetch).isEqualTo(givenPriceFloorRules());
     }
 
@@ -266,38 +352,38 @@ public class PriceFloorFetcherTest extends VertxTest {
     public void fetchShouldReturnNullAndCreatePeriodicTimerWhenResponseExceededRulesNumber() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(
-                                givenPriceFloorRules()
-                                        .toBuilder()
-                                        .data(PriceFloorData.builder()
-                                                .modelGroups(singletonList(PriceFloorModelGroup.builder()
-                                                        .value("video", BigDecimal.ONE)
-                                                        .value("banner", BigDecimal.TEN)
-                                                        .build()))
-                                                .build())
-                                        .build()))));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
+                        MultiMap.caseInsensitiveMultiMap(),
+                        jacksonMapper.encodeToString(givenPriceFloorRules().toBuilder()
+                                .data(PriceFloorData.builder()
+                                        .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                                                .value("video", BigDecimal.ONE).value("banner", BigDecimal.TEN)
+                                                .build()))
+                                        .build())
+                                .build()))));
 
         // when
-        final PriceFloorRules priceFloorRules =
-                priceFloorFetcher.fetch(givenAccount(account -> account.maxRules(1)));
+        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(account -> account.maxRules(1)));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(priceFloorRules).isNull();
+        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
+        final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
+        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
 
-    private Account givenAccount(UnaryOperator<AccountPriceFloorsFetchConfig.AccountPriceFloorsFetchConfigBuilder>
-                                         configCustomizer) {
+    private Account givenAccount(UnaryOperator<
+            AccountPriceFloorsFetchConfig.AccountPriceFloorsFetchConfigBuilder> configCustomizer) {
 
         return Account.builder()
                 .id("1001")
                 .auction(AccountAuctionConfig.builder()
-                        .priceFloors(AccountPriceFloorsConfig.builder()
-                                .fetch(givenFetchConfig(configCustomizer))
+                        .priceFloors(AccountPriceFloorsConfig.builder().fetch(givenFetchConfig(configCustomizer))
                                 .build())
                         .build())
                 .build();
@@ -319,7 +405,8 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     private PriceFloorRules givenPriceFloorRules() {
         return PriceFloorRules.builder()
-                .data(PriceFloorData.builder().currency("USD")
+                .data(PriceFloorData.builder()
+                        .currency("USD")
                         .modelGroups(singletonList(PriceFloorModelGroup.builder()
                                 .modelVersion("model version 1.0")
                                 .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))

@@ -42,6 +42,8 @@ import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.floors.proto.FetchResult;
+import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -320,14 +322,18 @@ public class Ortb2RequestFactory {
     }
 
     private PriceFloorRuleExtractResult resolveRules(Account account, ExtRequestPrebidFloors extFloors) {
-        final PriceFloorRules fetchedFloorRules = floorFetcher.fetch(account);
-        if (fetchedFloorRules != null) {
-            return PriceFloorRuleExtractResult.of(fetchedFloorRules, PriceFloorLocation.provider);
+        final FetchResult fetchResult = floorFetcher.fetch(account);
+        // TODO: In what cases of fetchStatus we should fallback to request rules?
+        if (fetchResult != null) {
+            return PriceFloorRuleExtractResult.of(
+                    fetchResult.getRules(),
+                    fetchResult.getFetchStatus(),
+                    PriceFloorLocation.provider);
         }
 
         final PriceFloorRules requestFloorRules = ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getRules);
         if (requestFloorRules != null) {
-            return PriceFloorRuleExtractResult.of(requestFloorRules, PriceFloorLocation.request);
+            return PriceFloorRuleExtractResult.requestRules(requestFloorRules);
         }
 
         return PriceFloorRuleExtractResult.noRules();
@@ -393,8 +399,6 @@ public class Ortb2RequestFactory {
                                                           PriceFloorRuleExtractResult ruleExtractResult) {
 
         final PriceFloorRules priceFloorRules = ruleExtractResult.getRules();
-        final PriceFloorLocation priceFloorLocation = ruleExtractResult.getLocation();
-
         final PriceFloorData priceFloorData =
                 ObjectUtil.getIfNotNull(priceFloorRules, PriceFloorRules::getData);
 
@@ -411,7 +415,8 @@ public class Ortb2RequestFactory {
                 : ExtRequestPrebidFloors.builder();
 
         return extPrebidFloorsBuilder
-                .location(priceFloorLocation)
+                .fetchStatus(ruleExtractResult.getFetchStatus())
+                .location(ruleExtractResult.getLocation())
                 .rules(updatedRules)
                 .build();
     }
@@ -687,10 +692,16 @@ public class Ortb2RequestFactory {
 
         PriceFloorRules rules;
 
+        FetchStatus fetchStatus;
+
         PriceFloorLocation location;
 
         public static PriceFloorRuleExtractResult noRules() {
-            return PriceFloorRuleExtractResult.of(null, PriceFloorLocation.none);
+            return PriceFloorRuleExtractResult.of(null, null, PriceFloorLocation.none);
+        }
+
+        public static PriceFloorRuleExtractResult requestRules(PriceFloorRules rules) {
+            return PriceFloorRuleExtractResult.of(rules, null, PriceFloorLocation.request);
         }
     }
 }
