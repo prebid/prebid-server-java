@@ -2,6 +2,7 @@ package org.prebid.server.functional.model.pricefloors
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.ToString
+import org.prebid.server.functional.model.Currency
 
 @ToString(includeNames = true, ignoreNulls = true)
 class ModelGroup {

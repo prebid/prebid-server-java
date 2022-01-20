@@ -1,6 +1,7 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.util.PBSUtils
 
@@ -11,6 +12,7 @@ class ExtPrebidFloors {
     Location location
     FetchStatus fetchStatus
     Boolean skipped
+    Currency floorMinCur
     BigDecimal floorMin
     String floorProvider
     ExtPrebidPriceFloorEnforcement enforcement

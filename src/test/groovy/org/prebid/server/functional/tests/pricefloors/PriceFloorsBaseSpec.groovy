@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
@@ -17,6 +18,8 @@ import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
+
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 @PBSTest
 abstract class PriceFloorsBaseSpec extends BaseSpec {
@@ -58,9 +61,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         new Account(uuid: accountId, config: accountConfig)
     }
 
-    static BidRequest getBidRequestWithFloors() {
+    static BidRequest getBidRequestWithFloors(DistributionChannel channel = SITE) {
         def floors = ExtPrebidFloors.extPrebidFloors
-        BidRequest.defaultBidRequest.tap {
+        BidRequest.getDefaultBidRequest(channel).tap {
             imp[0].bidFloor = floors.data.modelGroups[0].values[rule]
             imp[0].bidFloorCur = floors.data.modelGroups[0].currency
             ext.prebid.floors = floors

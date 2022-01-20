@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.ImpExtData
+import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
@@ -40,10 +41,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     @PendingFeature
     def "PBS should ignore rule and log warning when total number of split entries in a given rule doesn't match the number of fields"() {
-        given: "Default BidRequest with price"
+        given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -59,17 +60,21 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
+       def response =  floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
-        assert bidderRequest.ext.prebid.floors.data.modelGroups == floorsResponse.data.modelGroups[0].values[0]
+        assert bidderRequest.ext?.prebid?.floors?.data?.modelGroups == floorsResponse.data.modelGroups[0].values[0]
+
+        and: "PBS should log a warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999] //TODO what code?
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == ["placeholder"]
     }
 
     @PendingFeature
     def "PBS should choose correct rule when media type is defined in rules"() {
-        given: "Account in the DB"
+        given: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -86,9 +91,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate media type"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == 0.6
+        assert bidderRequest.imp[0]?.bidFloor == 0.6
 
         where:
         bidRequest                       | bothFloorValue   | bannerFloorValue | videoFloorValue
@@ -99,7 +104,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     @PendingFeature
     def "PBS should choose rule with '*' when imp[0].banner.format contains multiple sizes"() {
-        given: "Default BidRequest with price"
+        given: "Default BidRequest with format"
         def lowerWidth = 300
         def lowerHigh = 250
         def higherWidth = lowerWidth + 1
@@ -109,7 +114,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                                     new Format(w: higherWidth, h: higherHigh)]
         }
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -128,19 +133,19 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
     }
 
     @PendingFeature
     def "PBS should choose correct rule when size is defined in rules"() {
-        given: "Default BidRequest with price"
+        given: "Default BidRequest with size"
         def width = 300
         def height = 250
         def bidRequest = bidRequestClosure(width, height) as BidRequest
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -158,9 +163,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
 
         where:
         bidRequestClosure <<
@@ -181,12 +186,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def domain = PBSUtils.randomString
         def bidRequest = bidRequestClosure(domain) as BidRequest
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
             data.modelGroups[0].values =
@@ -198,9 +203,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal -> BidRequest.defaultBidRequest.tap { site.domain = domainVal } },
@@ -213,13 +218,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def accountId = PBSUtils.randomString
         def bidRequest = bidRequestClosure(domain, accountId) as BidRequest
 
-
         and: "Account in the DB"
         def account = getAccountWithEnabledFetch(accountId)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
             data.modelGroups[0].values =
@@ -231,9 +235,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
@@ -257,7 +261,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [PUB_DOMAIN])
             data.modelGroups[0].values =
@@ -269,9 +273,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
@@ -297,7 +301,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [BUNDLE])
             data.modelGroups[0].values =
@@ -309,9 +313,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
     @PendingFeature
@@ -321,12 +325,13 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.channel = new Channel(name: channel)
         }
-        and: "Account in the DB"
+
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [CHANNEL])
             data.modelGroups[0].values =
@@ -338,9 +343,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
     @PendingFeature
@@ -349,12 +354,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def gptSlot = PBSUtils.randomString
         def bidRequest = bidRequestClosure(gptSlot) as BidRequest
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [GPT_SLOT])
             data.modelGroups[0].values =
@@ -366,9 +371,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String gptSlotVal -> BidRequest.defaultBidRequest.tap {
@@ -386,12 +391,13 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.data = new ImpExtData(pbAdSlot: pbAdSlot)
         }
-        and: "Account in the DB"
+
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
             data.modelGroups[0].values =
@@ -403,9 +409,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
     @PendingFeature
@@ -415,12 +421,13 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(geo: new Geo(country: country))
         }
-        and: "Account in the DB"
+
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = 0.8
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [COUNTRY])
             data.modelGroups[0].values =
@@ -432,9 +439,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
     @PendingFeature
@@ -444,7 +451,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
             device = new Device(ua: deviceType)
         }
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -462,9 +469,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == 0.8
+        assert bidderRequest.imp[0]?.bidFloor == 0.8
 
         where:
         deviceType            | phoneFloorValue  | tabletFloorValue | desktopFloorValue
@@ -487,7 +494,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
             device = null
         }
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -510,9 +517,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
     @PendingFeature
@@ -520,7 +527,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with device.ua"
         def bidRequest = BidRequest.defaultBidRequest
 
-        and: "Account in the DB"
+        and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
@@ -536,8 +543,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request timeout should correspond to the maximum from the settings"
+        then: "Bidder request bidFloor should correspond to defaultFloor"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 }

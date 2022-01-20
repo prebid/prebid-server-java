@@ -1,6 +1,7 @@
 package org.prebid.server.functional.model.pricefloors
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)

@@ -3,6 +3,9 @@ package org.prebid.server.functional.model.request.auction
 import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
+import org.prebid.server.functional.model.Currency
+
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -33,11 +36,11 @@ class BidRequest {
     BidRequestExt ext
 
     static BidRequest getDefaultBidRequest(DistributionChannel channel = SITE) {
-        getDefaultRequest(Imp.defaultImpression)
+        getDefaultRequest(channel, Imp.defaultImpression)
     }
 
     static BidRequest getDefaultVideoRequest(DistributionChannel channel = SITE) {
-        getDefaultRequest(Imp.videoImpression)
+        getDefaultRequest(channel, Imp.videoImpression)
     }
 
     static BidRequest getDefaultStoredRequest() {
@@ -46,7 +49,7 @@ class BidRequest {
         }
     }
 
-    private static BidRequest getDefaultRequest(DistributionChannel channel = SITE, Imp imp) {
+    private static BidRequest getDefaultRequest(DistributionChannel channel  = SITE, Imp imp) {
         new BidRequest().tap {
             it.addImp(imp)
             regs = Regs.defaultRegs
@@ -61,7 +64,7 @@ class BidRequest {
             }
         }
     }
-    
+
     void addImp(Imp impression) {
         if (imp == null) {
             imp = []
