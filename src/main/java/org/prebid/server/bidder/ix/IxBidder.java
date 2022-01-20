@@ -46,8 +46,8 @@ import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpIx>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpIx>> IX_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
             };
 
     private static final int REQUEST_LIMIT = 20;

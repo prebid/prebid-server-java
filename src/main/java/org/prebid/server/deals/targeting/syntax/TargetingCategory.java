@@ -100,6 +100,7 @@ public class TargetingCategory {
         mediaType("adunit.mediatype"),
         adslot("adunit.adslot"),
         domain("site.domain"),
+        publisherDomain("site.publisher.domain"),
         referrer("site.referrer"),
         appBundle("app.bundle"),
         deviceGeoExt("device.geo.ext."),
@@ -113,7 +114,7 @@ public class TargetingCategory {
         dow("user.ext.time.userdow"),
         hour("user.ext.time.userhour");
 
-        private String attribute;
+        private final String attribute;
 
         Type(String attribute) {
             this.attribute = attribute;

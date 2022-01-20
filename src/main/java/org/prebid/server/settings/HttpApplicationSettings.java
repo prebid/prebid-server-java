@@ -67,14 +67,14 @@ public class HttpApplicationSettings implements ApplicationSettings {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpApplicationSettings.class);
     private static final TypeReference<Map<String, Category>> CATEGORY_RESPONSE_REFERENCE =
-            new TypeReference<Map<String, Category>>() {
+            new TypeReference<>() {
             };
 
-    private String endpoint;
-    private String ampEndpoint;
-    private String videoEndpoint;
-    private String categoryEndpoint;
-    private HttpClient httpClient;
+    private final String endpoint;
+    private final String ampEndpoint;
+    private final String videoEndpoint;
+    private final String categoryEndpoint;
+    private final HttpClient httpClient;
     private final JacksonMapper mapper;
 
     public HttpApplicationSettings(HttpClient httpClient, JacksonMapper mapper, String endpoint, String ampEndpoint,

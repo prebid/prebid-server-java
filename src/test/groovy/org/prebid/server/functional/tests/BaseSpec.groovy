@@ -32,8 +32,8 @@ abstract class BaseSpec extends Specification {
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
 
-    protected static final int MIN_TIMEOUT = 1000
-    protected static final int MAX_TIMEOUT = 5000
+    protected static final int MIN_TIMEOUT = 5000
+    protected static final int MAX_TIMEOUT = 6000
 
     def setupSpec() {
         prebidCache.setResponse()

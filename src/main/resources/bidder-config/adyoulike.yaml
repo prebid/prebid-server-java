@@ -11,8 +11,13 @@ adapters:
       supported-vendors:
       vendor-id: 259
     usersync:
-      url: http://visitor.omnitagjs.com/visitor/bsync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+      url: http://visitor.omnitagjs.com/visitor/isync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
       redirect-url: /setuid?bidder=adyoulike&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[BUYER_USERID]
       cookie-family-name: adyoulike
-      type: redirect
+      type: iframe
       support-cors: false
+      secondary:
+        url: http://visitor.omnitagjs.com/visitor/bsync?uid=19340f4f097d16f41f34fc0274981ca4&name=PrebidServer&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url=
+        redirect-url: /setuid?bidder=adyoulike&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[BUYER_USERID]
+        type: redirect
+        support-cors: false

@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class OpenWebBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOpenweb>> OPENWEB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOpenweb>>() {
+            new TypeReference<>() {
             };
 
     private final JacksonMapper mapper;

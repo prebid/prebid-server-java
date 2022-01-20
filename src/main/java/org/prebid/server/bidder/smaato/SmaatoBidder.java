@@ -66,7 +66,7 @@ import java.util.stream.IntStream;
 public class SmaatoBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmaato>>() {
+            new TypeReference<>() {
             };
     private static final String CLIENT_VERSION = "prebid_server_0.4";
     private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";

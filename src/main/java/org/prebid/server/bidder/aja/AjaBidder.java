@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class AjaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAja>> AJA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAja>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -72,10 +72,7 @@ public class AjaBidder implements Bidder<BidRequest> {
 
         for (final String tagId : tagIds) {
             final Imp imp = impsByTagID.get(tagId);
-            final HttpRequest<BidRequest> singleRequest = createSingleRequest(imp, bidRequest, endpointUrl, errors);
-            if (singleRequest == null) {
-                continue;
-            }
+            final HttpRequest<BidRequest> singleRequest = createSingleRequest(imp, bidRequest, endpointUrl);
             result.add(singleRequest);
         }
 
@@ -93,11 +90,8 @@ public class AjaBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url,
-                                                        List<BidderError> errors) {
-        final BidRequest outgoingRequest = request.toBuilder()
-                .imp(Collections.singletonList(imp))
-                .build();
+    private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

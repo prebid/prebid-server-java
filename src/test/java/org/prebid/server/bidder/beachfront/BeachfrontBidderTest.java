@@ -534,8 +534,6 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseHasEmptySeatBids() throws JsonProcessingException {
         // given
-        final byte[] byteArray = mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build());
-        final BeachfrontVideoRequest videoRequest = jacksonMapper.decodeValue(byteArray, BeachfrontVideoRequest.class);
         final HttpCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build()),
                 mapper.writeValueAsString(BidResponse.builder().id("some_id").build()));

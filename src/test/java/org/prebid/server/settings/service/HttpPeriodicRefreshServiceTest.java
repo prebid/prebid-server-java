@@ -50,8 +50,8 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     private Vertx vertx;
 
     private HttpClientResponse updatedResponse;
-    private Map<String, String> expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
-    private Map<String, String> expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
+    private final Map<String, String> expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
+    private final Map<String, String> expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
 
     @Before
     public void setUp() throws JsonProcessingException {

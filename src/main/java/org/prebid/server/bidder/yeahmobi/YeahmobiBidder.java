@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> YEAHMOBI_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpYeahmobi>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

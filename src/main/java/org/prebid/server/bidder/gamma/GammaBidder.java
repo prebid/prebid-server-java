@@ -38,7 +38,7 @@ import java.util.Objects;
 public class GammaBidder implements Bidder<Void> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpGamma>> GAMMA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGamma>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

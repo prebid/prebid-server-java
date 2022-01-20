@@ -47,8 +47,9 @@ public class StoredResponseProcessor {
     private static final String PREBID_EXT = "prebid";
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
-    private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPE = new TypeReference<List<SeatBid>>() {
-    };
+    private static final TypeReference<List<SeatBid>> SEATBID_LIST_TYPE =
+            new TypeReference<>() {
+            };
 
     private final ApplicationSettings applicationSettings;
     private final JacksonMapper mapper;

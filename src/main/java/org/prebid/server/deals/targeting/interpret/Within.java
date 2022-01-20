@@ -15,7 +15,7 @@ public class Within implements TerminalExpression {
 
     private final TargetingCategory category;
 
-    private GeoRegion value;
+    private final GeoRegion value;
 
     public Within(TargetingCategory category, GeoRegion value) {
         this.category = Objects.requireNonNull(category);

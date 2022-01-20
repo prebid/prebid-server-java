@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class AdtargetBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdtarget>> ADTARGET_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdtarget>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

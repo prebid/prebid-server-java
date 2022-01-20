@@ -96,7 +96,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> updateBidRequest(auctionContext)
+                .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
@@ -160,7 +160,7 @@ public class AuctionRequestFactory {
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(AuctionContext auctionContext) {
+    private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
@@ -168,7 +168,10 @@ public class AuctionRequestFactory {
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest ->
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
-                .map(ortb2RequestFactory::validateRequest)
+
+                .compose(resolvedBidRequest ->
+                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
+
                 .map(interstitialProcessor::process);
     }
 

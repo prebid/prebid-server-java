@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 public class InvibesBidder implements Bidder<InvibesBidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpInvibes>> INVIBES_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpInvibes>>() {
+            new TypeReference<>() {
             };
     private static final String INVIBES_BID_VERSION = "4";
     private static final String ADAPTER_VERSION = "prebid_1.0.0";

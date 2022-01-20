@@ -34,7 +34,7 @@ import java.util.stream.IntStream;
 public class AcuityadsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAcuityads>> ACUITYADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAcuityads>>() {
+            new TypeReference<>() {
             };
     private static final String OPENRTB_VERSION = "2.5";
     private static final String URL_HOST_MACRO = "{{Host}}";

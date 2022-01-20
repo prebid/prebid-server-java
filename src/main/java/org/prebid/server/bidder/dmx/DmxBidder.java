@@ -47,7 +47,7 @@ import java.util.Objects;
 public class DmxBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpDmx>> DMX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpDmx>>() {
+            new TypeReference<>() {
             };
 
     private static final int SECURE = 1;

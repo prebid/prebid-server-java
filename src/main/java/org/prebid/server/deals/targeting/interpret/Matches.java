@@ -14,9 +14,9 @@ public class Matches implements TerminalExpression {
 
     private final TargetingCategory category;
 
-    private BiFunction<String, String, Boolean> method;
+    private final BiFunction<String, String, Boolean> method;
 
-    private String value;
+    private final String value;
 
     public Matches(TargetingCategory category, String value) {
         this.category = Objects.requireNonNull(category);
