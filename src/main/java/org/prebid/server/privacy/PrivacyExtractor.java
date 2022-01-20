@@ -45,7 +45,7 @@ public class PrivacyExtractor {
      */
     public PrivacyExtractionResult validPrivacyFrom(BidRequest bidRequest) {
         final List<String> errors = new ArrayList<>();
-        final Privacy originPrivacy = extractOriginPrivacy(bidRequest.getRegs(), bidRequest.getUser(), errors);
+        final Privacy originPrivacy = extractOriginPrivacy(bidRequest.getRegs(), bidRequest.getUser());
 
         return PrivacyExtractionResult.builder()
                 .originPrivacy(originPrivacy)
@@ -54,7 +54,7 @@ public class PrivacyExtractor {
                 .build();
     }
 
-    public Privacy validPrivacyFrom(CookieSyncRequest request) {
+    public static Privacy validPrivacyFrom(CookieSyncRequest request) {
         final Integer gdprAsInteger = request.getGdpr();
         final String gdpr = gdprAsInteger != null ? gdprAsInteger.toString() : null;
         final String gdprConsent = request.getGdprConsent();
@@ -95,7 +95,7 @@ public class PrivacyExtractor {
         return Privacy.of(validGdpr, validConsent, validCcpa, validCoppa);
     }
 
-    private Privacy extractOriginPrivacy(Regs regs, User user, List<String> errors) {
+    private static Privacy extractOriginPrivacy(Regs regs, User user) {
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final ExtUser extUser = user != null ? user.getExt() : null;
 

@@ -33,5 +33,8 @@ public class ExtResponseDebug {
      */
     ExtDebugTrace trace;
 
+    /**
+     * Defines the contract for bidresponse.ext.debug.privacy
+     */
     PrivacyDebugLog privacy;
 }

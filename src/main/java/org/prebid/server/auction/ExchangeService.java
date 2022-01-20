@@ -478,7 +478,7 @@ public class ExchangeService {
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
 
-        return makeAuctionParticipation(
+        return createAuctionParticipations(
                 bidders, context, aliases, impBidderToStoredBidResponse, imps, bidderToMultiBid);
     }
 
@@ -508,7 +508,7 @@ public class ExchangeService {
      * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
      * that don't have first party data allowed.
      */
-    private Future<List<AuctionParticipation>> makeAuctionParticipation(
+    private Future<List<AuctionParticipation>> createAuctionParticipations(
             List<String> bidders,
             AuctionContext context,
             BidderAliases aliases,
@@ -530,14 +530,14 @@ public class ExchangeService {
 
         return privacyEnforcementService
                 .mask(context, bidderToUser, bidders, aliases)
-                .map(bidderToPrivacyResult -> makeAuctionParticipation(bidderToPrivacyResult, context,
+                .map(bidderToPrivacyResult -> createAuctionParticipations(bidderToPrivacyResult, context,
                         impBidderToStoredResponse, imps, bidderToMultiBid, biddersToConfigs, aliases));
     }
 
     /**
      * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
      */
-    private List<AuctionParticipation> makeAuctionParticipation(
+    private List<AuctionParticipation> createAuctionParticipations(
             List<BidderPrivacyResult> bidderPrivacyResults,
             AuctionContext auctionContext,
             Map<String, Map<String, String>> impBidderToStoredBidResponse,
@@ -552,9 +552,7 @@ public class ExchangeService {
         final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
                 .map(bidderPrivacyResult -> updatePrivacyDebugLog(
                         bidderPrivacyResult, auctionContext.getPrivacyContext().getPrivacyDebugLog()))
-                // for each bidder create a new request that is a copy of original request except buyerid, imp
-                // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
-                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
+
                 .map(bidderPrivacyResult -> createAuctionParticipation(
                         bidderPrivacyResult,
                         bidRequest,
@@ -565,7 +563,7 @@ public class ExchangeService {
                         bidderToPrebidBidders,
                         aliases,
                         auctionContext.getDebugWarnings()))
-                // Can't be removed after we prepare workflow to filter blocked
+
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
 

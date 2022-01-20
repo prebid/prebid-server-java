@@ -93,7 +93,6 @@ public class PrivacyEnforcementService {
         this.lmtEnforce = lmtEnforce;
     }
 
-    //----------------- PrivacyContextFactory -----------------
     public Future<PrivacyContext> contextFromBidRequest(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
@@ -144,10 +143,7 @@ public class PrivacyEnforcementService {
 
         final Privacy validPrivacy = privacyExtractionResult.getValidPrivacy();
         final PrivacyDebugLog privacyDebugLog = PrivacyDebugLog.from(
-                privacyExtractionResult.getOriginPrivacy(),
-                validPrivacy,
-                tcfContext,
-                privacyExtractionResult.getErrors());
+                privacyExtractionResult.getOriginPrivacy(), validPrivacy, tcfContext);
 
         return PrivacyContext.of(validPrivacy, tcfContext, tcfContext.getIpAddress(), privacyDebugLog);
     }

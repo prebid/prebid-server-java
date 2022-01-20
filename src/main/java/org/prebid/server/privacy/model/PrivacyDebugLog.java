@@ -11,7 +11,6 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,17 +24,10 @@ public class PrivacyDebugLog {
 
     Map<String, Set<String>> privacyActionsPerBidder;
 
-    List<String> errors;
-
-    public static PrivacyDebugLog from(Privacy originPrivacy,
-                                       Privacy resolvedPrivacy,
-                                       TcfContext tcfContext,
-                                       List<String> errors) {
-
+    public static PrivacyDebugLog from(Privacy originPrivacy, Privacy resolvedPrivacy, TcfContext tcfContext) {
         return PrivacyDebugLog.builder()
                 .originPrivacy(makeOriginPrivacyDebug(originPrivacy))
                 .resolvedPrivacy(makeResolvedPrivacyDebug(resolvedPrivacy, tcfContext))
-                .errors(errors)
                 .privacyActionsPerBidder(new HashMap<>())
                 .build();
     }
@@ -79,24 +71,18 @@ public class PrivacyDebugLog {
     }
 
     @Value(staticConstructor = "of")
+    @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
     private static class PrivacyDebug {
 
-        @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
         PrivacyTcfDebug tcf;
 
-        @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
         PrivacyCcpaDebug ccpa;
 
-        @JsonInclude(value = JsonInclude.Include.NON_EMPTY)
         PrivacyCoppaDebug coppa;
     }
 
     @Value(staticConstructor = "of")
     private static class PrivacyTcfDebug {
-
-        public static PrivacyTcfDebug of(String gdpr, String tcfConsentString) {
-            return of(gdpr, tcfConsentString, null, null);
-        }
 
         String gdpr;
 
@@ -105,6 +91,10 @@ public class PrivacyDebugLog {
         Integer tcfConsentVersion;
 
         Boolean inEea;
+
+        public static PrivacyTcfDebug of(String gdpr, String tcfConsentString) {
+            return of(gdpr, tcfConsentString, null, null);
+        }
     }
 
     @Value(staticConstructor = "of")

@@ -171,8 +171,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final PrivacyDebugLog expectedPrivacyDebugLog = PrivacyDebugLog.from(
                 Privacy.of(null, null, Ccpa.EMPTY, 1),
                 Privacy.of("", "", Ccpa.EMPTY, 1),
-                tcfContext,
-                emptyList());
+                tcfContext);
 
         // then
         FutureAssertion.assertThat(privacyContext).succeededWith(
@@ -228,8 +227,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         PrivacyDebugLog.from(
                                 Privacy.of("1", "consent", Ccpa.of("1YYY"), null),
                                 Privacy.of("1", "consent", Ccpa.of("1YYY"), 0),
-                                tcfContext,
-                                emptyList())));
+                                tcfContext)));
 
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(requestType, referer, accountId);
         verify(tcfDefinerService).resolveTcfContext(
@@ -286,8 +284,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         PrivacyDebugLog.from(
                                 Privacy.of("1", "consent", Ccpa.of("1YYY"), null),
                                 privacy,
-                                tcfContext,
-                                emptyList())));
+                                tcfContext)));
 
         verify(tcfDefinerService).resolveTcfContext(
                 eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull(), any());
@@ -918,8 +915,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         return PrivacyDebugLog.from(
                 Privacy.of("", "", Ccpa.EMPTY, 1),
                 Privacy.of("", "", Ccpa.EMPTY, 1),
-                TcfContext.empty(),
-                emptyList());
+                TcfContext.empty());
     }
 
     private static BidderInfo givenBidderInfo(int gdprVendorId, boolean enforceCcpa) {

@@ -191,7 +191,7 @@ public class PrivacyAnonymizationService {
     }
 
     /**
-     * Returns true if {@link User} has sensitive privacy information that can be masked.
+     * Returns true if {@link User} has sensitive privacy information that should be masked.
      */
     private static boolean shouldMaskUser(User user) {
         if (user == null) {
@@ -201,7 +201,7 @@ public class PrivacyAnonymizationService {
             return true;
         }
         final ExtUser extUser = user.getExt();
-        return extUser != null && (CollectionUtils.isNotEmpty(extUser.getEids()));
+        return extUser != null && CollectionUtils.isNotEmpty(extUser.getEids());
     }
 
     /**
