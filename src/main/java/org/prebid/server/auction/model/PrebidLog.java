@@ -75,7 +75,9 @@ public class PrebidLog {
 
         public List<String> getIncorrectTypeMessages() {
             return warning.stream()
-                    .filter(e -> e.getCode() == INCORRECT_NODE || e.getCode() == INCORRECT_FIRST_PARTY_DATA)
+                    .filter(message ->
+                            message.getCode() == INCORRECT_NODE
+                                    || message.getCode() == INCORRECT_FIRST_PARTY_DATA)
                     .map(PrebidMessage::getMessage)
                     .collect(Collectors.toList());
         }
@@ -93,6 +95,14 @@ public class PrebidLog {
             messages.addAll(error);
 
             return messages;
+        }
+
+        public List<PrebidMessage> getDebugDisabledMessages() {
+            return warning.stream()
+                    .filter(message ->
+                            message.getCode() == ACCOUNT_LEVEL_DEBUG_DISABLED
+                                    || message.getCode() == BIDDER_LEVEL_DEBUG_DISABLED)
+                    .collect(Collectors.toList());
         }
     }
 
