@@ -25,6 +25,7 @@ import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.model.request.auction.UserTime
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 import spock.lang.Unroll
@@ -416,6 +417,43 @@ class TargetingSpec extends BasePgSpec {
 
         then: "PBS had PG auction"
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+    }
+
+    @Unroll
+    def "PBS doesn't throw a NPE for '#targetingType' when its Ext is absent and targeting Intersects matching type is selected"() {
+        given: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(targetingType, INTERSECTS, [stringTargetingValue])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS successfully processed request"
+        notThrown(PrebidServerException)
+
+        and: "PBS hasn't had PG auction as request targeting is not specified in the right place"
+        assert !auctionResponse.ext?.debug?.pgmetrics
+
+        where:
+        targetingType | bidRequest
+        SFPD_KEYWORDS | BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite.tap {
+                keywords = stringTargetingValue
+            }
+        }
+
+        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                language = stringTargetingValue
+            }
+        }
     }
 
     def "PBS should support line item targeting by page position targeting type"() {
