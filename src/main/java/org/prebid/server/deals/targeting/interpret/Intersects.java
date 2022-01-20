@@ -22,7 +22,8 @@ public abstract class Intersects<T> implements TerminalExpression {
 
     @Override
     public boolean matches(RequestContext context) {
-        return !Collections.disjoint(values, lookupActualValues(context));
+        final List<T> actualValues = lookupActualValues(context);
+        return actualValues != null && !Collections.disjoint(values, actualValues);
     }
 
     protected abstract List<T> lookupActualValues(RequestContext context);
