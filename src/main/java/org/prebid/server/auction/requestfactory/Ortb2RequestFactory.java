@@ -162,7 +162,7 @@ public class Ortb2RequestFactory {
 
         if (validationResult.hasWarnings()) {
             validationResult.getWarnings()
-                    .forEach(e -> prebidLog.warning().validation(e));
+                    .forEach(warning -> prebidLog.warning().validation(warning));
         }
 
         return validationResult.hasErrors()

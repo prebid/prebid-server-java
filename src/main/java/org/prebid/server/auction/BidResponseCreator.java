@@ -1001,7 +1001,7 @@ public class BidResponseCreator {
     }
 
     /**
-     * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
+     * Returns a list of {@link ExtBidderError}s of list of prebid messages.
      */
     private static List<ExtBidderError> toBidderErrors(List<PrebidMessage> prebidMessages) {
         return prebidMessages.stream()
