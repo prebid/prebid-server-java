@@ -42,7 +42,7 @@ public class DebugResolver {
         final boolean debugAllowedByAccount = isDebugAllowedByAccount(auctionContext.getAccount());
 
         if (debugEnabledForRequest && !debugOverride && !debugAllowedByAccount) {
-            auctionContext.getPrebidLog().debug().accountLevelDebugDisabled("Debug turned off for account");
+            auctionContext.getPrebidLog().warning().accountLevelDebugDisabled("Debug turned off for account");
         }
 
         return debugOverride || (debugEnabledForRequest && debugAllowedByAccount);
@@ -81,7 +81,7 @@ public class DebugResolver {
         final boolean debugAllowedByBidder = bidderCatalog.isDebugAllowed(bidder);
 
         if (debugEnabled && !debugOverride && !debugAllowedByBidder) {
-            auctionContext.getPrebidLog().debug().bidderLevelDebugDisabled(
+            auctionContext.getPrebidLog().warning().bidderLevelDebugDisabled(
                     String.format("Debug turned off for bidder: %s", bidder));
         }
 

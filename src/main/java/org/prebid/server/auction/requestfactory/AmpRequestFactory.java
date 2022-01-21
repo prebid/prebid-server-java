@@ -197,7 +197,7 @@ public class AmpRequestFactory {
         }
 
         if (consentType == ConsentType.unknown) {
-            prebidLog.error().generic("Invalid consent_type param passed");
+            prebidLog.error().privacy("Invalid consent_type param passed");
             return;
         }
 
@@ -214,12 +214,12 @@ public class AmpRequestFactory {
 
         final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
         if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
-            prebidLog.error().generic(constructMessageForInvalidParam(consentParam, consentType));
+            prebidLog.error().ccpa(constructMessageForInvalidParam(consentParam, consentType));
             return;
         }
 
         if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
-            prebidLog.error().generic(constructMessageForInvalidParam(consentParam, consentType));
+            prebidLog.error().privacy(constructMessageForInvalidParam(consentParam, consentType));
         }
     }
 

@@ -936,7 +936,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.error().invalidTrackingUrl("Filtered bid 2");
+        prebidLog.warning().invalidTrackingUrl("Filtered bid 2");
 
         given(categoryMappingService.createCategoryMapping(any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
@@ -956,7 +956,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getId)
                 .containsOnly("bidId1");
 
-        assertThat(auctionContext.getPrebidLog().error().getAllMessages())
+        assertThat(auctionContext.getPrebidLog().warning().getAllMessages())
                 .extracting(PrebidMessage::getMessage)
                 .containsExactly("Filtered bid 2");
     }
@@ -2768,7 +2768,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldProcessRequestAndAddErrorFromAuctionContext() {
         // given
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.error().generic("privacy error");
+        prebidLog.error().privacy("privacy error");
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
@@ -2801,8 +2801,8 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.error().invalidTrackingUrl("warning1");
-        prebidLog.error().invalidTrackingUrl("warning2");
+        prebidLog.warning().invalidTrackingUrl("warning1");
+        prebidLog.warning().invalidTrackingUrl("warning2");
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2849,7 +2849,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         assertThat(responseExt.getDebug().getResolvedrequest()).isEqualTo(bidRequest);
 
-        assertThat(responseExt.getErrors())
+        assertThat(responseExt.getWarnings())
                 .containsOnly(
                         entry("prebid", Arrays.asList(
                                 ExtBidderError.of(10006, "warning1"),

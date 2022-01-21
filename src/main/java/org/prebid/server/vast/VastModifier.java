@@ -85,7 +85,7 @@ public class VastModifier {
         try {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {
-            prebidLog.error().invalidTrackingUrl(e.getMessage());
+            prebidLog.warning().invalidTrackingUrl(e.getMessage());
             metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
         }
         return vastXml;

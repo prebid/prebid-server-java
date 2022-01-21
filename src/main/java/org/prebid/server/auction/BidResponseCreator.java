@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.auction.model.TargetingInfo;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -975,7 +976,8 @@ public class BidResponseCreator {
                                                                          AuctionContext auctionContext) {
 
         final List<ExtBidderError> storedErrors = extractStoredErrors(videoStoredDataResult);
-        final List<ExtBidderError> contextErrors = extractContextErrors(auctionContext);
+        final List<ExtBidderError> contextErrors =
+                toBidderErrors(auctionContext.getPrebidLog().error().getAllMessages());
         if (storedErrors.isEmpty() && contextErrors.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -1001,8 +1003,8 @@ public class BidResponseCreator {
     /**
      * Returns a list of {@link ExtBidderError}s of auction context prebid errors.
      */
-    private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
-        return auctionContext.getPrebidLog().error().getAllMessages().stream()
+    private static List<ExtBidderError> toBidderErrors(List<PrebidMessage> prebidMessages) {
+        return prebidMessages.stream()
                 .map(prebidMessage -> ExtBidderError.of(prebidMessage.getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }
@@ -1043,18 +1045,8 @@ public class BidResponseCreator {
     }
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
-        final List<ExtBidderError> contextWarnings = auctionContext.getPrebidLog().warning().getAllMessages().stream()
-                .map(prebidMessage -> ExtBidderError.of(prebidMessage.getCode(), prebidMessage.getMessage()))
-                .collect(Collectors.toList());
-
-        final List<ExtBidderError> debugWarnings =
-                auctionContext.getPrebidLog().debug().getDebugDisabledMessages().stream()
-                        .map(prebidMessage -> ExtBidderError.of(prebidMessage.getCode(), prebidMessage.getMessage()))
-                        .collect(Collectors.toList());
-
-        if (CollectionUtils.isNotEmpty(debugWarnings)) {
-            contextWarnings.addAll(debugWarnings);
-        }
+        final List<ExtBidderError> contextWarnings =
+                toBidderErrors(auctionContext.getPrebidLog().warning().getAllMessages());
 
         return contextWarnings.isEmpty()
                 ? Collections.emptyMap()

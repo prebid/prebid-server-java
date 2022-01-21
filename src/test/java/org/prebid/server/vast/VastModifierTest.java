@@ -306,7 +306,7 @@ public class VastModifierTest {
 
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
-        assertThat(prebidLog.error().getAllMessages())
+        assertThat(prebidLog.warning().getAllMessages())
                 .containsExactly(expectedPrebidMessage);
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }

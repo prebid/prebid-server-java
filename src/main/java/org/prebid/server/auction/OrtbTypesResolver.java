@@ -231,7 +231,7 @@ public class OrtbTypesResolver {
 
                 normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, prebidLog);
             } else {
-                prebidLog.debug().incorrectFieldNode(
+                prebidLog.warning().incorrectFieldNode(
                         String.format("%s%s field ignored. Expected type is object, but was `%s`.",
                                 nodePrefix, nodeName, containerNode.getNodeType().name()));
                 return null;
@@ -262,7 +262,7 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray && !arrayNode.isEmpty()) {
-            prebidLog.debug().incorrectFirstPartyDataType(
+            prebidLog.warning().incorrectFirstPartyDataType(
                     String.format("Incorrect type for first party data field %s%s.%s, expected is"
                                     + " string, but was an array of strings. "
                                     + "Converted to string by taking first element of array.",
@@ -286,7 +286,7 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray) {
-            prebidLog.debug().incorrectFirstPartyDataType(
+            prebidLog.warning().incorrectFirstPartyDataType(
                     String.format("Incorrect type for first party data field %s%s.%s, expected is "
                             + "string, but was an array of strings. Converted to string by separating values with "
                             + "comma.", nodePrefix, containerName, fieldName));
@@ -323,7 +323,7 @@ public class OrtbTypesResolver {
         if (ext != null && ext.isObject()) {
             ((ObjectNode) ext).set(DATA, data);
         } else if (ext != null && !ext.isObject()) {
-            prebidLog.debug().incorrectFirstPartyDataType(
+            prebidLog.warning().incorrectFirstPartyDataType(
                     String.format("Incorrect type for first party data field %s%s.%s, expected is "
                                     + "object, but was %s. Replaced with object",
                             nodePrefix, containerName, EXT, ext.getNodeType()));
@@ -335,7 +335,7 @@ public class OrtbTypesResolver {
 
     private void warnForExpectedStringArrayType(String fieldName, String containerName, PrebidLog prebidLog,
                                                 String nodePrefix, JsonNodeType nodeType) {
-        prebidLog.debug().incorrectFirstPartyDataType(
+        prebidLog.warning().incorrectFirstPartyDataType(
                 String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
                                 + " was `%s`. Failed to convert to correct type.", nodePrefix, containerName, fieldName,
                         nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
@@ -348,7 +348,7 @@ public class OrtbTypesResolver {
     private void processWarnings(PrebidLog prebidLog, String containerValue,
                                  String referer, String containerName) {
 
-        final List<String> messages = prebidLog.debug().getIncorrectTypeMessages();
+        final List<String> messages = prebidLog.warning().getIncorrectTypeMessages();
         if (CollectionUtils.isNotEmpty(messages)) {
             // log only 1% of cases
             ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",

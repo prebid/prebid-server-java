@@ -219,7 +219,7 @@
   ],
   "cur": "USD",
   "ext": {
-    "errors": {
+    "warnings": {
       "prebid": [
         {
           "code": 10006,

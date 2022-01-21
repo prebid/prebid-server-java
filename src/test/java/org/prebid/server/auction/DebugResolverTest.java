@@ -91,7 +91,7 @@ public class DebugResolverTest {
         final PrebidMessage prebidMessage = PrebidMessage.of(10002,
                 "Debug turned off for account");
         assertThat(result).isEqualTo(DebugContext.of(false, null));
-        assertThat(auctionContext.getPrebidLog().debug().getAllMessages()).hasSize(1)
+        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).hasSize(1)
                 .containsExactly(prebidMessage);
     }
 
@@ -153,7 +153,7 @@ public class DebugResolverTest {
         final PrebidMessage prebidMessage = PrebidMessage.of(10003,
                 "Debug turned off for bidder: bidder");
         assertThat(result).isFalse();
-        assertThat(auctionContext.getPrebidLog().debug().getAllMessages()).hasSize(1)
+        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).hasSize(1)
                 .containsExactly(prebidMessage);
     }
 
