@@ -241,7 +241,7 @@ class CcpaSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [10012]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [10014]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Invalid consent_type param passed"]
     }
 
