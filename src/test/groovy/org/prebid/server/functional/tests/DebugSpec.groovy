@@ -70,7 +70,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug?.httpcalls
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999] // [10003]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [10003]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["Debug turned off for bidder: $BidderName.GENERIC.value" as String]
     }
@@ -113,9 +113,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
-        //TODO possibly change message after clarifications
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [10002]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["Debug turned off for account"]
     }
@@ -140,8 +138,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug?.httpcalls
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        //TODO change to 10003 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [10003]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["Debug turned off for bidder: $BidderName.GENERIC.value" as String]
     }
@@ -166,8 +163,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [10002]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } == ["Debug turned off for account"]
     }
 
@@ -235,8 +231,7 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.debug
 
         and: "Response should contain specific code and text in ext.warnings.general"
-        //TODO change to 10002 after updating debug warnings
-        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [10002]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } == ["Debug turned off for account"]
 
         where:
