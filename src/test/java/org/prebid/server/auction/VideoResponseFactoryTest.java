@@ -151,6 +151,7 @@ public class VideoResponseFactoryTest extends VertxTest {
                 ExtAmpVideoResponse.of(
                         bidResponse.getExt().getDebug(),
                         bidResponse.getExt().getErrors(),
+                        bidResponse.getExt().getWarnings(),
                         ExtAmpVideoPrebid.of(extResponse.getPrebid().getModules()))));
     }
 }

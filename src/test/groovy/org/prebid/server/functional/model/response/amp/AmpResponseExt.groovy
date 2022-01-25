@@ -8,4 +8,5 @@ class AmpResponseExt {
 
     Debug debug
     Map<ErrorType, List<BidderError>> errors
+    Map<ErrorType, List<BidderError>> warnings
 }

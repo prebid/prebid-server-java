@@ -50,4 +50,8 @@ class PBSUtils {
         }
         path
     }
+
+    static String getPropertyOrDefault(String property, String defaultValue) {
+        System.getProperty(property) ?: defaultValue
+    }
 }

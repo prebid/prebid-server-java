@@ -16,7 +16,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontBannerRequest;
 import org.prebid.server.bidder.beachfront.model.BeachfrontResponseSlot;
@@ -29,6 +33,8 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
@@ -51,25 +57,38 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 public class BeachfrontBidderTest extends VertxTest {
 
     private static final String BANNER_ENDPOINT = "http://banner-beachfront.com";
     private static final String VIDEO_ENDPOINT = "http://video-beachfront.com?exchange_id=";
 
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private BeachfrontBidder beachfrontBidder;
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
 
     @Before
     public void setUp() {
-        beachfrontBidder = new BeachfrontBidder(BANNER_ENDPOINT, VIDEO_ENDPOINT, jacksonMapper);
+        beachfrontBidder =
+                new BeachfrontBidder(BANNER_ENDPOINT, VIDEO_ENDPOINT, currencyConversionService, jacksonMapper);
     }
 
     @Test
-    public void creationShouldFailWhenEitherOfUrlIsInvalid() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder("invalid", null, jacksonMapper));
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new BeachfrontBidder(BANNER_ENDPOINT, "invalid", jacksonMapper));
+    public void creationShouldFailOnInvalidBannerUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new BeachfrontBidder(
+                "invalid", null, currencyConversionService, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnInvalidVideoUrl() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new BeachfrontBidder(
+                BANNER_ENDPOINT, "invalid", null, jacksonMapper));
     }
 
     @Test
@@ -127,7 +146,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .app(App.builder().build())
                 .imp(asList(
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                mapper.valueToTree(ExtImpBeachfront.of(null, null, null, null)))))),
+                                mapper.valueToTree(ExtImpBeachfront.of(null, null, BigDecimal.ONE, null)))))),
                         givenImp(identity()),
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                                 mapper.valueToTree(ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "nurl")))))),
@@ -184,6 +203,124 @@ public class BeachfrontBidderTest extends VertxTest {
         assertThat(httpRequests).hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsOnly(VIDEO_ENDPOINT + "appId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHaveFallbackPriceIfConversionFails() {
+        // given
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(
+                new PreBidException("Unable to convert from currency UAH to desired ad server currency USD"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder
+                                .bidfloor(BigDecimal.valueOf(150L))
+                                .bidfloorcur("UAH")
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, mapper.valueToTree(
+                                                ExtImpBeachfront.of("appId", null,
+                                                        BigDecimal.ONE, null))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly(
+                        "The following error was received from the currency converter while attempting to convert the "
+                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
+                                + "currency.\nThe provided value of imp.ext.beachfront.bidfloor,"
+                                + " 1 USD is being used as a fallback.");
+
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .containsExactly(BeachfrontVideoRequest.builder()
+                        .appId("appId")
+                        .videoResponseType("adm")
+                        .request(BidRequest.builder()
+                                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                                        .id("123")
+                                        .video(Video.builder().w(300).h(250).build())
+                                        .bidfloor(BigDecimal.ONE)
+                                        .bidfloorcur("USD")
+                                        .secure(0)
+                                        .ext(null))))
+                                .cur(singletonList("USD"))
+                                .build())
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertToBidderCurrency() {
+        // given
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.valueOf(5.55D));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder
+                                .bidfloor(BigDecimal.valueOf(150L))
+                                .bidfloorcur("UAH")
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, mapper.valueToTree(
+                                                ExtImpBeachfront.of("appId", null,
+                                                        BigDecimal.ONE, null))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
+                .containsExactly(BeachfrontVideoRequest.builder()
+                        .appId("appId")
+                        .videoResponseType("adm")
+                        .request(BidRequest.builder()
+                                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                                        .id("123")
+                                        .video(Video.builder().w(300).h(250).build())
+                                        .bidfloor(BigDecimal.valueOf(5.55D))
+                                        .bidfloorcur("USD")
+                                        .secure(0)
+                                        .ext(null))))
+                                .cur(singletonList("USD"))
+                                .build())
+                        .build());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldThrowExceptionAndSkipCurrentImp() {
+        // given
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(
+                new PreBidException("Unable to convert from currency UAH to desired ad server currency USD"));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(
+                        givenImp(impBuilder -> impBuilder
+                                .bidfloor(BigDecimal.valueOf(150L))
+                                .bidfloorcur("UAH")
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(null, mapper.valueToTree(
+                                                ExtImpBeachfront.of("appId", null,
+                                                        BigDecimal.ZERO, null))))))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly(
+                        "The following error was received from the currency converter while attempting to convert the "
+                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
+                                + "currency.\nA value of imp.ext.beachfront.bidfloor was not provided. "
+                                + "The bid is being skipped.");
     }
 
     @Test
@@ -305,7 +442,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .deviceOs("nokia")
                         .isMobile(1)
                         .user(User.builder().id("userId").buyeruid("buid").build())
-                        .adapterVersion("0.9.2")
+                        .adapterVersion("1.0.0")
                         .adapterName("BF_PREBID_S2S")
                         .requestId("153")
                         .real204(true)
@@ -345,7 +482,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                         .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
                                                 .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("123")
-                                                .bidfloor(BigDecimal.TEN).build()))
+                                                .bidfloor(BigDecimal.TEN).bidfloorcur("USD").build()))
                                         .cur(singletonList("USD"))
                                         .build())
                                 .build(),
@@ -357,7 +494,7 @@ public class BeachfrontBidderTest extends VertxTest {
                                         .app(App.builder().bundle("prefix_test1.test2.test3_suffix")
                                                 .domain("test2.prefix_test1").build())
                                         .imp(singletonList(expectedImpBuilder.id("234")
-                                                .bidfloor(BigDecimal.ONE).build()))
+                                                .bidfloor(BigDecimal.ONE).bidfloorcur("USD").build()))
                                         .cur(singletonList("USD"))
                                         .build())
                                 .build());
@@ -407,19 +544,6 @@ public class BeachfrontBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpBidFloorCurIsUnsupported() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.bidfloorcur("unsupported"));
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
-
-        // then
-        final String errorMessage = "Unsupported bid currency, unsupported. bids are currently accepted in USD only.";
-        assertThat(result.getErrors()).hasSize(1).containsExactly(BidderError.badInput(errorMessage));
-    }
-
-    @Test
     public void makeHttpRequestsShouldUseDefaultBidFloorIfNoInRequest() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -442,32 +566,6 @@ public class BeachfrontBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
                 .containsExactly(BigDecimal.ZERO);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUseImpBidFloor() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpBeachfront.of("appId",
-                                        ExtImpBeachfrontAppIds.of("videoIds", "bannerIds"),
-                                        BigDecimal.TEN, "adm"))))
-                        .video(Video.builder().w(1).h(1).build())
-                        .bidfloor(BigDecimal.ONE)
-                        .secure(1));
-
-        // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
-                .extracting(BeachfrontVideoRequest::getRequest)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.ONE);
     }
 
     @Test

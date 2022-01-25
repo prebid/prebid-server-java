@@ -115,6 +115,7 @@ public class RequestValidator {
      * at a time.
      */
     public ValidationResult validate(BidRequest bidRequest) {
+        final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
                 throw new ValidationException("request missing required field: \"id\"");
@@ -167,7 +168,7 @@ public class RequestValidator {
             }
 
             for (int index = 0; index < bidRequest.getImp().size(); index++) {
-                validateImp(bidRequest.getImp().get(index), aliases, index);
+                validateImp(bidRequest.getImp().get(index), aliases, index, warnings);
             }
 
             if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
@@ -185,7 +186,7 @@ public class RequestValidator {
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
-        return ValidationResult.success();
+        return ValidationResult.success(warnings);
     }
 
     /**
@@ -607,7 +608,8 @@ public class RequestValidator {
         }
     }
 
-    private void validateImp(Imp imp, Map<String, String> aliases, int index) throws ValidationException {
+    private void validateImp(Imp imp, Map<String, String> aliases, int index, List<String> warnings)
+            throws ValidationException {
         if (StringUtils.isBlank(imp.getId())) {
             throw new ValidationException("request.imp[%d] missing required field: \"id\"", index);
         }
@@ -626,7 +628,7 @@ public class RequestValidator {
         validateAudioMimes(imp.getAudio(), index);
         fillAndValidateNative(imp.getXNative(), index);
         validatePmp(imp.getPmp(), index);
-        validateImpExt(imp.getExt(), aliases, index);
+        validateImpExt(imp.getExt(), aliases, index, warnings);
     }
 
     private void fillAndValidateNative(Native xNative, int impIndex) throws ValidationException {
@@ -899,11 +901,13 @@ public class RequestValidator {
         }
     }
 
-    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex);
+    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex,
+                                List<String> warnings) throws ValidationException {
+        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex, warnings);
     }
 
-    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex)
+    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex,
+                                      List<String> warnings)
             throws ValidationException {
 
         if (extPrebidNode == null) {
@@ -922,20 +926,20 @@ public class RequestValidator {
             throw new ValidationException(
                     "request.imp[%d].ext.prebid.bidder must be an object type", impIndex);
         }
-
         final ExtImpPrebid extPrebid = parseExtImpPrebid((ObjectNode) extPrebidNode, impIndex);
 
-        validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+        validateImpExtPrebidBidder(extPrebidBidderNode, extPrebid.getStoredAuctionResponse(),
+                aliases, impIndex, warnings);
         validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
     }
 
-    private void validateImpExtPrebidBidder(ExtImpPrebid extPrebid, Map<String, String> aliases, int impIndex)
-            throws ValidationException {
-
-        final ObjectNode extPrebidBidder = extPrebid.getBidder();
-
+    private void validateImpExtPrebidBidder(JsonNode extPrebidBidder,
+                                            ExtStoredAuctionResponse storedAuctionResponse,
+                                            Map<String, String> aliases,
+                                            int impIndex,
+                                            List<String> warnings) throws ValidationException {
         if (extPrebidBidder == null) {
-            if (extPrebid.getStoredAuctionResponse() != null) {
+            if (storedAuctionResponse != null) {
                 return;
             } else {
                 throw new ValidationException("request.imp[%d].ext.prebid.bidder must be defined", impIndex);
@@ -946,7 +950,20 @@ public class RequestValidator {
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
-            validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+            try {
+                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+            } catch (ValidationException ex) {
+                bidderExtensions.remove();
+                warnings.add(
+                        String.format(
+                                "WARNING: request.imp[%d].ext.prebid.bidder.%s was dropped with a reason: %s",
+                                impIndex, bidder, ex.getMessage()));
+            }
+        }
+
+        if (extPrebidBidder.size() == 0) {
+            warnings.add(
+                    String.format("WARNING: request.imp[%d].ext must contain at least one valid bidder", impIndex));
         }
     }
 
