@@ -49,13 +49,14 @@ public class AdmanBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            Imp modifiedImp = null;
+            final ExtImpAdman extImpAdman;
             try {
-                final ExtImpAdman extImpAdman = parseImpExt(imp);
-                modifiedImp = modifyImp(imp, extImpAdman);
+                extImpAdman = parseImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+            final Imp modifiedImp = modifyImp(imp, extImpAdman);
             httpRequests.add(makeRequest(request, modifiedImp));
         }
 
