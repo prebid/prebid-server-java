@@ -6,5 +6,5 @@ import org.prebid.server.functional.util.privacy.ConsentString
 @ToString(includeNames = true, ignoreNulls = true)
 class UserExt {
 
-    ConsentString consent
+    String consent
 }
