@@ -1,0 +1,17 @@
+adapters:
+  adnuntius:
+    endpoint: https://ads.adnuntius.delivery/i
+    meta-info:
+      maintainer-email: hello@adnuntius.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 855
+    usersync:
+      url:
+      redirect-url:
+      cookie-family-name: adnuntius
+      type: redirect
+      support-cors: false
