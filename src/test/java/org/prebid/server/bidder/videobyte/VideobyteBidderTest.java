@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,55 +107,67 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateRequestsWithOriginHeaderIfSiteDomainIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Site.builder().domain("domain").build(),
-                givenImp(identity()), givenImp(identity()));
+        final BidRequest bidRequest = givenBidRequest(
+                Site.builder().domain("domain").build(),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
-                .extracting(MultiMap::entries)
-                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain")));
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldCreateRequestsWithRefererHeaderIfSiteRefIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Site.builder().ref("referer").build(),
-                givenImp(identity()), givenImp(identity()));
+        final BidRequest bidRequest = givenBidRequest(
+                Site.builder().ref("referer").build(),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
-                .extracting(MultiMap::entries)
-                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsOnlyOnce(tuple(HttpUtil.REFERER_HEADER.toString(), "referer")));
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "referer"));
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldCreateRequestsWithOriginAndRefererHeadersIfSiteDomainAndSiteRefArePresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Site.builder().domain("domain").ref("referer").build(),
-                givenImp(identity()), givenImp(identity()));
+        final BidRequest bidRequest = givenBidRequest(
+                Site.builder().domain("domain").ref("referer").build(),
+                givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
-                .extracting(MultiMap::entries)
-                .allSatisfy(entries -> assertThat(entries).extracting(Map.Entry::getKey, Map.Entry::getValue)
-                        .containsOnlyOnce(tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
-                                tuple(HttpUtil.REFERER_HEADER.toString(), "referer")));
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.ORIGIN_HEADER.toString(), "domain"),
+                        tuple(HttpUtil.REFERER_HEADER.toString(), "referer"));
         assertThat(result.getErrors()).isEmpty();
     }
 
