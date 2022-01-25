@@ -18,6 +18,7 @@ import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.BlacklistedAppException;
@@ -57,6 +58,7 @@ public class Ortb2ImplicitParametersResolver {
 
     public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
+    public static final String AMP_CHANNEL = "amp";
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -580,7 +582,7 @@ public class Ortb2ImplicitParametersResolver {
 
         final ExtRequestTargeting updatedTargeting = targetingOrNull(prebid, imps);
         final ExtRequestPrebidCache updatedCache = cacheOrNull(prebid);
-        final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest);
+        final ExtRequestPrebidChannel updatedChannel = channelOrNull(prebid, bidRequest, endpoint);
         final ExtRequestPrebidPbs updatedPbs = pbsOrNull(bidRequest, endpoint);
 
         if (updatedTargeting != null || updatedCache != null || updatedChannel != null || updatedPbs != null) {
@@ -767,19 +769,23 @@ public class Ortb2ImplicitParametersResolver {
     /**
      * Returns populated {@link ExtRequestPrebidChannel} or null if no changes were applied.
      */
-    private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest) {
+    private ExtRequestPrebidChannel channelOrNull(ExtRequestPrebid prebid, BidRequest bidRequest, String endpoint) {
         final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
         final String channelName = ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
 
-        if (StringUtils.isNotBlank(channelName)) {
-            return null;
+        if (channel != null && StringUtils.isBlank(channelName)) {
+            throw new PreBidException("ext.prebid.channel.name can't be empty");
         }
 
-        if (bidRequest.getApp() != null) {
+        return channel == null ? populateChannel(bidRequest, endpoint) : null;
+    }
+
+    private static ExtRequestPrebidChannel populateChannel(BidRequest bidRequest, String endpoint) {
+        if (StringUtils.equals(Endpoint.openrtb2_amp.value(), endpoint)) {
+            return ExtRequestPrebidChannel.of(AMP_CHANNEL);
+        } else if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
-        }
-
-        if (bidRequest.getSite() != null) {
+        } else if (bidRequest.getSite() != null) {
             return ExtRequestPrebidChannel.of(WEB_CHANNEL);
         }
 

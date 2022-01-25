@@ -25,6 +25,11 @@ public class BidderUtil {
         return isValidPrice(price.getValue()) && StringUtils.isNotBlank(price.getCurrency());
     }
 
+    public static boolean shouldConvertBidFloor(Price price, String bidderCurrency) {
+        return isValidPrice(price)
+                && !StringUtils.equals(price.getCurrency(), bidderCurrency);
+    }
+
     public static PriceFloorInfo resolvePriceFloor(Bid bid, BidRequest bidRequest) {
         final String bidImpId = ObjectUtil.getIfNotNull(bid, Bid::getImpid);
         if (StringUtils.isEmpty(bidImpId)) {

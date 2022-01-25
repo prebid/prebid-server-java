@@ -192,15 +192,16 @@ public class Ortb2RequestFactory {
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
-    /**
-     * Performs thorough validation of fully constructed {@link BidRequest} that is going to be used to hold an auction.
-     */
-    public BidRequest validateRequest(BidRequest bidRequest) {
+    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
         final ValidationResult validationResult = requestValidator.validate(bidRequest);
-        if (validationResult.hasErrors()) {
-            throw new InvalidRequestException(validationResult.getErrors());
+
+        if (validationResult.hasWarnings()) {
+            warnings.addAll(validationResult.getWarnings());
         }
-        return bidRequest;
+
+        return validationResult.hasErrors()
+                ? Future.failedFuture(new InvalidRequestException(validationResult.getErrors()))
+                : Future.succeededFuture(bidRequest);
     }
 
     public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
@@ -229,10 +230,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                        body,
-                        auctionContext.getHookExecutionContext())
+                toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                body,
+                auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 

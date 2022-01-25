@@ -100,6 +100,7 @@ public class TargetingCategory {
         mediaType("adunit.mediatype"),
         adslot("adunit.adslot"),
         domain("site.domain"),
+        publisherDomain("site.publisher.domain"),
         referrer("site.referrer"),
         appBundle("app.bundle"),
         deviceGeoExt("device.geo.ext."),
