@@ -86,10 +86,21 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private BidderBid createBidderBid(Bid bid, BidResponse bidResponse) {
         try {
-            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
+            return BidderBid.of(resolveMacros(bid), getBidType(bid), bidResponse.getCur());
         } catch (PreBidException e) {
             return null;
         }
+    }
+
+    private Bid resolveMacros(Bid bid) {
+        final Bid.BidBuilder modifyBid = bid.toBuilder();
+        final String bidPrice = Objects.toString(bid.getPrice());
+        final String auctionPrice = "${AUCTION_PRICE}";
+
+        modifyBid.nurl(StringUtils.replace(bid.getNurl(), auctionPrice, bidPrice));
+        modifyBid.adm(StringUtils.replace(bid.getAdm(), auctionPrice, bidPrice));
+
+        return modifyBid.build();
     }
 
     private BidType getBidType(Bid bid) {
