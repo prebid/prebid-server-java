@@ -46,7 +46,7 @@ public class AdgenerationBidder implements Bidder<Void> {
             Pattern.CASE_INSENSITIVE);
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdgeneration>> ADGENERATION_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdgeneration>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

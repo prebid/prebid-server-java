@@ -35,7 +35,7 @@ import java.util.Objects;
 public class TripleliftBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpTriplelift>> TRIPLELIFT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTriplelift>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

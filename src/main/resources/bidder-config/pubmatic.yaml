@@ -1,6 +1,16 @@
 adapters:
   pubmatic:
     endpoint: https://hbopenbid.pubmatic.com/translator?source=prebid-server
+    aliases:
+      groupm:
+        endpoint: https://hbopenbid.pubmatic.com/translator?source=prebid-server
+        meta-info:
+          email: header-bidding@pubmatic.com
+          vendor-id: 98
+        usersync:
+          url: https://ads.pubmatic.com/AdServer/js/user_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&predirect=
+          redirect-url: /setuid?bidder=groupm&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+          cookie-family-name: groupm
     meta-info:
       maintainer-email: header-bidding@pubmatic.com
       app-media-types:

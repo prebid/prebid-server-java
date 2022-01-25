@@ -1,0 +1,12 @@
+{
+  "adUnits": [
+    {
+      "auId": "some_au_id",
+      "targetId": "some_au_id-imp_id"
+    }
+  ],
+  "metaData": {
+    "usi": "user_d"
+  },
+  "context": "some_page"
+}

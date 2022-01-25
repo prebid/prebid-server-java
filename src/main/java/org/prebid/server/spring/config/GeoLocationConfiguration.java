@@ -2,6 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
+import lombok.experimental.UtilityClass;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
@@ -27,6 +28,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 
+@UtilityClass
 public class GeoLocationConfiguration {
 
     @Configuration

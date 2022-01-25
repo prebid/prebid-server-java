@@ -18,7 +18,7 @@ public class BidderCatalogTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private Bidder bidder;
+    private Bidder<?> bidder;
 
     private BidderCatalog bidderCatalog;
 

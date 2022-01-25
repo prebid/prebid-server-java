@@ -282,7 +282,7 @@ public class AdmixerBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)));
+                .containsExactly(givenImpWithParsedTagID());
     }
 
     @Test
@@ -300,7 +300,7 @@ public class AdmixerBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)));
+                .containsExactly(givenImpWithParsedTagID());
     }
 
     @Test
@@ -322,10 +322,7 @@ public class AdmixerBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(givenImpWithParsedTagID(builder -> builder
-                        .bidfloor(null)
-                        .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                                givenCustomParams("foo1", singletonList("bar1")))))));
+                .containsExactly(givenImpWithParsedTagID());
     }
 
     @Test
@@ -347,9 +344,7 @@ public class AdmixerBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(givenImpWithParsedTagID(builder -> builder.bidfloor(null)
-                        .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,
-                                givenCustomParams("foo1", singletonList("bar1")))))));
+                .containsExactly(givenImpWithParsedTagID());
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -381,7 +376,7 @@ public class AdmixerBidderTest extends VertxTest {
     }
 
     //method where zoneId cut from ext and passed to tagId field
-    private static Imp givenImpWithParsedTagID(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImpWithParsedTagID() {
         return givenImp(builder -> builder
                 .tagid("veryVeryVerySuperLongZoneIdValue")
                 .ext(mapper.valueToTree(ExtImpAdmixer.of(null, null,

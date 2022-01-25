@@ -11,7 +11,7 @@ public class LocalMessageCodec implements MessageCodec<Object, Object> {
 
     private static final String CODEC_NAME = "LocalMessageCodec";
 
-    public static MessageCodec create() {
+    public static MessageCodec<Object, Object> create() {
         return new LocalMessageCodec();
     }
 

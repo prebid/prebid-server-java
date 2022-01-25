@@ -16,6 +16,7 @@ public enum SpecialPurpose {
         this.code = code;
     }
 
+    @SuppressWarnings("unused")
     @JsonCreator
     public static SpecialPurpose valueOf(int code) {
         return Arrays.stream(values())

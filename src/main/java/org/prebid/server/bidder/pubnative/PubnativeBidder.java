@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class PubnativeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
+            new TypeReference<>() {
             };
     private static final String PUBNATIVE_CURRENCY = "USD";
 

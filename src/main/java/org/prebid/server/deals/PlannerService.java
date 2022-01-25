@@ -34,8 +34,8 @@ public class PlannerService implements Suspendable {
 
     private static final Logger logger = LoggerFactory.getLogger(PlannerService.class);
 
-    protected static final TypeReference<List<LineItemMetaData>> LINE_ITEM_METADATA_TYPE_REFERENCE
-            = new TypeReference<List<LineItemMetaData>>() {
+    protected static final TypeReference<List<LineItemMetaData>> LINE_ITEM_METADATA_TYPE_REFERENCE =
+            new TypeReference<>() {
             };
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";

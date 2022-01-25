@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class KubientBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpKubient>> KUBIENT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpKubient>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

@@ -4,11 +4,13 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final int MAX_CONTAINERS_COUNT = 5
+    private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
+            PBSUtils.getPropertyOrDefault("max.containers.count", "2"))
 
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer

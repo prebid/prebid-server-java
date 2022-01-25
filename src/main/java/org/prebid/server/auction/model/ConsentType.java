@@ -5,5 +5,5 @@ package org.prebid.server.auction.model;
  */
 public enum ConsentType {
 
-    tcfV1, tcfV2, usPrivacy, unknown;
+    tcfV1, tcfV2, usPrivacy, unknown
 }

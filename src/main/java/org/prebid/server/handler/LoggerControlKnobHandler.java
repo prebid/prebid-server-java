@@ -10,9 +10,6 @@ import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.util.HttpUtil;
 
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -21,8 +18,7 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
     private static final String LEVEL_PARAMETER = "level";
     private static final String DURATION_PARAMETER = "duration";
 
-    private static final Set<String> ALLOWED_LEVELS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            "error", "warn", "info", "debug")));
+    private static final Set<String> ALLOWED_LEVELS = Set.of("error", "warn", "info", "debug");
 
     private final long maxDurationMs;
     private final LoggerControlKnob loggerControlKnob;
