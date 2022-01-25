@@ -252,31 +252,23 @@ public class AmpRequestFactory {
     }
 
     private static User createUser(ConsentType consentType, ConsentParam consentParam, String addtlConsent) {
-        final boolean shouldSetUserConsent = consentParam != null && BooleanUtils.isTrue(consentParam.getTcfV2())
-                && (consentType == null || consentType == ConsentType.tcfV2);
-
-        if (StringUtils.isNotBlank(addtlConsent) || shouldSetUserConsent) {
-            final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
-            if (shouldSetUserConsent) {
-                userExtBuilder.consent(consentParam.getConsentString());
-            }
-            if (StringUtils.isNotBlank(addtlConsent)) {
-                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
-            }
-            return User.builder().ext(userExtBuilder.build()).build();
+        final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
+        if (consentParam != null && (consentType == null || consentType == ConsentType.tcfV2)) {
+            userExtBuilder.consent(consentParam.getConsentString());
         }
-
-        return null;
+        if (StringUtils.isNotBlank(addtlConsent)) {
+            userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
+        }
+        return User.builder().ext(userExtBuilder.build()).build();
     }
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
-        final boolean shouldSetUsPrivacy = consentParam != null && BooleanUtils.isTrue(consentParam.getCcpa())
-                && (consentType == null || consentType == ConsentType.usPrivacy);
-        if (shouldSetUsPrivacy || gdpr != null) {
-            return Regs.of(null, ExtRegs.of(gdpr, shouldSetUsPrivacy ? consentParam.getConsentString() : null));
-        }
+        final String usPrivacy =
+                consentParam != null && (consentType == null || consentType == ConsentType.usPrivacy)
+                        ? consentParam.getConsentString()
+                        : null;
 
-        return null;
+        return Regs.of(null, ExtRegs.of(gdpr, usPrivacy));
     }
 
     private static ExtRequest createExt(HttpRequestContext httpRequest, String tagId, Integer debug) {
@@ -323,7 +315,8 @@ public class AmpRequestFactory {
     private static ConsentParam consentParamFromQueryStringParams(HttpRequestContext httpRequest) {
         final String consentParam = httpRequest.getQueryParams().get(CONSENT_PARAM);
         if (consentParam != null) {
-            return ConsentParam.of(consentParam,
+            return ConsentParam.of(
+                    consentParam,
                     CONSENT_PARAM,
                     TcfDefinerService.isConsentStringValid(consentParam),
                     Ccpa.isValid(consentParam));
@@ -331,7 +324,8 @@ public class AmpRequestFactory {
 
         final String gdprConsentParam = httpRequest.getQueryParams().get(GDPR_CONSENT_PARAM);
         if (gdprConsentParam != null) {
-            return ConsentParam.of(gdprConsentParam,
+            return ConsentParam.of(
+                    gdprConsentParam,
                     GDPR_CONSENT_PARAM,
                     TcfDefinerService.isConsentStringValid(gdprConsentParam),
                     Ccpa.isValid(gdprConsentParam));

@@ -1151,20 +1151,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutUserWhenGdprConsentQueryParamIsBlank() {
-        // given
-        routingContext.queryParams().add("gdpr_consent", "");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
     public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
@@ -1201,54 +1187,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsTCFV1() {
-        // given
-        routingContext.queryParams()
-                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
-                .add("consent_type", "1");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsUsPrivacy() {
-        // given
-        routingContext.queryParams()
-                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
-                .add("consent_type", "3");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsUnknown() {
-        // given
-        routingContext.queryParams()
-                .add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY")
-                .add("consent_type", "23");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
     public void shouldReturnBidRequestWithProvidersSettingsContainsAddtlConsentIfParamIsPresent() {
         // given
         routingContext.queryParams()
@@ -1266,47 +1204,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .consentedProvidersSettings(ConsentedProvidersSettings.of("someConsent"))
                                 .build())
                         .build());
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsMissed() {
-        // given
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutProvidersSettingsIfAddtlConsentIsBlank() {
-        // given
-        routingContext.queryParams()
-                .add("addtl_consent", "  ");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutUserWhenGdprConsentQueryParamIsInvalid() {
-        // given
-        routingContext.queryParams().add("gdpr_consent", "consent-value");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getUser()).isNull();
     }
 
     @Test
@@ -1373,18 +1270,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(result.cause())
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("Error decoding targeting, expected type is `object` but was ARRAY");
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutRegsExtWhenNoPrivacyPolicyIsExist() {
-        // given
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getRegs()).isNull();
     }
 
     @Test
@@ -1548,18 +1433,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithoutRegsIfGdprAppliesIsNotPresent() {
-        // given
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getRegs()).isNull();
-    }
-
-    @Test
     public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenGdprConsentQueryParamIsValidUsPrivacyString() {
         // given
         routingContext.queryParams().add("gdpr_consent", "1N--");
@@ -1575,7 +1448,7 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsNotPresent() {
+    public void shouldReturnBidRequestWithRegsExtUsPrivacyWhenConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("consent_string", "1Y-N");
 
@@ -1604,54 +1477,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getRegs())
                 .isEqualTo(Regs.of(null, ExtRegs.of(null, "1Y-N")));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsTcfV1() {
-        // given
-        routingContext.queryParams()
-                .add("consent_string", "1Y-N")
-                .add("consent_type", "1");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getRegs()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsTcfV2() {
-        // given
-        routingContext.queryParams()
-                .add("consent_string", "1Y-N")
-                .add("consent_type", "2");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getRegs()).isNull();
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithoutRegsExtUsPrivacyWhenConsentStringIsValidAndConsentTypeIsUnknown() {
-        // given
-        routingContext.queryParams()
-                .add("consent_string", "1Y-N")
-                .add("consent_type", "23");
-
-        givenBidRequest();
-
-        // when
-        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(result.getRegs()).isNull();
     }
 
     @Test
