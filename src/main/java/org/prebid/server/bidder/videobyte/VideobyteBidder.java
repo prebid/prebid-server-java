@@ -69,8 +69,8 @@ public class VideobyteBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), VIDEOBYTE_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            final String errorMessage = "Ignoring imp id=%s, error while decoding, err: %s";
-            throw new PreBidException(String.format(errorMessage, imp.getId(), e.getMessage()));
+            throw new PreBidException(String.format(
+                    "Ignoring imp id=%s, error while decoding, err: %s", imp.getId(), e.getMessage()));
         }
     }
 
