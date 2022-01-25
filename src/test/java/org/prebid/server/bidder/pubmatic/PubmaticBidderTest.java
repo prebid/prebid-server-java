@@ -2,6 +2,7 @@ package org.prebid.server.bidder.pubmatic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -32,6 +33,7 @@ import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmaticKeyVal;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -41,7 +43,6 @@ import org.prebid.server.util.HttpUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -89,10 +90,9 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfBidRequestExtWrapperIsInvalid() {
         // given
-        final ExtRequest bidRequestExt = jacksonMapper.fillExtension(
-                ExtRequest.empty(),
-                mapper.createObjectNode().set(
-                        "wrapper", mapper.createObjectNode().put("version", "invalid")));
+        final ObjectNode wrapperNode = mapper.createObjectNode()
+                .set("wrapper", mapper.createObjectNode().set("version", TextNode.valueOf("invalid")));
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(wrapperNode).build());
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
@@ -111,7 +111,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUseWrapperFromBidRequestExtIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(1, 1)), identity(), identity());
+                bidRequestBuilder -> bidRequestBuilder.ext(givenUpdatedBidRequestExt(1, 1)), identity(), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -121,14 +121,14 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenBidRequestExt(1, 1));
+                .containsExactly(givenUpdatedBidRequestExt(1, 1));
     }
 
     @Test
     public void makeHttpRequestsShouldMergeWrappersFromImpAndBidRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenBidRequestExt(123, null)),
+                bidRequestBuilder -> bidRequestBuilder.ext(givenInitialBidRequestExt(123, null)),
                 identity(),
                 extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
 
@@ -140,7 +140,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenBidRequestExt(123, 456));
+                .containsExactly(givenUpdatedBidRequestExt(123, 456));
     }
 
     @Test
@@ -497,9 +497,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(jacksonMapper.fillExtension(
-                        ExtRequest.empty(), mapper.createObjectNode()
-                                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(1, 1)))));
+                .containsExactly(givenUpdatedBidRequestExt(1, 1));
     }
 
     @Test
@@ -923,10 +921,18 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
     }
 
-    private static ExtRequest givenBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
-        final ObjectNode wrapperNode = mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion));
+    private static ExtRequest givenInitialBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+        final ObjectNode wrapperNode = mapper.createObjectNode()
+                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
-        return jacksonMapper.fillExtension(ExtRequest.empty(), mapper.createObjectNode().set("wrapper", wrapperNode));
+        return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(wrapperNode).build());
+    }
+
+    private static ExtRequest givenUpdatedBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+        final ObjectNode wrapperNode = mapper.createObjectNode()
+                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
+
+        return jacksonMapper.fillExtension(ExtRequest.empty(), wrapperNode);
     }
 
     private static BidRequest givenBidRequest(

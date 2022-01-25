@@ -34,6 +34,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -110,7 +111,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private PubmaticWrapper extractWrapper(BidRequest request) {
         final ExtRequest extRequest = request.getExt();
-        final JsonNode wrapperNode = extRequest != null ? extRequest.getProperty("wrapper") : null;
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ObjectNode bidderParams = extRequestPrebid != null
+                ? extRequestPrebid.getBidderparams()
+                : null;
+        final JsonNode wrapperNode = bidderParams != null ? bidderParams.get("wrapper") : null;
 
         return wrapperNode != null && wrapperNode.isObject()
                 ? mapper.mapper().convertValue(wrapperNode, PubmaticWrapper.class)
