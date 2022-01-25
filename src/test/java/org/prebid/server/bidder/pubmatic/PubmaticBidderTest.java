@@ -941,7 +941,7 @@ public class PubmaticBidderTest extends VertxTest {
             Function<ExtImpPubmatic.ExtImpPubmaticBuilder, ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
                 .build();
     }
 
@@ -961,13 +961,13 @@ public class PubmaticBidderTest extends VertxTest {
                                         ExtImpPubmatic.ExtImpPubmaticBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        extCustomizer.apply(ExtImpPubmatic.builder()
-                                .publisherId("pub id")
-                                .adSlot("slot@300x250"))
-                                .build()))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                extCustomizer.apply(ExtImpPubmatic.builder()
+                                                .publisherId("pub id")
+                                                .adSlot("slot@300x250"))
+                                        .build()))))
                 .build();
     }
 
