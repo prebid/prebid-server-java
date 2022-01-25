@@ -58,10 +58,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String AD_SERVER_GAM = "gam";
     private static final String PREBID = "prebid";
 
-    private static final TypeReference<Map<String, Integer>> WRAPPER_TYPE =
-            new TypeReference<>() {
-            };
-
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -139,14 +135,18 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
 
         return PubmaticWrapper.of(
-                ObjectUtils.defaultIfNull(left.getProfile(), right.getProfile()),
-                ObjectUtils.defaultIfNull(left.getVersion(), right.getVersion()));
+                ObjectUtils.defaultIfNull(stripToNull(left.getProfile()), right.getProfile()),
+                ObjectUtils.defaultIfNull(stripToNull(left.getVersion()), right.getVersion()));
     }
 
     private static boolean isWrapperValid(PubmaticWrapper wrapper) {
         return wrapper != null
-                && ObjectUtils.defaultIfNull(wrapper.getProfile(), 0) != 0
-                && ObjectUtils.defaultIfNull(wrapper.getVersion(), 0) != 0;
+                && stripToNull(wrapper.getProfile()) != null
+                && stripToNull(wrapper.getVersion()) != null;
+    }
+
+    private static Integer stripToNull(Integer value) {
+        return value == null || value == 0 ? null : value;
     }
 
     private PubmaticBidderImpExt parseImpExt(Imp imp) {

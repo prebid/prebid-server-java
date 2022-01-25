@@ -254,15 +254,13 @@ public class PubmaticBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .extracting(Banner::getH)
-                .containsExactly(250);
+                .extracting(Banner::getH).containsOnly(250);
 
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .extracting(Banner::getW)
-                .containsExactly(300);
+                .extracting(Banner::getW).containsOnly(300);
     }
 
     @Test
