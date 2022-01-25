@@ -49,6 +49,7 @@ import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
@@ -73,7 +74,7 @@ public class AppnexusBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        appnexusBidder = new AppnexusBidder(ENDPOINT_URL, null, jacksonMapper);
+        appnexusBidder = new AppnexusBidder(ENDPOINT_URL, null, Map.of(10, "IAB4-5"), jacksonMapper);
     }
 
     @Test
