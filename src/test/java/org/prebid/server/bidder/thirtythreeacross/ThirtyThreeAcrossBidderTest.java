@@ -81,8 +81,8 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
 
         // then
         final ExtRequest ext = ExtRequest.empty();
-        ext.addProperty("ttx", mapper.valueToTree(
-                ThirtyThreeAcrossExtTtx.of(singletonList(ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server", "n/a")))));
+        ext.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(singletonList(
+                ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server-Java", "n/a")))));
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(ext);
@@ -93,8 +93,8 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
     public void makeHttpRequestsShouldUpdateExtTtx() {
         // given
         final ExtRequest ext = ExtRequest.empty();
-        ext.addProperty("ttx", mapper.valueToTree(
-                ThirtyThreeAcrossExtTtx.of(singletonList(ThirtyThreeAcrossExtTtxCaller.of("Caller", "1.0")))));
+        ext.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(singletonList(
+                ThirtyThreeAcrossExtTtxCaller.of("Caller", "1.0")))));
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
 
         // when
@@ -104,7 +104,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final ExtRequest updatedExt = ExtRequest.empty();
         updatedExt.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(List.of(
                 ThirtyThreeAcrossExtTtxCaller.of("Caller", "1.0"),
-                ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server", "n/a")))));
+                ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server-Java", "n/a")))));
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(updatedExt);
