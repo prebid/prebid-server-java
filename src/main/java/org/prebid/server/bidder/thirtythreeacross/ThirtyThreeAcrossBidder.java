@@ -48,7 +48,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final ThirtyThreeAcrossExtTtxCaller PREBID_CALLER =
-            ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server", "n/a");
+            ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server-Java", "n/a");
     private static final JsonPointer BID_MEDIA_TYPE_POINTER = JsonPointer.valueOf("/ttx/mediaType");
 
     private final String endpointUrl;
