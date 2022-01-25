@@ -67,10 +67,9 @@ public class ApacdexBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpApacdex extImpApacdex) {
-        final ObjectNode objectNode = mapper.mapper().createObjectNode()
-                .set("bidder", mapper.mapper().valueToTree(extImpApacdex));
-
-        return imp.toBuilder().ext(objectNode).build();
+        return imp.toBuilder()
+                .ext(mapper.mapper().valueToTree(extImpApacdex))
+                .build();
     }
 
     private ExtImpApacdex parseImpExt(Imp imp) {

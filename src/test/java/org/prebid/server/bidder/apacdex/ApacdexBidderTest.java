@@ -299,7 +299,7 @@ public class ApacdexBidderTest extends VertxTest {
     }
 
     private static ObjectNode correctExtTypeJsonNode() {
-        ExtImpApacdex extImpApacdex = ExtImpApacdex.of("123", "345", 4.4f);
-        return mapper.createObjectNode().set("bidder", mapper.valueToTree(extImpApacdex));
+        final ExtImpApacdex extImpApacdex = ExtImpApacdex.of("123", "345", 4.4f);
+        return mapper.valueToTree(extImpApacdex);
     }
 }
