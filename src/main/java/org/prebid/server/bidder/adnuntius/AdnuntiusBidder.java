@@ -184,10 +184,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             final String deviceUa = device.getUa();
 
             if (StringUtils.isNotBlank(deviceIp)) {
-                headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
             }
             if (StringUtils.isNotBlank(deviceUa)) {
-                headers.add(HttpUtil.USER_AGENT_HEADER, deviceUa);
+                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
             }
         }
 
