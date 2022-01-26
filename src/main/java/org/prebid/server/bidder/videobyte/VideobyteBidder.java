@@ -87,23 +87,25 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     }
 
     private String createUri(ExtImpVideobyte extImpVideobyte) {
+        final URIBuilder uriBuilder;
         try {
-            final URIBuilder uriBuilder = new URIBuilder(endpointUrl)
-                    .addParameter("source", "pbs")
-                    .addParameter("pid", extImpVideobyte.getPublisherId());
-
-            final String placementId = extImpVideobyte.getPlacementId();
-            if (StringUtils.isNotEmpty(placementId)) {
-                uriBuilder.addParameter("placementId", placementId);
-            }
-            final String networkId = extImpVideobyte.getNetworkId();
-            if (StringUtils.isNotEmpty(networkId)) {
-                uriBuilder.addParameter("nid", networkId);
-            }
-
-            return uriBuilder.build().toString();
+            uriBuilder = new URIBuilder(endpointUrl);
         } catch (URISyntaxException e) {
             throw new PreBidException(e.getMessage());
+        }
+
+        uriBuilder.addParameter("source", "pbs")
+                .addParameter("pid", extImpVideobyte.getPublisherId());
+
+        addUriParameterIfNotEmpty(uriBuilder, "placementId", extImpVideobyte.getPlacementId());
+        addUriParameterIfNotEmpty(uriBuilder, "nid", extImpVideobyte.getNetworkId());
+
+        return uriBuilder.toString();
+    }
+
+    private static void addUriParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
+        if (StringUtils.isNotEmpty(value)) {
+            uriBuilder.addParameter(parameter, value);
         }
     }
 
