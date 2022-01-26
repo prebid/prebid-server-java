@@ -2,11 +2,13 @@ package org.prebid.server.bidder.adnuntius;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -112,10 +114,11 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final AdnuntiusMetaData metaData = createMetaData(request.getUser());
         final String page = extractPage(request.getSite());
         final String uri = createUri(request);
+        final Device device = request.getDevice();
 
         for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
             final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.of(adUnits, metaData, page);
-            adnuntiusRequests.add(createHttpRequest(adnuntiusRequest, uri));
+            adnuntiusRequests.add(createHttpRequest(adnuntiusRequest, uri, device));
         }
 
         return adnuntiusRequests;
@@ -162,14 +165,33 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         return ObjectUtil.getIfNotNull(ObjectUtil.getIfNotNull(user, User::getExt), ExtUser::getConsent);
     }
 
-    private HttpRequest<AdnuntiusRequest> createHttpRequest(AdnuntiusRequest adnuntiusRequest, String uri) {
+    private HttpRequest<AdnuntiusRequest> createHttpRequest(AdnuntiusRequest adnuntiusRequest, String uri,
+                                                            Device device) {
         return HttpRequest.<AdnuntiusRequest>builder()
                 .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
+                .headers(getHeaders(device))
                 .uri(uri)
                 .body(mapper.encodeToBytes(adnuntiusRequest))
                 .payload(adnuntiusRequest)
                 .build();
+    }
+
+    private MultiMap getHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+
+        if (device != null) {
+            final String deviceIp = device.getIp();
+            final String deviceUa = device.getUa();
+
+            if (StringUtils.isNotBlank(deviceIp)) {
+                headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
+            }
+            if (StringUtils.isNotBlank(deviceUa)) {
+                headers.add(HttpUtil.USER_AGENT_HEADER, deviceUa);
+            }
+        }
+
+        return headers;
     }
 
     @Override
