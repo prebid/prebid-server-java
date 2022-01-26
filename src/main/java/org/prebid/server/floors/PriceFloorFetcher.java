@@ -66,6 +66,7 @@ public class PriceFloorFetcher {
                              TimeoutFactory timeoutFactory,
                              HttpClient httpClient,
                              JacksonMapper mapper) {
+
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.metrics = Objects.requireNonNull(metrics);
         this.vertx = Objects.requireNonNull(vertx);
@@ -150,6 +151,7 @@ public class PriceFloorFetcher {
     private ResponseCacheInfo parseFloorResponse(HttpClientResponse httpClientResponse,
                                                  AccountPriceFloorsFetchConfig fetchConfig,
                                                  String accountId) {
+
         final int statusCode = httpClientResponse.getStatusCode();
         if (statusCode != HttpStatus.SC_OK) {
             throw new PreBidException(String.format("Failed to request for account %s,"
@@ -162,16 +164,23 @@ public class PriceFloorFetcher {
                     + "response body can not be empty", accountId));
         }
 
+        final PriceFloorRules priceFloorRules = parsePriceFloorRules(body, accountId);
+
+        validatePriceFloorRules(priceFloorRules, fetchConfig);
+
+        return ResponseCacheInfo.of(priceFloorRules, FetchStatus.success, cacheTtlFromResponse(httpClientResponse));
+    }
+
+    private PriceFloorRules parsePriceFloorRules(String body, String accountId) {
         final PriceFloorRules priceFloorRules;
         try {
             priceFloorRules = mapper.decodeValue(body, PriceFloorRules.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Failed to parse price floor response for account %s, cause: %s",
-                    accountId, ExceptionUtils.getMessage(e)));
+            throw new PreBidException(
+                    String.format("Failed to parse price floor response for account %s, cause: %s",
+                            accountId, ExceptionUtils.getMessage(e)));
         }
-        validatePriceFloorRules(priceFloorRules, fetchConfig);
-
-        return ResponseCacheInfo.of(priceFloorRules, FetchStatus.success, cacheTtlFromResponse(httpClientResponse));
+        return priceFloorRules;
     }
 
     private void validatePriceFloorRules(PriceFloorRules priceFloorRules, AccountPriceFloorsFetchConfig fetchConfig) {
@@ -211,12 +220,13 @@ public class PriceFloorFetcher {
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse) {
         final String cacheMaxAge = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
+
         if (StringUtils.isNotBlank(cacheMaxAge) && cacheMaxAge.contains("max-age")) {
             final String[] maxAgeRecord = cacheMaxAge.split("=");
             if (maxAgeRecord.length == 2) {
                 try {
                     return Long.parseLong(maxAgeRecord[1]);
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException e) {
                     logger.warn(String.format("Can't parse Cache Control header '%s'", cacheMaxAge));
                 }
             }
@@ -282,14 +292,14 @@ public class PriceFloorFetcher {
     private PriceFloorRules createPeriodicTimerForRulesFetch(PriceFloorRules priceFloorRules,
                                                              AccountPriceFloorsFetchConfig fetchConfig,
                                                              String accountId) {
+
         final long periodicTime = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
-        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), id -> periodicFetch(accountId));
+        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), ignored -> periodicFetch(accountId));
 
         return priceFloorRules;
     }
 
     private void periodicFetch(String accountId) {
-
         accountById(accountId).map(this::fetchPriceFloorRules);
     }
 

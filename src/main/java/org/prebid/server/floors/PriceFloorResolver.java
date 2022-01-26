@@ -9,10 +9,18 @@ import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 public interface PriceFloorResolver {
 
-    PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup,
-                             Imp imp, ImpMediaType mediaType, Format format, String currency);
+    PriceFloorResult resolve(BidRequest bidRequest,
+                             PriceFloorModelGroup modelGroup,
+                             Imp imp,
+                             ImpMediaType mediaType,
+                             Format format,
+                             String currency);
 
-    default PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp, String currency) {
+    default PriceFloorResult resolve(BidRequest bidRequest,
+                                     PriceFloorModelGroup modelGroup,
+                                     Imp imp,
+                                     String currency) {
+
         return resolve(bidRequest, modelGroup, imp, null, null, currency);
     }
 
@@ -29,6 +37,7 @@ public interface PriceFloorResolver {
                                         ImpMediaType mediaType,
                                         Format format,
                                         String currency) {
+
             return PriceFloorResult.empty();
         }
     }

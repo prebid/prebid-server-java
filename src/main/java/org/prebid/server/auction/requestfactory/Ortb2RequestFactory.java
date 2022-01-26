@@ -93,7 +93,7 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
-    private final boolean priceFloorsProcessingEnabled;
+    private final boolean priceFloorsEnabled;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
@@ -111,7 +111,7 @@ public class Ortb2RequestFactory {
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
-                               boolean priceFloorsProcessingEnabled,
+                               boolean priceFloorsEnabled,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
@@ -129,7 +129,7 @@ public class Ortb2RequestFactory {
                                Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
-        this.priceFloorsProcessingEnabled = priceFloorsProcessingEnabled;
+        this.priceFloorsEnabled = priceFloorsEnabled;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -230,10 +230,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                body,
-                auctionContext.getHookExecutionContext())
+                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                        body,
+                        auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -296,40 +296,42 @@ public class Ortb2RequestFactory {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final ExtRequestPrebidFloors extFloors = extractExtFloors(bidRequest);
 
-        if (isPriceFloorsProcessingDisabled(account, extFloors)) {
+        if (isPriceFloorsDisabled(account, extFloors)) {
             return auctionContext;
         }
 
-        final PriceFloorRuleExtractResult rulesExtractionResult = resolveRules(account, extFloors);
-
-        return auctionContext.with(updateBidRequestWithFloors(bidRequest, rulesExtractionResult));
-    }
-
-    private boolean isPriceFloorsProcessingDisabled(Account account, ExtRequestPrebidFloors extFloors) {
-        final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
-                AccountAuctionConfig::getPriceFloors);
-
-        return !priceFloorsProcessingEnabled
-                || BooleanUtils.isFalse(ObjectUtil.getIfNotNull(accountPriceFloorsConfig,
-                AccountPriceFloorsConfig::getEnabled))
-                || BooleanUtils.isFalse(ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getEnabled));
+        final PriceFloorRuleExtractResult ruleExtractResult = resolveRules(account, extFloors);
+        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, ruleExtractResult);
+        return auctionContext.with(updatedBidRequest);
     }
 
     private static ExtRequestPrebidFloors extractExtFloors(BidRequest bidRequest) {
-        final ExtRequestPrebid extRequestPrebid =
-                ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+    }
 
-        return ObjectUtil.getIfNotNull(extRequestPrebid, ExtRequestPrebid::getFloors);
+    private boolean isPriceFloorsDisabled(Account account, ExtRequestPrebidFloors extFloors) {
+        return !priceFloorsEnabled
+                || isPriceFloorsDisabledForAccount(account)
+                || isPriceFloorsDisabledForRequest(extFloors);
+    }
+
+    private static boolean isPriceFloorsDisabledForAccount(Account account) {
+        final AccountPriceFloorsConfig priceFloors = ObjectUtil.getIfNotNull(account.getAuction(),
+                AccountAuctionConfig::getPriceFloors);
+
+        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(priceFloors, AccountPriceFloorsConfig::getEnabled));
+    }
+
+    private static boolean isPriceFloorsDisabledForRequest(ExtRequestPrebidFloors extFloors) {
+        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getEnabled));
     }
 
     private PriceFloorRuleExtractResult resolveRules(Account account, ExtRequestPrebidFloors extFloors) {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         // TODO: In what cases of fetchStatus we should fallback to request rules?
         if (fetchResult != null) {
-            return PriceFloorRuleExtractResult.of(
-                    fetchResult.getRules(),
-                    fetchResult.getFetchStatus(),
-                    PriceFloorLocation.provider);
+            return PriceFloorRuleExtractResult.providerRules(fetchResult.getRules(), fetchResult.getFetchStatus());
         }
 
         final PriceFloorRules requestFloorRules = ObjectUtil.getIfNotNull(extFloors, ExtRequestPrebidFloors::getRules);
@@ -340,12 +342,34 @@ public class Ortb2RequestFactory {
         return PriceFloorRuleExtractResult.noRules();
     }
 
+    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
+                                                  PriceFloorRuleExtractResult ruleExtractResult) {
+
+        final PriceFloorData priceFloorData =
+                ObjectUtil.getIfNotNull(ruleExtractResult.getRules(), PriceFloorRules::getData);
+        final List<PriceFloorModelGroup> modelGroups =
+                ObjectUtil.getIfNotNull(priceFloorData, PriceFloorData::getModelGroups);
+        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
+                ? selectFloorModelGroup(modelGroups)
+                : null;
+
+        final ExtRequestPrebidFloors extFloors = extractExtFloors(bidRequest);
+        final ExtRequestPrebidFloors updatedExtFloors = updateExtFloors(extFloors, modelGroup, ruleExtractResult);
+        final ExtRequestPrebid updatedExtPrebid = updateExtRequestWithFloors(bidRequest.getExt(), updatedExtFloors);
+
+        return bidRequest.toBuilder()
+                .imp(updateImpsWithFloors(bidRequest, modelGroup))
+                .ext(ExtRequest.of(updatedExtPrebid))
+                .build();
+    }
+
     private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
         final int overallModelWeight = modelGroups.stream()
-                .mapToInt(Ortb2RequestFactory::resolveWeight)
+                .mapToInt(Ortb2RequestFactory::resolveModelGroupWeight)
                 .sum();
 
         Collections.shuffle(modelGroups);
+
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
                 .sorted(Comparator.comparing(PriceFloorModelGroup::getModelWeight))
                 .collect(Collectors.toList());
@@ -362,64 +386,56 @@ public class Ortb2RequestFactory {
         return groupsByWeight.get(groupsByWeight.size() - 1);
     }
 
-    private static int resolveWeight(PriceFloorModelGroup modelGroup) {
-        final Integer weight = modelGroup.getModelWeight();
-
-        return weight != null ? weight : 1;
-    }
-
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
-                                                  PriceFloorRuleExtractResult ruleExtractResult) {
-
-        final PriceFloorData priceFloorData =
-                ObjectUtil.getIfNotNull(ruleExtractResult.getRules(), PriceFloorRules::getData);
-        final List<PriceFloorModelGroup> modelGroups =
-                ObjectUtil.getIfNotNull(priceFloorData, PriceFloorData::getModelGroups);
-        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
-                ? selectFloorModelGroup(modelGroups)
-                : null;
-
-        final ExtRequestPrebidFloors extFloors = extractExtFloors(bidRequest);
-        final ExtRequestPrebidFloors updatedExtFloors = updateExtFloors(extFloors, modelGroup, ruleExtractResult);
-
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid extRequestPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
-        final ExtRequestPrebid.ExtRequestPrebidBuilder extRequestPrebidBuilder = extFloors != null
-                ? extRequestPrebid.toBuilder()
-                : ExtRequestPrebid.builder();
-        final ExtRequestPrebid updatedExtPrebid = extRequestPrebidBuilder.floors(updatedExtFloors).build();
-
-        return bidRequest.toBuilder()
-                .imp(updateImpsWithFloors(bidRequest, modelGroup))
-                .ext(ExtRequest.of(updatedExtPrebid))
-                .build();
+    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
+        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
     private static ExtRequestPrebidFloors updateExtFloors(ExtRequestPrebidFloors extFloors,
                                                           PriceFloorModelGroup modelGroup,
                                                           PriceFloorRuleExtractResult ruleExtractResult) {
 
-        final PriceFloorRules priceFloorRules = ruleExtractResult.getRules();
-        final PriceFloorData priceFloorData =
-                ObjectUtil.getIfNotNull(priceFloorRules, PriceFloorRules::getData);
+        final PriceFloorRules updatedRules = updatePriceFloorRules(ruleExtractResult.getRules(), modelGroup);
 
-        final PriceFloorRules updatedRules = priceFloorData != null
-                ? priceFloorRules.toBuilder()
-                .data(priceFloorData.toBuilder()
-                        .modelGroups(Collections.singletonList(modelGroup))
-                        .build())
-                .build()
-                : priceFloorRules;
-
-        final ExtRequestPrebidFloors.ExtRequestPrebidFloorsBuilder extPrebidFloorsBuilder = extFloors != null
+        final ExtRequestPrebidFloors.ExtRequestPrebidFloorsBuilder extFloorsBuilder = extFloors != null
                 ? extFloors.toBuilder()
                 : ExtRequestPrebidFloors.builder();
 
-        return extPrebidFloorsBuilder
+        return extFloorsBuilder
                 .fetchStatus(ruleExtractResult.getFetchStatus())
                 .location(ruleExtractResult.getLocation())
                 .rules(updatedRules)
                 .build();
+    }
+
+    private static PriceFloorRules updatePriceFloorRules(PriceFloorRules priceFloorRules,
+                                                         PriceFloorModelGroup modelGroup) {
+
+        if (modelGroup == null) {
+            return priceFloorRules;
+        }
+
+        final PriceFloorData priceFloorData = ObjectUtil.getIfNotNull(priceFloorRules, PriceFloorRules::getData);
+        if (priceFloorData == null) {
+            return priceFloorRules;
+        }
+
+        return priceFloorRules.toBuilder()
+                .data(priceFloorData.toBuilder()
+                        .modelGroups(Collections.singletonList(modelGroup))
+                        .build())
+                .build();
+    }
+
+    private ExtRequestPrebid updateExtRequestWithFloors(ExtRequest extRequest,
+                                                        ExtRequestPrebidFloors updatedExtFloors) {
+
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+
+        final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
+                ? prebid.toBuilder()
+                : ExtRequestPrebid.builder();
+
+        return prebidBuilder.floors(updatedExtFloors).build();
     }
 
     private List<Imp> updateImpsWithFloors(BidRequest bidRequest,
@@ -439,7 +455,6 @@ public class Ortb2RequestFactory {
                 ? requestCur.get(0) : null;
 
         final PriceFloorResult priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
-
         if (priceFloorResult == null) {
             return imp;
         }
@@ -458,8 +473,7 @@ public class Ortb2RequestFactory {
                 : mapper.mapper().createObjectNode();
 
         final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(priceFloorResult.getFloorRule(),
-                priceFloorResult.getFloorRuleValue(),
-                priceFloorResult.getFloorValue());
+                priceFloorResult.getFloorRuleValue(), priceFloorResult.getFloorValue());
         final ObjectNode floorsNode = mapper.mapper().valueToTree(prebidFloors);
 
         return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
@@ -703,6 +717,10 @@ public class Ortb2RequestFactory {
 
         public static PriceFloorRuleExtractResult requestRules(PriceFloorRules rules) {
             return PriceFloorRuleExtractResult.of(rules, null, PriceFloorLocation.request);
+        }
+
+        public static PriceFloorRuleExtractResult providerRules(PriceFloorRules rules, FetchStatus fetchStatus) {
+            return PriceFloorRuleExtractResult.of(rules, fetchStatus, PriceFloorLocation.provider);
         }
     }
 }

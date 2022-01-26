@@ -77,8 +77,12 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     }
 
     @Override
-    public PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp,
-                                    ImpMediaType mediaType, Format format, String currency) {
+    public PriceFloorResult resolve(BidRequest bidRequest,
+                                    PriceFloorModelGroup modelGroup,
+                                    Imp imp,
+                                    ImpMediaType mediaType,
+                                    Format format,
+                                    String currency) {
 
         if (modelGroup == null) {
             return null;
@@ -323,7 +327,6 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     }
 
     private static String findRule(Map<String, BigDecimal> rules, String delimiter, List<String> desiredRuleKey) {
-
         return RuleKeyCandidateIterator.from(desiredRuleKey, delimiter).asStream()
                 .filter(rules::containsKey)
                 .filter(Objects::nonNull)
@@ -336,8 +339,13 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
     }
 
-    private PriceFloorResult resolveResult(BigDecimal floor, String rule, BigDecimal floorForRule,
-                                           BidRequest bidRequest, String rulesCurrency, String desiredCurrency) {
+    private PriceFloorResult resolveResult(BigDecimal floor,
+                                           String rule,
+                                           BigDecimal floorForRule,
+                                           BidRequest bidRequest,
+                                           String rulesCurrency,
+                                           String desiredCurrency) {
+
         if (floor == null) {
             return null;
         }
@@ -353,8 +361,11 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 : PriceFloorResult.of(rule, floorForRule, floor, effectiveRulesCurrency);
     }
 
-    private BigDecimal convertCurrency(BigDecimal floor, BidRequest bidRequest,
-                                       String currentCurrency, String desiredCurrency) {
+    private BigDecimal convertCurrency(BigDecimal floor,
+                                       BidRequest bidRequest,
+                                       String currentCurrency,
+                                       String desiredCurrency) {
+
         try {
             return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
         } catch (PreBidException e) {
