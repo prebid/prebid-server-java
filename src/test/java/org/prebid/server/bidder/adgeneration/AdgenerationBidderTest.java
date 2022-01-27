@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -85,7 +86,7 @@ public class AdgenerationBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnOneRequestPerImpWithExpectedHeaders() {
+    public void makeHttpRequestsShouldReturnRequestWithExpectedHeaders() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(givenImp(identity())))
@@ -96,10 +97,12 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
-                .flatExtracting(r -> r.getHeaders().entries())
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
+                .containsExactly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
                         tuple("Accept", "application/json"),
                         tuple("User-Agent", "test"),
