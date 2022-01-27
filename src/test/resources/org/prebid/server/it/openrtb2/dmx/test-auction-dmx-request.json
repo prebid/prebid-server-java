@@ -25,7 +25,6 @@
   "tmax": 5000,
   "user": {
     "ext": {
-      "consent": "consentValue",
       "eids": [
         {
           "source": "adserver.org",

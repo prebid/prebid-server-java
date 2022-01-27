@@ -133,7 +133,6 @@ class GdprSpec extends PrivacyBaseSpec {
         }
     }
 
-    @PendingFeature
     def "PBS should add debug log for amp request when invalid gdpr was passed"() {
         given: "Default AmpRequest"
         def invalidConsentString = new BogusConsent()
@@ -183,9 +182,9 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter gdpr_consent has invalid format for consent type tcfV2: $invalidTcfConsent" as String]
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message[0] ==~
+                /Parsing consent string:"$invalidTcfConsent" - failed. Version \d+is unsupported yet/
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -257,8 +256,8 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter consent_string has invalid format for consent type tcfV2: $ccpaConsent" as String]
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message[0] ==~
+                /Parsing consent string:"$ccpaConsent" - failed. Version \d+is unsupported yet/
     }
 }
