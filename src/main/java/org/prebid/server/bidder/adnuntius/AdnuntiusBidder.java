@@ -180,15 +180,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final MultiMap headers = HttpUtil.headers();
 
         if (device != null) {
-            final String deviceIp = device.getIp();
-            final String deviceUa = device.getUa();
-
-            if (StringUtils.isNotBlank(deviceIp)) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, deviceIp);
-            }
-            if (StringUtils.isNotBlank(deviceUa)) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, deviceUa);
-            }
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
         }
 
         return headers;
