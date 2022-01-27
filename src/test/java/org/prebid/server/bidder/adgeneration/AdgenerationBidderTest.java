@@ -193,10 +193,10 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0&appbundle=test");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appbundle=test&sdktype=0");
     }
 
     @Test
@@ -211,10 +211,10 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0&appname=test");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appname=test&sdktype=0");
     }
 
     @Test
@@ -265,11 +265,11 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0&"
-                        + "tp=http%3A%2F%2Fwww.example.com");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true"
+                        + "&t=json3&currency=JPY&sdkname=prebidserver&adapterver=1.0.3"
+                        + "&tp=http%3A%2F%2Fwww.example.com&sdktype=0");
     }
 
     @Test
