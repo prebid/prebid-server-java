@@ -1,16 +1,18 @@
 package org.prebid.server.floors.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Value;
+import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
-@Value
+@Data
+@SuperBuilder(toBuilder = true)
 public class PriceFloorEnforcement {
 
     @JsonProperty("enforceJS")
-    Boolean enforceJS;
+    Boolean enforceJs;
 
     @JsonProperty("enforcePBS")
-    Boolean enforcePBS;
+    Boolean enforcePbs;
 
     @JsonProperty("floorDeals")
     Boolean floorDeals;

@@ -1,13 +1,17 @@
 package org.prebid.server.floors.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 
-@Value
-@Builder(toBuilder = true)
+@Data
+@SuperBuilder(toBuilder = true)
+@EqualsAndHashCode
+@NoArgsConstructor
 public class PriceFloorRules {
 
     @JsonProperty("floorMin")

@@ -46,6 +46,7 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
@@ -120,6 +121,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private PriceFloorFetcher floorFetcher;
     @Mock
     private PriceFloorResolver floorResolver;
+    @Mock
+    private JsonMerger jsonMerger;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -181,6 +184,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 countryCodeMapper,
                 floorFetcher,
                 floorResolver,
+                jsonMerger,
                 jacksonMapper,
                 clock);
     }
@@ -204,6 +208,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 countryCodeMapper,
                 floorFetcher,
                 floorResolver,
+                jsonMerger,
                 jacksonMapper,
                 clock);
 
@@ -245,6 +250,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 countryCodeMapper,
                 floorFetcher,
                 floorResolver,
+                jsonMerger,
                 jacksonMapper,
                 clock);
 
@@ -591,6 +597,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 countryCodeMapper,
                 floorFetcher,
                 floorResolver,
+                jsonMerger,
                 jacksonMapper,
                 clock);
 

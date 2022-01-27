@@ -244,6 +244,7 @@ public class ServiceConfiguration {
             CountryCodeMapper countryCodeMapper,
             PriceFloorFetcher floorFetcher,
             PriceFloorResolver floorResolver,
+            JsonMerger jsonMerger,
             JacksonMapper mapper,
             Clock clock) {
 
@@ -265,6 +266,7 @@ public class ServiceConfiguration {
                 countryCodeMapper,
                 floorFetcher,
                 floorResolver,
+                jsonMerger,
                 mapper,
                 clock);
     }
