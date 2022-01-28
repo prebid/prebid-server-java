@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -1400,7 +1401,15 @@ public class BidResponseCreator {
         final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
         final ExtRequestPrebidChannel channel = prebid != null ? prebid.getChannel() : null;
 
-        return channel != null ? channel.getName() : null;
+        return channel != null ? recogniseChannelName(channel.getName()) : null;
+    }
+
+    private static String recogniseChannelName(String channelName) {
+        if (StringUtils.equalsIgnoreCase("pbjs", channelName)) {
+            return Ortb2ImplicitParametersResolver.WEB_CHANNEL;
+        }
+
+        return channelName;
     }
 
     private static boolean eventsAllowedByRequest(AuctionContext auctionContext) {
