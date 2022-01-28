@@ -91,7 +91,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
         if (fetchResult != null) {
-            return resolveFloorsFromFetcher(fetchResult.getFetchStatus(), fetchResult.getRules(), requestFloors);
+            return resolveFloorsFromProvider(fetchResult.getFetchStatus(), fetchResult.getRules(), requestFloors);
         }
 
         if (requestFloors != null) {
@@ -101,9 +101,9 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return resolveFloorsWithNoRules();
     }
 
-    private PriceFloorRules resolveFloorsFromFetcher(FetchStatus fetchStatus,
-                                                     PriceFloorRules providerFloors,
-                                                     PriceFloorRules requestFloors) {
+    private PriceFloorRules resolveFloorsFromProvider(FetchStatus fetchStatus,
+                                                      PriceFloorRules providerFloors,
+                                                      PriceFloorRules requestFloors) {
 
         final PriceFloorRules mergedFloors = jsonMerger.merge(providerFloors, requestFloors, PriceFloorRules.class);
 
