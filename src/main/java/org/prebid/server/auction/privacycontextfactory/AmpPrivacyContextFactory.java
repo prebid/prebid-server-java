@@ -51,28 +51,44 @@ public class AmpPrivacyContextFactory {
         final Timeout timeout = auctionContext.getTimeout();
         final List<String> errors = auctionContext.getPrebidErrors();
 
-        final Privacy privacy = resolvePrivacy(privacyExtractor.validPrivacyFrom(bidRequest, errors), auctionContext);
+        final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
+        final Privacy strippedPrivacy = stripPrivacy(initialPrivacy, auctionContext);
+
         final Device device = bidRequest.getDevice();
 
         return tcfDefinerService.resolveTcfContext(
-                privacy,
-                resolveAlpha2CountryCode(device),
-                resolveIpAddress(device, privacy),
-                ObjectUtil.getIfNotNull(account.getPrivacy(), AccountPrivacyConfig::getGdpr),
-                requestType,
-                requestLogInfo(requestType, bidRequest, account.getId()),
-                timeout)
+                        strippedPrivacy,
+                        resolveAlpha2CountryCode(device),
+                        resolveIpAddress(device, strippedPrivacy),
+                        ObjectUtil.getIfNotNull(account.getPrivacy(), AccountPrivacyConfig::getGdpr),
+                        requestType,
+                        requestLogInfo(requestType, bidRequest, account.getId()),
+                        timeout)
                 .map(tcfContext -> logWarnings(auctionContext, tcfContext))
-                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
+                .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
 
-    private static Privacy resolvePrivacy(Privacy privacy, AuctionContext auctionContext) {
-        if (StringUtils.equals(auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM), "1")) {
-            auctionContext.getPrebidErrors().add("..tcf1");
-            return Privacy.of(privacy.getGdpr(), "", privacy.getCcpa(), privacy.getCoppa());
+    private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
+        final String consentType = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
+
+        if (!StringUtils.equalsAny(consentType, "1", "2", "3")) {
+            auctionContext.getPrebidErrors().add("Invalid consent_type param passed");
+            return removeConsentString(privacy);
+        } else if (StringUtils.equals(consentType, "1")) {
+            auctionContext.getPrebidErrors().add("Consent type tcfV1 is no longer supported");
+            return removeConsentString(privacy);
         }
 
         return privacy;
+    }
+
+    private Privacy removeConsentString(Privacy privacy) {
+        return privacyExtractor.toValidPrivacy(
+                privacy.getGdpr(),
+                null,
+                privacy.getCcpa().getUsPrivacy(),
+                privacy.getCoppa(),
+                null);
     }
 
     private static TcfContext logWarnings(AuctionContext auctionContext, TcfContext tcfContext) {

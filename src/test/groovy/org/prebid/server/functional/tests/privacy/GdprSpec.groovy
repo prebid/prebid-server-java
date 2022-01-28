@@ -133,6 +133,7 @@ class GdprSpec extends PrivacyBaseSpec {
         }
     }
 
+    @PendingFeature
     def "PBS should add debug log for amp request when invalid gdpr was passed"() {
         given: "Default AmpRequest"
         def invalidConsentString = new BogusConsent()
