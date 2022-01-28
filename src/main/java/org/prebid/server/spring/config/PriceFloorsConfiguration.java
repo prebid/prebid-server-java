@@ -4,12 +4,15 @@ import io.vertx.core.Vertx;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.BasicPriceFloorEnforcer;
+import org.prebid.server.floors.BasicPriceFloorProcessor;
 import org.prebid.server.floors.BasicPriceFloorResolver;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.floors.PriceFloorResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.vertx.http.HttpClient;
@@ -21,6 +24,7 @@ import org.springframework.context.annotation.Configuration;
 public class PriceFloorsConfiguration {
 
     @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorFetcher priceFloorFetcher(
             ApplicationSettings applicationSettings,
             Metrics metrics,
@@ -62,5 +66,21 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "false", matchIfMissing = true)
     PriceFloorResolver noOpPriceFloorResolver() {
         return PriceFloorResolver.noOp();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
+    PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
+                                                 PriceFloorResolver floorResolver,
+                                                 JsonMerger jsonMerger,
+                                                 JacksonMapper mapper) {
+
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, jsonMerger, mapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "false", matchIfMissing = true)
+    PriceFloorProcessor noOpPriceFloorProcessor() {
+        return PriceFloorProcessor.noOp();
     }
 }

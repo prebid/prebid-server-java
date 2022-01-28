@@ -47,8 +47,7 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorEnforcer;
-import org.prebid.server.floors.PriceFloorFetcher;
-import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
@@ -230,7 +229,6 @@ public class ServiceConfiguration {
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
-            @Value("${price-floors.enabled}") boolean priceFloorsProcessingEnabled,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator,
@@ -242,17 +240,13 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) DealsProcessor dealsProcessor,
             CountryCodeMapper countryCodeMapper,
-            PriceFloorFetcher floorFetcher,
-            PriceFloorResolver floorResolver,
-            JsonMerger jsonMerger,
-            JacksonMapper mapper,
+            PriceFloorProcessor priceFloorProcessor,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
-                priceFloorsProcessingEnabled,
                 blacklistedAccounts,
                 uidsCookieService,
                 requestValidator,
@@ -263,11 +257,8 @@ public class ServiceConfiguration {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
-                floorFetcher,
-                floorResolver,
-                jsonMerger,
-                mapper,
                 clock);
     }
 
@@ -728,7 +719,11 @@ public class ServiceConfiguration {
             JacksonMapper mapper,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
+        return new ResponseBidValidator(
+                bannerMaxSizeEnforcement,
+                secureMarkupEnforcement,
+                metrics,
+                mapper,
                 dealsEnabled);
     }
 

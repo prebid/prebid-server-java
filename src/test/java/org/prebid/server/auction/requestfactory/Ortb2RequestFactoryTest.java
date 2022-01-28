@@ -37,8 +37,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorFetcher;
-import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -46,7 +45,6 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
@@ -116,13 +114,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private DealsProcessor dealsProcessor;
     @Mock
+    private PriceFloorProcessor priceFloorProcessor;
+    @Mock
     private CountryCodeMapper countryCodeMapper;
-    @Mock
-    private PriceFloorFetcher floorFetcher;
-    @Mock
-    private PriceFloorResolver floorResolver;
-    @Mock
-    private JsonMerger jsonMerger;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -165,11 +159,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
-        given(dealsProcessor.populateDealsInfo(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
-
         target = new Ortb2RequestFactory(
-                false,
                 false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
@@ -181,11 +171,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
-                floorFetcher,
-                floorResolver,
-                jsonMerger,
-                jacksonMapper,
                 clock);
     }
 
@@ -194,7 +181,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
-                false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -205,11 +191,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
-                floorFetcher,
-                floorResolver,
-                jsonMerger,
-                jacksonMapper,
                 clock);
 
         given(storedRequestProcessor.processStoredRequests(any(), any()))
@@ -236,7 +219,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
-                false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -247,11 +229,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
-                floorFetcher,
-                floorResolver,
-                jsonMerger,
-                jacksonMapper,
                 clock);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -583,7 +562,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         target = new Ortb2RequestFactory(
                 true,
-                false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
                 requestValidator,
@@ -594,11 +572,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
-                floorFetcher,
-                floorResolver,
-                jsonMerger,
-                jacksonMapper,
                 clock);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());

@@ -25,7 +25,7 @@ public interface PriceFloorResolver {
     }
 
     static NoOpPriceFloorResolver noOp() {
-        return new PriceFloorResolver.NoOpPriceFloorResolver();
+        return new NoOpPriceFloorResolver();
     }
 
     class NoOpPriceFloorResolver implements PriceFloorResolver {

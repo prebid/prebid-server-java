@@ -1,12 +1,9 @@
 package org.prebid.server.auction.requestfactory;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
@@ -15,7 +12,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
@@ -34,15 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorFetcher;
-import org.prebid.server.floors.PriceFloorResolver;
-import org.prebid.server.floors.model.PriceFloorData;
-import org.prebid.server.floors.model.PriceFloorLocation;
-import org.prebid.server.floors.model.PriceFloorModelGroup;
-import org.prebid.server.floors.model.PriceFloorResult;
-import org.prebid.server.floors.model.PriceFloorRules;
-import org.prebid.server.floors.proto.FetchResult;
-import org.prebid.server.floors.proto.FetchStatus;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -50,25 +38,20 @@ import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
-import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
-import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -77,13 +60,9 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 public class Ortb2RequestFactory {
 
@@ -93,7 +72,6 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
-    private final boolean priceFloorsEnabled;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final RequestValidator requestValidator;
@@ -101,18 +79,14 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final DealsProcessor dealsProcessor;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
+    private final DealsProcessor dealsProcessor;
+    private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
-    private final PriceFloorFetcher floorFetcher;
-    private final PriceFloorResolver floorResolver;
-    private final JsonMerger jsonMerger;
-    private final JacksonMapper mapper;
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
-                               boolean priceFloorsEnabled,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
                                RequestValidator requestValidator,
@@ -123,15 +97,11 @@ public class Ortb2RequestFactory {
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
                                DealsProcessor dealsProcessor,
+                               PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
-                               PriceFloorFetcher floorFetcher,
-                               PriceFloorResolver floorResolver,
-                               JsonMerger jsonMerger,
-                               JacksonMapper mapper,
                                Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
-        this.priceFloorsEnabled = priceFloorsEnabled;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -142,11 +112,8 @@ public class Ortb2RequestFactory {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.dealsProcessor = dealsProcessor;
+        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
-        this.floorFetcher = Objects.requireNonNull(floorFetcher);
-        this.floorResolver = Objects.requireNonNull(floorResolver);
-        this.jsonMerger = Objects.requireNonNull(jsonMerger);
-        this.mapper = Objects.requireNonNull(mapper);
         this.clock = Objects.requireNonNull(clock);
     }
 
@@ -295,205 +262,7 @@ public class Ortb2RequestFactory {
     }
 
     public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-
-        if (isPriceFloorsDisabled(account, bidRequest)) {
-            return auctionContext;
-        }
-
-        final ExtRequestPrebidFloors floors = resolveFloors(account, bidRequest);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors);
-
-        return auctionContext.with(updatedBidRequest);
-    }
-
-    private boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
-        return !priceFloorsEnabled
-                || isPriceFloorsDisabledForAccount(account)
-                || isPriceFloorsDisabledForRequest(bidRequest);
-    }
-
-    private static boolean isPriceFloorsDisabledForAccount(Account account) {
-        final AccountPriceFloorsConfig priceFloors = ObjectUtil.getIfNotNull(account.getAuction(),
-                AccountAuctionConfig::getPriceFloors);
-        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(priceFloors, AccountPriceFloorsConfig::getEnabled));
-    }
-
-    private static boolean isPriceFloorsDisabledForRequest(BidRequest bidRequest) {
-        final ExtRequestPrebidFloors requestFloors = extractRequestFloors(bidRequest);
-        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(requestFloors, ExtRequestPrebidFloors::getEnabled));
-    }
-
-    private static ExtRequestPrebidFloors extractRequestFloors(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
-    }
-
-    private ExtRequestPrebidFloors resolveFloors(Account account, BidRequest bidRequest) {
-        final ExtRequestPrebidFloors requestFloors = extractRequestFloors(bidRequest);
-
-        final FetchResult fetchResult = floorFetcher.fetch(account);
-        if (fetchResult != null) {
-            return resolveFloorsFromProvider(fetchResult.getFetchStatus(), fetchResult.getRules(), requestFloors);
-        }
-
-        if (requestFloors != null) {
-            return resolveFloorsFromRequest(requestFloors);
-        }
-
-        return resolveFloorsWithNoRules();
-    }
-
-    private ExtRequestPrebidFloors resolveFloorsFromProvider(FetchStatus fetchStatus,
-                                                             PriceFloorRules providerFloors,
-                                                             ExtRequestPrebidFloors requestFloors) {
-
-        final ExtRequestPrebidFloors floors = ObjectUtils.defaultIfNull(requestFloors, ExtRequestPrebidFloors.empty());
-        final ExtRequestPrebidFloors mergedFloors = jsonMerger.merge((ExtRequestPrebidFloors) providerFloors,
-                floors, ExtRequestPrebidFloors.class);
-
-        return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.provider);
-    }
-
-    private static ExtRequestPrebidFloors resolveFloorsFromRequest(ExtRequestPrebidFloors requestFloors) {
-        return createFloorsFrom(requestFloors, null, PriceFloorLocation.request);
-    }
-
-    private static ExtRequestPrebidFloors resolveFloorsWithNoRules() {
-        return createFloorsFrom(null, null, PriceFloorLocation.none);
-    }
-
-    private static ExtRequestPrebidFloors createFloorsFrom(ExtRequestPrebidFloors floors,
-                                                           FetchStatus fetchStatus,
-                                                           PriceFloorLocation location) {
-
-        final PriceFloorData floorData = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
-        final PriceFloorData updatedFloorData = floorData != null ? updateFloorData(floorData) : null;
-
-        return (floors != null ? floors.toBuilder() : ExtRequestPrebidFloors.builder())
-                .fetchStatus(fetchStatus)
-                .location(location)
-                .data(updatedFloorData)
-                .build();
-    }
-
-    private static PriceFloorData updateFloorData(PriceFloorData floorData) {
-        final List<PriceFloorModelGroup> modelGroups = floorData.getModelGroups();
-
-        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
-                ? selectFloorModelGroup(modelGroups)
-                : null;
-
-        return modelGroup != null
-                ? floorData.toBuilder().modelGroups(Collections.singletonList(modelGroup)).build()
-                : floorData;
-    }
-
-    private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
-        final int overallModelWeight = modelGroups.stream()
-                .mapToInt(Ortb2RequestFactory::resolveModelGroupWeight)
-                .sum();
-
-        Collections.shuffle(modelGroups);
-
-        final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
-                .sorted(Comparator.comparing(PriceFloorModelGroup::getModelWeight))
-                .collect(Collectors.toList());
-
-        int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
-        for (PriceFloorModelGroup modelGroup : groupsByWeight) {
-            winWeight -= modelGroup.getModelWeight();
-
-            if (winWeight <= 0) {
-                return modelGroup;
-            }
-        }
-
-        return groupsByWeight.get(groupsByWeight.size() - 1);
-    }
-
-    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
-        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
-    }
-
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, ExtRequestPrebidFloors floors) {
-        final List<Imp> imps = shouldSkipFloors(floors) ? bidRequest.getImp() : updateImpsWithFloors(bidRequest);
-        final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors);
-
-        return bidRequest.toBuilder()
-                .imp(imps)
-                .ext(extRequest)
-                .build();
-    }
-
-    private static boolean shouldSkipFloors(ExtRequestPrebidFloors prebidFloors) {
-        return false;
-    }
-
-    private List<Imp> updateImpsWithFloors(BidRequest bidRequest) {
-        final List<Imp> imps = bidRequest.getImp();
-
-        final PriceFloorModelGroup modelGroup = extractFloorModelGroup(bidRequest);
-        if (modelGroup == null) {
-            return imps;
-        }
-
-        return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest))
-                .collect(Collectors.toList());
-    }
-
-    private static PriceFloorModelGroup extractFloorModelGroup(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final ExtRequestPrebidFloors floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
-        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, ExtRequestPrebidFloors::getData);
-        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
-
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
-    }
-
-    private Imp updateImpWithFloors(Imp imp, PriceFloorModelGroup modelGroup, BidRequest bidRequest) {
-        final String impCurrency = imp.getBidfloorcur();
-        final List<String> requestCur = bidRequest.getCur();
-        final String currency = StringUtils.isNotBlank(impCurrency)
-                ? impCurrency
-                : CollectionUtils.isNotEmpty(requestCur)
-                ? requestCur.get(0) : null;
-
-        final PriceFloorResult priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
-        if (priceFloorResult == null) {
-            return imp;
-        }
-
-        return imp.toBuilder()
-                .bidfloor(priceFloorResult.getFloorValue())
-                .bidfloorcur(priceFloorResult.getCurrency())
-                .ext(updateImpExtWithFloors(imp.getExt(), priceFloorResult))
-                .build();
-    }
-
-    private ObjectNode updateImpExtWithFloors(ObjectNode ext, PriceFloorResult priceFloorResult) {
-        final JsonNode extPrebid = ext.path("prebid");
-        final ObjectNode extPrebidAsObject = extPrebid.isObject()
-                ? (ObjectNode) extPrebid
-                : mapper.mapper().createObjectNode();
-
-        final ExtImpPrebidFloors prebidFloors = ExtImpPrebidFloors.of(priceFloorResult.getFloorRule(),
-                priceFloorResult.getFloorRuleValue(), priceFloorResult.getFloorValue());
-        final ObjectNode floorsNode = mapper.mapper().valueToTree(prebidFloors);
-
-        return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
-    }
-
-    private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest, ExtRequestPrebidFloors floors) {
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-
-        final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
-                .floors(floors)
-                .build();
-
-        return ExtRequest.of(updatedPrebid);
+        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
     /**
