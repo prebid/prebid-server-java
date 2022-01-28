@@ -1,12 +1,14 @@
 package org.prebid.server.floors.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-import lombok.experimental.SuperBuilder;
+import lombok.Builder;
+import lombok.Value;
 
-@Data
-@SuperBuilder(toBuilder = true)
+@Value
+@Builder(toBuilder = true)
 public class PriceFloorEnforcement {
+
+    // prebid server and floors provider fields
 
     @JsonProperty("enforceJS")
     Boolean enforceJs;
@@ -19,4 +21,9 @@ public class PriceFloorEnforcement {
 
     @JsonProperty("bidAdjustment")
     Boolean bidAdjustment;
+
+    // prebid server specific fields
+
+    @JsonProperty("enforceRate")
+    Integer enforceRate;
 }

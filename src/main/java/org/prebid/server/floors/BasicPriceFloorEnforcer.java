@@ -17,10 +17,10 @@ import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloors;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloorsEnforcement;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
@@ -62,30 +62,27 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
         final BidRequest bidderBidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
-        final ExtRequestPrebidFloors floors = getFloors(bidderBidRequest);
-        final ExtRequestPrebidFloorsEnforcement enforcement = ObjectUtil.getIfNotNull(floors,
-                ExtRequestPrebidFloors::getEnforcement);
+        final PriceFloorRules floors = getFloors(bidderBidRequest);
+        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
 
         return isEnforcedByRequest(enforcement) && isSatisfiedByEnforceRate(enforcement);
     }
 
-    private static ExtRequestPrebidFloors getFloors(BidRequest bidRequest) {
+    private static PriceFloorRules getFloors(BidRequest bidRequest) {
         final ExtRequest ext = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt);
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
 
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private static boolean isEnforcedByRequest(ExtRequestPrebidFloorsEnforcement enforcement) {
-        final Boolean enforcePbs = ObjectUtil.getIfNotNull(enforcement,
-                ExtRequestPrebidFloorsEnforcement::getEnforcePbs);
+    private static boolean isEnforcedByRequest(PriceFloorEnforcement enforcement) {
+        final Boolean enforcePbs = ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getEnforcePbs);
 
         return BooleanUtils.isNotFalse(enforcePbs);
     }
 
-    private static boolean isSatisfiedByEnforceRate(ExtRequestPrebidFloorsEnforcement enforcement) {
-        final Integer enforceRate = ObjectUtil.getIfNotNull(enforcement,
-                ExtRequestPrebidFloorsEnforcement::getEnforceRate);
+    private static boolean isSatisfiedByEnforceRate(PriceFloorEnforcement enforcement) {
+        final Integer enforceRate = ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getEnforceRate);
 
         return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
                 && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
@@ -106,7 +103,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
 
         final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
-        final ExtRequestPrebidFloors floors = getFloors(bidderBidRequest);
+        final PriceFloorRules floors = getFloors(bidderBidRequest);
         final boolean enforcedDealFloors = isEnforcedDealFloors(floors, accountPriceFloorsConfig);
 
         for (BidderBid bidderBid : bidderBids) {
@@ -139,13 +136,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 
-    private static boolean isEnforcedDealFloors(ExtRequestPrebidFloors floors,
+    private static boolean isEnforcedDealFloors(PriceFloorRules floors,
                                                 AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
-        final ExtRequestPrebidFloorsEnforcement enforcement = ObjectUtil.getIfNotNull(floors,
-                ExtRequestPrebidFloors::getEnforcement);
+        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
         final Boolean requestEnforceDealFloors = ObjectUtil.getIfNotNull(enforcement,
-                ExtRequestPrebidFloorsEnforcement::getFloorDeals);
+                PriceFloorEnforcement::getFloorDeals);
 
         final Boolean accountEnforceDealFloors = accountPriceFloorsConfig.getEnforceDealFloors();
 

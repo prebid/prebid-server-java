@@ -21,7 +21,6 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidFloors;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
@@ -61,7 +60,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             return auctionContext;
         }
 
-        final ExtRequestPrebidFloors floors = resolveFloors(account, bidRequest);
+        final PriceFloorRules floors = resolveFloors(account, bidRequest);
         final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors);
 
         return auctionContext.with(updatedBidRequest);
@@ -78,17 +77,17 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static boolean isPriceFloorsDisabledForRequest(BidRequest bidRequest) {
-        final ExtRequestPrebidFloors requestFloors = extractRequestFloors(bidRequest);
-        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(requestFloors, ExtRequestPrebidFloors::getEnabled));
+        final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
+        return BooleanUtils.isFalse(ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled));
     }
 
-    private static ExtRequestPrebidFloors extractRequestFloors(BidRequest bidRequest) {
+    private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private ExtRequestPrebidFloors resolveFloors(Account account, BidRequest bidRequest) {
-        final ExtRequestPrebidFloors requestFloors = extractRequestFloors(bidRequest);
+    private PriceFloorRules resolveFloors(Account account, BidRequest bidRequest) {
+        final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
         if (fetchResult != null) {
@@ -102,33 +101,31 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return resolveFloorsWithNoRules();
     }
 
-    private ExtRequestPrebidFloors resolveFloorsFromFetcher(FetchStatus fetchStatus,
-                                                            PriceFloorRules providerFloors,
-                                                            ExtRequestPrebidFloors requestFloors) {
+    private PriceFloorRules resolveFloorsFromFetcher(FetchStatus fetchStatus,
+                                                     PriceFloorRules providerFloors,
+                                                     PriceFloorRules requestFloors) {
 
-        final ExtRequestPrebidFloors floors = ObjectUtils.defaultIfNull(requestFloors, ExtRequestPrebidFloors.empty());
-        final ExtRequestPrebidFloors mergedFloors = jsonMerger.merge((ExtRequestPrebidFloors) providerFloors, floors,
-                ExtRequestPrebidFloors.class);
+        final PriceFloorRules mergedFloors = jsonMerger.merge(providerFloors, requestFloors, PriceFloorRules.class);
 
         return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.provider);
     }
 
-    private static ExtRequestPrebidFloors resolveFloorsFromRequest(ExtRequestPrebidFloors requestFloors) {
+    private static PriceFloorRules resolveFloorsFromRequest(PriceFloorRules requestFloors) {
         return createFloorsFrom(requestFloors, null, PriceFloorLocation.request);
     }
 
-    private static ExtRequestPrebidFloors resolveFloorsWithNoRules() {
+    private static PriceFloorRules resolveFloorsWithNoRules() {
         return createFloorsFrom(null, null, PriceFloorLocation.none);
     }
 
-    private static ExtRequestPrebidFloors createFloorsFrom(ExtRequestPrebidFloors floors,
-                                                           FetchStatus fetchStatus,
-                                                           PriceFloorLocation location) {
+    private static PriceFloorRules createFloorsFrom(PriceFloorRules floors,
+                                                    FetchStatus fetchStatus,
+                                                    PriceFloorLocation location) {
 
-        final PriceFloorData floorData = ObjectUtil.getIfNotNull(floors, ExtRequestPrebidFloors::getData);
+        final PriceFloorData floorData = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final PriceFloorData updatedFloorData = floorData != null ? updateFloorData(floorData) : null;
 
-        return (floors != null ? floors.toBuilder() : ExtRequestPrebidFloors.builder())
+        return (floors != null ? floors.toBuilder() : PriceFloorRules.builder())
                 .fetchStatus(fetchStatus)
                 .location(location)
                 .data(updatedFloorData)
@@ -174,7 +171,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, ExtRequestPrebidFloors floors) {
+    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors) {
         final List<Imp> imps = shouldSkipFloors(floors) ? bidRequest.getImp() : updateImpsWithFloors(bidRequest);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors);
 
@@ -184,7 +181,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .build();
     }
 
-    private static boolean shouldSkipFloors(ExtRequestPrebidFloors prebidFloors) {
+    private static boolean shouldSkipFloors(PriceFloorRules prebidFloors) {
         return false;
     }
 
@@ -203,8 +200,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static PriceFloorModelGroup extractFloorModelGroup(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final ExtRequestPrebidFloors floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
-        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, ExtRequestPrebidFloors::getData);
+        final PriceFloorRules floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
         return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
@@ -243,7 +240,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
     }
 
-    private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest, ExtRequestPrebidFloors floors) {
+    private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
