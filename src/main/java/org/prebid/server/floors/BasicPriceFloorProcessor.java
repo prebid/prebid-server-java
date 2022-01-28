@@ -10,6 +10,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
@@ -17,7 +18,6 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -35,19 +35,19 @@ import java.util.stream.Collectors;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
+    private static final int MIN_SKIP_RATE = 0;
+    private static final int MAX_SKIP_RATE = 100;
+
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
-    private final JsonMerger jsonMerger;
     private final JacksonMapper mapper;
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
-                                    JsonMerger jsonMerger,
                                     JacksonMapper mapper) {
 
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
-        this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -105,9 +105,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                                                       PriceFloorRules providerFloors,
                                                       PriceFloorRules requestFloors) {
 
-        final PriceFloorRules mergedFloors = jsonMerger.merge(providerFloors, requestFloors, PriceFloorRules.class);
+        final PriceFloorRules floors = providerFloors.toBuilder()
+                .enabled(requestFloors.getEnabled())
+                .build();
 
-        return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.provider);
+        return createFloorsFrom(floors, fetchStatus, PriceFloorLocation.provider);
     }
 
     private static PriceFloorRules resolveFloorsFromRequest(PriceFloorRules requestFloors) {
@@ -157,7 +159,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
         for (PriceFloorModelGroup modelGroup : groupsByWeight) {
-            winWeight -= modelGroup.getModelWeight();
+            winWeight -= resolveModelGroupWeight(modelGroup);
 
             if (winWeight <= 0) {
                 return modelGroup;
@@ -172,8 +174,10 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors) {
-        final List<Imp> imps = shouldSkipFloors(floors) ? bidRequest.getImp() : updateImpsWithFloors(bidRequest);
-        final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors);
+        final boolean skipFloors = shouldSkipFloors(floors);
+
+        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(bidRequest);
+        final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
 
         return bidRequest.toBuilder()
                 .imp(imps)
@@ -181,8 +185,36 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .build();
     }
 
-    private static boolean shouldSkipFloors(PriceFloorRules prebidFloors) {
-        return false;
+    private static boolean shouldSkipFloors(PriceFloorRules floors) {
+        final Integer skipRate = extractSkipRate(floors);
+
+        return skipRate != null && ThreadLocalRandom.current().nextInt(MAX_SKIP_RATE) < skipRate;
+    }
+
+    private static Integer extractSkipRate(PriceFloorRules floors) {
+        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
+        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
+        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        final Integer modelGroupSkipRate = ObjectUtil.getIfNotNull(modelGroup, PriceFloorModelGroup::getSkipRate);
+        if (isValidSkipRate(modelGroupSkipRate)) {
+            return modelGroupSkipRate;
+        }
+
+        final Integer dataSkipRate = ObjectUtil.getIfNotNull(data, PriceFloorData::getSkipRate);
+        if (isValidSkipRate(dataSkipRate)) {
+            return dataSkipRate;
+        }
+
+        final Integer rootSkipRate = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getSkipRate);
+        if (isValidSkipRate(rootSkipRate)) {
+            return rootSkipRate;
+        }
+
+        return null;
+    }
+
+    private static boolean isValidSkipRate(Integer value) {
+        return value != null && value >= MIN_SKIP_RATE && value <= MAX_SKIP_RATE;
     }
 
     private List<Imp> updateImpsWithFloors(BidRequest bidRequest) {
@@ -240,13 +272,30 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return floorsNode.isEmpty() ? ext : ext.set("prebid", extPrebidAsObject.set("floors", floorsNode));
     }
 
-    private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors) {
+    private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest,
+                                                         PriceFloorRules floors,
+                                                         boolean skipFloors) {
+
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
-                .floors(floors)
+                .floors(skipFloors ? skippedFloors(floors) : floors)
                 .build();
 
         return ExtRequest.of(updatedPrebid);
+    }
+
+    private static PriceFloorRules skippedFloors(PriceFloorRules floors) {
+        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
+
+        final PriceFloorEnforcement updatedEnforcement =
+                (enforcement != null ? enforcement.toBuilder() : PriceFloorEnforcement.builder())
+                        .enforcePbs(false)
+                        .build();
+
+        return floors.toBuilder()
+                .skipped(true)
+                .enforcement(updatedEnforcement)
+                .build();
     }
 }

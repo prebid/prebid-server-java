@@ -12,7 +12,6 @@ import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.floors.PriceFloorResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.vertx.http.HttpClient;
@@ -72,10 +71,9 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                                  PriceFloorResolver floorResolver,
-                                                 JsonMerger jsonMerger,
                                                  JacksonMapper mapper) {
 
-        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, jsonMerger, mapper);
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, mapper);
     }
 
     @Bean
