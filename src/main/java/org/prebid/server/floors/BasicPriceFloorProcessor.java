@@ -234,12 +234,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private Imp updateImpWithFloors(Imp imp, PriceFloorModelGroup modelGroup, BidRequest bidRequest) {
-        final String impCurrency = imp.getBidfloorcur();
-        final List<String> requestCur = bidRequest.getCur();
-        final String currency = StringUtils.isNotBlank(impCurrency)
-                ? impCurrency
-                : CollectionUtils.isNotEmpty(requestCur)
-                ? requestCur.get(0) : null;
+        final String currency = resolveFloorCurrency(imp, bidRequest);
 
         final PriceFloorResult priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
         if (priceFloorResult == null) {
@@ -251,6 +246,16 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .bidfloorcur(priceFloorResult.getCurrency())
                 .ext(updateImpExtWithFloors(imp.getExt(), priceFloorResult))
                 .build();
+    }
+
+    private static String resolveFloorCurrency(Imp imp, BidRequest bidRequest) {
+        final String impCurrency = StringUtils.stripToNull(imp.getBidfloorcur());
+        if (impCurrency != null) {
+            return impCurrency;
+        }
+
+        final List<String> requestCurrencies = bidRequest.getCur();
+        return CollectionUtils.isNotEmpty(requestCurrencies) ? requestCurrencies.get(0) : null;
     }
 
     private ObjectNode updateImpExtWithFloors(ObjectNode ext, PriceFloorResult priceFloorResult) {

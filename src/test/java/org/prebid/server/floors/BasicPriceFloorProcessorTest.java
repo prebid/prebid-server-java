@@ -1,6 +1,8 @@
 package org.prebid.server.floors;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -10,13 +12,13 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
-import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
+import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
-import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
@@ -24,13 +26,17 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 public class BasicPriceFloorProcessorTest extends VertxTest {
@@ -42,22 +48,22 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     private PriceFloorFetcher priceFloorFetcher;
     @Mock
     private PriceFloorResolver floorResolver;
-    @Mock
-    private JacksonMapper mapper;
 
     private BasicPriceFloorProcessor priceFloorProcessor;
 
     @Before
     public void setUp() {
-        priceFloorProcessor = new BasicPriceFloorProcessor(priceFloorFetcher, floorResolver, mapper);
+        priceFloorProcessor = new BasicPriceFloorProcessor(priceFloorFetcher, floorResolver, jacksonMapper);
     }
 
     @Test
     public void shouldDoNothingIfPriceFloorsDisabledForAccount() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
-                accountFloors -> accountFloors.enabled(false),
-                givenFloors(identity()));
+                givenAccount(floorsConfig -> floorsConfig.enabled(false)),
+                givenBidRequest(
+                        identity(),
+                        null));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -72,8 +78,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     public void shouldDoNothingIfPriceFloorsDisabledForRequest() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
-                identity(),
-                givenFloors(floors -> floors.enabled(false)));
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.enabled(false))));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -87,7 +95,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromProviderIfPresent() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(identity(), null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        null));
 
         final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
@@ -106,8 +118,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldMergeProviderWithRequestFloors() {
         // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.enabled(true).floorMin(BigDecimal.ZERO));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.enabled(true).floorMin(BigDecimal.ZERO))));
 
         final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
@@ -127,8 +142,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromRequestIfProviderFloorsMissing() {
         // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.floorMin(BigDecimal.ONE))));
 
         given(priceFloorFetcher.fetch(any())).willReturn(null);
 
@@ -145,7 +163,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldTolerateMissingRequestAndProviderFloors() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(identity(), null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        null));
 
         given(priceFloorFetcher.fetch(any())).willReturn(null);
 
@@ -161,10 +183,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldNotSkipFloorsIfRootSkipRateIsOff() {
         // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.skipRate(0));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
-
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.skipRate(0))));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -179,10 +202,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldSkipFloorsIfRootSkipRateIsOn() {
         // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.skipRate(100));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
-
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.skipRate(100))));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -198,11 +222,13 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldSkipFloorsIfDataSkipRateIsOn() {
         // given
-        final PriceFloorData floorData = PriceFloorData.builder().skipRate(100).build();
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.skipRate(0).data(floorData));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
+        final PriceFloorData priceFloorData = givenFloorData(floorData -> floorData.skipRate(100));
 
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.skipRate(0).data(priceFloorData))));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -211,7 +237,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .skipRate(0)
-                        .data(floorData)
+                        .data(priceFloorData)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
@@ -219,14 +245,15 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldSkipFloorsIfModelGroupSkipRateIsOn() {
         // given
-        final PriceFloorData floorData = PriceFloorData.builder()
+        final PriceFloorData priceFloorData = givenFloorData(floorData -> floorData
                 .skipRate(0)
-                .modelGroups(singletonList(PriceFloorModelGroup.builder().skipRate(100).build()))
-                .build();
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.data(floorData));
-        final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
+                .modelGroups(singletonList(givenModelGroup(group -> group.skipRate(100)))));
 
-        given(priceFloorFetcher.fetch(any())).willReturn(null);
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.data(priceFloorData))));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -234,48 +261,211 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .data(floorData)
+                        .data(priceFloorData)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
 
-    private static AuctionContext givenAuctionContext(
-            UnaryOperator<AccountPriceFloorsConfig.AccountPriceFloorsConfigBuilder> accountFloorsCustomizer,
-            PriceFloorRules floors) {
+    @Test
+    public void shouldNotUpdateImpsIfSelectedModelGroupIsMissing() {
+        // given
+        final List<Imp> imps = singletonList(givenImp(identity()));
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData.modelGroups(null))));
 
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request.imp(imps),
+                        requestFloors));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractImps(result))
+                .isSameAs(imps);
+    }
+
+    @Test
+    public void shouldUseSelectedModelGroup() {
+        // given
+        final PriceFloorModelGroup modelGroup = givenModelGroup(identity());
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(modelGroup)))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request.imp(singletonList(givenImp(identity()))),
+                        requestFloors));
+
+        // when
+        priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        verify(floorResolver).resolve(any(), same(modelGroup), any(), any());
+    }
+
+    @Test
+    public void shouldUseImpBidFloorCurrency() {
+        // given
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(givenModelGroup(identity()))))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request
+                                .imp(singletonList(givenImp(imp -> imp.bidfloorcur("EUR"))))
+                                .cur(singletonList("USD")),
+                        requestFloors));
+
+        // when
+        priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        verify(floorResolver).resolve(any(), any(), any(), eq("EUR"));
+    }
+
+    @Test
+    public void shouldUseRequestCurrency() {
+        // given
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(givenModelGroup(identity()))))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request
+                                .imp(singletonList(givenImp(imp -> imp.bidfloorcur(null))))
+                                .cur(singletonList("USD")),
+                        requestFloors));
+
+        // when
+        priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        verify(floorResolver).resolve(any(), any(), any(), eq("USD"));
+    }
+
+    @Test
+    public void shouldNotUpdateImpsIfBidFloorNotResolved() {
+        // given
+        final List<Imp> imps = singletonList(givenImp(identity()));
+
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(givenModelGroup(identity()))))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request.imp(imps),
+                        requestFloors));
+
+        given(floorResolver.resolve(any(), any(), any(), any())).willReturn(null);
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractImps(result))
+                .isEqualTo(imps);
+    }
+
+    @Test
+    public void shouldUpdateImpsIfBidFloorResolved() {
+        // given
+        final List<Imp> imps = singletonList(givenImp(identity()));
+
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(givenModelGroup(identity()))))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request.imp(imps),
+                        requestFloors));
+
+        given(floorResolver.resolve(any(), any(), any(), any()))
+                .willReturn(PriceFloorResult.of("rule", BigDecimal.ONE, BigDecimal.TEN, "USD"));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        final ObjectNode ext = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode extPrebid = jacksonMapper.mapper().createObjectNode();
+        final ObjectNode extPrebidFloors = jacksonMapper.mapper().valueToTree(
+                ExtImpPrebidFloors.of("rule", BigDecimal.ONE, BigDecimal.TEN));
+
+        assertThat(extractImps(result))
+                .containsOnly(givenImp(imp -> imp
+                        .bidfloor(BigDecimal.TEN)
+                        .bidfloorcur("USD")
+                        .ext(ext.set("prebid", extPrebid.set("floors", extPrebidFloors)))));
+    }
+
+    private static AuctionContext givenAuctionContext(Account account, BidRequest bidRequest) {
         return AuctionContext.builder()
-                .account(Account.builder()
-                        .auction(AccountAuctionConfig.builder()
-                                .priceFloors(givenAccountPriceFloorsConfig(accountFloorsCustomizer))
-                                .build())
-                        .build())
-                .bidRequest(BidRequest.builder()
-                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                                .floors(floors)
-                                .build()))
+                .account(account)
+                .bidRequest(bidRequest)
+                .build();
+    }
+
+    private static Account givenAccount(
+            UnaryOperator<AccountPriceFloorsConfig.AccountPriceFloorsConfigBuilder> floorsConfigCustomizer) {
+
+        return Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .priceFloors(floorsConfigCustomizer.apply(AccountPriceFloorsConfig.builder()).build())
                         .build())
                 .build();
     }
 
-    private static AccountPriceFloorsConfig givenAccountPriceFloorsConfig(
-            UnaryOperator<AccountPriceFloorsConfig.AccountPriceFloorsConfigBuilder> configCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer,
+                                              PriceFloorRules floors) {
 
-        return configCustomizer.apply(AccountPriceFloorsConfig.builder()).build();
+        return requestCustomizer.apply(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().floors(floors).build())))
+                .build();
     }
 
-    public static PriceFloorRules givenFloors(
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("impId")
+                        .ext(jacksonMapper.mapper().createObjectNode()))
+                .build();
+    }
+
+    private static PriceFloorRules givenFloors(
             UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
 
         return floorsCustomizer.apply(PriceFloorRules.builder()).build();
     }
 
-    private static PriceFloorEnforcement givenEnforcement(
-            UnaryOperator<PriceFloorEnforcement.PriceFloorEnforcementBuilder> enforcementCustomizer) {
+    private static PriceFloorData givenFloorData(
+            UnaryOperator<PriceFloorData.PriceFloorDataBuilder> floorDataCustomizer) {
 
-        return enforcementCustomizer.apply(PriceFloorEnforcement.builder().enforcePbs(true)).build();
+        return floorDataCustomizer.apply(PriceFloorData.builder()).build();
+    }
+
+    private static PriceFloorModelGroup givenModelGroup(
+            UnaryOperator<PriceFloorModelGroup.PriceFloorModelGroupBuilder> modelGroupCustomizer) {
+
+        return modelGroupCustomizer.apply(PriceFloorModelGroup.builder()).build();
     }
 
     private static PriceFloorRules extractFloors(AuctionContext auctionContext) {
         return auctionContext.getBidRequest().getExt().getPrebid().getFloors();
+    }
+
+    private static List<Imp> extractImps(AuctionContext auctionContext) {
+        return auctionContext.getBidRequest().getImp();
     }
 }
