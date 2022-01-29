@@ -10,7 +10,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
-import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
@@ -35,8 +34,8 @@ import java.util.stream.Collectors;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
-    private static final int MIN_SKIP_RATE = 0;
-    private static final int MAX_SKIP_RATE = 100;
+    private static final int SKIP_RATE_MIN = 0;
+    private static final int SKIP_RATE_MAX = 100;
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
@@ -91,33 +90,29 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
         if (fetchResult != null) {
-            return resolveFloorsFromProvider(fetchResult.getFetchStatus(), fetchResult.getRules(), requestFloors);
+            final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRules());
+            return createFloorsFrom(mergedFloors, fetchResult.getFetchStatus(), PriceFloorLocation.provider);
         }
 
         if (requestFloors != null) {
-            return resolveFloorsFromRequest(requestFloors);
+            return createFloorsFrom(requestFloors, null, PriceFloorLocation.request);
         }
 
-        return resolveFloorsWithNoRules();
-    }
-
-    private PriceFloorRules resolveFloorsFromProvider(FetchStatus fetchStatus,
-                                                      PriceFloorRules providerFloors,
-                                                      PriceFloorRules requestFloors) {
-
-        final PriceFloorRules floors = providerFloors.toBuilder()
-                .enabled(requestFloors.getEnabled())
-                .build();
-
-        return createFloorsFrom(floors, fetchStatus, PriceFloorLocation.provider);
-    }
-
-    private static PriceFloorRules resolveFloorsFromRequest(PriceFloorRules requestFloors) {
-        return createFloorsFrom(requestFloors, null, PriceFloorLocation.request);
-    }
-
-    private static PriceFloorRules resolveFloorsWithNoRules() {
         return createFloorsFrom(null, null, PriceFloorLocation.none);
+    }
+
+    private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
+                                               PriceFloorRules providerFloors) {
+
+        final Boolean floorsEnabled = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
+
+        if (floorsEnabled != null) {
+            return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
+                    .enabled(requestFloors.getEnabled())
+                    .build();
+        }
+
+        return providerFloors;
     }
 
     private static PriceFloorRules createFloorsFrom(PriceFloorRules floors,
@@ -188,18 +183,17 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static boolean shouldSkipFloors(PriceFloorRules floors) {
         final Integer skipRate = extractSkipRate(floors);
 
-        return skipRate != null && ThreadLocalRandom.current().nextInt(MAX_SKIP_RATE) < skipRate;
+        return skipRate != null && ThreadLocalRandom.current().nextInt(SKIP_RATE_MAX) < skipRate;
     }
 
     private static Integer extractSkipRate(PriceFloorRules floors) {
-        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
-        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
-        final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         final Integer modelGroupSkipRate = ObjectUtil.getIfNotNull(modelGroup, PriceFloorModelGroup::getSkipRate);
         if (isValidSkipRate(modelGroupSkipRate)) {
             return modelGroupSkipRate;
         }
 
+        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final Integer dataSkipRate = ObjectUtil.getIfNotNull(data, PriceFloorData::getSkipRate);
         if (isValidSkipRate(dataSkipRate)) {
             return dataSkipRate;
@@ -214,13 +208,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static boolean isValidSkipRate(Integer value) {
-        return value != null && value >= MIN_SKIP_RATE && value <= MAX_SKIP_RATE;
+        return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
     private List<Imp> updateImpsWithFloors(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
 
-        final PriceFloorModelGroup modelGroup = extractFloorModelGroup(bidRequest);
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final PriceFloorRules floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+        final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         if (modelGroup == null) {
             return imps;
         }
@@ -230,9 +226,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .collect(Collectors.toList());
     }
 
-    private static PriceFloorModelGroup extractFloorModelGroup(BidRequest bidRequest) {
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+    private static PriceFloorModelGroup extractFloorModelGroup(PriceFloorRules floors) {
         final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
@@ -286,16 +280,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static PriceFloorRules skippedFloors(PriceFloorRules floors) {
-        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
-
-        final PriceFloorEnforcement updatedEnforcement =
-                (enforcement != null ? enforcement.toBuilder() : PriceFloorEnforcement.builder())
-                        .enforcePbs(false)
-                        .build();
-
         return floors.toBuilder()
                 .skipped(true)
-                .enforcement(updatedEnforcement)
                 .build();
     }
 }

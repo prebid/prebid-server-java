@@ -87,7 +87,26 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUseFloorsFromProviderIfPresent() {
         // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ZERO));
+        final AuctionContext auctionContext = givenAuctionContext(identity(), null);
+
+        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractFloors(result))
+                .isEqualTo(givenFloors(floors -> floors
+                        .floorMin(BigDecimal.ONE)
+                        .fetchStatus(FetchStatus.success)
+                        .location(PriceFloorLocation.provider)));
+    }
+
+    @Test
+    public void shouldMergeProviderWithRequestFloors() {
+        // given
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors.enabled(true).floorMin(BigDecimal.ZERO));
         final AuctionContext auctionContext = givenAuctionContext(identity(), requestFloors);
 
         final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
@@ -99,6 +118,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
+                        .enabled(true)
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.provider)));
@@ -170,9 +190,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .skipped(true)
-                        .enforcement(givenEnforcement(enforcement -> enforcement.enforcePbs(false)))
                         .skipRate(100)
+                        .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
 
@@ -191,10 +210,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .skipped(true)
-                        .enforcement(givenEnforcement(enforcement -> enforcement.enforcePbs(false)))
                         .skipRate(0)
                         .data(floorData)
+                        .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
 
@@ -216,9 +234,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .skipped(true)
-                        .enforcement(givenEnforcement(enforcement -> enforcement.enforcePbs(false)))
                         .data(floorData)
+                        .skipped(true)
                         .location(PriceFloorLocation.request)));
     }
 

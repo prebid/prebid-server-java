@@ -34,6 +34,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
+    private static final Integer ENFORCE_RATE_MIN = 0;
+    private static final Integer ENFORCE_RATE_MAX = 100;
+
     private final CurrencyConversionService currencyConversionService;
 
     public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService) {
@@ -45,52 +48,73 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                                         AuctionParticipation auctionParticipation,
                                         Account account) {
 
-        final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
-                AccountAuctionConfig::getPriceFloors);
-
-        return shouldApplyEnforcement(auctionParticipation, accountPriceFloorsConfig)
-                ? applyEnforcement(bidRequest, auctionParticipation, accountPriceFloorsConfig)
+        return shouldApplyEnforcement(auctionParticipation, account)
+                ? applyEnforcement(bidRequest, auctionParticipation, account)
                 : auctionParticipation;
     }
 
-    private static boolean shouldApplyEnforcement(AuctionParticipation auctionParticipation,
-                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
-
+    private static boolean shouldApplyEnforcement(AuctionParticipation auctionParticipation, Account account) {
+        final AccountPriceFloorsConfig accountPriceFloorsConfig = ObjectUtil.getIfNotNull(account.getAuction(),
+                AccountAuctionConfig::getPriceFloors);
         if (accountPriceFloorsConfig == null || BooleanUtils.isNotTrue(accountPriceFloorsConfig.getEnabled())) {
             return false;
         }
 
-        final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
-        final BidRequest bidderBidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
-        final PriceFloorRules floors = getFloors(bidderBidRequest);
-        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
+        final PriceFloorRules floors = extractFloors(auctionParticipation);
+        final Boolean skipped = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getSkipped);
+        if (BooleanUtils.isTrue(skipped)) {
+            return false;
+        }
 
-        return isEnforcedByRequest(enforcement) && isSatisfiedByEnforceRate(enforcement);
+        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
+        if (isNotEnforcedByRequest(enforcement)) {
+            return false;
+        }
+
+        return isSatisfiedByEnforceRate(enforcement, accountPriceFloorsConfig);
     }
 
-    private static PriceFloorRules getFloors(BidRequest bidRequest) {
-        final ExtRequest ext = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getExt);
+    private static PriceFloorRules extractFloors(AuctionParticipation auctionParticipation) {
+        final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
+        final BidRequest bidderBidRequest = ObjectUtil.getIfNotNull(bidderRequest, BidderRequest::getBidRequest);
+        final ExtRequest ext = ObjectUtil.getIfNotNull(bidderBidRequest, BidRequest::getExt);
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
 
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private static boolean isEnforcedByRequest(PriceFloorEnforcement enforcement) {
+    private static boolean isNotEnforcedByRequest(PriceFloorEnforcement enforcement) {
         final Boolean enforcePbs = ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getEnforcePbs);
 
-        return BooleanUtils.isNotFalse(enforcePbs);
+        return BooleanUtils.isFalse(enforcePbs);
     }
 
-    private static boolean isSatisfiedByEnforceRate(PriceFloorEnforcement enforcement) {
-        final Integer enforceRate = ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getEnforceRate);
+    private static boolean isSatisfiedByEnforceRate(PriceFloorEnforcement enforcement,
+                                                    AccountPriceFloorsConfig accountPriceFloorsConfig) {
 
-        return enforceRate == null || (enforceRate >= 0 && enforceRate <= 100
-                && ThreadLocalRandom.current().nextDouble() < enforceRate / 100.0);
+        final Integer requestEnforceRate = ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getEnforceRate);
+        final Integer accountEnforceRate = accountPriceFloorsConfig.getEnforceFloorsRate();
+        if (requestEnforceRate == null && accountEnforceRate == null) {
+            return true;
+        }
+
+        if (isNotValidEnforceRate(requestEnforceRate) || isNotValidEnforceRate(accountEnforceRate)) {
+            return false;
+        }
+
+        final int pickedRate = ThreadLocalRandom.current().nextInt(ENFORCE_RATE_MAX);
+        final boolean satisfiedByRequest = requestEnforceRate == null || pickedRate < requestEnforceRate;
+        final boolean satisfiedByAccount = accountEnforceRate == null || pickedRate < accountEnforceRate;
+        return satisfiedByRequest && satisfiedByAccount;
+    }
+
+    private static boolean isNotValidEnforceRate(Integer value) {
+        return value != null && (value < ENFORCE_RATE_MIN || value > ENFORCE_RATE_MAX);
     }
 
     private AuctionParticipation applyEnforcement(BidRequest bidRequest,
                                                   AuctionParticipation auctionParticipation,
-                                                  AccountPriceFloorsConfig accountPriceFloorsConfig) {
+                                                  Account account) {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
@@ -103,14 +127,14 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
 
         final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
-        final PriceFloorRules floors = getFloors(bidderBidRequest);
-        final boolean enforcedDealFloors = isEnforcedDealFloors(floors, accountPriceFloorsConfig);
+        final PriceFloorRules floors = extractFloors(auctionParticipation);
+        final boolean enforceDealFloors = enforceDealFloors(floors, account);
 
         for (BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
 
             // skip bid enforcement for deals if not allowed
-            if (StringUtils.isNotEmpty(bid.getDealid()) && !enforcedDealFloors) {
+            if (StringUtils.isNotEmpty(bid.getDealid()) && !enforceDealFloors) {
                 continue;
             }
 
@@ -136,13 +160,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 
-    private static boolean isEnforcedDealFloors(PriceFloorRules floors,
-                                                AccountPriceFloorsConfig accountPriceFloorsConfig) {
-
+    private static boolean enforceDealFloors(PriceFloorRules floors, Account account) {
         final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getEnforcement);
         final Boolean requestEnforceDealFloors = ObjectUtil.getIfNotNull(enforcement,
                 PriceFloorEnforcement::getFloorDeals);
 
+        final AccountPriceFloorsConfig accountPriceFloorsConfig = account.getAuction().getPriceFloors();
         final Boolean accountEnforceDealFloors = accountPriceFloorsConfig.getEnforceDealFloors();
 
         return BooleanUtils.isTrue(requestEnforceDealFloors) && BooleanUtils.isTrue(accountEnforceDealFloors);

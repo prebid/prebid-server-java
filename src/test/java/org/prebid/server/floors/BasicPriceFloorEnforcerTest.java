@@ -76,6 +76,25 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
+    public void shouldNotEnforceIfRequestFloorsSkipped() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder().skipped(true).build())
+                        .build())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
     public void shouldNotEnforceIfRequestDoesNotEnforceFloors() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
@@ -110,7 +129,7 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
-    public void shouldNotEnforceIfBidderRespondsBidsWithDealsButRequestDoesNotEnforceDealsForFloors() {
+    public void shouldNotEnforceIfBidderRespondsBidsWithDealsButRequestDoesNotEnforceFloorsForDeals() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 request -> request.imp(givenImps(identity())),
@@ -127,7 +146,7 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
-    public void shouldNotEnforceIfBidderRespondsBidsWithDealsButAccountDoesNotEnforceDealsForFloors() {
+    public void shouldNotEnforceIfBidderRespondsBidsWithDealsButAccountDoesNotEnforceFloorsForDeals() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 request -> request.imp(givenImps(identity())),
@@ -180,7 +199,7 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
-    public void shouldNotEnforceIfEnforceFloorsRateIsLessThenZero() {
+    public void shouldNotEnforceIfRequestEnforceFloorsRateIsLessThenZero() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 request -> request.imp(givenImps(identity())),
@@ -197,7 +216,24 @@ public class BasicPriceFloorEnforcerTest {
     }
 
     @Test
-    public void shouldNotEnforceIfEnforceFloorsRateIsGreaterThen100() {
+    public void shouldNotEnforceIfAccountEnforceFloorsRateIsLessThenZero() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.imp(givenImps(identity())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(accountFloors -> accountFloors.enforceFloorsRate(-1));
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
+    public void shouldNotEnforceIfRequestEnforceFloorsRateIsGreaterThen100() {
         // given
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
                 request -> request.imp(givenImps(identity())),
@@ -205,6 +241,23 @@ public class BasicPriceFloorEnforcerTest {
                 givenBidderSeatBid(identity()));
 
         final Account account = givenAccount(identity());
+
+        // when
+        final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
+
+        // then
+        assertSame(result, auctionParticipation);
+    }
+
+    @Test
+    public void shouldNotEnforceIfAccountEnforceFloorsRateIsGreaterThen100() {
+        // given
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                request -> request.imp(givenImps(identity())),
+                identity(),
+                givenBidderSeatBid(identity()));
+
+        final Account account = givenAccount(accountFloors -> accountFloors.enforceFloorsRate(101));
 
         // when
         final AuctionParticipation result = priceFloorEnforcer.enforce(null, auctionParticipation, account);
