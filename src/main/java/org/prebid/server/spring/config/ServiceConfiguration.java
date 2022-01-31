@@ -46,6 +46,7 @@ import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
@@ -598,6 +599,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             HttpInteractionLogger httpInteractionLogger,
+            PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
             Metrics metrics,
             Clock clock,
@@ -620,6 +622,7 @@ public class ServiceConfiguration {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
                 priceFloorEnforcer,
                 metrics,
                 clock,

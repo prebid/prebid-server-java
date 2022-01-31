@@ -61,6 +61,7 @@ import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -87,7 +88,6 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -115,6 +115,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -223,6 +224,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
     @Mock
+    private PriceFloorAdjuster priceFloorAdjuster;
+    @Mock
     private PriceFloorEnforcer priceFloorEnforcer;
     @Mock
     private Metrics metrics;
@@ -293,6 +296,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
+        given(priceFloorAdjuster.adjustForImp(any(), any(), any()))
+                .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -316,6 +321,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
                 priceFloorEnforcer,
                 metrics,
                 clock,
@@ -342,6 +348,7 @@ public class ExchangeServiceTest extends VertxTest {
                         hookStageExecutor,
                         applicationEventService,
                         httpInteractionLogger,
+                        priceFloorAdjuster,
                         priceFloorEnforcer,
                         metrics,
                         clock,
@@ -615,6 +622,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
                 priceFloorEnforcer,
                 metrics,
                 clock,
@@ -2554,6 +2562,7 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
                 priceFloorEnforcer,
                 metrics,
                 clock,
