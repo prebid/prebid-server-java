@@ -142,7 +142,7 @@ public class AdfBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder().imp(singletonList(Imp.builder().id("123")
-                        .xNative(new Native())
+                        .xNative(Native.builder().build())
                         .build())).build(),
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder.impid("123").ext(createBidExtPrebidWithType("native")))));
