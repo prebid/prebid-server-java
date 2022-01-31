@@ -1404,6 +1404,7 @@ public class BidResponseCreator {
         return channel != null ? recogniseChannelName(channel.getName()) : null;
     }
 
+    // TODO: remove alias resolving after transition period
     private static String recogniseChannelName(String channelName) {
         if (StringUtils.equalsIgnoreCase("pbjs", channelName)) {
             return Ortb2ImplicitParametersResolver.WEB_CHANNEL;
