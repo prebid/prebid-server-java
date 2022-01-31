@@ -54,13 +54,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
+        final List<String> errors = auctionContext.getPrebidErrors();
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
             return auctionContext;
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors);
+        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors);
 
         return auctionContext.with(updatedBidRequest);
     }
@@ -168,10 +169,10 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors) {
+    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors, List<String> errors) {
         final boolean skipFloors = shouldSkipFloors(floors);
 
-        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(bidRequest);
+        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(bidRequest, errors);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
 
         return bidRequest.toBuilder()
@@ -211,7 +212,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
-    private List<Imp> updateImpsWithFloors(BidRequest bidRequest) {
+    private List<Imp> updateImpsWithFloors(BidRequest bidRequest, List<String> errors) {
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
@@ -222,7 +223,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest))
+                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors))
                 .collect(Collectors.toList());
     }
 
@@ -233,10 +234,21 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
     }
 
-    private Imp updateImpWithFloors(Imp imp, PriceFloorModelGroup modelGroup, BidRequest bidRequest) {
+    private Imp updateImpWithFloors(Imp imp,
+                                    PriceFloorModelGroup modelGroup,
+                                    BidRequest bidRequest,
+                                    List<String> errors) {
+
         final String currency = resolveFloorCurrency(imp, bidRequest);
 
-        final PriceFloorResult priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
+        final PriceFloorResult priceFloorResult;
+        try {
+            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
+        } catch (IllegalStateException e) {
+            errors.add(String.format("Cannot resolve bid floor, error: %s", e.getMessage()));
+            return imp;
+        }
+
         if (priceFloorResult == null) {
             return imp;
         }

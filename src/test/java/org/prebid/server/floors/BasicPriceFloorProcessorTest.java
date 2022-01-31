@@ -26,6 +26,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -380,8 +381,6 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     @Test
     public void shouldUpdateImpsIfBidFloorResolved() {
         // given
-        final List<Imp> imps = singletonList(givenImp(identity()));
-
         final PriceFloorRules requestFloors = givenFloors(floors -> floors
                 .data(givenFloorData(floorData -> floorData
                         .modelGroups(singletonList(givenModelGroup(identity()))))));
@@ -389,7 +388,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(identity()),
                 givenBidRequest(
-                        request -> request.imp(imps),
+                        request -> request.imp(singletonList(givenImp(identity()))),
                         requestFloors));
 
         given(floorResolver.resolve(any(), any(), any(), any()))
@@ -411,8 +410,38 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         .ext(ext.set("prebid", extPrebid.set("floors", extPrebidFloors)))));
     }
 
+    @Test
+    public void shouldTolerateFloorResolvingError() {
+        // given
+        final List<Imp> imps = singletonList(givenImp(identity()));
+
+        final PriceFloorRules requestFloors = givenFloors(floors -> floors
+                .data(givenFloorData(floorData -> floorData
+                        .modelGroups(singletonList(givenModelGroup(identity()))))));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        request -> request.imp(imps),
+                        requestFloors));
+
+        given(floorResolver.resolve(any(), any(), any(), any()))
+                .willThrow(new IllegalStateException("error"));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractImps(result))
+                .isEqualTo(imps);
+
+        assertThat(result.getPrebidErrors())
+                .containsOnly("Cannot resolve bid floor, error: error");
+    }
+
     private static AuctionContext givenAuctionContext(Account account, BidRequest bidRequest) {
         return AuctionContext.builder()
+                .prebidErrors(new ArrayList<>())
                 .account(account)
                 .bidRequest(bidRequest)
                 .build();
