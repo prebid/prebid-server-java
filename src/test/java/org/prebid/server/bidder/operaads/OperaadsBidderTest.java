@@ -74,6 +74,20 @@ public class OperaadsBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpTypeIsAbsent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Not found any imp.type"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfDeviceOsIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
@@ -102,6 +116,7 @@ public class OperaadsBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .containsExactly(givenImp(identity()).toBuilder()
+                        .id("123:opa:banner")
                         .tagid("placementId")
                         .banner(banner.toBuilder().w(1).h(1).build())
                         .build());
@@ -186,7 +201,11 @@ public class OperaadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("123")
+                .video(Video.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of("placementId",
+                        "endpointId", "publisherId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
@@ -207,9 +226,11 @@ public class OperaadsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 impBuilder -> impBuilder
                         .id("234")
+                        .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
                 impBuilder -> impBuilder
                         .id("123")
+                        .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
                                 "placementId", "endpointId", "publisherId")))));
         // when
@@ -219,7 +240,8 @@ public class OperaadsBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .containsExactly(givenImp(impBuilder -> impBuilder.tagid("placementId")));
+                .extracting(Imp::getTagid)
+                .containsExactly("placementId");
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 234"));
     }
@@ -227,7 +249,11 @@ public class OperaadsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateCorrectURL() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("123")
+                .video(Video.builder().build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of("placementId",
+                        "endpointId", "publisherId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
@@ -284,43 +310,11 @@ public class OperaadsBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build()));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE))));
-
-        // when
-        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), video, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE))));
-
-        // when
-        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), xNative, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidIfNativeAndVideoIsAbsentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImpid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
-                givenBidResponse(bidBuilder -> bidBuilder.impid("123").price(BigDecimal.ONE))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id:id:video").price(BigDecimal.ONE))));
 
         // when
         final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
@@ -328,7 +322,39 @@ public class OperaadsBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("123").build(), banner, null));
+                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("imp_id").build(), video, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImpid() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id:asd:xNative").price(BigDecimal.ONE))));
+
+        // when
+        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("imp_id").build(), xNative, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImpid() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id:id:banner").price(BigDecimal.ONE))));
+
+        // when
+        final Result<List<BidderBid>> result = operaadsBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(Bid.builder().price(BigDecimal.ONE).impid("imp_id").build(), banner, null));
     }
 
     @Test

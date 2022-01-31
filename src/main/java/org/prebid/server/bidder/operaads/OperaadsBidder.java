@@ -65,17 +65,51 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
+            final Imp resolvedImp;
+            final ExtImpOperaads extImpOperaads;
             try {
-                final ExtImpOperaads extImpOperaads = parseImpExt(imp);
-                final Imp resolvedImp = resolveImp(imp, extImpOperaads);
-
-                requests.add(createRequest(request, resolvedImp, extImpOperaads));
+                extImpOperaads = parseImpExt(imp);
+                resolvedImp = resolveImpId(imp, extImpOperaads.getPlacementId());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+            requests.add(createRequest(request, resolvedImp, extImpOperaads));
         }
 
         return Result.of(requests, errors);
+    }
+
+    private Imp resolveImpId(Imp imp, String placementId) {
+        if (imp.getVideo() != null) {
+            return imp.toBuilder()
+                    .id(buildImpId(imp.getId(), BidType.video.getName()))
+                    .tagid(placementId)
+                    .xNative(null)
+                    .banner(null)
+                    .build();
+        } else if (imp.getXNative() != null) {
+            return imp.toBuilder()
+                    .id(buildImpId(imp.getId(), BidType.xNative.getName()))
+                    .tagid(placementId)
+                    .xNative(resolveNative(imp.getXNative()))
+                    .video(null)
+                    .banner(null)
+                    .build();
+        } else if (imp.getBanner() != null) {
+            return imp.toBuilder()
+                    .id(buildImpId(imp.getId(), BidType.banner.getName()))
+                    .tagid(placementId)
+                    .banner(resolveBanner(imp.getBanner()))
+                    .xNative(null)
+                    .video(null)
+                    .build();
+        }
+        throw new PreBidException("Not found any imp.type");
+    }
+
+    private static String buildImpId(String id, String type) {
+        return String.format("%s:opa:%s", id, type);
     }
 
     private static void checkRequest(BidRequest request) {
@@ -91,17 +125,6 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
         }
-    }
-
-    private Imp resolveImp(Imp imp, ExtImpOperaads extImpOperaads) {
-        final Banner banner = imp.getBanner();
-        final Native xNative = imp.getXNative();
-        final boolean isNativeResolvable = xNative != null && StringUtils.isNotEmpty(xNative.getRequest());
-        return imp.toBuilder()
-                .xNative(isNativeResolvable ? resolveNative(xNative) : xNative)
-                .banner(banner != null ? resolveBanner(banner) : null)
-                .tagid(extImpOperaads.getPlacementId())
-                .build();
     }
 
     private Native resolveNative(Native xNative) {
@@ -179,8 +202,9 @@ public class OperaadsBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(OperaadsBidder::isBidValid)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()),
+                .map(bid -> BidderBid.of(parseBid(bid), parseBidTypeById(bid.getImpid()),
                         bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
@@ -189,18 +213,26 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         return price != null && price.compareTo(BigDecimal.ZERO) > 0;
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (impId.equals(imp.getId())) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-                return BidType.banner;
-            }
+    private static Bid parseBid(Bid bid) {
+        final Bid.BidBuilder modifyBid = bid.toBuilder();
+        final String impid = bid.getImpid();
+        final String[] impIds = splitImpId(impid);
+        if (impIds.length < 2) {
+            return modifyBid.impid(impid).build();
         }
-        return BidType.banner;
+        return modifyBid.impid(impIds[0]).build();
+    }
+
+    private static BidType parseBidTypeById(String impId) {
+        final String[] impIds = splitImpId(impId);
+        if (impIds.length < 2) {
+            return null;
+        }
+        return BidType.valueOf(impIds[impIds.length - 1]);
+    }
+
+    private static String[] splitImpId(String bidId) {
+        return StringUtils.split(bidId, ":");
     }
 }
 
