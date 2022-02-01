@@ -2,18 +2,18 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id2",
+      "id": "imp_id",
       "video": {
         "mimes": [
           "video/mp4"
         ],
-        "w": 640,
-        "h": 480
+        "w": 800,
+        "h": 600
       },
-      "tagid": "tag_id2",
       "ext": {
         "bidder": {
-          "TagID": "tag_id2"
+          "type" : "network",
+          "endpointId": "test"
         }
       }
     }

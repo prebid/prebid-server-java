@@ -18,7 +18,7 @@
   "isMobile": 0,
   "ua": "userAgent",
   "adapterName": "BF_PREBID_S2S",
-  "adapterVersion": "0.9.2",
+  "adapterVersion": "1.0.0",
   "ip": "193.168.244.1",
   "requestId": "request_id",
   "real204": true

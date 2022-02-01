@@ -6,29 +6,27 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 3.33,
+          "price": 1.25,
           "adm": "adm001",
-          "adid": "adid001",
-          "cid": "cid001",
-          "crid": "crid001",
-          "w": 300,
-          "h": 250,
+          "crid": "crid",
+          "w": 800,
+          "h": 600,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "video"
             },
-            "origbidcpm": 3.33
+            "origbidcpm": 1.25
           }
         }
       ],
-      "seat": "adagio",
+      "seat": "compass",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "adagio": "{{ adagio.response_time_ms }}"
+      "compass": "{{ compass.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

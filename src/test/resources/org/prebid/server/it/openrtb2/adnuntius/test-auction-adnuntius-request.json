@@ -1,5 +1,14 @@
 {
   "id": "request_id",
+  "user": {
+    "id": "user_d",
+    "ext": {
+      "consent": "some_consent"
+    }
+  },
+  "site": {
+    "page": "some_page"
+  },
   "imp": [
     {
       "id": "imp_id",
@@ -8,10 +17,9 @@
         "h": 250
       },
       "ext": {
-        "adagio": {
-          "organizationId": "someOrganizationId",
-          "site": "someSiteId",
-          "placement": "somePlacementInfo"
+        "adnuntius": {
+          "auId": "some_au_id",
+          "network": "some_network"
         }
       }
     }
