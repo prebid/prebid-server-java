@@ -37,7 +37,7 @@ public class OrbidderConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(orbidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), mapper, currencyConversionService))
+                .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }

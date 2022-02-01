@@ -41,11 +41,12 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    private static final String CURRENCY_EUR_VALUE = "EUR";
+    private static final String DEFAULT_CURRENCY = "EUR";
 
     public OrbidderBidder(String endpointUrl,
-                          JacksonMapper mapper,
-                          CurrencyConversionService currencyConversionService) {
+                          CurrencyConversionService currencyConversionService,
+                          JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -58,10 +59,9 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final BigDecimal floorCurrency =
-                        parseBidFloorCurrency(request, imp.getBidfloorcur(), imp.getBidfloor());
+                final BigDecimal bidFloor = parseBidFloorCurrency(request, imp.getBidfloorcur(), imp.getBidfloor());
                 parseImpExt(imp);
-                validImps.add(modifyImp(imp, floorCurrency));
+                validImps.add(modifyImp(imp, bidFloor));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -81,17 +81,18 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
     private BigDecimal parseBidFloorCurrency(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
         if (BidderUtil.isValidPrice(bidfloor)
-                && !StringUtils.equalsIgnoreCase(bidfloorcur, CURRENCY_EUR_VALUE)
+                && !StringUtils.equalsIgnoreCase(bidfloorcur, DEFAULT_CURRENCY)
                 && StringUtils.isNotBlank(bidfloorcur)) {
-            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, CURRENCY_EUR_VALUE);
+            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, DEFAULT_CURRENCY);
         }
+
         return bidfloor;
     }
 
-    private Imp modifyImp(Imp imp, BigDecimal floorCurrency) {
+    private Imp modifyImp(Imp imp, BigDecimal bidFloor) {
         return imp.toBuilder()
-                .bidfloorcur(CURRENCY_EUR_VALUE)
-                .bidfloor(floorCurrency)
+                .bidfloorcur(DEFAULT_CURRENCY)
+                .bidfloor(bidFloor)
                 .build();
     }
 

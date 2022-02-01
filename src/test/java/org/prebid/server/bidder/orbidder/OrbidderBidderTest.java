@@ -52,13 +52,13 @@ public class OrbidderBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        orbidderBidder = new OrbidderBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
+        orbidderBidder = new OrbidderBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new OrbidderBidder("invalid_url", jacksonMapper, currencyConversionService));
+                () -> new OrbidderBidder("invalid_url", currencyConversionService, jacksonMapper));
     }
 
     @Test
