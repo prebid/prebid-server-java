@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 public class OrbidderBidder implements Bidder<BidRequest> {
 
+    private static final String DEFAULT_CURRENCY = "EUR";
     private static final TypeReference<ExtPrebid<?, ExtImpOrbidder>> ORBIDDER_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -40,8 +41,6 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
-
-    private static final String DEFAULT_CURRENCY = "EUR";
 
     public OrbidderBidder(String endpointUrl,
                           CurrencyConversionService currencyConversionService,
