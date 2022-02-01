@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.algorix;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Format;
@@ -20,6 +21,10 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 
 import java.util.List;
@@ -103,6 +108,31 @@ public class AlgorixBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnVideoExtRewardedOneIfIsPresentIsRewardedInventoryOneAtImp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.id("123")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(mapper.createObjectNode().put("is_rewarded_inventory", 1),
+                                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", "APAC")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedJsonNode = mapper.createObjectNode().put("rewarded", 1);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo)
+                .extracting(Video::getExt)
+                .containsExactly(expectedJsonNode);
+    }
+
+    @Test
     public void shouldSetBannerFormatWAndHValuesToBannerIfTheyAreNotPresentInBanner() {
         // given
         final Format bannerFormat = Format.builder().w(320).h(50).build();
@@ -168,7 +198,7 @@ public class AlgorixBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfNotAnyBidType() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -181,9 +211,9 @@ public class AlgorixBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType in multi-format: 123"));
     }
 
     @Test
@@ -243,6 +273,49 @@ public class AlgorixBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnBannerBidIfMediaTypeExtIsPresentInBidResponse() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(getBidMediaExt("banner")))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder().impid("123").ext(getBidMediaExt("banner")).build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfIsPresentTwoMediaTypeInRequestImp() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder()
+                                .id("123")
+                                .banner(Banner.builder().build())
+                                .video(Video.builder().build())
+                                .build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType in multi-format: 123"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -278,5 +351,9 @@ public class AlgorixBidderTest extends VertxTest {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body), null);
+    }
+
+    private ObjectNode getBidMediaExt(String type) {
+        return mapper.createObjectNode().put("mediaType", type);
     }
 }

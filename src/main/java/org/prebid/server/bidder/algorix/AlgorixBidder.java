@@ -1,10 +1,14 @@
 package org.prebid.server.bidder.algorix;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -20,6 +24,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -36,9 +42,8 @@ import java.util.stream.Collectors;
  */
 public class AlgorixBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
+    private static final TypeReference<ExtPrebid<?, ExtImpAlgorix>> ALGORIX_EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
 
     private static final String URL_REGION_MACRO = "{HOST}";
     private static final String URL_SID_MACRO = "{SID}";
@@ -48,6 +53,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private BidType bidType;
 
     public AlgorixBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
@@ -106,7 +112,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
      * @param imp imp
      * @return new imp
      */
-    private static Imp updateImp(Imp imp) {
+    private Imp updateImp(Imp imp) {
         if (imp.getBanner() != null) {
             final Banner banner = imp.getBanner();
             if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
@@ -120,7 +126,27 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                         .build();
             }
         }
+        if (imp.getVideo() != null) {
+            final ExtImpPrebid extImpPrebid = parseExtImp(imp);
+            if (extImpPrebid != null && extImpPrebid.getIsRewardedInventory() == 1) {
+                final ObjectNode rewardedJsonNode = mapper.mapper().createObjectNode().put("rewarded", 1);
+                imp = imp.toBuilder()
+                        .video(imp.getVideo().toBuilder()
+                                .ext(rewardedJsonNode)
+                                .build())
+                        .build();
+            }
+        }
         return imp;
+    }
+
+    private ExtImpPrebid parseExtImp(Imp imp) {
+        ExtImpPrebid extImpPrebid = null;
+        try {
+            extImpPrebid = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class).getPrebid();
+        } catch (JsonProcessingException e) {
+        }
+        return extImpPrebid;
     }
 
     /**
@@ -196,28 +222,65 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        return bidResponse.getSeatbid()
+                .stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid, bidRequest.getImp()),
+                        bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
+    private BidType getBidType(Bid bid, List<Imp> imps) {
+        final ObjectNode ext = bid.getExt();
+        if (ext != null) {
+            final JsonNode mediaTypeNode = ext.get("mediaType");
+            final BidType bidType = mapper.mapper().convertValue(mediaTypeNode, BidType.class);
+
+            return getBidTypeFromExt(bidType);
+        }
+
+        return getTypeFromImpId(bid, imps);
+    }
+
+    private BidType getTypeFromImpId(Bid bid, List<Imp> imps) {
+        BidType mediaType = null;
+        int typeCount = 0;
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (imp.getId().equals(bid.getImpid())) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    mediaType = BidType.banner;
+                    typeCount++;
+                }
+                if (imp.getXNative() != null) {
+                    mediaType = BidType.xNative;
+                    typeCount++;
+                }
+                if (imp.getVideo() != null) {
+                    mediaType = BidType.video;
+                    typeCount++;
                 }
             }
         }
-        return BidType.banner;
+        if (typeCount == 1) {
+            return mediaType;
+        }
+
+        throw new PreBidException(String.format("Unable to fetch mediaType in multi-format: %s", bid.getImpid()));
+    }
+
+    private BidType getBidTypeFromExt(BidType bidType) {
+        if (bidType.equals(BidType.banner)) {
+            return BidType.banner;
+        } else if (bidType.equals(BidType.xNative)) {
+            return BidType.xNative;
+        } else if (bidType.equals(BidType.video)) {
+            return BidType.video;
+        }
+        return null;
     }
 }
