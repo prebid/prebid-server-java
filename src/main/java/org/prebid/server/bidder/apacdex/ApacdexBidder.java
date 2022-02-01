@@ -49,10 +49,6 @@ public class ApacdexBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = new ArrayList<>();
 
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.withError(BidderError.badInput("No Imps in Bid Request"));
-        }
-
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpApacdex extImpApacdex = parseImpExt(imp);

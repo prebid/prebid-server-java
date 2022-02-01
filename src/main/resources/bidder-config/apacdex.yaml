@@ -25,4 +25,9 @@ adapters:
       cookie-family-name: apacdex
       type: iframe
       support-cors: false
+      secondary:
+        url: https://sync.quantumdex.io/getuid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
+        redirect-url: /setuid?bidder=apacdex&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}&uid=[UID]
+        type: redirect
+        support-cors: false
 

@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,22 +55,6 @@ public class ApacdexBidderTest extends VertxTest {
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() ->
                 new ApacdexBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorIfImpsAreEmpty() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(emptyList())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = apacdexBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("No Imps in Bid Request"));
     }
 
     @Test
