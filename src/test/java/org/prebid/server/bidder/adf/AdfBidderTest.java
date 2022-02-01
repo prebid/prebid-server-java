@@ -2,6 +2,7 @@ package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -19,14 +20,14 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -53,27 +54,21 @@ public class AdfBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("12345").build()))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder.tagid("12345"))))
+                .ext(jacksonMapper.fillExtension(ExtRequest.empty(),
+                        mapper.createObjectNode().put("pt", "gross")))
                 .build();
+
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .containsExactly(expectedRequest);
     }
 
     @Test
-    public void makeHttpRequestsShouldMakeOneRequestForAllImps() {
+    public void makeHttpRequestsShouldReturnRequestWithPriceTypeExt() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                requestBuilder -> requestBuilder.imp(Arrays.asList(
-                        givenImp(identity()),
-                        Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null))))
-                                .build(),
-                        Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement"))))
-                                .build())));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adfBidder.makeHttpRequests(bidRequest);
@@ -81,17 +76,65 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(3)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsOnly(jacksonMapper.fillExtension(
+                        ExtRequest.empty(), mapper.createObjectNode()
+                                .set("pt", TextNode.valueOf("gross"))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMakeOneRequestForAllImpsAndReturnCorrectTagId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(List.of(
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of("12345", null, null, "gross"))))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of("1", null, null, "gross"))))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of(null, null, null, "gross"))))))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adfBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
                 .containsExactly("12345", "1", null);
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(3)
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMakeOneRequestForAllImpsAndReturnCorrectExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                requestBuilder -> requestBuilder.imp(List.of(
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of("12345", null, null, "gross"))))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of("1", null, null, "net"))))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdf.of(null, 321, "placement", null))))))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adfBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement"))));
+                .containsExactly(
+                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null, "gross"))),
+                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null, "net"))),
+                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement", null)))
+                );
     }
 
     @Test
@@ -170,6 +213,7 @@ public class AdfBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -186,28 +230,34 @@ public class AdfBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+            UnaryOperator<Imp.ImpBuilder> impCustomizer,
+            UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(impCustomizer, identity());
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(impCustomizer, UnaryOperator.identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
+                        .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpAdf.of("12345", null, null, "gross"))))
                 .build();
+    }
+
+    private static Imp givenEmptyImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
@@ -216,7 +266,7 @@ public class AdfBidderTest extends VertxTest {
     }
 
     private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+            UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
