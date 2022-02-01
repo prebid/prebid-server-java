@@ -175,7 +175,7 @@ host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
-  max-cookie-size-bytes: 0
+  max-cookie-size-bytes: 4096
 gdpr:
   enabled: true
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
