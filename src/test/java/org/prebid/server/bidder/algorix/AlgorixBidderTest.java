@@ -21,10 +21,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtImp;
-import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.algorix.ExtImpAlgorix;
 
 import java.util.List;
@@ -115,7 +111,11 @@ public class AlgorixBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
                                 ExtPrebid.of(mapper.createObjectNode().put("is_rewarded_inventory", 1),
-                                        ExtImpAlgorix.of("testSid", "testToken", "testPlacementId", "testAppId", "APAC")))));
+                                        ExtImpAlgorix.of("testSid",
+                                                "testToken",
+                                                "testPlacementId",
+                                                "testAppId",
+                                                "APAC")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
