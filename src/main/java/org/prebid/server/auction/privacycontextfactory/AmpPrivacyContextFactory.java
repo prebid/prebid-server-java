@@ -46,7 +46,7 @@ public class AmpPrivacyContextFactory {
 
     public Future<PrivacyContext> contextFrom(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Account account = auctionContext.getAccount();
+
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
         final List<String> errors = auctionContext.getPrebidErrors();
@@ -56,22 +56,26 @@ public class AmpPrivacyContextFactory {
 
         final Device device = bidRequest.getDevice();
 
+        final Account account = auctionContext.getAccount();
+        final AccountPrivacyConfig accountPrivacyConfig = ObjectUtil.getIfNotNull(account, Account::getPrivacy);
+
         return tcfDefinerService.resolveTcfContext(
-                        strippedPrivacy,
-                        resolveAlpha2CountryCode(device),
-                        resolveIpAddress(device, strippedPrivacy),
-                        ObjectUtil.getIfNotNull(account.getPrivacy(), AccountPrivacyConfig::getGdpr),
-                        requestType,
-                        requestLogInfo(requestType, bidRequest, account.getId()),
-                        timeout)
+                strippedPrivacy,
+                resolveAlpha2CountryCode(device),
+                resolveIpAddress(device, strippedPrivacy),
+                ObjectUtil.getIfNotNull(accountPrivacyConfig, AccountPrivacyConfig::getGdpr),
+                requestType,
+                requestLogInfo(requestType, bidRequest, account.getId()),
+                timeout)
                 .map(tcfContext -> logWarnings(auctionContext, tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
 
     private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
-        final String consentType = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
+        final String consentType = StringUtils.defaultString(
+                auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM));
 
-        if (!StringUtils.equalsAny(consentType, "1", "2", "3")) {
+        if (!StringUtils.equalsAny(consentType, "", "1", "2", "3")) {
             auctionContext.getPrebidErrors().add("Invalid consent_type param passed");
             return removeConsentString(privacy);
         } else if (StringUtils.equals(consentType, "1")) {
@@ -105,7 +109,7 @@ public class AmpPrivacyContextFactory {
     }
 
     private String resolveIpAddress(Device device, Privacy privacy) {
-        final boolean shouldBeMasked = privacy.getCoppa() == 1
+        final boolean shouldBeMasked = Objects.equals(privacy.getCoppa(), 1)
                 || (device != null && Objects.equals(device.getLmt(), 1));
 
         final String ipV4Address = device != null ? device.getIp() : null;
