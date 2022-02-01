@@ -173,18 +173,18 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
         final AuctionContext.AuctionContextBuilder defaultAuctionContextBuilder =
                 AuctionContext.builder()
-                .httpRequest(givenHttpRequestContext(null))
-                .debugWarnings(new ArrayList<>())
-                .account(Account.builder().build())
-                .prebidErrors(new ArrayList<>())
-                .bidRequest(givenBidRequest());
+                        .httpRequest(givenHttpRequestContext(null))
+                        .debugWarnings(new ArrayList<>())
+                        .account(Account.builder().build())
+                        .prebidErrors(new ArrayList<>())
+                        .bidRequest(givenBidRequest());
 
         return auctionContextCustomizer.apply(defaultAuctionContextBuilder)
                 .build();
     }
 
     private static BidRequest givenBidRequest() {
-       return BidRequest.builder().device(Device.builder().build()).build();
+        return BidRequest.builder().device(Device.builder().build()).build();
     }
 
     private static HttpRequestContext givenHttpRequestContext(String consentType) {
