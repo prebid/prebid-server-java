@@ -67,14 +67,7 @@ public class AdfBidder implements Bidder<BidRequest> {
         }
 
         if (StringUtils.isNotEmpty(priceType)) {
-            final BidRequest.BidRequestBuilder modifyBidRequest = bidRequest.toBuilder();
-
-            final ObjectNode adfNode = mapper.mapper().createObjectNode()
-                    .put("pt", priceType);
-            final ExtRequest fillExtRequest =
-                    mapper.fillExtension(ExtRequest.empty(), adfNode);
-
-            bidRequest = modifyBidRequest.ext(fillExtRequest).build();
+            bidRequest = modifyBidRequest(bidRequest.toBuilder(), priceType);
         }
 
         if (modifiedImps.isEmpty()) {
@@ -83,6 +76,15 @@ public class AdfBidder implements Bidder<BidRequest> {
 
         final HttpRequest<BidRequest> httpRequest = makeRequest(bidRequest, modifiedImps);
         return Result.of(Collections.singletonList(httpRequest), errors);
+    }
+
+    private BidRequest modifyBidRequest(BidRequest.BidRequestBuilder bidRequest, String priceType) {
+        final ObjectNode adfNode = mapper.mapper().createObjectNode()
+                .put("pt", priceType);
+        final ExtRequest fillExtRequest =
+                mapper.fillExtension(ExtRequest.empty(), adfNode);
+
+        return bidRequest.ext(fillExtRequest).build();
     }
 
     private ExtImpAdf parseExt(Imp imp) throws PreBidException {
