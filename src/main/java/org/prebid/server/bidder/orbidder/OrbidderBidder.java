@@ -41,6 +41,8 @@ public class OrbidderBidder implements Bidder<BidRequest> {
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
+    private static final String CURRENCY_EUR_VALUE = "EUR";
+
     public OrbidderBidder(String endpointUrl,
                           JacksonMapper mapper,
                           CurrencyConversionService currencyConversionService) {
@@ -79,16 +81,16 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
     private BigDecimal parseBidFloorCurrency(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
         if (BidderUtil.isValidPrice(bidfloor)
-                && !StringUtils.equalsIgnoreCase(bidfloorcur, "EUR")
+                && !StringUtils.equalsIgnoreCase(bidfloorcur, CURRENCY_EUR_VALUE)
                 && StringUtils.isNotBlank(bidfloorcur)) {
-            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, "EUR");
+            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, CURRENCY_EUR_VALUE);
         }
-        return null;
+        return bidfloor;
     }
 
     private Imp modifyImp(Imp imp, BigDecimal floorCurrency) {
         return imp.toBuilder()
-                .bidfloorcur("EUR")
+                .bidfloorcur(CURRENCY_EUR_VALUE)
                 .bidfloor(floorCurrency)
                 .build();
     }
