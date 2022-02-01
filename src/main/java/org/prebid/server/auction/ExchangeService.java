@@ -872,13 +872,11 @@ public class ExchangeService {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
-                .map(imp -> {
-                    return imp.toBuilder()
-                            .bidfloor(priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest))
-                            .pmp(preparePmp(bidder, imp.getPmp(), aliases))
-                            .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
-                            .build();
-                })
+                .map(imp -> imp.toBuilder()
+                        .bidfloor(priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest))
+                        .pmp(preparePmp(bidder, imp.getPmp(), aliases))
+                        .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
+                        .build())
                 .collect(Collectors.toList());
     }
 
