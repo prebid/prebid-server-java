@@ -11,6 +11,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
@@ -231,9 +232,9 @@ public class OrtbTypesResolver {
 
                 normalizeDataExtension(containerObjectNode, nodeName, nodePrefix, prebidLog);
             } else {
-                prebidLog.warning().incorrectFieldNode(
+                prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                         String.format("%s%s field ignored. Expected type is object, but was `%s`.",
-                                nodePrefix, nodeName, containerNode.getNodeType().name()));
+                                nodePrefix, nodeName, containerNode.getNodeType().name())));
                 return null;
             }
         }
@@ -262,11 +263,11 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray && !arrayNode.isEmpty()) {
-            prebidLog.warning().incorrectFirstPartyDataType(
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                     String.format("Incorrect type for first party data field %s%s.%s, expected is"
                                     + " string, but was an array of strings. "
                                     + "Converted to string by taking first element of array.",
-                            nodePrefix, containerName, fieldName));
+                            nodePrefix, containerName, fieldName)));
             return new TextNode(arrayNode.get(0).asText());
         } else {
             warnForExpectedStringArrayType(fieldName, containerName, prebidLog, nodePrefix, node.getNodeType());
@@ -286,10 +287,10 @@ public class OrtbTypesResolver {
         final boolean isTextualArray = arrayNode != null && isTextualArray(arrayNode) && !arrayNode.isEmpty();
 
         if (isTextualArray) {
-            prebidLog.warning().incorrectFirstPartyDataType(
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                     String.format("Incorrect type for first party data field %s%s.%s, expected is "
                             + "string, but was an array of strings. Converted to string by separating values with "
-                            + "comma.", nodePrefix, containerName, fieldName));
+                            + "comma.", nodePrefix, containerName, fieldName)));
             return new TextNode(StreamSupport.stream(arrayNode.spliterator(), false)
                     .map(jsonNode -> (TextNode) jsonNode)
                     .map(TextNode::textValue)
@@ -323,10 +324,10 @@ public class OrtbTypesResolver {
         if (ext != null && ext.isObject()) {
             ((ObjectNode) ext).set(DATA, data);
         } else if (ext != null && !ext.isObject()) {
-            prebidLog.warning().incorrectFirstPartyDataType(
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                     String.format("Incorrect type for first party data field %s%s.%s, expected is "
                                     + "object, but was %s. Replaced with object",
-                            nodePrefix, containerName, EXT, ext.getNodeType()));
+                            nodePrefix, containerName, EXT, ext.getNodeType())));
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
         } else {
             containerNode.set(EXT, jacksonMapper.mapper().createObjectNode().set(DATA, data));
@@ -335,10 +336,10 @@ public class OrtbTypesResolver {
 
     private void warnForExpectedStringArrayType(String fieldName, String containerName, PrebidLog prebidLog,
                                                 String nodePrefix, JsonNodeType nodeType) {
-        prebidLog.warning().incorrectFirstPartyDataType(
+        prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                 String.format("Incorrect type for first party data field %s%s.%s, expected strings, but"
                                 + " was `%s`. Failed to convert to correct type.", nodePrefix, containerName, fieldName,
-                        nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name()));
+                        nodeType == JsonNodeType.ARRAY ? "ARRAY of different types" : nodeType.name())));
     }
 
     private static boolean isTextualArray(ArrayNode arrayNode) {
@@ -348,7 +349,7 @@ public class OrtbTypesResolver {
     private void processWarnings(PrebidLog prebidLog, String containerValue,
                                  String referer, String containerName) {
 
-        final List<String> messages = prebidLog.warning().getIncorrectTypeMessages();
+        final List<String> messages = prebidLog.getIncorrectFirstPartyMessages();
         if (CollectionUtils.isNotEmpty(messages)) {
             // log only 1% of cases
             ORTB_TYPES_RESOLVING_LOGGER.warn(String.format("WARNINGS: %s. \n Referer = %s and %s = %s",

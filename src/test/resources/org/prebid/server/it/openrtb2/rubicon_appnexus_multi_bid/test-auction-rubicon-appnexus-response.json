@@ -222,15 +222,15 @@
     "warnings": {
       "prebid": [
         {
-          "code": 10006,
+          "code": 999,
           "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
         },
         {
-          "code": 10006,
+          "code": 999,
           "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
         },
         {
-          "code": 10006,
+          "code": 999,
           "message": "VastXml does not contain neither InLine nor Wrapper for appnexus response"
         }
       ]

@@ -74,7 +74,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(false, null));
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getWarnings()).isEmpty();
     }
 
     @Test
@@ -88,10 +88,10 @@ public class DebugResolverTest {
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        final PrebidMessage prebidMessage = PrebidMessage.of(10002,
+        final PrebidMessage prebidMessage = PrebidMessage.of(PrebidMessage.Type.account_level_debug_disabled,
                 "Debug turned off for account");
         assertThat(result).isEqualTo(DebugContext.of(false, null));
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).hasSize(1)
+        assertThat(auctionContext.getPrebidLog().getWarnings()).hasSize(1)
                 .containsExactly(prebidMessage);
     }
 
@@ -107,7 +107,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isEqualTo(DebugContext.of(true, null));
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getWarnings()).isEmpty();
     }
 
     @Test
@@ -136,7 +136,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isFalse();
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getWarnings()).isEmpty();
     }
 
     @Test
@@ -150,10 +150,10 @@ public class DebugResolverTest {
         final boolean result = debugResolver.resolveDebugForBidder(auctionContext, "bidder");
 
         // then
-        final PrebidMessage prebidMessage = PrebidMessage.of(10003,
+        final PrebidMessage prebidMessage = PrebidMessage.of(PrebidMessage.Type.bidder_level_debug_disabled,
                 "Debug turned off for bidder: bidder");
         assertThat(result).isFalse();
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).hasSize(1)
+        assertThat(auctionContext.getPrebidLog().getWarnings()).hasSize(1)
                 .containsExactly(prebidMessage);
     }
 
@@ -169,7 +169,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isTrue();
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getWarnings()).isEmpty();
     }
 
     @Test
@@ -186,7 +186,7 @@ public class DebugResolverTest {
 
         // then
         assertThat(result).isTrue();
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getWarnings()).isEmpty();
     }
 
     private static AuctionContext givenAuctionContext(

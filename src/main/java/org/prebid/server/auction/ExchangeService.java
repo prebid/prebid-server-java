@@ -33,6 +33,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
@@ -368,8 +369,9 @@ public class ExchangeService {
             final String codePrefix = prebidMultiBid.getTargetBidderCodePrefix();
 
             if (bidder != null && CollectionUtils.isNotEmpty(bidders)) {
-                prebidLog.warning().multibid(String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
-                        + "Only bidder %s will be used.", bidder, bidders, bidder));
+                prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                        String.format("Invalid MultiBid: bidder %s and bidders %s specified. "
+                                + "Only bidder %s will be used.", bidder, bidders, bidder)));
 
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, prebidLog);
                 continue;
@@ -379,15 +381,17 @@ public class ExchangeService {
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, prebidLog);
             } else if (CollectionUtils.isNotEmpty(bidders)) {
                 if (codePrefix != null) {
-                    prebidLog.warning().multibid(String.format("Invalid MultiBid: CodePrefix %s "
-                            + "that was specified for bidders %s "
-                            + "will be skipped.", codePrefix, bidders));
+                    prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                            String.format("Invalid MultiBid: CodePrefix %s "
+                                    + "that was specified for bidders %s "
+                                    + "will be skipped.", codePrefix, bidders)));
                 }
 
                 bidders.forEach(currentBidder ->
                         tryAddBidderWithMultiBid(currentBidder, maxBids, null, bidderToMultiBid, prebidLog));
             } else {
-                prebidLog.warning().multibid("Invalid MultiBid: Bidder and bidders was not specified.");
+                prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                        "Invalid MultiBid: Bidder and bidders was not specified."));
             }
         }
 
@@ -400,14 +404,15 @@ public class ExchangeService {
                                                  Map<String, MultiBidConfig> bidderToMultiBid,
                                                  PrebidLog prebidLog) {
         if (bidderToMultiBid.containsKey(bidder)) {
-            prebidLog.warning().multibid(
-                    String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder));
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                    String.format("Invalid MultiBid: Bidder %s specified multiple times.", bidder)));
             return;
         }
 
         if (maxBids == null) {
-            prebidLog.warning().multibid(String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
-                    + "will be skipped.", bidder));
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                    String.format("Invalid MultiBid: MaxBids for bidder %s is not specified and "
+                            + "will be skipped.", bidder)));
             return;
         }
 
@@ -825,7 +830,8 @@ public class ExchangeService {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         if (app != null && site != null) {
-            prebidLog.warning().bidRequestContainsAppAndSite("BidRequest contains app and site. Removed site object");
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                    "BidRequest contains app and site. Removed site object"));
         }
         final Site resolvedSite = app == null ? site : null;
 
@@ -1232,9 +1238,10 @@ public class ExchangeService {
         for (BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
-                prebidLog.warning().invalidBidPrice(String.format(
-                        "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
-                        bid.getId()));
+                prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                        String.format(
+                                "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
+                                bid.getId())));
                 metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
             } else {
                 validBids.add(bidderBid);

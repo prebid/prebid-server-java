@@ -977,7 +977,7 @@ public class BidResponseCreator {
 
         final List<ExtBidderError> storedErrors = extractStoredErrors(videoStoredDataResult);
         final List<ExtBidderError> contextErrors =
-                toBidderErrors(auctionContext.getPrebidLog().error().getAllMessages());
+                toBidderErrors(auctionContext.getPrebidLog().getErrors());
         if (storedErrors.isEmpty() && contextErrors.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -1005,7 +1005,7 @@ public class BidResponseCreator {
      */
     private static List<ExtBidderError> toBidderErrors(List<PrebidMessage> prebidMessages) {
         return prebidMessages.stream()
-                .map(prebidMessage -> ExtBidderError.of(prebidMessage.getCode(), prebidMessage.getMessage()))
+                .map(prebidMessage -> ExtBidderError.of(prebidMessage.getType().getCode(), prebidMessage.getMessage()))
                 .collect(Collectors.toList());
     }
 
@@ -1046,7 +1046,7 @@ public class BidResponseCreator {
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
         final List<ExtBidderError> contextWarnings =
-                toBidderErrors(auctionContext.getPrebidLog().warning().getAllMessages());
+                toBidderErrors(auctionContext.getPrebidLog().getWarnings());
 
         return contextWarnings.isEmpty()
                 ? Collections.emptyMap()

@@ -24,6 +24,7 @@ import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderSeatBid;
@@ -347,7 +348,8 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         Collectors.mapping(Function.identity(), Collectors.toSet())));
 
         rejectedBids.addAll(collectRejectedDuplicatedBids(uniqueCatKeysToCategoryBids));
-        rejectedBids.forEach(e -> prebidLog.error().categoryMapping(e.getErrorMessage()));
+        rejectedBids.forEach(rejectedBid ->
+                prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic, rejectedBid.getErrorMessage())));
 
         return CategoryMappingResult.of(
                 makeBidderToBidCategoryDuration(uniqueCatKeysToCategoryBids, rejectedBids),
@@ -466,24 +468,24 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final ExtDealTier dealTier = ObjectUtil.getIfNotNull(dealTierContainer, DealTierContainer::getDealTier);
         if (dealTier == null) {
-            prebidLog.error().categoryMapping(
-                    String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId));
+            prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic,
+                    String.format("DealTier configuration not defined for bidder '%s', imp ID '%s'", bidder, impId)));
             return false;
         }
 
         if (StringUtils.isBlank(dealTier.getPrefix())) {
-            prebidLog.error().categoryMapping(
+            prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic,
                     String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
-                            + " dealTier.prefix empty string or null", bidder, impId));
+                            + " dealTier.prefix empty string or null", bidder, impId)));
             return false;
         }
 
         final Integer minDealTier = dealTier.getMinDealTier();
         if (minDealTier == null || minDealTier <= 0) {
-            prebidLog.error().categoryMapping(
+            prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic,
                     String.format("DealTier configuration not valid for bidder '%s', imp ID '%s' with a reason:"
                                     + " dealTier.minDealTier should be larger than 0, but was %s",
-                            bidder, impId, minDealTier));
+                            bidder, impId, minDealTier)));
             return false;
         }
 

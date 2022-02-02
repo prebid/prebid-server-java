@@ -183,7 +183,7 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [10011]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["Amp request parameter gdpr_consent has invalid format for consent type tcfV2: $invalidTcfConsent" as String]
 
@@ -211,7 +211,7 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [10011]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
     }
 
@@ -235,7 +235,7 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [10014]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message == ["Invalid consent_type param passed"]
     }
 
@@ -257,7 +257,7 @@ class GdprSpec extends PrivacyBaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
-        assert response.ext?.errors[ErrorType.PREBID]*.code == [10011]
+        assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
                 ["Amp request parameter consent_string has invalid format for consent type tcfV2: $ccpaConsent" as String]
     }

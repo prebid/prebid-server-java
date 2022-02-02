@@ -1320,9 +1320,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        final PrebidMessage prebidMessage = PrebidMessage.of(10014,
+        final PrebidMessage prebidMessage = PrebidMessage.of(PrebidMessage.Type.generic,
                 "Amp request parameter gdpr_consent has invalid format: consent-value");
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .containsExactly(prebidMessage);
     }
 
@@ -1428,7 +1428,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(result.getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -1442,7 +1442,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
     }
@@ -1460,7 +1460,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter gdpr_consent has invalid format for consent type tcfV2: 1YY-");
     }
@@ -1478,7 +1478,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly(
                         "Amp request parameter consent_string has invalid format for consent type tcfV2: 1YY-");
@@ -1497,7 +1497,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter consent_string has invalid format for "
                         + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
@@ -1516,7 +1516,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Amp request parameter gdpr_consent has invalid format for "
                         + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
@@ -1535,7 +1535,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
+        assertThat(result.getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsExactly("Consent type tcfV1 is no longer supported");
     }
@@ -1675,8 +1675,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-        assertThat(result.getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10014, "Invalid consent_type param passed"));
+        assertThat(result.getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic, "Invalid consent_type param passed"));
     }
 
     @Test

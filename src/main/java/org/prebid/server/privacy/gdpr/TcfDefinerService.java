@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -367,8 +368,9 @@ public class TcfDefinerService {
         // disable TCF1 support
         if (version == 1) {
             if (prebidLog != null) {
-                prebidLog.warning().tcf(String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
-                        + "deprecated and treated as corrupted TCF version 2", consentString));
+                prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                        String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
+                                + "deprecated and treated as corrupted TCF version 2", consentString)));
             }
             return TCStringEmpty.create();
         }

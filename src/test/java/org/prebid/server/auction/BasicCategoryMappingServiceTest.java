@@ -124,8 +124,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(Bid::getId)
                 .containsOnly("2", "3", "4");
 
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated"));
     }
 
@@ -160,7 +160,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderBid::getBid).hasSize(2)
                 .extracting(Bid::getId)
                 .containsOnly("1", "1");
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -283,8 +283,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Timeout"));
 
     }
@@ -312,8 +312,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid has more than one"
                                 + " category"));
     }
@@ -341,8 +341,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid did not contain a"
                                 + " category"));
     }
@@ -370,8 +370,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Category mapping data for"
                                 + " primary ad server: 'freewheel', publisher: 'publisher' not found"));
     }
@@ -427,8 +427,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid duration '20' "
                                 + "exceeds maximum '15'"));
     }
@@ -606,8 +606,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_fetchedCat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
 
     }
@@ -635,8 +635,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories())
                 .isEqualTo(Collections.singletonMap(givenBid("1", null, "10", singletonList("cat1")),
                         "10.00_cat1_10s"));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
     }
 
@@ -664,11 +664,11 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBiddersToBidsCategories().entrySet())
                 .extracting(Map.Entry::getValue)
                 .containsExactly("10.00_10s");
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
                 .containsAnyOf(
-                        PrebidMessage.of(10009,
+                        PrebidMessage.of(PrebidMessage.Type.generic,
                                 "Bid rejected [bidder: rubicon, bid ID: 1] with a reason: Bid was deduplicated"),
-                        PrebidMessage.of(10009,
+                        PrebidMessage.of(PrebidMessage.Type.generic,
                                 "Bid rejected [bidder: otherBid, bid ID: 2] with a reason: Bid was deduplicated"));
     }
 
@@ -792,7 +792,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -829,7 +829,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -868,7 +868,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -905,7 +905,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getBiddersToBidsSatisfiedPriority())
                 .isEqualTo(Collections.singletonMap(givenBid("1", "impId1", "10", singletonList("cat1")), true));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -940,7 +940,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -977,7 +977,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
         assertThat(resultFuture.result().getBiddersToBidsSatisfiedPriority())
                 .isEqualTo(Collections.singletonMap(givenBid("1", "impId1", "10", singletonList("cat1")), false));
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -1015,7 +1015,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages()).isEmpty();
+        assertThat(resultFuture.result().getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -1050,8 +1050,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "DealTier configuration not defined for bidder 'rubicon', imp ID 'impId1'"));
     }
 
@@ -1089,8 +1089,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' "
                                 + "with a reason: dealTier.prefix empty string or null"));
     }
@@ -1129,8 +1129,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
                                 + " dealTier.minDealTier should be larger than 0, but was null"));
     }
@@ -1167,8 +1167,8 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
         assertThat(resultFuture.result().getBidderResponses())
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).hasSize(1);
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
-                .containsExactly(PrebidMessage.of(10009,
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
+                .containsExactly(PrebidMessage.of(PrebidMessage.Type.generic,
                         "DealTier configuration not valid for bidder 'rubicon', imp ID 'impId1' with a reason:"
                                 + " dealTier.minDealTier should be larger than 0, but was -1"));
     }
@@ -1202,7 +1202,7 @@ public class BasicCategoryMappingServiceTest extends VertxTest {
                 .extracting(BidderBid::getBid).hasSize(1)
                 .extracting(Bid::getId)
                 .containsOnly("1");
-        assertThat(resultFuture.result().getPrebidLog().error().getAllMessages())
+        assertThat(resultFuture.result().getPrebidLog().getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsOnly("Bid rejected [bidder: otherBidder, bid ID: 2] with a reason: Bid did not contain "
                                 + "a category",

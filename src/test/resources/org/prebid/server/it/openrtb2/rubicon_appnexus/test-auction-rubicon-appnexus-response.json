@@ -813,7 +813,7 @@
     "warnings": {
       "prebid": [
         {
-          "code": 10008,
+          "code": 999,
           "message": "Dropped bid 'zeroPriceBidId'. Does not contain a positive (or zero if there is a deal) 'price'"
         }
       ]

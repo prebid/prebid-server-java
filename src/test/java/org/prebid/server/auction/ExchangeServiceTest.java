@@ -1185,24 +1185,24 @@ public class ExchangeServiceTest extends VertxTest {
                 .prebidLog(PrebidLog.empty())
                 .build();
         //adding all prebid log entries
-        expectedAuctionContext.getPrebidLog().warning().multibid(
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                 "Invalid MultiBid: bidder bidder2 and bidders [invalid] specified."
-                        + " Only bidder bidder2 will be used.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
+                        + " Only bidder bidder2 will be used."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                 "Invalid MultiBid: bidder bidder3 and bidders [invalid] specified."
-                        + " Only bidder bidder3 will be used.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
-                "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
-                "Invalid MultiBid: Bidder bidder1 specified multiple times.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
+                        + " Only bidder bidder3 will be used."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                "Invalid MultiBid: MaxBids for bidder bidder3 is not specified and will be skipped."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                "Invalid MultiBid: Bidder bidder1 specified multiple times."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                 "Invalid MultiBid: CodePrefix bi1_3 that was "
-                        + "specified for bidders [bidder1] will be skipped.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
-                "Invalid MultiBid: Bidder bidder1 specified multiple times.");
-        expectedAuctionContext.getPrebidLog().warning().multibid(
+                        + "specified for bidders [bidder1] will be skipped."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                "Invalid MultiBid: Bidder bidder1 specified multiple times."));
+        expectedAuctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
                 "Invalid MultiBid: CodePrefix ignored that "
-                        + "was specified for bidders [bidder4, bidder5] will be skipped.");
+                        + "was specified for bidders [bidder4, bidder5] will be skipped."));
 
         assertThat(contextArgumentCaptor.getValue()).isEqualTo(expectedAuctionContext);
     }
@@ -2520,9 +2520,9 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenContext);
 
         // then
-        final PrebidMessage prebidMessage = PrebidMessage.of(10007,
+        final PrebidMessage prebidMessage = PrebidMessage.of(PrebidMessage.Type.generic,
                 "BidRequest contains app and site. Removed site object");
-        assertThat(givenContext.getPrebidLog().warning().getAllMessages())
+        assertThat(givenContext.getPrebidLog().getWarnings())
                 .containsOnly(prebidMessage);
     }
 
@@ -2652,16 +2652,16 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final Set<PrebidMessage> messages = Set.of(
-                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_1'. "
+                PrebidMessage.of(PrebidMessage.Type.generic, "Dropped bid 'invalid_bid_1'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'"),
-                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_2'. "
+                PrebidMessage.of(PrebidMessage.Type.generic, "Dropped bid 'invalid_bid_2'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'"),
-                PrebidMessage.of(10008, "Dropped bid 'invalid_bid_3'. "
+                PrebidMessage.of(PrebidMessage.Type.generic, "Dropped bid 'invalid_bid_3'. "
                         + "Does not contain a positive (or zero if there is a deal) 'price'")
         );
         assertThat(result.getBidResponse().getSeatbid())
                 .flatExtracting(SeatBid::getBid).hasSize(1);
-        assertThat(givenContext.getPrebidLog().warning().getAllMessages())
+        assertThat(givenContext.getPrebidLog().getWarnings())
                 .containsExactlyInAnyOrderElementsOf(messages);
 
         verify(metrics, times(3))

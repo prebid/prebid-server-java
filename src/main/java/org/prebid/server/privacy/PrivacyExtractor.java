@@ -8,6 +8,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
@@ -96,7 +97,7 @@ public class PrivacyExtractor {
             final String message = String.format("CCPA consent %s has invalid format: %s", usPrivacy, e.getMessage());
             logger.debug(message);
             if (prebidLog != null) {
-                prebidLog.error().ccpa(message);
+                prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic, message));
             }
             return DEFAULT_CCPA_VALUE;
         }

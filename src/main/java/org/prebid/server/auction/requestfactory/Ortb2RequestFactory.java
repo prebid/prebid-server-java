@@ -21,6 +21,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.model.DeepDebugLog;
@@ -162,7 +163,7 @@ public class Ortb2RequestFactory {
 
         if (validationResult.hasWarnings()) {
             validationResult.getWarnings()
-                    .forEach(warning -> prebidLog.warning().validation(warning));
+                    .forEach(warning -> prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic, warning)));
         }
 
         return validationResult.hasErrors()

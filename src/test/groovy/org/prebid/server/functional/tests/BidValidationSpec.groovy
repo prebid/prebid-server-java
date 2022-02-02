@@ -139,7 +139,7 @@ class BidValidationSpec extends BaseSpec {
         assert response.seatbid.size() == 0
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [10008]
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Dropped bid '$bidId'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 
@@ -178,7 +178,7 @@ class BidValidationSpec extends BaseSpec {
         assert response.seatbid?.first()?.bid*.id == [validBidId]
 
         and: "PBS should emit an error"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [10008]
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Dropped bid '$invalidBid.id'. Does not contain a positive (or zero if there is a deal) 'price'" as String]
 

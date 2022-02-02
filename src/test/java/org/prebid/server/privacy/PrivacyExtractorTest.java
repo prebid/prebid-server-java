@@ -145,7 +145,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
         // then
         assertThat(ccpa).isEqualTo(Ccpa.EMPTY);
-        assertThat(prebidLog.error().getAllMessages())
+        assertThat(prebidLog.getErrors())
                 .flatExtracting(PrebidMessage::getMessage)
                 .containsOnly("CCPA consent invalid has invalid format: us_privacy must contain 4 characters");
     }

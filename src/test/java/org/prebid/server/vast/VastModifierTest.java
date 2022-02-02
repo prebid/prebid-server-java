@@ -301,12 +301,12 @@ public class VastModifierTest {
                 .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), prebidLog, LINEITEM_ID);
 
         // then
-        final PrebidMessage expectedPrebidMessage = PrebidMessage.of(10006,
+        final PrebidMessage expectedPrebidMessage = PrebidMessage.of(PrebidMessage.Type.generic,
                 "VastXml does not contain neither InLine nor Wrapper for bidder response");
 
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
-        assertThat(prebidLog.warning().getAllMessages())
+        assertThat(prebidLog.getWarnings())
                 .containsExactly(expectedPrebidMessage);
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
     }

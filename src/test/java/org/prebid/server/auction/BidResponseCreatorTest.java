@@ -936,7 +936,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 givenSeatBid(BidderBid.of(bid1, banner, "USD"), BidderBid.of(bid2, banner, "USD")), 100));
 
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.warning().invalidTrackingUrl("Filtered bid 2");
+        prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic, "Filtered bid 2"));
 
         given(categoryMappingService.createCategoryMapping(any(), any(), any()))
                 .willReturn(Future.succeededFuture(CategoryMappingResult.of(emptyMap(), emptyMap(),
@@ -956,7 +956,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getId)
                 .containsOnly("bidId1");
 
-        assertThat(auctionContext.getPrebidLog().warning().getAllMessages())
+        assertThat(auctionContext.getPrebidLog().getWarnings())
                 .extracting(PrebidMessage::getMessage)
                 .containsExactly("Filtered bid 2");
     }
@@ -2768,7 +2768,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldProcessRequestAndAddErrorFromAuctionContext() {
         // given
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.error().privacy("privacy error");
+        prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic, "privacy error"));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
@@ -2789,7 +2789,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 ExtBidResponse.builder()
                         .errors(singletonMap(
                                 "prebid",
-                                singletonList(ExtBidderError.of(10014, "privacy error"))))
+                                singletonList(ExtBidderError.of(999, "privacy error"))))
                         .responsetimemillis(singletonMap("bidder1", 100))
                         .tmaxrequest(1000L)
                         .prebid(ExtBidResponsePrebid.of(1000L, null))
@@ -2801,8 +2801,8 @@ public class BidResponseCreatorTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp());
         final PrebidLog prebidLog = PrebidLog.empty();
-        prebidLog.warning().invalidTrackingUrl("warning1");
-        prebidLog.warning().invalidTrackingUrl("warning2");
+        prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic, "warning1"));
+        prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic, "warning2"));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequest,
@@ -2852,8 +2852,8 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getWarnings())
                 .containsOnly(
                         entry("prebid", Arrays.asList(
-                                ExtBidderError.of(10006, "warning1"),
-                                ExtBidderError.of(10006, "warning2"))));
+                                ExtBidderError.of(999, "warning1"),
+                                ExtBidderError.of(999, "warning2"))));
 
         verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }

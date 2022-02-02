@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -42,7 +43,8 @@ public class DebugResolver {
         final boolean debugAllowedByAccount = isDebugAllowedByAccount(auctionContext.getAccount());
 
         if (debugEnabledForRequest && !debugOverride && !debugAllowedByAccount) {
-            auctionContext.getPrebidLog().warning().accountLevelDebugDisabled("Debug turned off for account");
+            auctionContext.getPrebidLog().addWarning(PrebidMessage.of(
+                    PrebidMessage.Type.account_level_debug_disabled, "Debug turned off for account"));
         }
 
         return debugOverride || (debugEnabledForRequest && debugAllowedByAccount);
@@ -81,8 +83,8 @@ public class DebugResolver {
         final boolean debugAllowedByBidder = bidderCatalog.isDebugAllowed(bidder);
 
         if (debugEnabled && !debugOverride && !debugAllowedByBidder) {
-            auctionContext.getPrebidLog().warning().bidderLevelDebugDisabled(
-                    String.format("Debug turned off for bidder: %s", bidder));
+            auctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.bidder_level_debug_disabled,
+                    String.format("Debug turned off for bidder: %s", bidder)));
         }
 
         return debugOverride || (debugEnabled && debugAllowedByBidder);
