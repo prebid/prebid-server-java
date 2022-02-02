@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
-import org.prebid.server.bidder.facebook.proto.FacebookNative;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -246,9 +245,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
      * Add Width and Height (not available in standard openRTB) and exclude native.request and native.ver fields
      */
     private static Native modifyNative(Native xNative) {
-        return FacebookNative.builder()
-                .w(-1)
-                .h(-1)
+        return Native.builder()
                 .api(xNative.getApi())
                 .battr(xNative.getBattr())
                 .ext(xNative.getExt())

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adgeneration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgeneration;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ import java.util.stream.Collectors;
 
 public class AdgenerationBidder implements Bidder<Void> {
 
-    private static final String VERSION = "1.0.2";
+    private static final String VERSION = "1.0.3";
     private static final String DEFAULT_REQUEST_CURRENCY = "JPY";
     private static final Pattern REPLACE_VAST_XML_PATTERN = Pattern.compile("/\\r?\\n/g", Pattern.CASE_INSENSITIVE);
     private static final Pattern APPEND_CHILD_TO_BODY_PATTERN = Pattern.compile("</\\s?body>",
@@ -67,8 +69,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                 final String adgenerationId = extImpAdgeneration.getId();
                 final String adSizes = getAdSize(imp);
                 final String currency = getCurrency(request);
-                final String uri = getUri(adSizes, adgenerationId, currency,
-                        request.getSite(), request.getSource());
+                final String uri = getUri(adSizes, adgenerationId, currency, request);
 
                 requests.add(createSingleRequest(uri, request.getDevice()));
             } catch (PreBidException e) {
@@ -94,7 +95,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         return extImpAdgeneration;
     }
 
-    private String getUri(String adSize, String id, String currency, Site site, Source source) {
+    private String getUri(String adSize, String id, String currency, BidRequest bidRequest) {
         final URIBuilder uriBuilder;
         try {
             uriBuilder = new URIBuilder(endpointUrl);
@@ -105,28 +106,38 @@ public class AdgenerationBidder implements Bidder<Void> {
         uriBuilder
                 .addParameter("posall", "SSPLOC")
                 .addParameter("id", id)
-                .addParameter("sdktype", "0")
                 .addParameter("hb", "true")
                 .addParameter("t", "json3")
                 .addParameter("currency", currency)
                 .addParameter("sdkname", "prebidserver")
                 .addParameter("adapterver", VERSION);
 
-        if (StringUtils.isNotBlank(adSize)) {
-            uriBuilder.addParameter("sizes", adSize);
-        }
+        addParameterIfNotEmpty(uriBuilder, "sizes", adSize);
+        addParameterIfNotEmpty(uriBuilder, "tp", ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
+        addParameterIfNotEmpty(uriBuilder, "appbundle", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getBundle));
+        addParameterIfNotEmpty(uriBuilder, "appname", ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getName));
+        addParameterIfNotEmpty(
+                uriBuilder, "transactionid", ObjectUtil.getIfNotNull(bidRequest.getSource(), Source::getTid));
 
-        final String page = site != null ? site.getPage() : null;
-        if (StringUtils.isNotBlank(page)) {
-            uriBuilder.addParameter("tp", page);
-        }
-
-        final String transactionId = source != null ? source.getTid() : null;
-        if (StringUtils.isNotBlank(transactionId)) {
-            uriBuilder.addParameter("transactionid", transactionId);
+        final Device device = bidRequest.getDevice();
+        final String deviceOs = device != null ? device.getOs() : null;
+        if ("android".equals(deviceOs)) {
+            uriBuilder.addParameter("sdktype", "1");
+            addParameterIfNotEmpty(uriBuilder, "advertising_id", device.getIfa());
+        } else if ("ios".equals(deviceOs)) {
+            uriBuilder.addParameter("sdktype", "2");
+            addParameterIfNotEmpty(uriBuilder, "idfa", device.getIfa());
+        } else {
+            uriBuilder.addParameter("sdktype", "0");
         }
 
         return uriBuilder.toString();
+    }
+
+    private static void addParameterIfNotEmpty(URIBuilder uriBuilder, String parameter, String value) {
+        if (StringUtils.isNotEmpty(value)) {
+            uriBuilder.addParameter(parameter, value);
+        }
     }
 
     private static String getAdSize(Imp imp) {
@@ -155,10 +166,11 @@ public class AdgenerationBidder implements Bidder<Void> {
     private static MultiMap resolveHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
 
-        final String userAgent = device != null ? device.getUa() : null;
-        if (StringUtils.isNotBlank(userAgent)) {
-            headers.add("User-Agent", userAgent);
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
         }
+
         return headers;
     }
 

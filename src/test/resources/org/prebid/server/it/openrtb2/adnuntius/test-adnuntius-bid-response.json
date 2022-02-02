@@ -1,0 +1,25 @@
+{
+  "ad_units": [
+    {
+      "au_id": "some_au_id",
+      "target_id": "some_au_id-imp_id",
+      "html": "some_html",
+      "ads": [
+        {
+          "bid": {
+            "amount": 42.42,
+            "currency": "USD"
+          },
+          "ad_id": "some_ad_id",
+          "creative_width": "140",
+          "creative_height": "90",
+          "creative_id": "some_creative_id",
+          "line_item_id": "some_line_item_id",
+          "destination_urls": {
+            "some_url": "https://www.domain.dm/uri"
+          }
+        }
+      ]
+    }
+  ]
+}

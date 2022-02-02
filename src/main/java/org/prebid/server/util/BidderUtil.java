@@ -17,4 +17,9 @@ public class BidderUtil {
     public static boolean isValidPrice(Price price) {
         return isValidPrice(price.getValue()) && StringUtils.isNotBlank(price.getCurrency());
     }
+
+    public static boolean shouldConvertBidFloor(Price price, String bidderCurrency) {
+        return isValidPrice(price)
+                && !StringUtils.equals(price.getCurrency(), bidderCurrency);
+    }
 }

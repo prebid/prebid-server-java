@@ -16,7 +16,8 @@ public class IntersectsStrings extends Intersects<String> {
 
     @Override
     public List<String> lookupActualValues(RequestContext context) {
-        return toLowerCase(context.lookupStrings(category));
+        final List<String> values = context.lookupStrings(category);
+        return values != null ? toLowerCase(values) : null;
     }
 
     private static List<String> toLowerCase(List<String> values) {

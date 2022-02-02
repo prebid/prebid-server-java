@@ -230,7 +230,7 @@ public class BidResponseCreator {
 
                 final Bid updatedBid = updateBid(
                         receivedBid, bidType, bidder, videoStoredDataResult, auctionContext, eventsContext, lineItemId);
-                modifiedBidderBids.add(bidderBid.with(updatedBid));
+                modifiedBidderBids.add(bidderBid.toBuilder().bid(updatedBid).build());
             }
 
             final BidderSeatBid modifiedSeatBid = seatBid.with(modifiedBidderBids);
