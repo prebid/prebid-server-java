@@ -66,6 +66,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .willReturn(emptyPrivacy);
         given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
                 .willReturn(emptyPrivacy);
+
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
@@ -104,11 +105,9 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldRemoveConsentStringAndEmitErrorOnInvalidConsentTypeParam() {
         // given
-        final Privacy privacyWithoutConsent = Privacy.of("1", "", Ccpa.EMPTY, null);
+        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
         given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(Privacy.of("1", "consent_string", Ccpa.EMPTY, null));
-        given(privacyExtractor.toValidPrivacy(eq("1"), eq(null), eq(null), eq(null), eq(null)))
-                .willReturn(privacyWithoutConsent);
+                .willReturn(privacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
@@ -120,7 +119,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         final Future<PrivacyContext> result = ampPrivacyContextFactory.contextFrom(auctionContext);
 
         // then
-        assertThat(result.result().getPrivacy()).isEqualTo(privacyWithoutConsent);
+        assertThat(result.result().getPrivacy()).isEqualTo(privacy.withoutConsent());
         assertThat(auctionContext.getPrebidErrors()).containsExactly("Invalid consent_type param passed");
     }
 
@@ -147,12 +146,9 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Test
     public void contextFromShouldRemoveConsentStringAndEmitErrorOnTcf1ConsentTypeParam() {
         // given
+        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
         given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(Privacy.of("1", "consent_string", Ccpa.EMPTY, null));
-
-        final Privacy privacyWithoutConsent = Privacy.of("1", "", Ccpa.EMPTY, null);
-        given(privacyExtractor.toValidPrivacy(eq("1"), eq(null), eq(null), eq(null), eq(null)))
-                .willReturn(privacyWithoutConsent);
+                .willReturn(privacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
@@ -164,7 +160,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         final Future<PrivacyContext> result = ampPrivacyContextFactory.contextFrom(auctionContext);
 
         // then
-        assertThat(result.result().getPrivacy()).isEqualTo(privacyWithoutConsent);
+        assertThat(result.result().getPrivacy()).isEqualTo(privacy.withoutConsent());
         assertThat(auctionContext.getPrebidErrors()).containsExactly("Consent type tcfV1 is no longer supported");
     }
 
@@ -179,8 +175,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                         .prebidErrors(new ArrayList<>())
                         .bidRequest(givenBidRequest());
 
-        return auctionContextCustomizer.apply(defaultAuctionContextBuilder)
-                .build();
+        return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }
 
     private static BidRequest givenBidRequest() {
