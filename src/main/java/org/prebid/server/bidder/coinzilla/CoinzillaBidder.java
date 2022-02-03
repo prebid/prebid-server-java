@@ -37,22 +37,17 @@ public class CoinzillaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        if (CollectionUtils.isEmpty(request.getImp())) {
-            return Result.withError(BidderError.badInput("No impression in the bid request"));
-        }
+        return Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(request))
+                .payload(request)
+                .headers(resolveHeaders())
+                .build());
+    }
 
-        final MultiMap headers = HttpUtil.headers();
-        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
-
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .body(mapper.encodeToBytes(request))
-                                .payload(request)
-                                .headers(headers)
-                                .build()),
-                Collections.emptyList());
+    private static MultiMap resolveHeaders() {
+        return HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
     }
 
     @Override

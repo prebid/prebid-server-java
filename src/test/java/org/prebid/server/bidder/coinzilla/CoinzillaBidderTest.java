@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,21 +50,7 @@ public class CoinzillaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfNoImpsPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.imp(emptyList()), identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = coinzillaBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("No impression in the bid request"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldHaveCorrectBodyAndHeaders() throws JsonProcessingException {
+    public void makeHttpRequestsShouldHaveCorrectBody() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
@@ -86,6 +71,19 @@ public class CoinzillaBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
                 .containsExactly(mapper.writeValueAsBytes(expectedBidRequest));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHaveCorrectHeaders() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = coinzillaBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
