@@ -32,12 +32,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
-    private static final String VERSION = "1.3";
+    private static final String VERSION = "1.4";
     private static final String TYPE_CNN = "prebid";
+    private static final String TAPPX_HOST = "tappx.com";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -87,11 +90,6 @@ public class TappxBidder implements Bidder<BidRequest> {
      * Builds endpoint url based on adapter-specific pub settings from imp.ext.
      */
     private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
-        final String host = extImpTappx.getHost();
-        if (StringUtils.isBlank(host)) {
-            throw new PreBidException("Tappx host undefined");
-        }
-
         final String endpoint = extImpTappx.getEndpoint();
         if (StringUtils.isBlank(endpoint)) {
             throw new PreBidException("Tappx endpoint undefined");
@@ -102,15 +100,24 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        return buildUrl(host, endpoint, tappxkey, test);
+        final boolean isMatcherEndpoint = isMatcherEndpoint(endpoint);
+        final String host;
+
+        if (isMatcherEndpoint) {
+            host = String.format("%s.pub.%s/rtb/", endpoint, TAPPX_HOST);
+        } else {
+            host = String.format("ssp.api.%s/rtb/v2/", TAPPX_HOST);
+        }
+
+        return buildUrl(host, endpoint, tappxkey, test, isMatcherEndpoint);
     }
 
-    private String buildUrl(String host, String endpoint, String tappxkey, Integer test) {
+    private String buildUrl(String host, String endpoint, String tappxkey, Integer test, boolean isMatcherEndpoint) {
         try {
             final String baseUri = resolveBaseUri(host);
             final URIBuilder uriBuilder = new URIBuilder(baseUri);
 
-            if (!StringUtils.containsIgnoreCase(host, endpoint)) {
+            if (!isMatcherEndpoint) {
                 final List<String> pathSegments = new ArrayList<>();
                 uriBuilder.getPathSegments().stream()
                         .filter(StringUtils::isNotBlank)
@@ -137,6 +144,12 @@ public class TappxBidder implements Bidder<BidRequest> {
         return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
                 ? host
                 : endpointUrl + host;
+    }
+
+    private boolean isMatcherEndpoint(String endpointUrl) {
+        final Pattern versionPattern = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
+        final Matcher versionMatcher = versionPattern.matcher(endpointUrl);
+        return versionMatcher.matches();
     }
 
     /**
