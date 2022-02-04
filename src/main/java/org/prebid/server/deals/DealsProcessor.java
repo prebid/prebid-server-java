@@ -492,11 +492,27 @@ public class DealsProcessor {
      */
     private static Set<String> getPgDealsOnlyBiddersToRemove(Imp imp, BidderAliases aliases, JacksonMapper mapper) {
         final Pmp pmp = imp.getPmp();
-        final List<Deal> deals = pmp == null ? null : pmp.getDeals();
+        final List<Deal> deals = pmp != null ? pmp.getDeals() : null;
 
-        return CollectionUtils.isEmpty(deals)
-                ? findPgDealsOnlyBidders(imp)
-                : findPgDealsOnlyBiddersWithoutDeals(imp, aliases, deals, mapper);
+        final Set<String> pgDealsOnlyBidders = findPgDealsOnlyBidders(imp);
+        final Set<String> biddersWithDeals = CollectionUtils.emptyIfNull(deals).stream()
+                .filter(Objects::nonNull)
+                .map(Deal::getExt)
+                .map(ext -> parseExt(mapper, ext, ExtDeal.class))
+                .filter(Objects::nonNull)
+                .map(ExtDeal::getLine)
+                .map(ExtDealLine::getBidder)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        if (CollectionUtils.isEmpty(biddersWithDeals)) {
+            return pgDealsOnlyBidders;
+        }
+
+        return pgDealsOnlyBidders.stream()
+                .filter(bidder -> !biddersWithDeals.contains(bidder))
+                .filter(bidder -> !biddersWithDeals.contains(aliases.resolveBidder(bidder)))
+                .collect(Collectors.toSet());
     }
 
     private static Set<String> findPgDealsOnlyBidders(Imp imp) {
@@ -517,28 +533,6 @@ public class DealsProcessor {
     private static boolean isPgDealsOnlyBidder(JsonNode bidder) {
         final JsonNode pgDealsOnlyNode = bidder.path(PG_DEALS_ONLY);
         return pgDealsOnlyNode.isBoolean() && pgDealsOnlyNode.asBoolean();
-    }
-
-    private static Set<String> findPgDealsOnlyBiddersWithoutDeals(Imp imp,
-                                                                  BidderAliases aliases,
-                                                                  List<Deal> deals,
-                                                                  JacksonMapper mapper) {
-
-        final Set<String> pgDealsOnlyBidders = findPgDealsOnlyBidders(imp);
-        final Set<String> biddersWithDeals = deals.stream()
-                .filter(Objects::nonNull)
-                .map(Deal::getExt)
-                .map(ext -> parseExt(mapper, ext, ExtDeal.class))
-                .filter(Objects::nonNull)
-                .map(ExtDeal::getLine)
-                .map(ExtDealLine::getBidder)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-
-        return pgDealsOnlyBidders.stream()
-                .filter(bidder -> !biddersWithDeals.contains(bidder))
-                .filter(bidder -> !biddersWithDeals.contains(aliases.resolveBidder(bidder)))
-                .collect(Collectors.toSet());
     }
 
     private static Imp removeBidders(Imp imp, Set<String> bidders) {
