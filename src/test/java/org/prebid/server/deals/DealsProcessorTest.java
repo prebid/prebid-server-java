@@ -24,7 +24,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.deals.deviceinfo.DeviceInfoService;
 import org.prebid.server.deals.lineitem.LineItem;
-import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.DeviceInfo;
 import org.prebid.server.deals.model.MatchLineItemsResult;
 import org.prebid.server.deals.model.UserData;
@@ -42,11 +41,12 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceVendor;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeoVendor;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
-import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.settings.model.Account;
 
 import java.time.Clock;
@@ -54,6 +54,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -76,12 +77,16 @@ public class DealsProcessorTest extends VertxTest {
 
     @Mock
     private LineItemService lineItemService;
+
     @Mock
     private DeviceInfoService deviceInfoService;
+
     @Mock
     private GeoLocationService geoLocationService;
+
     @Mock
     private UserService userService;
+
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
@@ -234,7 +239,7 @@ public class DealsProcessorTest extends VertxTest {
 
         given(userService.getUserDetails(any(), any())).willReturn(Future.succeededFuture(
                 UserDetails.of(singletonList(UserData.of(null, "rubicon",
-                        singletonList(org.prebid.server.deals.model.Segment.of("segmentId")))),
+                                singletonList(org.prebid.server.deals.model.Segment.of("segmentId")))),
                         singletonList("fcapId"))));
 
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -496,7 +501,7 @@ public class DealsProcessorTest extends VertxTest {
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyBiddersWithoutDealsWhenPmpIsNull() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemovePgDealsOnlyBiddersWithoutDealsWhenPmpIsNull() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -504,8 +509,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE))
-                                .set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE))
+                                .set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder().pmp(null).ext(extImp).build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -513,19 +518,20 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        final Imp result = DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        final Imp result = DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(
+                auctionContext, imp, null, jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(Imp.builder()
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode().set(
-                                        "appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE)))))
+                                        "appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE)))))
                 .build());
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyBiddersWithoutDealsWhenPmpDealsIsEmpty() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemovePgDealsOnlyBiddersWithoutDealsWhenPmpDealsIsEmpty() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -533,8 +539,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE))
-                                .set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE))
+                                .set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder()
                 .pmp(Pmp.builder().deals(emptyList()).build())
@@ -545,7 +551,8 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        final Imp result = DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        final Imp result = DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(
+                auctionContext, imp, null, jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(Imp.builder()
@@ -553,12 +560,12 @@ public class DealsProcessorTest extends VertxTest {
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode().set(
-                                        "appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE)))))
+                                        "appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE)))))
                 .build());
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyBiddersWithoutDeals() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemovePgDealsOnlyBiddersWithoutDeals() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -566,8 +573,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE))
-                                .set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE))
+                                .set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder().ext(extImp).build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -576,19 +583,20 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        final Imp result = DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        final Imp result = DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(
+                auctionContext, imp, null, jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(Imp.builder()
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode().set(
-                                        "appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE)))))
+                                        "appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE)))))
                 .build());
     }
 
     @Test
-    public void populateDealsInfoShouldNotRemoveDealsOnlyBiddersWithoutDealsIfDealsOnlyFlagWasNotDefined() {
+    public void populateDealsInfoShouldNotRemovePgDealsOnlyBiddersWithoutDealsIfPgDealsOnlyFlagWasNotDefined() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -613,7 +621,7 @@ public class DealsProcessorTest extends VertxTest {
     }
 
     @Test
-    public void populateDealsInfoShouldNotRemoveDealsOnlyBiddersWithoutDealsIfNotValid() {
+    public void populateDealsInfoShouldNotRemovePgDealsOnlyBiddersWithoutDealsIfNotValid() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -621,7 +629,7 @@ public class DealsProcessorTest extends VertxTest {
                 .device(Device.builder().ip("ip").ua("ua").build())
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.createObjectNode()
-                                .set("invalid", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE)))
+                                .set("invalid", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE)))
                         .build())));
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
@@ -634,12 +642,12 @@ public class DealsProcessorTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .containsOnly(Imp.builder()
                         .ext(mapper.createObjectNode()
-                                .set("invalid", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE)))
+                                .set("invalid", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE)))
                         .build());
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyBiddersForResolvedBidderFromAliases() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemovePgDealsOnlyBiddersForResolvedBidderFromAliases() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -647,8 +655,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "appnexusAlias", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE))
-                                .set("rubiconAlias", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "appnexusAlias", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE))
+                                .set("rubiconAlias", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder().ext(impExt).build();
 
@@ -662,7 +670,8 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        final Imp result = DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        final Imp result = DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(
+                auctionContext, imp, null, jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(Imp.builder()
@@ -670,12 +679,12 @@ public class DealsProcessorTest extends VertxTest {
                         .set("prebid", mapper.createObjectNode()
                                 .set("bidder", mapper.createObjectNode().set(
                                         "rubiconAlias",
-                                        mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE)))))
+                                        mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE)))))
                 .build());
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldNotRemoveDealsOnlyBiddersWhenDealsOnlyBiddersNotFound() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldNotRemovePgDealsOnlyBiddersWhenPgDealsOnlyBiddersNotFound() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -683,8 +692,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))
-                                .set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))
+                                .set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder().ext(extImp).build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -692,20 +701,21 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        final Imp result = DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        final Imp result = DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(
+                auctionContext, imp, null, jacksonMapper);
 
         // then
         assertThat(result).isEqualTo(Imp.builder().ext(extImp).build());
     }
 
     @Test
-    public void populateDealsInfoShouldNotRemoveDealsOnlyBiddersWithoutDealsAndNotDoChangesForDealsOnlyImp() {
+    public void populateDealsInfoShouldNotRemovePgDealsOnlyBiddersWithoutDealsAndNotDoChangesForPgDealsOnlyImp() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
         final ObjectNode extImp = mapper.createObjectNode();
-        extImp.set("rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE));
-        extImp.set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE));
+        extImp.set("rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE));
+        extImp.set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE));
 
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .device(Device.builder().ip("ip").ua("ua").build())
@@ -723,7 +733,7 @@ public class DealsProcessorTest extends VertxTest {
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyBiddersWithoutDealsAndAddDebugMessage() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemovePgDealsOnlyBiddersWithoutDealsAndAddDebugMessage() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
@@ -731,8 +741,8 @@ public class DealsProcessorTest extends VertxTest {
                 .set("prebid", mapper.createObjectNode()
                         .set("bidder", mapper.createObjectNode()
                                 .<ObjectNode>set(
-                                        "rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE))
-                                .set("appnexus", mapper.createObjectNode().set("dealsonly", BooleanNode.FALSE))));
+                                        "rubicon", mapper.createObjectNode().set("pgdealsonly", BooleanNode.TRUE))
+                                .set("appnexus", mapper.createObjectNode().set("pgdealsonly", BooleanNode.FALSE))));
 
         final Imp imp = Imp.builder()
                 .id("impId")
@@ -744,41 +754,40 @@ public class DealsProcessorTest extends VertxTest {
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(auctionContext, imp, null, jacksonMapper);
 
         // then
-        assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.cleanup,
-                        "No Line Items from bidders rubicon matching imp with id impId and ready to serve."
-                                + " Removing impression from request to these bidders because dealsonly flag"
-                                + " is on for them."));
+        assertThat(auctionContext.getDebugWarnings())
+                .containsExactly("Not calling rubicon bidders for impression impId"
+                        + " due to pgdealsonly flag and no available PG line items.");
     }
 
     @Test
-    public void removeDealsOnlyBiddersWithoutDealsShouldRemoveDealsOnlyAllBiddersWithoutDealsAndAddDebugMessageWhen() {
+    public void removePgDealsOnlyBiddersWithoutDealsShouldRemoveAllPgDealsOnlyBiddersWithoutDealsAndAddDebugMessage() {
         // given
         givenResultForLineItemDeviceGeoUserServices();
 
         final Imp imp = Imp.builder()
                 .id("impId1")
-                .ext(mapper.createObjectNode()
-                        .set("prebid", mapper.createObjectNode()
-                                .set("bidder", mapper.createObjectNode()
-                                        .set("rubicon", mapper.createObjectNode().set("dealsonly", BooleanNode.TRUE)))))
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode()
+                                        .set("rubicon", mapper.createObjectNode()
+                                                .set("pgdealsonly", BooleanNode.TRUE)))
+                                .build(),
+                        null)))
                 .build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .device(Device.builder().ip("ip").ua("ua").build()));
         final AuctionContext auctionContext = givenAuctionContext(bidRequest, givenAccount(identity()));
 
         // when
-        DealsProcessor.removeDealsOnlyBiddersWithoutDeals(imp, auctionContext);
+        DealsProcessor.removePgDealsOnlyBiddersWithoutDeals(auctionContext, imp, null, jacksonMapper);
 
         // then
-        assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.cleanup,
-                        "No Line Items from bidders rubicon matching imp with id impId1 and ready to serve. "
-                                + "Removing imp from requests to all bidders because dealsonly flag is on for"
-                                + " these bidders and no other valid bidders in imp."));
+        assertThat(auctionContext.getDebugWarnings())
+                .containsExactly("Not calling rubicon bidders for impression impId1"
+                        + " due to pgdealsonly flag and no available PG line items.");
     }
 
     @Test
@@ -948,7 +957,7 @@ public class DealsProcessorTest extends VertxTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(account)
-                .deepDebugLog(DeepDebugLog.create(true, CLOCK))
+                .debugWarnings(new ArrayList<>())
                 .build();
     }
 }

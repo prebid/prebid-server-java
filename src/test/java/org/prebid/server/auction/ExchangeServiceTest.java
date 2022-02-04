@@ -195,37 +195,54 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
+
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
+
     @Mock
     private FpdResolver fpdResolver;
+
     @Mock
     private SchainResolver schainResolver;
+
     @Mock
     private DebugResolver debugResolver;
+
     @Mock
     private HttpBidderRequester httpBidderRequester;
+
     @Mock
     private ResponseBidValidator responseBidValidator;
+
     @Mock
     private CurrencyConversionService currencyService;
+
     @Mock
     private BidResponseCreator bidResponseCreator;
+
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
+
     @Mock
     private HookStageExecutor hookStageExecutor;
+
     @Mock
     private ApplicationEventService applicationEventService;
+
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+
     @Mock
     private Metrics metrics;
+
     @Mock
     private UidsCookie uidsCookie;
+
     private Clock clock;
+
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
@@ -589,7 +606,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestsWithoutFilteredDealsOnlyBidders() {
+    public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
         // given
         exchangeService = new ExchangeService(
                 100,
@@ -620,7 +637,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap("bidder1", 1),
                         identity()),
-                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("dealsonly", BooleanNode.getTrue())),
+                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
                         identity())));
 
         // when

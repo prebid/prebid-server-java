@@ -23,6 +23,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Tuple3;
 import org.prebid.server.deals.deviceinfo.DeviceInfoService;
@@ -45,7 +46,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeoVendor;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
-import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
@@ -54,7 +54,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +71,7 @@ public class DealsProcessor {
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
-    private static final String DEALS_ONLY = "dealsonly";
+    private static final String PG_DEALS_ONLY = "pgdealsonly";
 
     private final LineItemService lineItemService;
     private final DeviceInfoService deviceInfoService;
@@ -129,34 +128,27 @@ public class DealsProcessor {
         final Promise<Tuple3<DeviceInfo, GeoInfo, UserDetails>> promise = Promise.promise();
         compositeFuture.onComplete(ignored -> handleDealsInfo(compositeFuture, promise, context.getAccount().getId()));
         return promise.future()
-                .map((Tuple3<DeviceInfo, GeoInfo, UserDetails> tuple) ->
-                        enrichAuctionContext(context, tuple.getLeft(), tuple.getMiddle(), tuple.getRight()))
+                .map(tuple -> enrichAuctionContext(context, tuple))
                 .map(this::matchAndPopulateDeals);
     }
 
-    /**
-     * Finds deals only bidders without matched deals and removes them from {@link Imp}.
-     * If {@link Imp} has only deals only bidders without deals, null will be returned.
-     */
-    public static Imp removeDealsOnlyBiddersWithoutDeals(Imp imp, AuctionContext auctionContext) {
-        final Set<String> dealsOnlyBiddersToRemove = getDealsOnlyBiddersToRemove(imp);
-        Imp resolvedImp = imp;
-        if (CollectionUtils.isNotEmpty(dealsOnlyBiddersToRemove)) {
-            final ObjectNode extImp = removeBidders(imp, dealsOnlyBiddersToRemove);
-            resolvedImp = imp.toBuilder().ext(extImp).build();
-            if (hasBidder(resolvedImp)) {
-                logBidderOrImpExclusion(auctionContext, imp, dealsOnlyBiddersToRemove, "No Line Items from "
-                        + "bidders %s matching imp with id %s and ready to serve. Removing impression from request"
-                        + " to these bidders because dealsonly flag is on for them.");
-            } else {
-                logBidderOrImpExclusion(auctionContext, imp, dealsOnlyBiddersToRemove, "No Line Items from "
-                        + "bidders %s matching imp with id %s and ready to serve. Removing imp from requests to all"
-                        + " bidders because dealsonly flag is on for these bidders and no other valid bidders in imp.");
-                resolvedImp = null;
+    public static Imp removePgDealsOnlyBiddersWithoutDeals(AuctionContext auctionContext,
+                                                           Imp imp,
+                                                           BidderAliases aliases,
+                                                           JacksonMapper mapper) {
+
+        final Set<String> pgDealsOnlyBiddersToRemove = getPgDealsOnlyBiddersToRemove(imp, aliases, mapper);
+        if (CollectionUtils.isNotEmpty(pgDealsOnlyBiddersToRemove)) {
+            final Imp resolvedImp = removeBidders(imp, pgDealsOnlyBiddersToRemove);
+            logBidderExclusion(auctionContext, imp, pgDealsOnlyBiddersToRemove);
+
+            if (!haveBidder(resolvedImp)) {
+                return null;
             }
+            return resolvedImp;
         }
 
-        return resolvedImp;
+        return imp;
     }
 
     private Future<DeviceInfo> lookupDeviceInfo(Device device) {
@@ -204,9 +196,12 @@ public class DealsProcessor {
      * Stores information from {@link DeviceInfoService}, {@link GeoLocationService} and {@link UserService}
      * to {@link BidRequest} to make it available during targeting evaluation.
      */
-    private AuctionContext enrichAuctionContext(
-            AuctionContext auctionContext, DeviceInfo deviceInfo, GeoInfo geoInfo, UserDetails userDetails) {
+    private AuctionContext enrichAuctionContext(AuctionContext auctionContext,
+                                                Tuple3<DeviceInfo, GeoInfo, UserDetails> tuple) {
 
+        final DeviceInfo deviceInfo = tuple.getLeft();
+        final GeoInfo geoInfo = tuple.getMiddle();
+        final UserDetails userDetails = tuple.getRight();
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
@@ -283,7 +278,7 @@ public class DealsProcessor {
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
         final ExtGeo extGeo = ObjectUtil.getIfNotNull(geo, Geo::getExt);
         final JsonNode extGeoVendorNode = ObjectUtil.getIfNotNull(extGeo, node -> node.getProperty(geoInfoVendor));
-        final ExtGeoVendor extGeoVendor = parseExt(extGeoVendorNode, ExtGeoVendor.class);
+        final ExtGeoVendor extGeoVendor = parseExt(mapper, extGeoVendorNode, ExtGeoVendor.class);
 
         final ExtGeo updatedExtGeoNode = extGeo != null ? extGeo : ExtGeo.of();
         if (StringUtils.isNotBlank(geoInfo.getContinent())
@@ -382,7 +377,7 @@ public class DealsProcessor {
     /**
      * Transforms {@link ObjectNode} to the object of the given {@link Class} type or returns null if error occurred.
      */
-    private <T> T parseExt(JsonNode node, Class<T> clazz) {
+    private static <T> T parseExt(JacksonMapper mapper, JsonNode node, Class<T> clazz) {
         if (node == null) {
             return null;
         }
@@ -495,60 +490,76 @@ public class DealsProcessor {
     /**
      * Returns {@link Set<String>} of bidder names, which should be removed from {@link Imp}.
      */
-    private static Set<String> getDealsOnlyBiddersToRemove(Imp imp) {
+    private static Set<String> getPgDealsOnlyBiddersToRemove(Imp imp, BidderAliases aliases, JacksonMapper mapper) {
         final Pmp pmp = imp.getPmp();
         final List<Deal> deals = pmp == null ? null : pmp.getDeals();
+
         return CollectionUtils.isEmpty(deals)
-                ? findDealsOnlyBidders(imp)
-                : Collections.emptySet();
+                ? findPgDealsOnlyBidders(imp)
+                : findPgDealsOnlyBiddersWithoutDeals(imp, aliases, deals, mapper);
     }
 
-    /**
-     * Returns {@link Set<String>} of valid bidder names, which has dealsOnly parameter with true value.
-     */
-    private static Set<String> findDealsOnlyBidders(Imp imp) {
+    private static Set<String> findPgDealsOnlyBidders(Imp imp) {
         return StreamUtil.asStream(bidderNodesFromImp(imp))
-                .filter(bidderNode -> isDealsOnlyBidder(bidderNode.getValue()))
+                .filter(bidderNode -> isPgDealsOnlyBidder(bidderNode.getValue()))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }
 
     private static Iterator<Map.Entry<String, JsonNode>> bidderNodesFromImp(Imp imp) {
-        final JsonNode extPrebidBidder = imp.getExt().get(PREBID_EXT).get(BIDDER_EXT);
-
-        return extPrebidBidder != null ? extPrebidBidder.fields() : Collections.emptyIterator();
+        return bidderParamsFromImpExt(imp.getExt()).fields();
     }
 
-    /**
-     * Checks if {@link Imp} has at least one valid bidder.
-     */
-    private static boolean hasBidder(Imp imp) {
-        return bidderNodesFromImp(imp).hasNext();
+    private static JsonNode bidderParamsFromImpExt(ObjectNode ext) {
+        return ext.path(PREBID_EXT).path(BIDDER_EXT);
     }
 
-    /**
-     * Checks if bidder is deals only.
-     */
-    private static boolean isDealsOnlyBidder(JsonNode bidder) {
-        final JsonNode dealsOnlyNode = bidder.get(DEALS_ONLY);
-        return dealsOnlyNode != null && dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
+    private static boolean isPgDealsOnlyBidder(JsonNode bidder) {
+        final JsonNode pgDealsOnlyNode = bidder.path(PG_DEALS_ONLY);
+        return pgDealsOnlyNode.isBoolean() && pgDealsOnlyNode.asBoolean();
     }
 
-    /**
-     * Removes bidders from {@link Imp}.
-     */
-    private static ObjectNode removeBidders(Imp imp, Set<String> bidders) {
+    private static Set<String> findPgDealsOnlyBiddersWithoutDeals(Imp imp,
+                                                                  BidderAliases aliases,
+                                                                  List<Deal> deals,
+                                                                  JacksonMapper mapper) {
+
+        final Set<String> pgDealsOnlyBidders = findPgDealsOnlyBidders(imp);
+        final Set<String> biddersWithDeals = deals.stream()
+                .filter(Objects::nonNull)
+                .map(Deal::getExt)
+                .map(ext -> parseExt(mapper, ext, ExtDeal.class))
+                .filter(Objects::nonNull)
+                .map(ExtDeal::getLine)
+                .map(ExtDealLine::getBidder)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        return pgDealsOnlyBidders.stream()
+                .filter(bidder -> !biddersWithDeals.contains(bidder))
+                .filter(bidder -> !biddersWithDeals.contains(aliases.resolveBidder(bidder)))
+                .collect(Collectors.toSet());
+    }
+
+    private static Imp removeBidders(Imp imp, Set<String> bidders) {
         final ObjectNode modifiedExt = imp.getExt().deepCopy();
-        final ObjectNode extPrebidBidder = (ObjectNode) modifiedExt.get(PREBID_EXT).get(BIDDER_EXT);
+        final ObjectNode extPrebidBidder = (ObjectNode) bidderParamsFromImpExt(modifiedExt);
 
         bidders.forEach(extPrebidBidder::remove);
 
-        return modifiedExt;
+        return imp.toBuilder().ext(modifiedExt).build();
     }
 
-    private static void logBidderOrImpExclusion(AuctionContext auctionContext, Imp imp,
-                                                Set<String> dealsOnlyBiddersToRemove, String messageTemplate) {
-        auctionContext.getDeepDebugLog().add(null, Category.cleanup, () ->
-                String.format(messageTemplate, String.join(", ", dealsOnlyBiddersToRemove), imp.getId()));
+    private static void logBidderExclusion(AuctionContext auctionContext,
+                                           Imp imp,
+                                           Set<String> pgDealsOnlyBiddersToRemove) {
+
+        auctionContext.getDebugWarnings().add(String.format(
+                "Not calling %s bidders for impression %s due to %s flag and no available PG line items.",
+                String.join(", ", pgDealsOnlyBiddersToRemove), imp.getId(), PG_DEALS_ONLY));
+    }
+
+    private static boolean haveBidder(Imp imp) {
+        return bidderNodesFromImp(imp).hasNext();
     }
 }

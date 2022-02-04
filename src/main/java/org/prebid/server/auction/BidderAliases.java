@@ -1,7 +1,6 @@
 package org.prebid.server.auction;
 
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.Map;
@@ -18,7 +17,8 @@ public class BidderAliases {
 
     private final BidderCatalog bidderCatalog;
 
-    private BidderAliases(Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId,
+    private BidderAliases(Map<String, String> aliasToBidder,
+                          Map<String, Integer> aliasToVendorId,
                           BidderCatalog bidderCatalog) {
 
         this.aliasToBidder = MapUtils.emptyIfNull(aliasToBidder);
@@ -26,7 +26,8 @@ public class BidderAliases {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
-    public static BidderAliases of(Map<String, String> aliasToBidder, Map<String, Integer> aliasToVendorId,
+    public static BidderAliases of(Map<String, String> aliasToBidder,
+                                   Map<String, Integer> aliasToVendorId,
                                    BidderCatalog bidderCatalog) {
 
         return new BidderAliases(aliasToBidder, aliasToVendorId, bidderCatalog);
@@ -37,19 +38,13 @@ public class BidderAliases {
     }
 
     public String resolveBidder(String aliasOrBidder) {
-        return aliasToBidder.containsKey(aliasOrBidder)
-                ? aliasToBidder.get(aliasOrBidder)
-                : ObjectUtils.defaultIfNull(resolveBidderViaCatalog(aliasOrBidder), aliasOrBidder);
+        return aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
     }
 
     public Integer resolveAliasVendorId(String alias) {
         return aliasToVendorId.containsKey(alias)
                 ? aliasToVendorId.get(alias)
                 : resolveAliasVendorIdViaCatalog(alias);
-    }
-
-    private String resolveBidderViaCatalog(String aliasOrBidder) {
-        return bidderCatalog.isActive(aliasOrBidder) ? aliasOrBidder : null;
     }
 
     private Integer resolveAliasVendorIdViaCatalog(String alias) {
