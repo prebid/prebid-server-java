@@ -18,8 +18,10 @@ public enum ConsentType {
     }
 
     public static ConsentType from(String type) {
+        final String resolvedType = StringUtils.defaultString(type);
+
         return Arrays.stream(ConsentType.values())
-                .filter(value -> StringUtils.equals(value.type, type))
+                .filter(value -> StringUtils.equals(value.type, resolvedType))
                 .findAny()
                 .orElse(ConsentType.unknown);
     }

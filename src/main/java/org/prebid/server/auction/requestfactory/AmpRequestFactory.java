@@ -206,10 +206,7 @@ public class AmpRequestFactory {
     private static User createUser(ConsentParam consentParam, ConsentType consentType, String addtlConsent) {
         final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
 
-        final boolean isTcfConsent = consentParam != null
-                && (consentType == ConsentType.tcfV1 || consentType == ConsentType.tcfV2 || consentParam.isTcf());
-
-        if (isTcfConsent) {
+        if (consentType == ConsentType.tcfV1 || consentType == ConsentType.tcfV2 || consentParam.isTcf()) {
             userExtBuilder.consent(consentParam.getConsentString());
         }
         if (StringUtils.isNotBlank(addtlConsent)) {
@@ -219,7 +216,7 @@ public class AmpRequestFactory {
     }
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
-        final String usPrivacy = consentParam != null && (consentType == ConsentType.ccpa || consentParam.isCcpa())
+        final String usPrivacy = consentType == ConsentType.ccpa || consentParam.isCcpa()
                 ? consentParam.getConsentString()
                 : null;
 
@@ -258,9 +255,7 @@ public class AmpRequestFactory {
         final String consent = StringUtils.defaultString(
                 queryParams.get(CONSENT_PARAM), queryParams.get(GDPR_CONSENT_PARAM));
 
-        return consent != null
-                ? ConsentParam.of(consent, TcfDefinerService.isConsentStringValid(consent), Ccpa.isValid(consent))
-                : null;
+        return ConsentParam.of(consent, TcfDefinerService.isConsentStringValid(consent), Ccpa.isValid(consent));
     }
 
     private static String addtlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
