@@ -127,8 +127,10 @@ public class MetricsConfiguration {
 
     @Bean
     AccountMetricsVerbosityResolver accountMetricsVerbosity(AccountsProperties accountsProperties) {
-        return new AccountMetricsVerbosityResolver(accountsProperties.getDefaultVerbosity(),
-                accountsProperties.getBasicVerbosity(), accountsProperties.getDetailedVerbosity());
+        return new AccountMetricsVerbosityResolver(
+                accountsProperties.getDefaultVerbosity(),
+                accountsProperties.getBasicVerbosity(),
+                accountsProperties.getDetailedVerbosity());
     }
 
     @PostConstruct

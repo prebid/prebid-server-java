@@ -14,8 +14,10 @@ public class AccountMetricsVerbosityResolver {
     private final AccountMetricsVerbosityLevel defaultVerbosity;
     private final Map<String, AccountMetricsVerbosityLevel> accountVerbosityLevels;
 
-    public AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel defaultVerbosity, List<String> basicVerbosity,
+    public AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel defaultVerbosity,
+                                           List<String> basicVerbosity,
                                            List<String> detailedVerbosity) {
+
         this.defaultVerbosity = Objects.requireNonNull(defaultVerbosity);
 
         this.accountVerbosityLevels = new HashMap<>();
