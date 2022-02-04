@@ -103,6 +103,10 @@ public class TappxBidder implements Bidder<BidRequest> {
         final boolean isMatcherEndpoint = isMatcherEndpoint(endpoint);
         final String host;
 
+        if (endpoint.equals("test")) {
+            return "http://localhost:8090/tappx-exchange";
+        }
+
         if (isMatcherEndpoint) {
             host = String.format("%s.pub.%s/rtb/", endpoint, TAPPX_HOST);
         } else {
@@ -112,7 +116,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         return buildUrl(host, endpoint, tappxkey, test, isMatcherEndpoint);
     }
 
-    private String buildUrl(String host, String endpoint, String tappxkey, Integer test, boolean isMatcherEndpoint) {
+    private String buildUrl(String host, String endpoint, String tappxkey, Integer test, Boolean isMatcherEndpoint) {
         try {
             final String baseUri = resolveBaseUri(host);
             final URIBuilder uriBuilder = new URIBuilder(baseUri);

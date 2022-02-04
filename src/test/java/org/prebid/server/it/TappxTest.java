@@ -21,7 +21,7 @@ public class TappxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTappx() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("http://ssp.api.tappx.com/rtb/v2/tappx-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tappx-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/tappx/test-tappx-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/tappx/test-tappx-bid-response.json"))));
 
