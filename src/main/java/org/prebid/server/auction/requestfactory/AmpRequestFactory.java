@@ -170,7 +170,7 @@ public class AmpRequestFactory {
         }
 
         final ConsentParam consentParam = consentParamFromQueryStringParams(httpRequest);
-        final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
+        final ConsentType consentType = ConsentType.from(httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM));
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
@@ -250,21 +250,6 @@ public class AmpRequestFactory {
             return HttpUtil.decodeUrl(httpRequest.getQueryParams().get(CURL_REQUEST_PARAM));
         } catch (IllegalArgumentException e) {
             return null;
-        }
-    }
-
-    private static ConsentType consentTypeFromQueryStringParams(HttpRequestContext httpRequest) {
-        final String consentTypeParam = httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM);
-
-        switch (StringUtils.defaultString(consentTypeParam)) {
-            case "1":
-                return ConsentType.tcfV1;
-            case "2":
-                return ConsentType.tcfV2;
-            case "3":
-                return ConsentType.ccpa;
-            default:
-                return ConsentType.unknown;
         }
     }
 

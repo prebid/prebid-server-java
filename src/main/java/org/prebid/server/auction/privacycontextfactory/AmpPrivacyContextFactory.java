@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.ConsentType;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
@@ -20,22 +21,13 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 public class AmpPrivacyContextFactory {
 
     private static final String CONSENT_TYPE_PARAM = "consent_type";
-
-    private static final String CONSENT_TYPE_TCF1 = "1";
-    private static final String CONSENT_TYPE_TCF2 = "2";
-    private static final String CONSENT_TYPE_CCPA = "3";
-
-    private static final Set<String> VALID_CONSENT_TYPES =
-            Set.of("", CONSENT_TYPE_TCF1, CONSENT_TYPE_TCF2, CONSENT_TYPE_CCPA);
 
     private final PrivacyExtractor privacyExtractor;
     private final TcfDefinerService tcfDefinerService;
@@ -80,13 +72,14 @@ public class AmpPrivacyContextFactory {
 
     private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
         final List<String> errors = auctionContext.getPrebidErrors();
-        final String consentType = StringUtils.defaultString(
-                auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM));
 
-        if (!VALID_CONSENT_TYPES.contains(consentType)) {
+        final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
+        final ConsentType consentType = ConsentType.from(consentTypeParam);
+
+        if (consentType == ConsentType.unknown) {
             errors.add("Invalid consent_type param passed");
             return privacy.withoutConsent();
-        } else if (StringUtils.equals(consentType, CONSENT_TYPE_TCF1)) {
+        } else if (consentType == ConsentType.tcfV1) {
             errors.add("Consent type tcfV1 is no longer supported");
             return privacy.withoutConsent();
         }
