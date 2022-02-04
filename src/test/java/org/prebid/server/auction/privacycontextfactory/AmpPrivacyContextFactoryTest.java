@@ -48,7 +48,6 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Mock
     private CountryCodeMapper countryCodeMapper;
 
-    @Mock
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
 
     @Before
