@@ -2,7 +2,6 @@ package org.prebid.server.bidder.bidscube;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.common.collect.ImmutableSet;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -30,12 +29,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Bidscube {@link Bidder} implementation.
- */
 public class BidscubeBidder implements Bidder<BidRequest> {
 
-    private static final Set<String> POSSIBLE_BID_TYPES = ImmutableSet.of("banner", "video", "native");
+    private static final Set<String> POSSIBLE_BID_TYPES = Set.of("banner", "video", "native");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -78,7 +74,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(internalRequest)
-                .body(mapper.encode(internalRequest))
+                .body(mapper.encodeToBytes(internalRequest))
                 .build();
     }
 
@@ -115,6 +111,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     private BidderBid constructBidderBid(Bid bid, BidResponse bidResponse, List<BidderError> errors) {
         final JsonNode extNode = bid.getExt();
         final JsonNode typeNode = isNotEmptyOrMissedNode(extNode) ? extNode.at("/prebid/type") : null;
+
         if (typeNode == null || !typeNode.isTextual()) {
             errors.add(BidderError.badInput("Unable to read bid.ext.prebid.type"));
             return null;
@@ -128,9 +125,8 @@ public class BidscubeBidder implements Bidder<BidRequest> {
     }
 
     private BidType resolveBidType(JsonNode bidType) {
-        if (!POSSIBLE_BID_TYPES.contains(bidType.asText())) {
-            return BidType.banner;
-        }
-        return mapper.mapper().convertValue(bidType, BidType.class);
+        return !POSSIBLE_BID_TYPES.contains(bidType.asText())
+                ? BidType.banner
+                : mapper.mapper().convertValue(bidType, BidType.class);
     }
 }

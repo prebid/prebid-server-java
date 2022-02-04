@@ -1,6 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.prebid.server.proto.response.BidderInfo;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.model.MetaInfo;
 
@@ -18,6 +18,7 @@ public class BidderInfoCreator {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
+                configurationProperties.getDebug().getAllow(),
                 configurationProperties.getEndpoint(),
                 aliasOf,
                 metaInfo.getMaintainerEmail(),
@@ -25,7 +26,6 @@ public class BidderInfoCreator {
                 metaInfo.getSiteMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
-                configurationProperties.getPbsEnforcesGdpr(),
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed());
     }

@@ -60,7 +60,6 @@ public class TracerLogHandlerTest extends VertxTest {
     @Test
     public void handleShouldReturnBadRequestWhenDurationWasNotDefined() {
         // given
-
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("account", "1001"));
 
         // when

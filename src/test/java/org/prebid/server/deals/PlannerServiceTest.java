@@ -339,7 +339,7 @@ public class PlannerServiceTest extends VertxTest {
     }
 
     @SafeVarargs
-    private final void givenHttpClientReturnsResponses(Future<HttpClientResponse>... futureHttpClientResponses) {
+    private void givenHttpClientReturnsResponses(Future<HttpClientResponse>... futureHttpClientResponses) {
         BDDMockito.BDDMyOngoingStubbing<Future<HttpClientResponse>> stubbing =
                 given(httpClient.get(anyString(), any(), anyLong()));
 

@@ -12,7 +12,7 @@ import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.FieldSetter;
+import org.mockito.internal.util.reflection.ReflectionMemberAccessor;
 import org.prebid.server.geolocation.model.GeoInfo;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class MaxMindGeoLocationServiceTest {
 
     @Test
     public void lookupShouldReturnCountryIsoWhenDatabaseReaderWasSet() throws NoSuchFieldException, IOException,
-            GeoIp2Exception {
+            GeoIp2Exception, IllegalAccessException {
         // given
         final Country country = new Country(null, null, null, "fr", null);
         final Continent continent = new Continent(null, "eu", null, null);
@@ -75,8 +75,8 @@ public class MaxMindGeoLocationServiceTest {
         final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
         given(databaseReader.city(any())).willReturn(cityResponse);
 
-        FieldSetter.setField(maxMindGeoLocationService,
-                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+        new ReflectionMemberAccessor().set(maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"),
+                maxMindGeoLocationService, databaseReader);
 
         // when
         final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);
@@ -96,13 +96,14 @@ public class MaxMindGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException {
+    public void lookupShouldTolerateMissingGeoInfo() throws IOException, GeoIp2Exception, NoSuchFieldException,
+            IllegalAccessException {
         // given
         final DatabaseReader databaseReader = Mockito.mock(DatabaseReader.class);
         given(databaseReader.city(any())).willReturn(null);
 
-        FieldSetter.setField(maxMindGeoLocationService,
-                maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"), databaseReader);
+        new ReflectionMemberAccessor().set(maxMindGeoLocationService.getClass().getDeclaredField("databaseReader"),
+                maxMindGeoLocationService, databaseReader);
 
         // when
         final Future<GeoInfo> future = maxMindGeoLocationService.lookup(TEST_IP, null);

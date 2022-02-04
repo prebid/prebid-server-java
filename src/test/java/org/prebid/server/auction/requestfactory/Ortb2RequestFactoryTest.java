@@ -37,6 +37,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
@@ -74,7 +75,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -84,7 +84,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class Ortb2RequestFactoryTest extends VertxTest {
@@ -112,6 +112,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private HookStageExecutor hookStageExecutor;
     @Mock
     private DealsProcessor dealsProcessor;
+    @Mock
+    private CountryCodeMapper countryCodeMapper;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -169,6 +171,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                countryCodeMapper,
                 clock);
     }
 
@@ -187,6 +190,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                countryCodeMapper,
                 clock);
 
         given(storedRequestProcessor.processStoredRequests(any(), any()))
@@ -223,6 +227,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                countryCodeMapper,
                 clock);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -482,7 +487,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.result()).isEqualTo(Account.empty(""));
     }
@@ -540,7 +545,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
@@ -564,6 +569,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                countryCodeMapper,
                 clock);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());
@@ -579,7 +585,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("error");
@@ -601,7 +607,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
-        verifyZeroInteractions(applicationSettings);
+        verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause()).hasMessage("error");
@@ -617,7 +623,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verifyZeroInteractions(storedRequestProcessor);
+        verifyNoInteractions(storedRequestProcessor);
     }
 
     @Test
@@ -665,7 +671,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
-                        .debugContext(DebugContext.empty())
                         .txnLog(TxnLog.create())
                         .debugHttpCalls(emptyMap())
                         .build(),
@@ -680,7 +685,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         verify(uidsCookieService).parseFromRequest(httpRequest);
 
-        assertThat(result).isEqualToComparingFieldByFieldRecursively(AuctionContext.builder()
+        assertThat(result).usingRecursiveComparison().isEqualTo(AuctionContext.builder()
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
@@ -689,31 +694,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
                 .txnLog(TxnLog.create())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .debugHttpCalls(new HashMap<>())
                 .build());
-    }
-
-    @Test
-    public void enrichAuctionContextShouldSetDebugOnWhenTestIsOne() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .test(1)
-                .build();
-
-        // when
-        final AuctionContext result = target.enrichAuctionContext(
-                AuctionContext.builder()
-                        .debugContext(DebugContext.empty())
-                        .build(),
-                httpRequest,
-                bidRequest,
-                100);
-
-        // then
-        assertThat(result.getDebugContext()).isEqualTo(DebugContext.of(true, null));
     }
 
     @Test
@@ -770,10 +754,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
-        // when and then
-        assertThatExceptionOfType(InvalidRequestException.class)
-                .isThrownBy(() -> target.validateRequest(bidRequest))
-                .withMessage("error");
+        // when
+        final Future<BidRequest> result = target.validateRequest(bidRequest, new ArrayList<>());
+
+        // then
+        assertThat(result).isFailed();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("error");
 
         verify(requestValidator).validate(bidRequest);
     }
@@ -786,7 +774,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest);
+        final BidRequest result = target.validateRequest(bidRequest, new ArrayList<>()).result();
 
         // then
         verify(requestValidator).validate(bidRequest);
@@ -831,12 +819,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(auctionBidRequest -> auctionBidRequest.getExt().getPrebid().getIntegration())
-                .containsOnly(integration);
+                .isEqualTo(integration);
     }
 
     @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldAddCountryFromPrivacy() {
         // given
+        given(countryCodeMapper.mapToAlpha3("ua")).willReturn("UKR");
+
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.of("", "", Ccpa.EMPTY, 0),
@@ -857,11 +847,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(Collections.singleton(result))
+        assertThat(List.of(result))
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getCountry)
-                .containsOnly("ua");
+                .containsExactly("UKR");
     }
 
     @Test

@@ -1,15 +1,23 @@
 package org.prebid.server.spring.config;
 
+import com.codahale.metrics.MetricRegistry;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.AlertHttpService;
 import org.prebid.server.deals.DeliveryProgressService;
+import org.prebid.server.deals.DeliveryStatsService;
+import org.prebid.server.deals.LineItemService;
+import org.prebid.server.deals.PlannerService;
+import org.prebid.server.deals.RegisterService;
 import org.prebid.server.deals.simulation.DealsSimulationAdminHandler;
 import org.prebid.server.handler.AccountCacheInvalidationHandler;
+import org.prebid.server.handler.CollectedMetricsHandler;
 import org.prebid.server.handler.CurrencyRatesHandler;
 import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.DealsStatusHandler;
+import org.prebid.server.handler.ForceDealsUpdateHandler;
 import org.prebid.server.handler.HttpInteractionLogHandler;
 import org.prebid.server.handler.LineItemStatusHandler;
 import org.prebid.server.handler.LoggerControlKnobHandler;
@@ -76,7 +84,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest.enabled} == true")
     CustomizedAdminEndpoint cacheNotificationEndpoint(
             SettingsCache settingsCache,
@@ -95,7 +103,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.storedrequest-amp.enabled} == true")
     CustomizedAdminEndpoint ampCacheNotificationEndpoint(
             SettingsCache ampSettingsCache,
@@ -114,7 +122,7 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled} == true"
+    @ConditionalOnExpression("${settings.in-memory-cache.notification-endpoints-enabled:false}"
             + " and ${admin-endpoints.cache-invalidation.enabled} == true")
     CustomizedAdminEndpoint cacheInvalidateNotificationEndpoint(
             CachingApplicationSettings cachingApplicationSettings,
@@ -221,6 +229,35 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
+    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.force-deals-update.enabled} == true")
+    CustomizedAdminEndpoint forceDealsUpdateEndpoint(
+            DeliveryStatsService deliveryStatsService,
+            PlannerService plannerService,
+            RegisterService registerService,
+            AlertHttpService alertHttpService,
+            DeliveryProgressService deliveryProgressService,
+            LineItemService lineItemService,
+            @Value("${admin-endpoints.force-deals-update.path}") String path,
+            @Value("${admin-endpoints.force-deals-update.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.force-deals-update.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new ForceDealsUpdateHandler(
+                        deliveryStatsService,
+                        plannerService,
+                        registerService,
+                        alertHttpService,
+                        deliveryProgressService,
+                        lineItemService,
+                        path),
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
     @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == true"
             + " and ${admin-endpoints.e2eadmin.enabled} == true")
     CustomizedAdminEndpoint dealsSimulationAdminEndpoint(
@@ -233,6 +270,24 @@ public class AdminEndpointsConfiguration {
         return new CustomizedAdminEndpoint(
                 path,
                 dealsSimulationAdminHandler,
+                isOnApplicationPort,
+                isProtected)
+                .withCredentials(adminEndpointCredentials);
+    }
+
+    @Bean
+    @ConditionalOnExpression("${admin-endpoints.collected-metrics.enabled} == true")
+    CustomizedAdminEndpoint collectedMetricsAdminEndpoint(
+            MetricRegistry metricRegistry,
+            JacksonMapper mapper,
+            @Value("${admin-endpoints.collected-metrics.path}") String path,
+            @Value("${admin-endpoints.collected-metrics.on-application-port}") boolean isOnApplicationPort,
+            @Value("${admin-endpoints.collected-metrics.protected}") boolean isProtected,
+            @Autowired(required = false) Map<String, String> adminEndpointCredentials) {
+
+        return new CustomizedAdminEndpoint(
+                path,
+                new CollectedMetricsHandler(metricRegistry, mapper, path),
                 isOnApplicationPort,
                 isProtected)
                 .withCredentials(adminEndpointCredentials);

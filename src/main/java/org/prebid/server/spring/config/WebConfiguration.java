@@ -52,6 +52,7 @@ import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.ContextRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -116,6 +117,7 @@ public class WebConfiguration {
                                         @Value("${http.ssl}") boolean ssl,
                                         @Value("${http.jks-path}") String jksPath,
                                         @Value("${http.jks-password}") String jksPassword) {
+
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
                 .setMaxHeaderSize(maxHeaderSize)
@@ -216,6 +218,7 @@ public class WebConfiguration {
             Metrics metrics,
             Clock clock,
             HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
         return new org.prebid.server.handler.openrtb2.AuctionHandler(
@@ -225,6 +228,7 @@ public class WebConfiguration {
                 metrics,
                 clock,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 mapper);
     }
 
@@ -239,6 +243,7 @@ public class WebConfiguration {
             AmpProperties ampProperties,
             AmpResponsePostProcessor ampResponsePostProcessor,
             HttpInteractionLogger httpInteractionLogger,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
         return new AmpHandler(
@@ -251,6 +256,7 @@ public class WebConfiguration {
                 ampProperties.getCustomTargetingSet(),
                 ampResponsePostProcessor,
                 httpInteractionLogger,
+                prebidVersionProvider,
                 mapper);
     }
 
@@ -259,13 +265,22 @@ public class WebConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
+            CacheService cacheService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
+            PrebidVersionProvider prebidVersionProvider,
             JacksonMapper mapper) {
 
-        return new VideoHandler(videoRequestFactory, videoResponseFactory, exchangeService, analyticsReporter, metrics,
-                clock, mapper);
+        return new VideoHandler(
+                videoRequestFactory,
+                videoResponseFactory,
+                exchangeService,
+               cacheService, analyticsReporter,
+                metrics,
+                clock,
+                prebidVersionProvider,
+                mapper);
     }
 
     @Bean
@@ -391,6 +406,7 @@ public class WebConfiguration {
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
+            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
         return new NotificationEventHandler(
@@ -400,6 +416,7 @@ public class WebConfiguration {
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
+                defaultTimeoutMillis,
                 dealsEnabled);
     }
 

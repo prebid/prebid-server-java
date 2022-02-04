@@ -9,17 +9,17 @@ import java.time.ZonedDateTime;
 @Value
 public class AlertEvent {
 
-    private String id;
+    String id;
 
-    private String action;
+    String action;
 
-    private AlertPriority priority;
+    AlertPriority priority;
 
-    private ZonedDateTime updatedAt;
+    ZonedDateTime updatedAt;
 
-    private String name;
+    String name;
 
-    private String details;
+    String details;
 
-    private AlertSource source;
+    AlertSource source;
 }

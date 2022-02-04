@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class ValueImpressionBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpValueImpression>> VALUE_IMPRESSION_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpValueImpression>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -53,7 +53,7 @@ public class ValueImpressionBidder implements Bidder<BidRequest> {
                             .method(HttpMethod.POST)
                             .uri(endpointUrl)
                             .headers(HttpUtil.headers())
-                            .body(mapper.encode(bidRequest))
+                            .body(mapper.encodeToBytes(bidRequest))
                             .payload(request)
                             .build()),
                     Collections.emptyList());

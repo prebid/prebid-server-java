@@ -28,7 +28,7 @@ public class UsersyncerCreator {
             throw new IllegalArgumentException(String.format(
                     "Invalid usersync configuration: primary method is missing while secondary is present. "
                             + "Configuration: %s",
-                    usersync.toString()));
+                    usersync));
         }
 
         return usersyncer;

@@ -65,7 +65,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -99,7 +99,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -117,7 +117,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -135,7 +135,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -153,7 +153,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -176,7 +176,9 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -198,7 +200,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
 
     @Test
@@ -221,7 +223,9 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -244,7 +248,7 @@ public class NoEnforcePurposeStrategyTest {
                 vendorPurposeWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1);
     }
 
     @Test
@@ -262,6 +266,6 @@ public class NoEnforcePurposeStrategyTest {
                 singletonList(vendorPermissionWitGvl1), singletonList(vendorPermissionWitGvl2), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }

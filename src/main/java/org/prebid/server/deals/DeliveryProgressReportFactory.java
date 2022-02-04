@@ -15,7 +15,7 @@ import org.prebid.server.deals.proto.report.DeliverySchedule;
 import org.prebid.server.deals.proto.report.LineItemStatus;
 import org.prebid.server.deals.proto.report.LostToLineItem;
 import org.prebid.server.deals.proto.report.Token;
-import org.prebid.server.util.ObjectUtils;
+import org.prebid.server.util.ObjectUtil;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -173,7 +173,7 @@ public class DeliveryProgressReportFactory {
         if (isOverall && lineItem == null) {
             return null;
         }
-        final DeliveryPlan activeDeliveryPlan = ObjectUtils.getIfNotNull(lineItem, LineItem::getActiveDeliveryPlan);
+        final DeliveryPlan activeDeliveryPlan = ObjectUtil.getIfNotNull(lineItem, LineItem::getActiveDeliveryPlan);
         final Set<DeliverySchedule> deliverySchedules = deliverySchedule(lineItemStatus, overallLineItemStatus,
                 activeDeliveryPlan);
         if (CollectionUtils.isEmpty(deliverySchedules) && !isOverall) {
@@ -181,15 +181,15 @@ public class DeliveryProgressReportFactory {
         }
 
         return LineItemStatus.builder()
-                .lineItemSource(ObjectUtils.firstNonNull(lineItemStatus::getSource,
-                        () -> ObjectUtils.getIfNotNull(lineItem, LineItem::getSource)))
+                .lineItemSource(ObjectUtil.firstNonNull(lineItemStatus::getSource,
+                        () -> ObjectUtil.getIfNotNull(lineItem, LineItem::getSource)))
                 .lineItemId(lineItemId)
-                .dealId(ObjectUtils.firstNonNull(lineItemStatus::getDealId,
-                        () -> ObjectUtils.getIfNotNull(lineItem, LineItem::getDealId)))
-                .extLineItemId(ObjectUtils.firstNonNull(lineItemStatus::getExtLineItemId,
-                        () -> ObjectUtils.getIfNotNull(lineItem, LineItem::getExtLineItemId)))
-                .accountAuctions(accountRequests(ObjectUtils.firstNonNull(lineItemStatus::getAccountId,
-                        () -> ObjectUtils.getIfNotNull(lineItem, LineItem::getAccountId)), deliveryProgress))
+                .dealId(ObjectUtil.firstNonNull(lineItemStatus::getDealId,
+                        () -> ObjectUtil.getIfNotNull(lineItem, LineItem::getDealId)))
+                .extLineItemId(ObjectUtil.firstNonNull(lineItemStatus::getExtLineItemId,
+                        () -> ObjectUtil.getIfNotNull(lineItem, LineItem::getExtLineItemId)))
+                .accountAuctions(accountRequests(ObjectUtil.firstNonNull(lineItemStatus::getAccountId,
+                        () -> ObjectUtil.getIfNotNull(lineItem, LineItem::getAccountId)), deliveryProgress))
                 .domainMatched(lineItemStatus.getDomainMatched().sum())
                 .targetMatched(lineItemStatus.getTargetMatched().sum())
                 .targetMatchedButFcapped(lineItemStatus.getTargetMatchedButFcapped().sum())
@@ -213,7 +213,7 @@ public class DeliveryProgressReportFactory {
     }
 
     private String toReadyAt(LineItem lineItem) {
-        final ZonedDateTime readyAt = ObjectUtils.getIfNotNull(lineItem, LineItem::getReadyAt);
+        final ZonedDateTime readyAt = ObjectUtil.getIfNotNull(lineItem, LineItem::getReadyAt);
         return readyAt != null ? UTC_MILLIS_FORMATTER.format(readyAt) : null;
     }
 
@@ -243,7 +243,7 @@ public class DeliveryProgressReportFactory {
     private LostToLineItem toLostToLineItems(org.prebid.server.deals.lineitem.LostToLineItem lostToLineItem) {
         final String lineItemId = lostToLineItem.getLineItemId();
         return LostToLineItem.of(
-                ObjectUtils.getIfNotNull(lineItemService.getLineItemById(lineItemId), LineItem::getSource), lineItemId,
+                ObjectUtil.getIfNotNull(lineItemService.getLineItemById(lineItemId), LineItem::getSource), lineItemId,
                 lostToLineItem.getCount().sum());
     }
 

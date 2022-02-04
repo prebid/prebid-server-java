@@ -12,6 +12,8 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
+import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExtImprovedigital;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -19,6 +21,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 
 import java.util.List;
 import java.util.function.Function;
@@ -48,7 +51,55 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequest() {
+    public void makeHttpRequestsShouldMakeOneRequestPerImp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(asList(Imp.builder()
+                                .id("123")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .build(),
+                        Imp.builder()
+                                .id("456")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                                .build()
+                ))
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("123", "456");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorOnMissingPlacementId() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
@@ -61,10 +112,20 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .containsExactly(bidRequest);
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No placementId provided"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnTwoErrorsOnTwoErrorEvents() {
+        // given
+        final Imp imp = Imp.builder().ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))).build();
+        final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(2);
     }
 
     @Test
@@ -76,9 +137,11 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -151,7 +214,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -167,6 +230,34 @@ public class ImprovedigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidIfBidExtImprovedigitalIsNull() throws JsonProcessingException {
+        // given
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(null);
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        banner,
+                        "USD"));
     }
 
     @Test
@@ -224,6 +315,139 @@ public class ImprovedigitalBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: \"456\""));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldNotPopulateDealIdWhenLineItemIsMissing() throws JsonProcessingException {
+        // given
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
+                ImprovedigitalBidExtImprovedigital
+                        .builder()
+                        .buyingType("classic")
+                        .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        video,
+                        "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldPopulateDealIdForCampaign() throws JsonProcessingException {
+        // given
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
+                ImprovedigitalBidExtImprovedigital
+                        .builder()
+                        .lineItemId(2222222)
+                        .buyingType("classic")
+                        .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .dealid("2222222")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        video,
+                        "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldPopulateDealIdForDeal() throws JsonProcessingException {
+        // given
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
+                ImprovedigitalBidExtImprovedigital
+                        .builder()
+                        .lineItemId(2222222)
+                        .buyingType("deal")
+                        .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .dealid("2222222")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        video,
+                        "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldNotPopulateDealIdForRtb() throws JsonProcessingException {
+        // given
+        final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(
+                ImprovedigitalBidExtImprovedigital
+                        .builder()
+                        .lineItemId(2222222)
+                        .buyingType("rtb")
+                        .build());
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123").ext(mapper.valueToTree(bidExt))))
+        );
+
+        // when
+        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(
+                        Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(bidExt)).build(),
+                        video,
+                        "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

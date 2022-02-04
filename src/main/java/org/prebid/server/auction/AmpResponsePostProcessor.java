@@ -22,7 +22,9 @@ public interface AmpResponsePostProcessor {
      * @param routingContext request's context
      * @return a {@link Future} with (possibly modified) amp response result
      */
-    Future<AmpResponse> postProcess(BidRequest bidRequest, BidResponse bidResponse, AmpResponse ampResponse,
+    Future<AmpResponse> postProcess(BidRequest bidRequest,
+                                    BidResponse bidResponse,
+                                    AmpResponse ampResponse,
                                     RoutingContext routingContext);
 
     /**

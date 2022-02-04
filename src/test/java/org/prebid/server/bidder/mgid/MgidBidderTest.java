@@ -63,7 +63,7 @@ public class MgidBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -180,7 +180,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test
@@ -257,7 +257,7 @@ public class MgidBidderTest extends VertxTest {
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getBody)
-                .containsExactly(mapper.writeValueAsString(expected));
+                .containsExactly(mapper.writeValueAsBytes(expected));
     }
 
     @Test

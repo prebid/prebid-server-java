@@ -150,7 +150,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         metrics.updateCookieSyncRequestMetric();
 
         toCookieSyncContext(routingContext)
-                .setHandler(cookieSyncContextResult -> handleCookieSyncContextResult(cookieSyncContextResult,
+                .onComplete(cookieSyncContextResult -> handleCookieSyncContextResult(cookieSyncContextResult,
                         routingContext));
     }
 
@@ -168,7 +168,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                        cookieSyncRequest, routingContext.request(), account, timeout)
+                                cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -218,7 +218,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             }
 
             isAllowedForHostVendorId(tcfContext)
-                    .setHandler(hostTcfResponseResult -> respondByTcfResponse(
+                    .onComplete(hostTcfResponseResult -> respondByTcfResponse(
                             hostTcfResponseResult,
                             biddersToSync(cookieSyncContext),
                             cookieSyncContext));
@@ -365,7 +365,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 final AccountGdprConfig accountGdprConfig =
                         accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
                 tcfDefinerService.resultForBidderNames(biddersToSync, tcfContext, accountGdprConfig)
-                        .setHandler(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
+                        .onComplete(tcfResponseResult -> respondByTcfResultForBidders(tcfResponseResult,
                                 biddersToSync, cookieSyncContext));
             } else {
                 // Reject all bidders when Host TCF response has blocked pixel
@@ -450,7 +450,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
         final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
-        final String body = mapper.encode(cookieSyncResponse);
+        final String body = mapper.encodeToString(cookieSyncResponse);
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
                 response -> response

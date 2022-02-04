@@ -40,7 +40,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final String TYPE_CNN = "prebid";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpTappx>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -67,7 +67,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
                 .uri(url)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());
     }

@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -29,6 +30,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -83,6 +85,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
     private TimeoutResolver timeoutResolver;
+    @Mock
+    private DebugResolver debugResolver;
 
     @Mock
     private AuctionRequestFactory target;
@@ -110,6 +114,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
                 .privacyContext(defaultPrivacyContext)
+                .debugContext(DebugContext.of(true, null))
                 .build();
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -120,17 +125,20 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
+
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
 
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(ortb2RequestFactory.validateRequest(any()))
-                .will(invocationOnMock -> invocationOnMock.getArgument(0));
+
         given(interstitialProcessor.process(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
@@ -157,6 +165,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
     }
 
@@ -188,6 +197,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 privacyEnforcementService,
                 timeoutResolver,
+                debugResolver,
                 jacksonMapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
@@ -269,6 +279,20 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldEnrichAuctionContextWithDebugContext() {
+        // given
+        givenValidBidRequest();
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0);
+
+        // then
+        verify(debugResolver).debugContextFrom(any());
+        assertThat(result.result().getDebugContext()).isEqualTo(
+                DebugContext.of(true, null));
+    }
+
+    @Test
     public void shouldUseBidRequestModifiedByRawAuctionRequestHooks() {
         // given
         givenValidBidRequest(BidRequest.builder()
@@ -334,7 +358,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
 
         // then
-
         final BidRequest resultBidRequest = result.result().getBidRequest();
         assertThat(resultBidRequest.getSite()).isNull();
         assertThat(resultBidRequest.getApp()).isEqualTo(App.builder().bundle("org.company.application").build());
@@ -387,7 +410,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(result.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) result.cause()).getMessages()).hasSize(1)
                 .allSatisfy(message ->
-                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize value"));
     }
 
     @Test
@@ -423,7 +446,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(result.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) result.cause()).getMessages()).hasSize(1)
                 .allSatisfy(message ->
-                        assertThat(message).startsWith("Error decoding bidRequest: Cannot deserialize instance"));
+                        assertThat(message).startsWith("Error decoding bidRequest: Cannot construct instance"));
     }
 
     @Test
@@ -532,8 +555,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        given(ortb2RequestFactory.validateRequest(any()))
-                .willThrow(new InvalidRequestException("errors"));
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);

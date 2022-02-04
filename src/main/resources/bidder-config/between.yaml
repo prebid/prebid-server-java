@@ -1,12 +1,6 @@
 adapters:
   between:
-    enabled: false
     endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: buying@betweenx.com
       app-media-types:

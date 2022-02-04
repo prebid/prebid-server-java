@@ -182,7 +182,7 @@ public class HttpUtilTest {
     public void executeSafelyShouldSkipResponseIfClientClosedConnection() {
         // given
         given(httpResponse.closed()).willReturn(true);
-        final Consumer responseConsumer = mock(Consumer.class);
+        final Consumer<HttpServerResponse> responseConsumer = mock(Consumer.class);
 
         // when
         HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
@@ -195,7 +195,7 @@ public class HttpUtilTest {
     @Test
     public void executeSafelyShouldRespondToClient() {
         // given
-        final Consumer responseConsumer = mock(Consumer.class);
+        final Consumer<HttpServerResponse> responseConsumer = mock(Consumer.class);
 
         // when
         final boolean result = HttpUtil.executeSafely(routingContext, "endpoint", responseConsumer);
@@ -209,7 +209,7 @@ public class HttpUtilTest {
     @Test
     public void executeSafelyShouldReturnFalseIfResponseFailed() {
         // given
-        final Consumer responseConsumer = mock(Consumer.class);
+        final Consumer<HttpServerResponse> responseConsumer = mock(Consumer.class);
         doThrow(new RuntimeException("error")).when(responseConsumer).accept(any());
 
         // when

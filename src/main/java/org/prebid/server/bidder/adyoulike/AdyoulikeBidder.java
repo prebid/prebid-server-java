@@ -29,15 +29,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adyoulike {@link Bidder} implementation.
- */
 public class AdyoulikeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdyoulike>> ADYOULIKE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdyoulike>>() {
+            new TypeReference<>() {
             };
-    private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -74,7 +70,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(resolveHeaders())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build());
     }
 

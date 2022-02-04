@@ -8,8 +8,6 @@ import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.prebid.server.util.HttpUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -25,17 +23,6 @@ public class MedianetConfiguration {
     private static final String BIDDER_NAME = "medianet";
     private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("medianetConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("medianetConfigurationProperties")
     @ConfigurationProperties("adapters.medianet")
     BidderConfigurationProperties configurationProperties() {
@@ -43,15 +30,18 @@ public class MedianetConfiguration {
     }
 
     @Bean
-    BidderDeps medianetBidderDeps() {
+    BidderDeps medianetBidderDeps(BidderConfigurationProperties medianetConfigurationProperties,
+                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                  JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(medianetConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new MedianetBidder(resolveEndpoint(config.getEndpoint()), mapper))
+                .bidderCreator(config -> new MedianetBidder(resolveEndpoint(config.getEndpoint(), externalUrl), mapper))
                 .assemble();
     }
 
-    private String resolveEndpoint(String configEndpoint) {
+    private String resolveEndpoint(String configEndpoint, String externalUrl) {
         return configEndpoint.replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
     }
 }

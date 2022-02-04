@@ -17,7 +17,7 @@ import java.util.Objects;
  */
 public class DisabledBidder implements Bidder<Void> {
 
-    private String errorMessage;
+    private final String errorMessage;
 
     public DisabledBidder(String errorMessage) {
         this.errorMessage = Objects.requireNonNull(errorMessage);

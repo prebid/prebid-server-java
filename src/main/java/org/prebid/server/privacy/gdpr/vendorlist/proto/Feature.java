@@ -17,6 +17,7 @@ public enum Feature {
         this.code = code;
     }
 
+    @SuppressWarnings("unused")
     @JsonCreator
     public static Feature valueOf(int code) {
         return Arrays.stream(values())

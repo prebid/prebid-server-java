@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.Before;
@@ -17,6 +18,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
@@ -32,6 +34,8 @@ import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.identity.UUIDIdGenerator;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -69,9 +73,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class CacheServiceTest extends VertxTest {
 
@@ -88,6 +91,8 @@ public class CacheServiceTest extends VertxTest {
     private VastModifier vastModifier;
     @Mock
     private Metrics metrics;
+    @Mock
+    private UUIDIdGenerator idGenerator;
 
     private Clock clock;
 
@@ -108,10 +113,12 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         eventsContext = EventsContext.builder().auctionId("auctionId").build();
@@ -176,7 +183,7 @@ public class CacheServiceTest extends VertxTest {
         cacheService.cacheBidsOpenrtb(emptyList(), null, null, null);
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -446,15 +453,16 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         // Second value is adm length for each
-        verify(metrics, times(1)).updateCacheCreativeSize(eq("accountId"), eq(0));
-        verify(metrics, times(2)).updateCacheCreativeSize(eq("accountId"), eq(4));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
 
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(3)
-                .containsOnly(
+        assertThat(bidCacheRequest.getPuts())
+                .containsExactly(
                         PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid1)).build(),
                         PutObject.builder().aid("auctionId").type("json").value(mapper.valueToTree(bid2)).build(),
                         PutObject.builder().aid("auctionId").type("xml").value(new TextNode(receivedBid2Adm)).build());
@@ -551,10 +559,12 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -590,10 +600,12 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -625,10 +637,12 @@ public class CacheServiceTest extends VertxTest {
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
+                100L,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                idGenerator,
                 jacksonMapper);
 
         // when
@@ -715,6 +729,31 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void cacheBidsOpenrtbShouldAddDebugLogCacheAlongWithBids() throws IOException {
+        // given
+        final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId").adm("adm1"), BidType.video, "bidder");
+        final Imp imp = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        final AuctionContext auctionContext = givenAuctionContext(
+                bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp)))
+                .toBuilder().cachedDebugLog(new CachedDebugLog(true, 100, null, jacksonMapper)).build();
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bidInfo),
+                auctionContext,
+                CacheContext.builder()
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .extracting(PutObject::getKey)
+                .contains("log_null");
+    }
+
+    @Test
     public void cacheBidsOpenrtbShouldReturnExpectedResultForBidsAndVideoBids() throws JsonProcessingException {
         // given
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
@@ -744,6 +783,96 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void cacheBidsOpenrtbShouldUpdateVastXmlPutObjectWithKeyWhenBidHasCategoryDuration() throws IOException {
+        // given
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").adm("adm"),
+                BidType.video, "bidder", null)
+                .toBuilder().category("bid1Category").build();
+
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bidInfo1),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder().type("json").value(mapper.valueToTree(Bid.builder().id("bid1")
+                                .adm("adm").build())).aid("auctionId").build(),
+                        PutObject.builder().key("bid1Category_randomId").type("xml")
+                                .value(new TextNode("adm")).aid("auctionId").build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldNotUpdateVastXmlPutObjectWithKeyWhenDoesNotHaveCatDur() throws IOException {
+        // given
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"),
+                BidType.video, "bidder", null);
+
+        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any(), any())).willReturn("adm");
+
+        // when
+        cacheService.cacheBidsOpenrtb(
+                singletonList(bidInfo1),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
+        assertThat(bidCacheRequest.getPuts()).hasSize(2)
+                .containsOnly(
+                        PutObject.builder()
+                                .type("json")
+                                .aid("auctionId")
+                                .value(mapper.valueToTree(bidInfo1.getBid()))
+                                .build(),
+                        PutObject.builder().type("xml").aid("auctionId").value(new TextNode("adm")).build());
+    }
+
+    @Test
+    public void cacheBidsOpenrtbShouldRemoveCatDurPrefixFromVideoUuidFromResponse() throws IOException {
+        // given
+
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
+                BidCacheResponse.of(asList(CacheObject.of("uuid"), CacheObject.of("catDir_randomId")))));
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"),
+                BidType.video, "bidder").toBuilder().category("catDir").build();
+        final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
+        given(idGenerator.generateId()).willReturn("randomId");
+
+        // when
+        final Future<CacheServiceResult> resultFuture = cacheService.cacheBidsOpenrtb(
+                singletonList(bidInfo1),
+                givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
+                CacheContext.builder()
+                        .shouldCacheBids(true)
+                        .shouldCacheVideoBids(true)
+                        .build(),
+                eventsContext);
+
+        // then
+        assertThat(resultFuture.succeeded()).isTrue();
+        assertThat(resultFuture.result().getCacheBids()).hasSize(1)
+                .containsEntry(Bid.builder().id("bid1").impid("impId1").adm("adm").build(),
+                        CacheInfo.of("uuid", "randomId", null, null));
+    }
+
+    @Test
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
         final Future<BidCacheResponse> future = cacheService.cachePutObjects(
@@ -762,7 +891,7 @@ public class CacheServiceTest extends VertxTest {
                 emptySet(), null, null, null);
 
         // then
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
         assertThat(result.result().getResponses()).isEmpty();
     }
 
@@ -770,7 +899,7 @@ public class CacheServiceTest extends VertxTest {
     public void cachePutObjectsShouldModifyVastAndCachePutObjects() throws IOException {
         // given
         final PutObject firstPutObject = PutObject.builder()
-                .type("xml")
+                .type("json")
                 .bidid("bidId1")
                 .bidder("bidder1")
                 .timestamp(1L)
@@ -783,18 +912,32 @@ public class CacheServiceTest extends VertxTest {
                 .timestamp(1L)
                 .value(new TextNode("VAST"))
                 .build();
+        final PutObject thirdPutObject = PutObject.builder()
+                .type("text")
+                .bidid("bidId3")
+                .bidder("bidder3")
+                .timestamp(1L)
+                .value(new TextNode("VAST"))
+                .build();
 
         given(vastModifier.modifyVastXml(any(), any(), any(), any(), anyString()))
                 .willReturn(new TextNode("modifiedVast"))
-                .willReturn(new TextNode("VAST"));
+                .willReturn(new TextNode("VAST"))
+                .willReturn(new TextNode("updatedVast"));
 
         // when
         cacheService.cachePutObjects(
-                asList(firstPutObject, secondPutObject), true, singleton("bidder1"), "account", "pbjs", timeout);
+                asList(firstPutObject, secondPutObject, thirdPutObject),
+                true,
+                singleton("bidder1"),
+                "account",
+                "pbjs",
+                timeout);
 
         // then
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondPutObject, "account", "pbjs");
@@ -810,9 +953,15 @@ public class CacheServiceTest extends VertxTest {
                 .bidder(null)
                 .timestamp(null)
                 .build();
+        final PutObject modifiedThirdPutObject = thirdPutObject.toBuilder()
+                .bidid(null)
+                .bidder(null)
+                .timestamp(null)
+                .value(new TextNode("updatedVast"))
+                .build();
 
-        assertThat(captureBidCacheRequest().getPuts()).hasSize(2)
-                .containsOnly(modifiedFirstPutObject, modifiedSecondPutObject);
+        assertThat(captureBidCacheRequest().getPuts())
+                .containsExactly(modifiedFirstPutObject, modifiedSecondPutObject, modifiedThirdPutObject);
     }
 
     private AuctionContext givenAuctionContext(UnaryOperator<Account.AccountBuilder> accountCustomizer,

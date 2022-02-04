@@ -20,6 +20,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static java.util.Collections.emptyMap;
@@ -27,7 +28,7 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UidsCookieServiceTest extends VertxTest {
 
@@ -273,14 +274,14 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() throws IOException {
         // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new HashMap<>()).build(), jacksonMapper)
+        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new LinkedHashMap<>()).build(), jacksonMapper)
+                .updateUid("improvedigital", "improvedigitalUid")
                 .updateUid(RUBICON, "rubiconUid")
                 .updateUid("conversant", "conversantUid")
                 .updateUid(ADNXS, "adnxsUid")
                 .updateUid("sharethrough", "sharethroughUid")
-                .updateUid("improvedigital", "improvedigitalUid")
                 .updateUid("somoaudience", "somoaudienceUid")
-                .updateUid("verizonmedia", "verizonmediaUid");
+                .updateUid("yahoossp", "yahoosspUid");
 
         // the size of uidsCookie above is 530, therefore it is expected to be modified.
         final int maxCookieSizeBytes = 500;
@@ -381,7 +382,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final String hostCookie = uidsCookieService.parseHostCookie(emptyMap());
 
         // then
-        verifyZeroInteractions(routingContext);
+        verifyNoInteractions(routingContext);
         assertThat(hostCookie).isNull();
     }
 

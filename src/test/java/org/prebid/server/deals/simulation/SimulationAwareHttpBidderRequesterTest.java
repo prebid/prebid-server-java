@@ -117,7 +117,6 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
     @Test
     public void requestBidsShouldFilterBidderSeatBidForWhichImpPmpIsNull() {
         // given
-
         bidderRequester.setBidRates(Collections.singletonMap("lineItemId1", 1.00));
         given(lineItemService.getLineItemById(eq("lineItemId1"))).willReturn(LineItem.of(
                 LineItemMetaData.builder().price(Price.of(BigDecimal.ONE, "USD")).build(),

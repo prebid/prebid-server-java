@@ -56,7 +56,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, 24, clock);
     }
 
     @After
@@ -174,7 +174,7 @@ public class CircuitBreakerSecuredHttpClientTest {
     @Test
     public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, clock);
+        httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, 24, clock);
 
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 
@@ -264,7 +264,7 @@ public class CircuitBreakerSecuredHttpClientTest {
                 0L);
 
         final Async async = context.async();
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
         async.await();
 
         return future;

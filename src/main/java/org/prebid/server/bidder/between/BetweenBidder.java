@@ -34,13 +34,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Between {@link Bidder} implementation.
- */
 public class BetweenBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBetween>>() {
+            new TypeReference<>() {
             };
     private static final String URL_HOST_MACRO = "{{Host}}";
 
@@ -67,7 +64,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             return Result.withErrors(errors);
         }
 
@@ -141,7 +138,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .uri(url)
                         .headers(resolveHeaders(request.getDevice(), request.getSite()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build();
     }
 
@@ -167,20 +164,20 @@ public class BetweenBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

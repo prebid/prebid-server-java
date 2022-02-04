@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -64,7 +63,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class UserServiceTest extends VertxTest {
 
@@ -131,7 +130,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
 
         assertEquals(UserDetails.empty(), result);
     }
@@ -157,7 +156,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
 
         assertEquals(UserDetails.empty(), result);
     }
@@ -276,7 +275,7 @@ public class UserServiceTest extends VertxTest {
                 ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encode(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
 
         // when
         final UserDetails result = userService.getUserDetails(auctionContext, timeout).result();
@@ -300,7 +299,7 @@ public class UserServiceTest extends VertxTest {
         final UserDetailsResponse response = UserDetailsResponse.of(null);
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encode(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -319,7 +318,7 @@ public class UserServiceTest extends VertxTest {
                 null, ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encode(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -339,7 +338,7 @@ public class UserServiceTest extends VertxTest {
                 singletonList(UserData.of("2", "bluekai", singletonList(Segment.of("6666")))), null));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encode(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -421,7 +420,7 @@ public class UserServiceTest extends VertxTest {
                 ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encode(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
 
         // when
         userService.getUserDetails(auctionContext, timeout).result();
@@ -439,7 +438,7 @@ public class UserServiceTest extends VertxTest {
                         .responseStatus(200)
                         .responseBody(mapper.writeValueAsString(
                                 UserDetailsResponse.of(User.of(singletonList(UserData.of("1", "rubicon",
-                                        asList(Segment.of("2222"), Segment.of("3333")))),
+                                                asList(Segment.of("2222"), Segment.of("3333")))),
                                         ExtUser.of(asList("L-1111", "O-2222"))))))
                         .responseTimeMillis(0)
                         .build()));
@@ -476,7 +475,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateWinRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
@@ -498,16 +497,12 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateWinRequestPreparationFailed();
-        verifyZeroInteractions(httpClient);
+        verifyNoInteractions(httpClient);
     }
 
     @Test
     public void processWinEventShouldCallMetricsWinRequestWithFalseWhenStatusIsNot200() {
         // given
-        final NotificationEvent event = NotificationEvent.builder()
-                .bidId("bidId")
-                .lineItemId("lineItem1")
-                .build();
         final List<FrequencyCap> frequencyCaps = singletonList(FrequencyCap.builder().fcapId("213").build());
 
         given(lineItemService.getLineItemById(any())).willReturn(LineItem.of(
@@ -593,6 +588,9 @@ public class UserServiceTest extends VertxTest {
                 .frequencyCaps(frequencyCaps)
                 .build();
 
-        assertThat(capturedRequest).isEqualToIgnoringGivenFields(expectedRequestWithoutWinTime, "winEventDateTime");
+        assertThat(capturedRequest)
+                .usingRecursiveComparison()
+                .ignoringFields("winEventDateTime")
+                .isEqualTo(expectedRequestWithoutWinTime);
     }
 }

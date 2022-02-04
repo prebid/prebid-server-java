@@ -12,51 +12,63 @@ import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class VideoRequestFactory {
 
+    private static final String DEBUG = "debug";
+    private static final int DEFAULT_CACHE_LOG_TTL = 3600;
     private static final String ENDPOINT = Endpoint.openrtb2_video.value();
 
     private final int maxRequestSize;
     private final boolean enforceStoredRequest;
+    private final Pattern escapeLogCacheRegexPattern;
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
+    private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
     public VideoRequestFactory(int maxRequestSize,
                                boolean enforceStoredRequest,
+                               String escapeLogCacheRegex,
                                Ortb2RequestFactory ortb2RequestFactory,
                                Ortb2ImplicitParametersResolver paramsResolver,
                                VideoStoredRequestProcessor storedRequestProcessor,
                                PrivacyEnforcementService privacyEnforcementService,
                                TimeoutResolver timeoutResolver,
+                               DebugResolver debugResolver,
                                JacksonMapper mapper) {
 
         this.enforceStoredRequest = enforceStoredRequest;
@@ -66,7 +78,12 @@ public class VideoRequestFactory {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
+
+        this.escapeLogCacheRegexPattern = StringUtils.isNotBlank(escapeLogCacheRegex)
+                ? Pattern.compile(escapeLogCacheRegex)
+                : null;
     }
 
     /**
@@ -86,14 +103,22 @@ public class VideoRequestFactory {
                 Endpoint.openrtb2_video, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest -> createBidRequest(httpRequest)
-                        .map(bidRequestWithErrors -> populatePodErrors(
-                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
-                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
-                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
+                .compose(httpRequest ->
+                        createBidRequest(httpRequest)
+
+                                .compose(bidRequest ->
+                                        validateRequest(bidRequest, initialAuctionContext.getDebugWarnings()))
+
+                                .map(bidRequestWithErrors -> populatePodErrors(
+                                        bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+
+                                .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                        initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
@@ -107,6 +132,8 @@ public class VideoRequestFactory {
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
+
+                .map(this::updateContextWithDebugLog)
 
                 .map(auctionContext -> WithPodErrors.of(auctionContext, podErrors));
     }
@@ -126,6 +153,7 @@ public class VideoRequestFactory {
     }
 
     private Future<WithPodErrors<BidRequest>> createBidRequest(HttpRequestContext httpRequest) {
+        final boolean debugEnabled = isDebugEnabled(httpRequest);
 
         final BidRequestVideo bidRequestVideo;
         try {
@@ -140,10 +168,30 @@ public class VideoRequestFactory {
         }
 
         final Set<String> podConfigIds = podConfigIds(bidRequestVideo);
+        final String accountId = accountIdFrom(bidRequestVideo);
 
-        return storedRequestProcessor.processVideoRequest(
-                accountIdFrom(bidRequestVideo), storedRequestId, podConfigIds, bidRequestVideo)
-                .map(bidRequestToErrors -> fillImplicitParametersAndValidate(httpRequest, bidRequestToErrors));
+        return storedRequestProcessor.processVideoRequest(accountId, storedRequestId, podConfigIds, bidRequestVideo)
+                .map(bidRequestToErrors -> fillImplicitParameters(httpRequest, bidRequestToErrors, debugEnabled));
+    }
+
+    private AuctionContext updateContextWithDebugLog(AuctionContext auctionContext) {
+        final HttpRequestContext requestContext = auctionContext.getHttpRequest();
+        final boolean debugEnabled = isDebugEnabled(requestContext);
+        final CachedDebugLog cachedDebugLog = new CachedDebugLog(debugEnabled, DEFAULT_CACHE_LOG_TTL,
+                escapeLogCacheRegexPattern, mapper);
+        if (cachedDebugLog.isEnabled()) {
+            cachedDebugLog.setRequest(requestContext.getBody());
+            cachedDebugLog.setHeadersLog(requestContext.getHeaders());
+        }
+
+        return auctionContext.toBuilder().cachedDebugLog(cachedDebugLog).build();
+    }
+
+    private boolean isDebugEnabled(HttpRequestContext requestContext) {
+        final CaseInsensitiveMultiMap queryParams =
+                ObjectUtil.getIfNotNull(requestContext, HttpRequestContext::getQueryParams);
+        final String debugParam = ObjectUtil.getIfNotNull(queryParams, params -> params.get(DEBUG));
+        return BooleanUtils.toBoolean(debugParam);
     }
 
     /**
@@ -229,11 +277,23 @@ public class VideoRequestFactory {
         return returnObject;
     }
 
-    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestContext httpRequest,
-                                                                        WithPodErrors<BidRequest> bidRequestToErrors) {
+    private WithPodErrors<BidRequest> fillImplicitParameters(HttpRequestContext httpRequest,
+                                                             WithPodErrors<BidRequest> bidRequestToErrors,
+                                                             boolean debugEnabled) {
+
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-        final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
-        return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
+        final BidRequest updatedWithDebugBidRequest = debugEnabled
+                ? updatedBidRequest.toBuilder().test(1).build()
+                : updatedBidRequest;
+
+        return WithPodErrors.of(updatedWithDebugBidRequest, bidRequestToErrors.getPodErrors());
+    }
+
+    private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
+                                                              List<String> warnings) {
+
+        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), warnings)
+                .map(bidRequest -> requestWithPodErrors);
     }
 }

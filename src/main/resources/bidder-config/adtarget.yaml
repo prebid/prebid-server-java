@@ -1,12 +1,6 @@
 adapters:
   adtarget:
-    enabled: false
     endpoint: http://ghb.console.adtarget.com.tr/pbs/ortb
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: kamil@adtarget.com.tr
       app-media-types:

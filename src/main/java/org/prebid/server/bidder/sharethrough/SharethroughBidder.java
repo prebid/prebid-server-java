@@ -48,7 +48,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSharethrough>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -190,7 +190,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(mapper.encode(body))
+                .body(mapper.encodeToBytes(body))
                 .payload(body)
                 .build();
     }

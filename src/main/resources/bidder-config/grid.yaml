@@ -1,12 +1,6 @@
 adapters:
   grid:
-    enabled: false
     endpoint: https://grid.bidswitch.net/sp_bid?sp=prebid
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: grid-tech@themediagrid.com
       app-media-types:

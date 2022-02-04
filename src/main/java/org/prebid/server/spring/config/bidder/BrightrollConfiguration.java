@@ -4,16 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.brightroll.BrightrollBidder;
-import org.prebid.server.bidder.brightroll.model.PublisherOverride;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,27 +21,15 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotBlank;
 import java.math.BigDecimal;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/brightroll.yaml", factory = YamlPropertySourceFactory.class)
 public class BrightrollConfiguration {
 
     private static final String BIDDER_NAME = "brightroll";
-
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("brightrollConfigurationProperties")
-    private BrightrollConfigurationProperties configProperties;
 
     @Bean("brightrollConfigurationProperties")
     @ConfigurationProperties("adapters.brightroll")
@@ -52,24 +38,25 @@ public class BrightrollConfiguration {
     }
 
     @Bean
-    BidderDeps brightrollBidderDeps() {
-        final Map<String, PublisherOverride> publisherIdToOverride = configProperties.getAccounts() == null
-                ? Collections.emptyMap()
-                : configProperties.getAccounts().stream()
-                .collect(Collectors.toMap(BidderAccount::getId, this::toPublisherOverride));
-        return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
-                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new BrightrollBidder(
-                        config.getEndpoint(),
-                        mapper,
-                        publisherIdToOverride))
-                .assemble();
-    }
+    BidderDeps brightrollBidderDeps(BrightrollConfigurationProperties brightrollConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
 
-    private PublisherOverride toPublisherOverride(BidderAccount bidderAccount) {
-        return PublisherOverride.of(bidderAccount.getBadv(), bidderAccount.getBcat(), bidderAccount.getImpBattr(),
-                bidderAccount.getBidFloor());
+        final List<BidderAccount> accounts = brightrollConfigurationProperties.getAccounts();
+        final Map<String, BigDecimal> publisherIdToBidFloor = CollectionUtils.emptyIfNull(accounts).stream()
+                .collect(HashMap::new,
+                        (map, account) -> map.put(account.getId(), account.getBidFloor()),
+                        HashMap::putAll);
+
+        return BidderDepsAssembler.forBidder(BIDDER_NAME)
+                .withConfig(brightrollConfigurationProperties)
+                .usersyncerCreator(UsersyncerCreator.create(externalUrl))
+                .bidderCreator(config ->
+                        new BrightrollBidder(
+                                config.getEndpoint(),
+                                mapper,
+                                publisherIdToBidFloor))
+                .assemble();
     }
 
     @Validated
@@ -87,26 +74,9 @@ public class BrightrollConfiguration {
     @AllArgsConstructor
     public static class BidderAccount {
 
+        @NotBlank
         private String id;
 
-        /**
-         * Blocked advertisers.
-         */
-        private List<String> badv;
-
-        /**
-         * Blocked advertisers.
-         */
-        private List<String> bcat;
-
-        /**
-         * Blocked IAB categories.
-         */
-        private List<Integer> impBattr;
-
-        /**
-         * Request Bid floor.
-         */
         private BigDecimal bidFloor;
     }
 }

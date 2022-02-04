@@ -22,7 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
-import org.prebid.server.bidder.facebook.proto.FacebookNative;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -47,13 +46,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Facebook {@link Bidder} implementation.
- */
 public class FacebookBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpFacebook>>() {
+            new TypeReference<>() {
             };
 
     private static final List<Integer> SUPPORTED_BANNER_HEIGHT = Arrays.asList(250, 50);
@@ -125,12 +121,10 @@ public class FacebookBidder implements Bidder<BidRequest> {
                         ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers)
                 .payload(outgoingRequest)
                 .build();
@@ -251,9 +245,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
      * Add Width and Height (not available in standard openRTB) and exclude native.request and native.ver fields
      */
     private static Native modifyNative(Native xNative) {
-        return FacebookNative.builder()
-                .w(-1)
-                .h(-1)
+        return Native.builder()
                 .api(xNative.getApi())
                 .battr(xNative.getBattr())
                 .ext(xNative.getExt())

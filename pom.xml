@@ -2,43 +2,44 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.prebid</groupId>
+    <parent>
+        <groupId>org.prebid</groupId>
+        <artifactId>prebid-server-aggregator</artifactId>
+        <version>1.82.0-SNAPSHOT</version>
+        <relativePath>extra/pom.xml</relativePath>
+    </parent>
+
     <artifactId>prebid-server</artifactId>
-    <version>1.73.0-SNAPSHOT</version>
 
     <name>prebid-server</name>
     <description>Prebid Server (Server-side Header Bidding)</description>
     <organization>
         <name>Prebid.org</name>
-        <url>http://prebid.org/</url>
+        <url>https://prebid.org/</url>
     </organization>
-
-    <scm>
-        <developerConnection>scm:git:git@github.com:prebid/prebid-server-java.git</developerConnection>
-        <tag>HEAD</tag>
-    </scm>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <java.version>11</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- dependencies versions -->
-        <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.6</spring.boot.version>
         <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
-        <vertx.version>3.8.3</vertx.version>
-        <lombok.version>1.18.4</lombok.version>
+        <vertx.version>3.9.10</vertx.version>
+        <lombok.version>1.18.22</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
-        <jackson.version>2.10.0</jackson.version>
+        <jackson.version>2.13.0</jackson.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
-        <jsonpatch.version>1.9</jsonpatch.version>
+        <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
         <postgresql.version>42.1.4</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
@@ -49,26 +50,42 @@
         <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
+        <logback.version>1.2.8</logback.version>
+        <log4j.version>2.17.1</log4j.version>
 
         <!-- test dependencies versions -->
-        <junit.version>4.13.1</junit.version>
-        <mockito.version>2.23.4</mockito.version>
-        <assertj.version>3.8.0</assertj.version>
-        <wiremock.version>2.26.3</wiremock.version>
-        <awaitility.version>4.0.1</awaitility.version>
-        <jetty.version>9.4.43.v20210629</jetty.version>
-        <restassured.version>3.0.6</restassured.version>
-        <h2.version>1.4.196</h2.version>
+        <junit.version>4.13.2</junit.version>
+        <junit-jupiter.version>5.8.1</junit-jupiter.version>
+        <mockito.version>4.0.0</mockito.version>
+        <mockito-junit-jupiter.version>4.0.0</mockito-junit-jupiter.version>
+        <assertj.version>3.21.0</assertj.version>
+        <wiremock.version>2.31.0</wiremock.version>
+        <awaitility.version>4.1.0</awaitility.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
+        <restassured.version>4.4.0</restassured.version>
+        <h2.version>2.1.210</h2.version>
+        <spock.version>2.0-groovy-3.0</spock.version>
+        <testcontainers.version>1.16.2</testcontainers.version>
+        <mockserver-client.version>5.11.2</mockserver-client.version>
+        <allure.version>2.16.1</allure.version>
+        <aspectj.version>1.9.7</aspectj.version>
+        <h2.version>1.4.200</h2.version>
+        <bytebuddy.version>1.11.19</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
         <checkstyle.version>8.29</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
+        <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
-        <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
+        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
+        <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
+        <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
+        <gmavenplus-plugin.version>1.13.0</gmavenplus-plugin.version>
+        <allure-maven.version>2.10.0</allure-maven.version>
+        <skipFunctionalTests>false</skipFunctionalTests>
+        <skipUnitTests>false</skipUnitTests>
     </properties>
 
     <dependencyManagement>
@@ -92,6 +109,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
@@ -196,8 +214,20 @@
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
-            <artifactId>jackson-module-afterburner</artifactId>
+            <artifactId>jackson-module-blackbird</artifactId>
             <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+            <version>${jackson.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.networknt</groupId>
@@ -205,7 +235,7 @@
             <version>${json.schema.validator.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.fge</groupId>
+            <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
             <version>${jsonpatch.version}</version>
         </dependency>
@@ -290,6 +320,27 @@
             <artifactId>geoip2</artifactId>
             <version>${maxmind-client.version}</version>
         </dependency>
+        <!--TODO: Remove this after bumping to new Spring Parent with safe log4j and logback -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
@@ -298,9 +349,21 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito-junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -404,6 +467,23 @@
             <version>${restassured.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${bytebuddy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <version>${spock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- for Mockito to be able to mock Vert.x-specific classes -->
         <dependency>
             <groupId>io.vertx</groupId>
@@ -415,6 +495,36 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <version>${h2.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mockserver</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mock-server</groupId>
+            <artifactId>mockserver-client-java</artifactId>
+            <version>${mockserver-client.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-java-commons</artifactId>
+            <version>${allure.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -432,6 +542,23 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <launchContainers>false</launchContainers>
+                        </systemPropertyVariables>
+                        <skipTests>${skipUnitTests}</skipTests>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-failsafe-plugin</artifactId>
+                    <version>${maven-failsafe-plugin.version}</version>
+                    <configuration>
+                        <systemPropertyVariables>
+                            <launchContainers>true</launchContainers>
+                        </systemPropertyVariables>
+                        <skipITs>${skipFunctionalTests}</skipITs>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -454,6 +581,11 @@
                             <version>${checkstyle.version}</version>
                         </dependency>
                     </dependencies>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.gmavenplus</groupId>
+                    <artifactId>gmavenplus-plugin</artifactId>
+                    <version>${gmavenplus-plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -581,16 +713,73 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>io.fabric8</groupId>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>${docker-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>build-containers</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compileTests</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-release-plugin</artifactId>
-                <version>${maven-release-plugin.version}</version>
+                <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <tagNameFormat>@{project.version}</tagNameFormat>
-                    <scmCommentPrefix xml:space="preserve">Prebid Server </scmCommentPrefix>
+                    <argLine>
+                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
+                    </argLine>
+                    <systemPropertyVariables>
+                        <allure.results.directory>target/allure-results</allure.results.directory>
+                        <mockserver.version>${mockserver-client.version}</mockserver.version>
+                        <pbs.version>${project.version}</pbs.version>
+                        <max.containers.count>2</max.containers.count>
+                    </systemPropertyVariables>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/*Spec.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.aspectj</groupId>
+                        <artifactId>aspectjweaver</artifactId>
+                        <version>${aspectj.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>io.qameta.allure</groupId>
+                <artifactId>allure-maven</artifactId>
+                <version>${allure-maven.version}</version>
             </plugin>
         </plugins>
     </build>
+
     <reporting>
         <plugins>
             <plugin>
@@ -617,44 +806,18 @@
             </plugin>
         </plugins>
     </reporting>
+
     <profiles>
         <profile>
-            <id>java11</id>
+            <id>Java 17</id>
             <activation>
-                <jdk>[11,)</jdk>
+                <jdk>[17,)</jdk>
             </activation>
             <properties>
-                <maven.compiler.source>11</maven.compiler.source>
-                <maven.compiler.target>11</maven.compiler.target>
+                <java.version>17</java.version>
+                <maven.compiler.source>${java.version}</maven.compiler.source>
+                <maven.compiler.target>${java.version}</maven.compiler.target>
             </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <configuration>
-                            <!--
-                             These are needed to silence warnings caused by:
-                                * 1 - jackson-afterburner
-                                * the rest - groovy
-                             Keep an eye on those dependencies and update their version as soon as they properly support
-                             Java 11. After this following arguments could be safely removed.
-                             -->
-                            <argLine>
-                                --add-opens java.base/java.lang=ALL-UNNAMED
-                                --add-opens java.base/java.lang.invoke=ALL-UNNAMED
-                                --add-opens java.base/java.lang.reflect=ALL-UNNAMED
-                                --add-opens java.base/java.util=ALL-UNNAMED
-                                --add-opens java.base/java.util.regex=ALL-UNNAMED
-                                --add-opens java.base/java.net=ALL-UNNAMED
-                                --add-opens java.base/java.io=ALL-UNNAMED
-                                --add-opens java.base/java.math=ALL-UNNAMED
-                                --add-opens java.base/sun.net.spi=ALL-UNNAMED
-                            </argLine>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
 </project>

@@ -155,7 +155,6 @@ public class DeliveryProgressServiceTest extends VertxTest {
                 .containsOnly(tuple(1, 200, 40L));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void processAuctionEventShouldUpdateCurrentPlan() {
         // given
@@ -221,7 +220,7 @@ public class DeliveryProgressServiceTest extends VertxTest {
                 .extracting(lineItemId1)
                 .extracting(lineItemId2)
                 .extracting(lostToLineItem -> ((LostToLineItem) lostToLineItem).getCount().sum())
-                .containsOnly(1L);
+                .isEqualTo(1L);
 
         assertThat(lineItemStatuses)
                 .flatExtracting(LineItemStatus::getDeliveryPlans)
@@ -286,7 +285,7 @@ public class DeliveryProgressServiceTest extends VertxTest {
         given(lineItemService.getLineItemById(anyString())).willReturn(lineItem);
 
         // when
-        final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport("lineItemId1", now);
+        final LineItemStatusReport report = deliveryProgressService.getLineItemStatusReport("lineItemId1");
 
         // then
         assertThat(report).isEqualTo(LineItemStatusReport.builder()

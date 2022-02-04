@@ -44,7 +44,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", false, null, null, null);
+                .makeFor(bid, "bidder1", false, null, null, null, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -73,7 +73,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null);
+                .makeFor(bid, "veryververyverylongbidder1", false, null, null, null, null);
 
         // then
         assertThat(keywords).containsOnly(
@@ -106,7 +106,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1");
+                .makeFor(bid, "bidder1", true, "cacheId1", "banner", "videoCacheId1", "categoryDuration");
 
         // then
         assertThat(keywords).containsOnly(
@@ -123,7 +123,9 @@ public class TargetingKeywordsCreatorTest {
                 entry("hb_uuid", "videoCacheId1"),
                 entry("hb_uuid_bidder1", "videoCacheId1"),
                 entry("hb_format", "banner"),
-                entry("hb_format_bidder1", "banner"));
+                entry("hb_format_bidder1", "banner"),
+                entry("hb_pb_cat_dur_bidder1", "categoryDuration"),
+                entry("hb_pb_cat_dur", "categoryDuration"));
     }
 
     @Test
@@ -145,7 +147,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "", true, null, "banner", null);
+                .makeFor(bid, "", true, null, "banner", null, null);
 
         // then
         assertThat(keywords).contains(entry("hb_format", "banner"));
@@ -169,7 +171,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder", true, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_cache_id_bidder", "hb_deal_bidder", "hb_size_bidder",
@@ -194,7 +196,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder", true, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
         assertThat(keywords).contains(
@@ -220,7 +222,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder", "hb_pb");
@@ -244,7 +246,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).containsKeys("hb_bidder", "hb_pb");
@@ -268,7 +270,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).doesNotContainKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -292,7 +294,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).containsKeys("hb_bidder_bidder1", "hb_pb_bidder1");
@@ -316,7 +318,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null);
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
         assertThat(keywords).hasSize(2)
@@ -341,7 +343,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder", true, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
         assertThat(keywords).hasSize(2)
@@ -366,7 +368,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "bidder", true, null, null, null);
+                .makeFor(bid, "bidder", true, null, null, null, null);
 
         // then
         // Without truncating: "hb_bidder", "hb_bidder_bidder", "hb_env", "hb_env_bidder", "hb_pb", "hb_pb_bidder"
@@ -392,7 +394,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 null)
-                .makeFor(bid, "someVeryLongBidderName", true, null, null, null);
+                .makeFor(bid, "someVeryLongBidderName", true, null, null, null, null);
 
         // then
         assertThat(keywords).hasSize(2)
@@ -423,7 +425,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 resolver)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("key_longer_than_twen", "value1"));
@@ -453,7 +455,7 @@ public class TargetingKeywordsCreatorTest {
                 null,
                 null,
                 resolver)
-                .makeFor(bid, "bidder1", true, null, null, null);
+                .makeFor(bid, "bidder1", true, null, null, null, null);
 
         // then
         assertThat(keywords).contains(entry("keyword1", "value1"));

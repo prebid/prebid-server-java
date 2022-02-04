@@ -16,7 +16,6 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -26,7 +25,6 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,9 +65,10 @@ public final class HttpUtil {
     public static final CharSequence LOCATION_HEADER = HttpHeaders.createOptimized("Location");
     public static final CharSequence CONNECTION_HEADER = HttpHeaders.createOptimized("Connection");
     public static final CharSequence ACCEPT_ENCODING_HEADER = HttpHeaders.createOptimized("Accept-Encoding");
+    public static final CharSequence CONTENT_ENCODING_HEADER = HttpHeaders.createOptimized("Content-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
-    private static final Set<String> SENSITIVE_HEADERS = new HashSet<>(Arrays.asList(AUTHORIZATION_HEADER.toString()));
+    private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
@@ -94,11 +93,7 @@ public final class HttpUtil {
      * The result can be safety used as the query string.
      */
     public static String encodeUrl(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot encode url: %s", value));
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**
@@ -108,11 +103,7 @@ public final class HttpUtil {
         if (StringUtils.isBlank(value)) {
             return null;
         }
-        try {
-            return URLDecoder.decode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalArgumentException(String.format("Cannot decode url: %s", value));
-        }
+        return URLDecoder.decode(value, StandardCharsets.UTF_8);
     }
 
     /**
@@ -184,6 +175,13 @@ public final class HttpUtil {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getValue()));
     }
 
+    public static String createCookiesHeader(RoutingContext routingContext) {
+        return routingContext.cookieMap().entrySet().stream()
+                .map(entry -> Cookie.cookie(entry.getKey(), entry.getValue().getValue()))
+                .map(Cookie::encode)
+                .collect(Collectors.joining("; "));
+    }
+
     public static String toSetCookieHeaderValue(Cookie cookie) {
         return String.join("; ", cookie.encode(), "SameSite=None; Secure");
     }
@@ -208,7 +206,7 @@ public final class HttpUtil {
         try {
             responseConsumer.accept(response);
             return true;
-        } catch (Throwable e) {
+        } catch (Exception e) {
             logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
             return false;
         }

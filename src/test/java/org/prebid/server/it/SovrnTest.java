@@ -18,8 +18,6 @@ import static java.util.Collections.singletonList;
 @RunWith(SpringRunner.class)
 public class SovrnTest extends IntegrationTest {
 
-    private static final String SOVRN = "sovrn";
-
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSovrn() throws IOException, JSONException {
         // given

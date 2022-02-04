@@ -624,7 +624,7 @@ public class ConversantBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetImpBidFloorFromImpExtIfPresentAndImpBidFloorIsInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.bidfloor(new BigDecimal(-1.00)),
+                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
                 extBuilder -> extBuilder.bidfloor(BigDecimal.ONE));
 
         // when
@@ -643,8 +643,8 @@ public class ConversantBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotSetImpBidFloorFromImpExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.bidfloor(new BigDecimal(-1.00)),
-                extBuilder -> extBuilder.bidfloor(new BigDecimal(-2.00)));
+                impBuilder -> impBuilder.bidfloor(BigDecimal.valueOf(-1.00)),
+                extBuilder -> extBuilder.bidfloor(BigDecimal.valueOf(-2.00)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = conversantBidder.makeHttpRequests(bidRequest);
@@ -655,7 +655,7 @@ public class ConversantBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
-                .containsExactly(new BigDecimal(-1.00));
+                .containsExactly(BigDecimal.valueOf(-1.00));
     }
 
     private static BidRequest givenBidRequest(

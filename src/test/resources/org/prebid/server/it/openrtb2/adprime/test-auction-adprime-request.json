@@ -9,7 +9,13 @@
       },
       "ext": {
         "adprime": {
-          "TagID": "tag_id"
+          "TagID": "tag_id",
+          "keywords": [
+            "keyword1"
+          ],
+          "audiences": [
+            "audience1"
+          ]
         }
       }
     }

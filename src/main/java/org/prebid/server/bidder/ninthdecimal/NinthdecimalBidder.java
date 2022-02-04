@@ -39,8 +39,8 @@ import java.util.stream.Collectors;
 
 public class NinthdecimalBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpNinthdecimal>> NINTHDECIMAL_EXT_TYPE_REFERENCE = new
-            TypeReference<ExtPrebid<?, ExtImpNinthdecimal>>() {
+    private static final TypeReference<ExtPrebid<?, ExtImpNinthdecimal>> NINTHDECIMAL_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -152,7 +152,6 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final List<Imp> imps = impExtAndListOfImp.getValue();
             final BidRequest updatedBidRequest = makeBidRequest(bidRequest, extImpNinthdecimal, imps);
 
-            final String body = mapper.encode(updatedBidRequest);
             final MultiMap headers = HttpUtil.headers()
                     .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
             final String createdEndpoint = endpointUrl + extImpNinthdecimal.getPubid();
@@ -160,7 +159,7 @@ public class NinthdecimalBidder implements Bidder<BidRequest> {
             final HttpRequest<BidRequest> createdBidRequest = HttpRequest.<BidRequest>builder()
                     .method(HttpMethod.POST)
                     .uri(createdEndpoint)
-                    .body(body)
+                    .body(mapper.encodeToBytes(updatedBidRequest))
                     .headers(headers)
                     .payload(bidRequest)
                     .build();

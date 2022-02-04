@@ -33,7 +33,6 @@ import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.util.DealUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -130,19 +129,6 @@ public class ResponseBidValidator {
 
         if (StringUtils.isBlank(bid.getImpid())) {
             throw new ValidationException("Bid \"%s\" missing required field 'impid'", bidId);
-        }
-
-        final BigDecimal price = bid.getPrice();
-        if (price == null) {
-            throw new ValidationException("Bid \"%s\" does not contain a 'price'", bidId);
-        }
-
-        if (price.compareTo(BigDecimal.ZERO) < 0) {
-            throw new ValidationException("Bid \"%s\" `price `has negative value", bidId);
-        }
-
-        if (price.compareTo(BigDecimal.ZERO) == 0 && StringUtils.isBlank(bid.getDealid())) {
-            throw new ValidationException("Non deal bid \"%s\" has 0 price", bidId);
         }
 
         if (StringUtils.isEmpty(bid.getCrid())) {
@@ -363,12 +349,12 @@ public class ResponseBidValidator {
     }
 
     private static boolean isDealsOnlyImp(Imp imp, String bidder) {
-        final JsonNode dealsOnlyNode = bidderParamsFromImp(imp).get(bidder).get(DEALS_ONLY);
-        return dealsOnlyNode != null && dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
+        final JsonNode dealsOnlyNode = bidderParamsFromImp(imp).path(bidder).path(DEALS_ONLY);
+        return dealsOnlyNode.isBoolean() && dealsOnlyNode.asBoolean();
     }
 
     private static JsonNode bidderParamsFromImp(Imp imp) {
-        return imp.getExt().get(PREBID_EXT).get(BIDDER_EXT);
+        return imp.getExt().path(PREBID_EXT).path(BIDDER_EXT);
     }
 
     private Set<String> getDealIdsFromImp(Imp imp, String bidder, BidderAliases aliases) {

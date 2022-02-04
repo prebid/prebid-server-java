@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -36,6 +37,7 @@ public class AuctionRequestFactory {
     private final InterstitialProcessor interstitialProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
+    private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
 
@@ -50,6 +52,7 @@ public class AuctionRequestFactory {
                                  OrtbTypesResolver ortbTypesResolver,
                                  PrivacyEnforcementService privacyEnforcementService,
                                  TimeoutResolver timeoutResolver,
+                                 DebugResolver debugResolver,
                                  JacksonMapper mapper) {
 
         this.maxRequestSize = maxRequestSize;
@@ -61,6 +64,7 @@ public class AuctionRequestFactory {
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
+        this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -87,10 +91,12 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
                         .map(auctionContext::with))
 
+                .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
                 .compose(auctionContext -> ortb2RequestFactory.executeRawAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> updateBidRequest(auctionContext)
+                .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
@@ -154,7 +160,7 @@ public class AuctionRequestFactory {
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> updateBidRequest(AuctionContext auctionContext) {
+    private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
@@ -162,7 +168,10 @@ public class AuctionRequestFactory {
         return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
                 .map(resolvedBidRequest ->
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
-                .map(ortb2RequestFactory::validateRequest)
+
+                .compose(resolvedBidRequest ->
+                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()))
+
                 .map(interstitialProcessor::process);
     }
 

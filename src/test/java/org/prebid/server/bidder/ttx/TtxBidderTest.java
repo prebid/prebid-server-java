@@ -27,7 +27,6 @@ import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -66,7 +65,7 @@ public class TtxBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize instance of");
+                    assertThat(error.getMessage()).startsWith("Cannot deserialize value of");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
     }
@@ -108,8 +107,7 @@ public class TtxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldChangeOnlyFirstImpExt() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
-                        givenImp(identity())))
+                .imp(singletonList(givenImp(identity())))
                 .build();
 
         // when

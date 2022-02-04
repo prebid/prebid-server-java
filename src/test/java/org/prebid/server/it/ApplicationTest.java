@@ -62,7 +62,6 @@ import static org.assertj.core.api.Assertions.within;
 @RunWith(SpringRunner.class)
 public class ApplicationTest extends IntegrationTest {
 
-    private static final String ADFORM = "adform";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
     private static final String RUBICON = "rubicon";
@@ -115,8 +114,7 @@ public class ApplicationTest extends IntegrationTest {
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName",
-                                "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")
-                ));
+                                "openrtb2/rubicon_appnexus/test-cache-matcher-rubicon-appnexus.json")));
 
         // when
         final Response response = given(SPEC)
@@ -279,7 +277,7 @@ public class ApplicationTest extends IntegrationTest {
                         + "&targeting=%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D"
                         + "&curl=https%3A%2F%2Fgoogle.com"
                         + "&account=accountId"
-                        + "&attl_consent=someConsent"
+                        + "&addtl_consent=someConsent"
                         + "&gdpr_applies=false"
                         + "&consent_type=3"
                         + "&consent_string=1YNN");
@@ -350,7 +348,7 @@ public class ApplicationTest extends IntegrationTest {
         final CookieSyncResponse cookieSyncResponse = given(SPEC)
                 .cookies("host-cookie-name", "host-cookie-uid")
                 .body(CookieSyncRequest.builder()
-                        .bidders(asList(RUBICON, APPNEXUS, ADFORM))
+                        .bidders(asList(RUBICON, APPNEXUS))
                         .gdpr(1)
                         .gdprConsent(gdprConsent)
                         .usPrivacy("1YNN")
@@ -366,7 +364,7 @@ public class ApplicationTest extends IntegrationTest {
         // then
         assertThat(cookieSyncResponse.getStatus()).isEqualTo("ok");
         assertThat(cookieSyncResponse.getBidderStatus())
-                .hasSize(3)
+                .hasSize(2)
                 .containsOnly(BidderUsersyncStatus.builder()
                                 .bidder(RUBICON)
                                 .noCookie(true)
@@ -388,10 +386,6 @@ public class ApplicationTest extends IntegrationTest {
                                                 + "%26f%3Di"
                                                 + "%26uid%3D%24UID",
                                         "redirect", false))
-                                .build(),
-                        BidderUsersyncStatus.builder()
-                                .bidder(ADFORM)
-                                .error("Rejected by TCF")
                                 .build());
     }
 
@@ -489,7 +483,7 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final Map<String, JsonNode> responseAsMap = jacksonMapper.decodeValue(response.asString(),
-                new TypeReference<Map<String, JsonNode>>() {
+                new TypeReference<>() {
                 });
 
         final List<String> bidders = getBidderNamesFromParamFiles();
@@ -499,7 +493,7 @@ public class ApplicationTest extends IntegrationTest {
                         Function.identity(),
                         bidderName -> jsonSchemaToJsonNode(aliases.getOrDefault(bidderName, bidderName))));
 
-        assertThat(responseAsMap.keySet()).containsOnlyElementsOf(expectedMap.keySet());
+        assertThat(responseAsMap.keySet()).hasSameElementsAs(expectedMap.keySet());
         assertThat(responseAsMap).containsAllEntriesOf(expectedMap);
 
         JSONAssert.assertEquals(expectedMap.toString(), response.asString(), JSONCompareMode.NON_EXTENSIBLE);
@@ -515,14 +509,14 @@ public class ApplicationTest extends IntegrationTest {
 
         // then
         final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
-                new TypeReference<List<String>>() {
+                new TypeReference<>() {
                 });
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
         final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
 
-        assertThat(responseAsList).containsOnlyElementsOf(expectedBidders);
+        assertThat(responseAsList).hasSameElementsAs(expectedBidders);
     }
 
     @Test
@@ -708,7 +702,7 @@ public class ApplicationTest extends IntegrationTest {
                 final String bidderName = bidderEntry.getKey();
                 final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
-                if (aliasesNode.isObject()) {
+                if (aliasesNode != null && aliasesNode.isObject()) {
                     Iterator<String> iterator = aliasesNode.fieldNames();
                     while (iterator.hasNext()) {
                         aliases.put(iterator.next().trim(), bidderName);

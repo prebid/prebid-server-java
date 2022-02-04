@@ -16,9 +16,10 @@ import java.time.Duration;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class LoggerControlKnobHandlerTest {
 
@@ -72,7 +73,7 @@ public class LoggerControlKnobHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Missing required parameter 'level'"));
 
-        verifyZeroInteractions(loggerControlKnob);
+        verifyNoInteractions(loggerControlKnob);
     }
 
     @Test
@@ -86,9 +87,9 @@ public class LoggerControlKnobHandlerTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid 'level' parameter value, allowed values '[warn, debug, error, info]'"));
+        verify(httpResponse).end(startsWith("Invalid 'level' parameter value"));
 
-        verifyZeroInteractions(loggerControlKnob);
+        verifyNoInteractions(loggerControlKnob);
     }
 
     @Test
@@ -104,7 +105,7 @@ public class LoggerControlKnobHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Missing required parameter 'duration'"));
 
-        verifyZeroInteractions(loggerControlKnob);
+        verifyNoInteractions(loggerControlKnob);
     }
 
     @Test
@@ -121,7 +122,7 @@ public class LoggerControlKnobHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid 'duration' parameter value"));
 
-        verifyZeroInteractions(loggerControlKnob);
+        verifyNoInteractions(loggerControlKnob);
     }
 
     @Test
@@ -138,6 +139,6 @@ public class LoggerControlKnobHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Parameter 'duration' must be between 0 and 10000"));
 
-        verifyZeroInteractions(loggerControlKnob);
+        verifyNoInteractions(loggerControlKnob);
     }
 }

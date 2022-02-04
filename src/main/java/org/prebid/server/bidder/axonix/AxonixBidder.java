@@ -27,13 +27,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Axonix {@link Bidder} implementation.
- */
 public class AxonixBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAxonix>> AXONIX_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAxonix>>() {
+            new TypeReference<>() {
             };
     public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
 
@@ -59,7 +56,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImpAxonix.getSupplyId()))
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

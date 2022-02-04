@@ -10,8 +10,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -28,17 +26,6 @@ public class ConversantConfiguration {
 
     private static final String BIDDER_NAME = "conversant";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("conversantConfigurationProperties")
-    private ConversantConfigurationProperties configProperties;
-
     @Bean("conversantConfigurationProperties")
     @ConfigurationProperties("adapters.conversant")
     ConversantConfigurationProperties configurationProperties() {
@@ -46,12 +33,18 @@ public class ConversantConfiguration {
     }
 
     @Bean
-    BidderDeps conversantBidderDeps() {
+    BidderDeps conversantBidderDeps(ConversantConfigurationProperties conversantConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(conversantConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new ConversantBidder(config.getEndpoint(), configProperties.getGenerateBidId(),
-                        mapper))
+                .bidderCreator(config ->
+                        new ConversantBidder(
+                                config.getEndpoint(),
+                                conversantConfigurationProperties.getGenerateBidId(),
+                                mapper))
                 .assemble();
     }
 

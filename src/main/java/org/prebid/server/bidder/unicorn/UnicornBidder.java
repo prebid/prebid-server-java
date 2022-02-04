@@ -41,13 +41,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Unicorn {@link Bidder} implementation.
- */
 public class UnicornBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpUnicorn>> UNICORN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpUnicorn>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -192,7 +189,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

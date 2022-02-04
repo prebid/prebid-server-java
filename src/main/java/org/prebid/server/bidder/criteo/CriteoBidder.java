@@ -42,9 +42,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Criteo {@link Bidder} implementation.
- */
 public class CriteoBidder implements Bidder<CriteoRequest> {
 
     private final String endpointUrl;
@@ -86,7 +83,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
         return Result.withValue(HttpRequest.<CriteoRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(jsonMapper.encode(outgoingRequest))
+                .body(jsonMapper.encodeToBytes(outgoingRequest))
                 .headers(resolveHeaders(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());

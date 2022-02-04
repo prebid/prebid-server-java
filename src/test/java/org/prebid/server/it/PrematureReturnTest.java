@@ -60,8 +60,9 @@ public class PrematureReturnTest extends VertxTest {
 
     @SuppressWarnings("unchecked")
     @ClassRule
-    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(
-            options().port(WIREMOCK_PORT).extensions(IntegrationTest.ResponseOrderTransformer.class));
+    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
+            .port(WIREMOCK_PORT)
+            .extensions(IntegrationTest.ResponseOrderTransformer.class));
 
     private static final String RUBICON = "rubicon";
 
@@ -387,7 +388,7 @@ public class PrematureReturnTest extends VertxTest {
     }
 
     private void awaitForLineItemMetadata() {
-        await().atMost(10, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
+        await().atMost(20, TimeUnit.SECONDS).pollInterval(100, TimeUnit.MILLISECONDS)
                 .until(() -> lineItemService.accountHasDeals("2001", ZonedDateTime.now(clock)));
     }
 
