@@ -187,7 +187,10 @@ class DebugSpec extends BaseSpec {
     }
 
     def "PBS should return debug information when bidder-level setting debug.allowed = #debugAllowedConfig and account-level setting debug-allowed = #debugAllowedAccount is overridden by x-pbs-debug-override header"() {
-        given: "Default basic generic BidRequest"
+        given: "PBS with debug configuration"
+        def pbsService = pbsServiceFactory.getService(pbdConfig)
+
+        and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = 1
 
@@ -197,7 +200,7 @@ class DebugSpec extends BaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction request"
-        def response = pbdService.sendAuctionRequest(bidRequest, ["x-pbs-debug-override": overrideToken])
+        def response = pbsService.sendAuctionRequest(bidRequest, ["x-pbs-debug-override": overrideToken])
 
         then: "Response should contain ext.debug"
         assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
@@ -206,13 +209,13 @@ class DebugSpec extends BaseSpec {
         assert !response.ext?.warnings
 
         where:
-        debugAllowedConfig | debugAllowedAccount | pbdService
-        false              | true                | pbsServiceFactory.getService(["debug.override-token"        : overrideToken,
-                                                                                 "adapters.generic.debug.allow": "false"])
-        true               | false               | pbsServiceFactory.getService(["debug.override-token"        : overrideToken,
-                                                                                 "adapters.generic.debug.allow": "true"])
-        false              | false               | pbsServiceFactory.getService(["debug.override-token"        : overrideToken,
-                                                                                 "adapters.generic.debug.allow": "false"])
+        debugAllowedConfig | debugAllowedAccount | pbdConfig
+        false              | true                | ["debug.override-token"        : overrideToken,
+                                                    "adapters.generic.debug.allow": "false"]
+        true               | false               | ["debug.override-token"        : overrideToken,
+                                                    "adapters.generic.debug.allow": "true"]
+        false              | false               | ["debug.override-token"        : overrideToken,
+                                                    "adapters.generic.debug.allow": "false"]
     }
 
     def "PBS should not return debug information when x-pbs-debug-override header is incorrect"() {
