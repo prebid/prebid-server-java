@@ -60,7 +60,6 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final URL url = extractUrl(request);
         final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
-        final List<Imp> modifiedImps = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         boolean isTest = false;
 
