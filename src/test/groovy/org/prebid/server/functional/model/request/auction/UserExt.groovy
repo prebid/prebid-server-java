@@ -9,4 +9,5 @@ class UserExt {
     ConsentString consent
     List<String> fcapids
     UserTime time
+    UserExtData data
 }
