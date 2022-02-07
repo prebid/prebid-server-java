@@ -40,7 +40,6 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private static final String VERSION = "1.4";
     private static final String TYPE_CNN = "prebid";
-    private static final String TAPPX_HOST = "tappx.com";
 
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -90,8 +89,8 @@ public class TappxBidder implements Bidder<BidRequest> {
      * Builds endpoint url based on adapter-specific pub settings from imp.ext.
      */
     private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
-        final String endpoint = extImpTappx.getEndpoint();
-        if (StringUtils.isBlank(endpoint)) {
+        final String subdomen = extImpTappx.getSubdomen();
+        if (StringUtils.isBlank(subdomen)) {
             throw new PreBidException("Tappx endpoint undefined");
         }
 
@@ -100,23 +99,20 @@ public class TappxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Tappx tappxkey undefined");
         }
 
-        final boolean isMatcherEndpoint = isMatcherEndpoint(endpoint);
-        final String host;
+        final boolean isMatcherEndpoint = isMatcherEndpoint(subdomen);
+        final String host = resolvedHost(subdomen, isMatcherEndpoint);
 
-        if (endpoint.equals("test")) {
-            return "http://localhost:8090/tappx-exchange";
-        }
-
-        if (isMatcherEndpoint) {
-            host = String.format("%s.pub.%s/rtb/", endpoint, TAPPX_HOST);
-        } else {
-            host = String.format("ssp.api.%s/rtb/v2/", TAPPX_HOST);
-        }
-
-        return buildUrl(host, endpoint, tappxkey, test, isMatcherEndpoint);
+        return buildUrl(host, subdomen, tappxkey, test, isMatcherEndpoint);
     }
 
-    private String buildUrl(String host, String endpoint, String tappxkey, Integer test, Boolean isMatcherEndpoint) {
+    private String resolvedHost(String subdomen, boolean isMatcherEndpoint) {
+        if (isMatcherEndpoint) {
+            return subdomen.replace("{{subdomen}}", subdomen + ".pub") + "/rtb/";
+        }
+        return subdomen.replace("{{subdomen}}", "ssp.api") + "/rtb/v2";
+    }
+
+    private String buildUrl(String host, String subdomen, String tappxkey, Integer test, Boolean isMatcherEndpoint) {
         try {
             final String baseUri = resolveBaseUri(host);
             final URIBuilder uriBuilder = new URIBuilder(baseUri);
@@ -126,7 +122,7 @@ public class TappxBidder implements Bidder<BidRequest> {
                 uriBuilder.getPathSegments().stream()
                         .filter(StringUtils::isNotBlank)
                         .forEach(pathSegments::add);
-                pathSegments.add(StringUtils.strip(endpoint, "/"));
+                pathSegments.add(StringUtils.strip(subdomen, "/"));
                 uriBuilder.setPathSegments(pathSegments);
             }
 

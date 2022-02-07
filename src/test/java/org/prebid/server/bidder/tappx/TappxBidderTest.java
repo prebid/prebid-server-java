@@ -138,7 +138,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.tappx.com/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
+        final String expectedUri = "https://endpoint/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -162,7 +162,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.tappx.com/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
+        final String expectedUri = "https://endpoint/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -176,7 +176,7 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of(null, "tappxkey", "vz92814907833310621374kk", BigDecimal.ONE,
+                                ExtImpTappx.of(null, "tappxkey", "zz855226test", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
                 .build();
@@ -187,7 +187,7 @@ public class TappxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         final String expectedUri =
-                "https://vz92814907833310621374kk.pub.tappx.com/rtb/?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
+                "https://zz855226test/rtb/?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -211,7 +211,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://ssp.api.tappx.com/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
+        final String expectedUri = "https://endpoint/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
