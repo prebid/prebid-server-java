@@ -9,8 +9,10 @@ import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
+import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
@@ -25,7 +27,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
-                                                               "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
+                                                            "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
     protected static final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String fetchUrl = Dependencies.networkServiceContainer.rootUri +
@@ -70,6 +72,14 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         }
     }
 
+    static BidRequest getStoredRequestWithFloors(DistributionChannel channel = SITE) {
+        channel == SITE
+                ? BidRequest.defaultStoredRequest.tap { ext.prebid.floors = ExtPrebidFloors.extPrebidFloors }
+                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
+
+    }
+
+
     static String getRule() {
         new Rule(mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule
     }
@@ -86,7 +96,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(1, 2), 5)
     }
 
-    static BidRequest getBidRequestWithMultipleMediaTypes(){
+    static BidRequest getBidRequestWithMultipleMediaTypes() {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
 }

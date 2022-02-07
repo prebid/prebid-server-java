@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
@@ -29,7 +30,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.enabled": "true"])
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch and fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -47,15 +48,17 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     }
 
     @PendingFeature
-    def "PBS should not activate floors feature when price-floors.enabled = false in PBS config"() {
+    def "PBS should not activate floors feature when price-floors.enabled = false in #description config"() {
         given: "Pbs with PF configuration"
-        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.enabled": "false"])
+        def pbsService = pbsServiceFactory.getService(floorsConfig + ["price-floors.enabled": pbdConfigEnabled])
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch and fetch.url in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = accountConfigEnabled
+        }
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -65,6 +68,11 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 0
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest.imp[0]?.bidFloor
+
+        where:
+        description | pbdConfigEnabled | accountConfigEnabled
+        "PBS"       | "false"          | true
+        "account"   | "true"           | false
     }
 
     @PendingFeature
@@ -124,7 +132,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, maxAgeSec in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -169,7 +177,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, periodSec in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -208,7 +216,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, maxFileSizeKb in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -243,7 +251,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, maxRules in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -289,7 +297,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, timeoutMs in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -328,7 +336,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url, enforceFloorsRate in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -359,7 +367,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     @PendingFeature
     def "PBS should fetch data from provider when price-floors.fetch.enabled = true in account config"() {
         given: "Default BidRequest with ext.prebid.floors"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             ext.prebid.floors = ExtPrebidFloors.extPrebidFloors
         }
 
@@ -393,12 +401,91 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "PBS should not fetch data from floors provider"
         assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 0
 
-        then: "Bidder request should contain bidFloor from request"
+        and: "Bidder request should contain bidFloor from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0]?.bidFloor == bidRequest.imp[0].bidFloor as Long
 
         where:
         fetch << [new PriceFloorsFetch(enabled: false, url: fetchUrl), new PriceFloorsFetch(url: fetchUrl)]
+    }
+
+    @PendingFeature
+    def "PBS should fetch data from provider when use-dynamic-data = true"() {
+        given: "Pbs with PF configuration with useDynamicData"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "Default BidRequest with ext.prebid.floors"
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.fetch.enabled = true
+        }
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should fetch data from floors provider"
+        assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 1
+
+        and: "Bidder request should contain bidFloor from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
+
+        where:
+        pbsConfigUseDynamicData | accountUseDynamicData
+        false                   | true
+        true                    | true
+        true                    | null
+    }
+
+    @PendingFeature
+    def "PBS should process floors from request when use-dynamic-data = false"() {
+        given: "Pbs with PF configuration with useDynamicData"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "BidRequest with floors"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with fetch.enabled, fetch.url, useDynamicData in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.useDynamicData = accountUseDynamicData
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should fetch data from floors provider"
+        assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 1
+
+        and: "Bidder request should contain bidFloor from request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0]?.bidFloor == bidRequest.imp[0].bidFloor as Long
+
+        where:
+        pbsConfigUseDynamicData | accountUseDynamicData
+        true                    | false
+        false                   | false
+        false                   | null
     }
 
     @PendingFeature
@@ -411,7 +498,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -450,7 +537,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -490,7 +577,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -531,7 +618,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -574,7 +661,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -617,7 +704,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -671,7 +758,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics(pbsService)
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -711,7 +798,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         flushMetrics()
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with maxFileSizeKb in the DB"
         def accountId = bidRequest.site.publisher.id
@@ -750,7 +837,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     @PendingFeature
     def "PBS should prefer data from stored request when request doesn't contain floors data"() {
         given: "Default BidRequest with storedRequest"
-        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+        def bidRequest = request.tap {
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
         }
 
@@ -780,10 +867,14 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
                     storedRequestModel.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
             imp[0]?.ext?.prebid?.floors?.floorRuleValue ==
                     storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.ext?.prebid?.floors?.floorValue == storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0]?.ext?.prebid?.floors?.floorValue ==
+                    storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
 
             ext?.prebid?.floors == storedRequestModel.ext.prebid.floors
         }
+
+        where:
+        request << [BidRequest.defaultBidRequest, BidRequest.getDefaultBidRequest(APP)]
     }
 
     @PendingFeature
@@ -806,11 +897,48 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0]?.bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0]?.bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule == bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
+            imp[0]?.ext?.prebid?.floors?.floorRule ==
+                    bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
             imp[0]?.ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
             imp[0]?.ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
 
             ext?.prebid?.floors == bidRequest.ext.prebid.floors
+        }
+    }
+
+    @PendingFeature
+    def "PBS should prefer data from stored request when fetch is disabled in account config for amp request"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request with floors "
+        def ampStoredRequest = storedRequestWithFloors
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(ampRequest.account as String).tap {
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        when: "PBS processes amp request"
+        floorsPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain floors data from request"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll(bidderRequest) {
+            imp[0]?.bidFloor == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0]?.bidFloorCur == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].currency
+
+            imp[0]?.ext?.prebid?.floors?.floorRule ==
+                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
+            imp[0]?.ext?.prebid?.floors?.floorRuleValue ==
+                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0]?.ext?.prebid?.floors?.floorValue ==
+                    ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+
+            ext?.prebid?.floors == ampStoredRequest.ext.prebid.floors
         }
     }
 
@@ -833,8 +961,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
+        def floorValue = randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): randomFloorValue]
+            data.modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -844,14 +973,70 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from floors provider"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
+            imp[0]?.bidFloor == floorValue
+            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule == bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
 
-            ext?.prebid?.floors == bidRequest.ext.prebid.floors
+            ext?.prebid?.floors?.enabled
+            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
+            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.enforcement?.enforcePbs == floorsResponse.enforcement.enforcePbs
+            ext?.prebid?.floors?.enforcement?.floorDeals == floorsResponse.enforcement.floorDeals
+            ext?.prebid?.floors?.enforcement?.bidAdjustment == floorsResponse.enforcement.bidAdjustment
+            !ext?.prebid?.floors?.enforcement?.enforceRate
+            ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
+            ext?.prebid?.floors?.data == floorsResponse.data
+        }
+    }
+
+    @PendingFeature
+    def "PBS should prefer data from floors provider when floors data is defined in stored request for amp request"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request with floors "
+        def ampStoredRequest = storedRequestWithFloors
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(ampRequest.account as String)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups[0].values = [(rule): floorValue]
+        }
+        floorsProvider.setResponse(ampRequest.account as String, floorsResponse)
+
+        when: "PBS processes amp request"
+        floorsPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain floors data from floors provider"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll(bidderRequest) {
+            imp[0]?.bidFloor == floorValue
+            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
+
+            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+
+            ext?.prebid?.floors?.enabled
+            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
+            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.enforcement?.enforcePbs == floorsResponse.enforcement.enforcePbs
+            ext?.prebid?.floors?.enforcement?.floorDeals == floorsResponse.enforcement.floorDeals
+            ext?.prebid?.floors?.enforcement?.bidAdjustment == floorsResponse.enforcement.bidAdjustment
+            !ext?.prebid?.floors?.enforcement?.enforceRate
+            ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
+            ext?.prebid?.floors?.data == floorsResponse.data
         }
     }
 
@@ -866,7 +1051,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -900,7 +1085,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
                 ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.getDefaultBidRequest(APP)
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -935,6 +1120,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
             imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
             imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+
             ext?.prebid?.floors?.enabled
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
@@ -953,11 +1139,11 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest with floors"
         def floorValue = randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
-            ext?.prebid?.floors?.data?.modelGroups << ModelGroup.modelGroup
-            ext?.prebid?.floors?.data?.modelGroups?.first()?.values = [(rule): floorValue + 0.1]
-            ext?.prebid?.floors?.data?.modelGroups?.first()?.modelWeight = invalidModelWeight
-            ext?.prebid?.floors?.data?.modelGroups?.last()?.values = [(rule): floorValue]
-            ext?.prebid?.floors?.data?.modelGroups?.last()?.modelWeight = modelWeight
+            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
+            ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
+            ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue]
+            ext.prebid.floors.data.modelGroups.last().modelWeight = modelWeight
         }
 
         and: "Account with disabled fetch in the DB"
@@ -971,6 +1157,44 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to valid modelGroup"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].bidFloor == floorValue
+
+        and: "PBS should log warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message == ["placeholder"]
+
+        where:
+        invalidModelWeight << [0, -1, 1000000]
+    }
+
+    @PendingFeature
+    def "PBS should validate rules from amp request when modelWeight from request is invalid"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request with floors"
+        def floorValue = randomFloorValue
+        def ampStoredRequest = storedRequestWithFloors.tap {
+            ext.prebid.floors.data.modelGroups << ModelGroup.modelGroup
+            ext.prebid.floors.data.modelGroups.first().values = [(rule): floorValue + 0.1]
+            ext.prebid.floors.data.modelGroups.first().modelWeight = invalidModelWeight
+            ext.prebid.floors.data.modelGroups.last().values = [(rule): floorValue]
+            ext.prebid.floors.data.modelGroups.last().modelWeight = modelWeight
+        }
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(ampRequest.account as String).tap {
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request bidFloor should correspond to valid modelGroup"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         and: "PBS should log warning"

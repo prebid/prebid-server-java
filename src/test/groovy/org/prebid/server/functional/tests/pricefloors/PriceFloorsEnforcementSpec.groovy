@@ -61,7 +61,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidder.getRequest("imp[0].ext.bidder.firstParam", bidderAliasParam as String), aliasBidResponse)
 
-        when: "PBS processes auction request"
+        when: "PBS processes amp request"
         def response = floorsPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS should suppress bids lower than floorRuleValue"
@@ -192,7 +192,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     @PendingFeature
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
-        given: "Default basic  BidRequest with generic bidder with preferdeals = true"
+        given: "Pbs with PF configuration with enforceDealFloors"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.enforceDealFloors = false
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(preferdeals: true)
         }
@@ -223,7 +230,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should suppress bid lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.first()?.id == bidResponse.seatbid.first().bid.last().id
@@ -232,7 +239,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     @PendingFeature
     def "PBS should not suppress deal that are below the matched floor according to ext.prebid.floors.enforcement.enforcePBS"() {
-        given: "Default basic BidRequest with generic bidder with preferdeals = true"
+        given: "Pbs with PF configuration with enforceDealFloors"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.enforceDealFloors = pbsConfigEnforceDealFloors
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(preferdeals: true)
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: enforcePbs))
@@ -240,7 +254,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url, enforceDealFloors in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.enforceDealFloors = enforceDealFloors
+            config.auction.priceFloors.enforceDealFloors = accountEnforceDealFloors
         }
         accountDao.save(account)
 
@@ -272,15 +286,22 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid.first().bid.collect { it.price } == [dealBidPrice]
 
         where:
-        enforcePbs | enforceDealFloors | floorDeals
-        null       | false             | true
-        false      | true              | true
-        null       | true              | false
+        pbsConfigEnforceDealFloors | EnforceDealFloors | enforcePbs | accountEnforceDealFloors | floorDeals
+        true                       | null              | false      | true
+        false                      | false             | true       | true
+        false                      | null              | true       | false
     }
 
     @PendingFeature
     def "PBS should suppress any bids below the matched floor when fetch.enforce-floors-rate = 100 in account config"() {
-        given: "Default BidRequest"
+        given: "Pbs with PF configuration with minMaxAgeSec"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforceRate: enforceRate))
@@ -288,7 +309,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url, enforceFloorsRate in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.enforceFloorsRate = enforceFloorsRate
+            config.auction.priceFloors.enforceFloorsRate = accountEnforceFloorsRate
         }
         accountDao.save(account)
 
@@ -311,7 +332,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should suppress inappropriate bids"
         assert response.seatbid?.first()?.bid?.size() == 1
@@ -323,14 +344,22 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.ext?.prebid?.floors?.enforcement?.enforcePbs
 
         where:
-        enforceRate | enforceFloorsRate
-        null        | 100
-        100         | null
+        pbsConfigEnforceFloorsRate       | enforceRate | accountEnforceFloorsRate
+        PBSUtils.getRandomNumber(0, 100) | null        | 100
+        PBSUtils.getRandomNumber(0, 100) | 100         | null
+        100                              | null        | null
     }
 
     @PendingFeature
     def "PBS should not suppress any bids below the matched floor when fetch.enforce-floors-rate = 0 in account config"() {
-        given: "Default BidRequest"
+        given: "Pbs with PF configuration with minMaxAgeSec"
+        def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
+            auction.priceFloors.enforceFloorsRate = pbsConfigEnforceFloorsRate
+        }
+        def pbsService = pbsServiceFactory.getService(floorsConfig +
+                ["settings.default-account-config": mapper.encode(defaultAccountConfigSettings)])
+
+        and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforceRate: enforceRate))
@@ -338,7 +367,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url, enforceFloorsRate in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.enforceFloorsRate = enforceFloorsRate
+            config.auction.priceFloors.enforceFloorsRate = accountEnforceFloorsRate
         }
         accountDao.save(account)
 
@@ -361,7 +390,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should not suppress bids"
         assert response.seatbid?.first()?.bid?.size() == 2
@@ -372,10 +401,11 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert !bidderRequest.ext?.prebid?.floors?.enforcement?.enforcePbs
 
         where:
-        enforceRate | enforceFloorsRate
-        null        | 0
-        0           | null
-        100         | 0
-        0           | 100
+        pbsConfigEnforceFloorsRate       | enforceRate | accountEnforceFloorsRate
+        PBSUtils.getRandomNumber(0, 100) | null        | 0
+        0                                | 0           | null
+        PBSUtils.getRandomNumber(0, 100) | 100         | 0
+        PBSUtils.getRandomNumber(0, 100) | 0           | 100
+        0                                | null        | null
     }
 }
