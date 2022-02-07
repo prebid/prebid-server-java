@@ -230,6 +230,88 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldReturnNullWhenNoDomainPresent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
+                        .value("pubDomain", BigDecimal.TEN)
+                        .build(),
+                givenImp(identity()), "USD")).isNull();
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForDomainPresentedBySite() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder().domain("siteDomain").build())
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
+                        .value("siteDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForDomainPresentedByApp() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder().domain("appDomain").build())
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
+                        .value("appDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForDomainPresentedBySitePublisher() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .site(Site.builder()
+                        .publisher(Publisher.builder().domain("siteDomain").build())
+                        .build())
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
+                        .value("siteDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorForDomainPresentedByAppPublisher() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.domain)))
+                        .value("appDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
     public void resolveShouldReturnNullWhenNoBundlePresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
@@ -311,6 +393,24 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldReturnPriceFloorForCatchAllImpMediaTypeWhenImpContainsMoreThanOneType() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .value("banner", BigDecimal.ONE)
+                        .value("*", BigDecimal.TEN)
+                        .value("video", BigDecimal.ONE)
+                        .build(),
+                givenImp(impBuilder -> impBuilder
+                        .video(Video.builder().build())), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
     public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsBannerAndRuleMediaTypeIsBanner() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
@@ -343,8 +443,6 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .isEqualTo(BigDecimal.TEN);
     }
 
-    // TODO Uncomment or delete after instream-video question resolution
-    /*
     @Test
     public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsVideoInStreamAndRuleMediaTypeIsVideoInstream() {
         // given
@@ -361,7 +459,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .video(Video.builder().placement(1).build())),
                 "USD").getFloorValue())
                 .isEqualTo(BigDecimal.TEN);
-    }*/
+    }
 
     @Test
     public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsNativeAndRuleMediaTypeIsNative() {
@@ -557,6 +655,25 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .build(),
                 givenImp(impBuilder -> impBuilder.ext(impExt)), "USD"))
                 .isNull();
+    }
+
+    @Test
+    public void resolveShouldReturnPriceFloorFromPbAdSlotIfAdserverNameIsNotGamAndAdSlotMatchesRule() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final ObjectNode impExt = mapper.createObjectNode();
+        final ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("pbadslot", "somePbAdSlot");
+        impExt.set("data", dataNode);
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.gptSlot)))
+                        .value("somePbAdSlot", BigDecimal.TEN)
+                        .build(),
+                givenImp(impBuilder -> impBuilder.ext(impExt)), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
     }
 
     @Test

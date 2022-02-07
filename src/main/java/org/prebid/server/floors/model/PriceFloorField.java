@@ -2,5 +2,5 @@ package org.prebid.server.floors.model;
 
 public enum PriceFloorField {
 
-    siteDomain, pubDomain, bundle, channel, mediaType, size, gptSlot, pbAdSlot, country, devicetype
+    siteDomain, pubDomain, domain, bundle, channel, mediaType, size, gptSlot, pbAdSlot, country, devicetype
 }

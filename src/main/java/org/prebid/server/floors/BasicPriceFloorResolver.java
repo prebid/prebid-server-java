@@ -2,7 +2,6 @@ package org.prebid.server.floors;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -17,6 +16,8 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.IterableUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -39,6 +40,8 @@ import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -60,6 +63,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private static final String DEFAULT_RULES_CURRENCY = "USD";
     private static final String SCHEMA_DEFAULT_DELIMITER = "|";
     private static final String WILDCARD_CATCH_ALL = "*";
+    private static final String VIDEO_ALIAS = "video-instream";
     private static final JsonPointer PB_ADSLOT_POINTER = JsonPointer.valueOf("/data/pbadslot");
     private static final JsonPointer ADSLOT_POINTER = JsonPointer.valueOf("/data/adserver/adslot");
     private static final JsonPointer ADSERVER_NAME_POINTER = JsonPointer.valueOf("/data/adserver/name");
@@ -100,7 +104,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         final String delimiter = ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER);
-        final List<String> desiredRuleKey = createRuleKey(schema, bidRequest, imp, mediaType, format);
+        final List<List<String>> desiredRuleKey = createRuleKey(schema, bidRequest, imp, mediaType, format);
 
         final Map<String, BigDecimal> rules = keysToLowerCase(modelGroup.getValues());
 
@@ -113,40 +117,46 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return resolveResult(floor, rule, floorForRule, bidRequest, modelGroup.getCurrency(), currency);
     }
 
-    private List<String> createRuleKey(PriceFloorSchema schema,
+    private List<List<String>> createRuleKey(PriceFloorSchema schema,
+                                             BidRequest bidRequest,
+                                             Imp imp,
+                                             ImpMediaType mediaType,
+                                             Format format) {
+
+        return schema.getFields().stream()
+                .map(field -> toFieldValues(field, bidRequest, imp, mediaType, format))
+                .map(BasicPriceFloorResolver::prepareFieldValues)
+                .collect(Collectors.toList());
+    }
+
+    private List<String> toFieldValues(PriceFloorField field,
                                        BidRequest bidRequest,
                                        Imp imp,
                                        ImpMediaType mediaType,
                                        Format format) {
 
-        return schema.getFields().stream()
-                .map(field -> toFieldValue(field, bidRequest, imp, mediaType, format))
-                .map(fieldValue -> ObjectUtils.firstNonNull(fieldValue, StringUtils.EMPTY))
-                .map(String::toLowerCase)
-                .collect(Collectors.toList());
-    }
-
-    private String toFieldValue(PriceFloorField field,
-                                BidRequest bidRequest,
-                                Imp imp,
-                                ImpMediaType mediaType,
-                                Format format) {
-
-        final ImpMediaType resolvedMediaType = ObjectUtils.defaultIfNull(mediaType, mediaTypeFromImp(imp));
+        final List<ImpMediaType> resolvedMediaTypes;
+        if (mediaType != null) {
+            resolvedMediaTypes = Collections.singletonList(mediaType);
+        } else {
+            resolvedMediaTypes = mediaTypesFromImp(imp);
+        }
 
         switch (field) {
             case siteDomain:
                 return siteDomainFromRequest(bidRequest);
             case pubDomain:
                 return pubDomainFromRequest(bidRequest);
+            case domain:
+                return domainFromRequest(bidRequest);
             case bundle:
                 return bundleFromRequest(bidRequest);
             case channel:
                 return channelFromRequest(bidRequest);
             case mediaType:
-                return resolvedMediaType.toString();
+                return mediaTypeToRuleKey(resolvedMediaTypes);
             case size:
-                return sizeFromFormat(ObjectUtils.defaultIfNull(format, formatFromImp(imp, resolvedMediaType)));
+                return sizeFromFormat(ObjectUtils.defaultIfNull(format, formatFromImp(imp, resolvedMediaTypes)));
             case gptSlot:
                 return gptAdSlotFromImp(imp);
             case pbAdSlot:
@@ -160,75 +170,103 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
     }
 
-    private static String siteDomainFromRequest(BidRequest bidRequest) {
-        final Site site = bidRequest.getSite();
-        final String siteDomain = ObjectUtil.getIfNotNull(site, Site::getDomain);
-
-        if (StringUtils.isNotEmpty(siteDomain)) {
-            return siteDomain;
-        }
-
-        final App app = bidRequest.getApp();
-
-        return ObjectUtil.getIfNotNull(app, App::getDomain);
-    }
-
-    private static String pubDomainFromRequest(BidRequest bidRequest) {
-        final Site site = bidRequest.getSite();
-        final Publisher sitePublisher = ObjectUtil.getIfNotNull(site, Site::getPublisher);
-        final String sitePublisherDomain = ObjectUtil.getIfNotNull(sitePublisher, Publisher::getDomain);
-
-        if (StringUtils.isNotEmpty(sitePublisherDomain)) {
-            return sitePublisherDomain;
-        }
-
-        final App app = bidRequest.getApp();
-        final Publisher appPublisher = ObjectUtil.getIfNotNull(app, App::getPublisher);
-
-        return ObjectUtil.getIfNotNull(appPublisher, Publisher::getDomain);
-    }
-
-    private static String bundleFromRequest(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-
-        return ObjectUtil.getIfNotNull(app, App::getBundle);
-    }
-
-    private static String channelFromRequest(BidRequest bidRequest) {
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
-        final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
-
-        return ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
-    }
-
-    private static ImpMediaType mediaTypeFromImp(Imp imp) {
+    private static List<ImpMediaType> mediaTypesFromImp(Imp imp) {
+        final List<ImpMediaType> impMediaTypes = new ArrayList<>();
         if (imp.getBanner() != null) {
-            return ImpMediaType.banner;
+            impMediaTypes.add(ImpMediaType.banner);
         }
 
         final Video video = imp.getVideo();
         if (imp.getVideo() != null) {
             if (Objects.equals(video.getPlacement(), 1)) {
-                // TODO: How to manage instream-video in rule?
-                return ImpMediaType.video;
+                impMediaTypes.add(ImpMediaType.video);
+            } else {
+                impMediaTypes.add(ImpMediaType.video_outstream);
             }
-
-            return ImpMediaType.video_outstream;
         }
 
         if (imp.getXNative() != null) {
-            return ImpMediaType.xNative;
+            impMediaTypes.add(ImpMediaType.xNative);
         }
 
         if (imp.getAudio() != null) {
-            return ImpMediaType.audio;
+            impMediaTypes.add(ImpMediaType.audio);
         }
 
-        throw new IllegalStateException("Impossible do define type for imp with id: " + imp.getId());
+        return impMediaTypes;
     }
 
-    private static Format formatFromImp(Imp imp, ImpMediaType mediaType) {
+    private static List<String> siteDomainFromRequest(BidRequest bidRequest) {
+        final Site site = bidRequest.getSite();
+        final String siteDomain = ObjectUtil.getIfNotNull(site, Site::getDomain);
+
+        if (StringUtils.isNotEmpty(siteDomain)) {
+            return Collections.singletonList(siteDomain);
+        }
+
+        final App app = bidRequest.getApp();
+        final String appDomain = ObjectUtil.getIfNotNull(app, App::getDomain);
+
+        return Collections.singletonList(appDomain);
+    }
+
+    private static List<String> pubDomainFromRequest(BidRequest bidRequest) {
+        final Site site = bidRequest.getSite();
+        final Publisher sitePublisher = ObjectUtil.getIfNotNull(site, Site::getPublisher);
+        final String sitePublisherDomain = ObjectUtil.getIfNotNull(sitePublisher, Publisher::getDomain);
+
+        if (StringUtils.isNotEmpty(sitePublisherDomain)) {
+            return Collections.singletonList(sitePublisherDomain);
+        }
+
+        final App app = bidRequest.getApp();
+        final Publisher appPublisher = ObjectUtil.getIfNotNull(app, App::getPublisher);
+        final String appPublisherDomain = ObjectUtil.getIfNotNull(appPublisher, Publisher::getDomain);
+
+        return Collections.singletonList(appPublisherDomain);
+    }
+
+    private static List<String> domainFromRequest(BidRequest bidRequest) {
+        return ListUtils.union(siteDomainFromRequest(bidRequest), pubDomainFromRequest(bidRequest));
+    }
+
+    private static List<String> bundleFromRequest(BidRequest bidRequest) {
+        final App app = bidRequest.getApp();
+        final String appBundle = ObjectUtil.getIfNotNull(app, App::getBundle);
+
+        return Collections.singletonList(appBundle);
+    }
+
+    private static List<String> channelFromRequest(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+        final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
+        final String channelName = ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
+
+        return Collections.singletonList(channelName);
+    }
+
+    private static List<String> mediaTypeToRuleKey(List<ImpMediaType> impMediaTypes) {
+
+        if (CollectionUtils.isEmpty(impMediaTypes) || CollectionUtils.size(impMediaTypes) > 1) {
+            return Collections.singletonList(WILDCARD_CATCH_ALL);
+        }
+
+        final ImpMediaType impMediaType = impMediaTypes.get(0);
+
+        if (impMediaType == ImpMediaType.video) {
+            return List.of(impMediaType.toString(), VIDEO_ALIAS);
+        }
+
+        return Collections.singletonList(impMediaType.toString());
+    }
+
+    private static Format formatFromImp(Imp imp, List<ImpMediaType> mediaTypes) {
+        if (CollectionUtils.isEmpty(mediaTypes) || CollectionUtils.size(mediaTypes) > 1) {
+            return null;
+        }
+
+        final ImpMediaType mediaType = mediaTypes.get(0);
         if (mediaType == ImpMediaType.banner) {
             final Banner banner = imp.getBanner();
             final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
@@ -262,28 +300,31 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return null;
     }
 
-    private static String sizeFromFormat(Format size) {
-        return size != null
+    private static List<String> sizeFromFormat(Format size) {
+        final String sizeRuleKey = size != null
                 ? String.format("%dx%d", size.getW(), size.getH())
                 : WILDCARD_CATCH_ALL;
+
+        return Collections.singletonList(sizeRuleKey);
     }
 
-    private static String gptAdSlotFromImp(Imp imp) {
+    private static List<String> gptAdSlotFromImp(Imp imp) {
         final ObjectNode impExt = imp.getExt();
 
         if (impExt == null) {
-            return null;
+            return Collections.singletonList(WILDCARD_CATCH_ALL);
         }
 
         final JsonNode adServerNameNode = impExt.at(ADSERVER_NAME_POINTER);
         final JsonNode adSlotNode = adServerNameNode.isTextual() && Objects.equals(adServerNameNode.asText(), "gam")
                 ? impExt.at(ADSLOT_POINTER)
-                : MissingNode.getInstance();
+                : impExt.at(PB_ADSLOT_POINTER);
+        final String gptAdSlot = !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
 
-        return !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
+        return Collections.singletonList(gptAdSlot);
     }
 
-    private static String pbAdSlotFromImp(Imp imp) {
+    private static List<String> pbAdSlotFromImp(Imp imp) {
         final ObjectNode impExt = imp.getExt();
 
         if (impExt == null) {
@@ -291,44 +332,58 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         final JsonNode adSlotNode = impExt.at(PB_ADSLOT_POINTER);
+        final String adSlot = !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
 
-        return !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
+        return Collections.singletonList(adSlot);
     }
 
-    private String countryFromRequest(BidRequest bidRequest) {
+    private List<String> countryFromRequest(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
         final String country = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
         final String alpha3Code = StringUtils.isNotBlank(country) ? countryCodeMapper.mapToAlpha3(country) : null;
+        final String countryRuleKey = StringUtils.isNotBlank(alpha3Code) ? alpha3Code : country;
 
-        return StringUtils.isNotBlank(alpha3Code) ? alpha3Code : country;
+        return Collections.singletonList(countryRuleKey);
     }
 
-    public static String resolveDeviceTypeFromRequest(BidRequest bidRequest) {
+    public static List<String> resolveDeviceTypeFromRequest(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         final String userAgent = ObjectUtil.getIfNotNull(device, Device::getUa);
 
         if (StringUtils.isBlank(userAgent)) {
-            return null;
+            return Collections.singletonList(WILDCARD_CATCH_ALL);
         }
 
-        // TODO Should they contain or match?
         for (String pattern : PHONE_PATTERNS) {
             if (userAgent.matches(pattern)) {
-                return DeviceType.phone.name();
+                return Collections.singletonList(DeviceType.phone.name());
             }
         }
 
         for (String pattern : TABLET_PATTERNS) {
             if (userAgent.matches(pattern)) {
-                return DeviceType.tablet.name();
+                return Collections.singletonList(DeviceType.tablet.name());
             }
         }
 
-        return DeviceType.desktop.name();
+        return Collections.singletonList(DeviceType.desktop.name());
     }
 
-    private static String findRule(Map<String, BigDecimal> rules, String delimiter, List<String> desiredRuleKey) {
+    private static List<String> prepareFieldValues(List<String> fieldValues) {
+        final List<String> preparedFieldValues = CollectionUtils.emptyIfNull(fieldValues).stream()
+                .filter(StringUtils::isNotEmpty)
+                .map(String::toLowerCase)
+                .collect(Collectors.toList());
+
+        if (CollectionUtils.isEmpty(preparedFieldValues)) {
+            return Collections.singletonList(WILDCARD_CATCH_ALL);
+        }
+
+        return preparedFieldValues;
+    }
+
+    private static String findRule(Map<String, BigDecimal> rules, String delimiter, List<List<String>> desiredRuleKey) {
         return RuleKeyCandidateIterator.from(desiredRuleKey, delimiter).asStream()
                 .filter(rules::containsKey)
                 .filter(Objects::nonNull)
@@ -425,14 +480,14 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static class RuleKeyCandidateIterator implements Iterator<String> {
 
-        private final List<String> desiredRuleKey;
+        private final List<List<String>> desiredRuleKey;
         private final String delimiter;
 
         private int wildcardNum;
         private Iterator<String> currentIterator = null;
         private final List<Integer> implicitWildcardIndexes;
 
-        private RuleKeyCandidateIterator(List<String> desiredRuleKey, String delimiter) {
+        private RuleKeyCandidateIterator(List<List<String>> desiredRuleKey, String delimiter) {
             this.desiredRuleKey = desiredRuleKey;
             this.delimiter = delimiter;
 
@@ -440,7 +495,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             wildcardNum = implicitWildcardIndexes.size();
         }
 
-        public static RuleKeyCandidateIterator from(List<String> desiredRuleKey, String delimiter) {
+        public static RuleKeyCandidateIterator from(List<List<String>> desiredRuleKey, String delimiter) {
             return new RuleKeyCandidateIterator(desiredRuleKey, delimiter);
         }
 
@@ -478,21 +533,21 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                     Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
         }
 
-        private static List<Integer> findImplicitWildcards(List<String> desiredRuleKey) {
+        private static List<Integer> findImplicitWildcards(List<List<String>> desiredRuleKey) {
             return IntStream.range(0, desiredRuleKey.size())
-                    .filter(i -> desiredRuleKey.get(i).equals(WILDCARD_CATCH_ALL))
+                    .filter(i -> desiredRuleKey.get(i).get(0).equals(WILDCARD_CATCH_ALL))
                     .boxed()
                     .collect(Collectors.toList());
         }
 
-        private Iterator<String> createIterator(int wildcardNum, List<String> desiredRuleKey, String delimiter) {
+        private Iterator<String> createIterator(int wildcardNum, List<List<String>> desiredRuleKey, String delimiter) {
             final int ruleSegmentsNum = desiredRuleKey.size();
 
             return asStream(CombinatoricsUtils.combinationsIterator(ruleSegmentsNum, wildcardNum))
                     .map(combination -> IntStream.of(combination).boxed().collect(Collectors.toList()))
                     .filter(combination -> combination.containsAll(implicitWildcardIndexes))
                     .sorted(Comparator.comparingInt(combination -> calculateWeight(combination, ruleSegmentsNum)))
-                    .map(combination -> combinationToCandidate(combination, desiredRuleKey, delimiter))
+                    .flatMap(combination -> combinationToCandidate(combination, desiredRuleKey, delimiter).stream())
                     .iterator();
         }
 
@@ -502,16 +557,61 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                     .sum();
         }
 
-        private static String combinationToCandidate(List<Integer> combination,
-                                                     List<String> desiredRuleKey,
-                                                     String delimiter) {
+        private static Set<String> combinationToCandidate(List<Integer> combination,
+                                                          List<List<String>> desiredRuleKey,
+                                                          String delimiter) {
 
-            final List<String> candidate = new ArrayList<>(desiredRuleKey);
+            int biggestRuleKeySize = desiredRuleKey.stream().mapToInt(List::size)
+                    .boxed()
+                    .max(Integer::compare)
+                    .orElse(0);
+
+            final List<List<String>> candidates = IntStream.range(0, desiredRuleKey.size())
+                    .boxed()
+                    .map(position -> candidatesForPosition(position, desiredRuleKey, biggestRuleKeySize))
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList());
+
             for (final int positionToReplace : combination) {
-                candidate.set(positionToReplace, WILDCARD_CATCH_ALL);
+                candidates.forEach(candidate -> candidate.set(positionToReplace, WILDCARD_CATCH_ALL));
             }
 
-            return String.join(delimiter, candidate);
+            return candidates.stream()
+                    .map(candidate -> String.join(delimiter, candidate))
+                    .collect(Collectors.toSet());
+        }
+
+        private static List<List<String>> candidatesForPosition(int multPosition,
+                                                                List<List<String>> desiredRuleKey,
+                                                                int biggestRuleKeySize) {
+            return desiredRuleKey.get(multPosition).stream()
+                    .flatMap(ruleKey -> IntStream.range(0, biggestRuleKeySize)
+                            .mapToObj(i -> candidateForPosition(desiredRuleKey, ruleKey, multPosition, i)))
+                    .collect(Collectors.toList());
+        }
+
+        private static List<String> candidateForPosition(List<List<String>> desiredRuleKey,
+                                                         String currentRuleKey,
+                                                         int currentPosition,
+                                                         int position) {
+
+            return IntStream.range(0, desiredRuleKey.size())
+                    .mapToObj(index -> {
+                        if (index == currentPosition) {
+                            return currentRuleKey;
+                        } else {
+                            return getLastOrNext(desiredRuleKey.get(index), position);
+                        }
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        private static String getLastOrNext(List<String> ruleKeys, int index) {
+            if (ruleKeys.size() <= index) {
+                return ruleKeys.get(ruleKeys.size() - 1);
+            }
+
+            return IterableUtils.get(ruleKeys, index);
         }
     }
 }
