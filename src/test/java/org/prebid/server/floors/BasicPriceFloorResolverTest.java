@@ -24,6 +24,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -43,6 +44,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 
 public class BasicPriceFloorResolverTest extends VertxTest {
 
@@ -748,12 +750,13 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequest,
+        final BigDecimal floorValue = priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
                         .value("tablet", BigDecimal.TEN)
                         .build(),
-                givenImp(identity()), "USD").getFloorValue())
+                givenImp(identity()), "USD").getFloorValue();
+        assertThat(floorValue)
                 .isEqualTo(BigDecimal.TEN);
     }
 
@@ -1008,6 +1011,102 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .h(250)
                         .build())), "USD").getFloorRule())
                 .isEqualTo("desktop|banner|300x250");
+    }
+
+    @Test
+    public void resolveShouldReturnEffectiveFloorMinIfCurrencyIsTheSameAndAllFloorsResolved() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.TEN)
+                                .floorMinCur("USD")
+                                .build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), null).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void resolveShouldReturnEffectiveFloorIfDesiredCurrencyNotNullAndFloorMinLessThanFloor() {
+        // given
+        when(currencyConversionService.convertCurrency(any(), any(), eq("EUR"), any()))
+                .thenReturn(BigDecimal.valueOf(1L));
+        when(currencyConversionService.convertCurrency(any(), any(), eq("USD"), any()))
+                .thenReturn(BigDecimal.valueOf(2L));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.TEN)
+                                .floorMinCur("EUR")
+                                .build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.TEN)
+                        .build(), givenImp(identity()), "USD").getFloorValue())
+                .isEqualTo(BigDecimal.valueOf(2L));
+    }
+
+    @Test
+    public void resolveShouldReturnCorrectValueAfterRoundingUp() {
+        // given
+        final BidRequest bidRequestTrimToFourDecimal = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.valueOf(9.00009D))
+                                .floorMinCur("USD")
+                                .build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequestTrimToWhole = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.valueOf(9.99999D))
+                                .floorMinCur("USD")
+                                .build())
+                        .build()))
+                .build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequestTrimToFourDecimal,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.valueOf(9.00009D))
+                        .build(), givenImp(identity()), null).getFloorValue())
+                .isEqualTo(BigDecimal.valueOf(9.0001D));
+
+        assertThat(priceFloorResolver.resolve(bidRequestTrimToWhole,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.valueOf(9.00009D))
+                        .build(), givenImp(identity()), null).getFloorValue())
+                .isEqualTo(BigDecimal.valueOf(10));
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
