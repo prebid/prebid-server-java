@@ -9,6 +9,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -204,7 +205,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
         }
 
         final byte[] body = httpClientResponse.getBody();
-        if (StringUtils.isEmpty(JacksonMapper.asString(body))) {
+        if (ArrayUtils.isEmpty(body)) {
             throw makeFailedCategoryFetchException(url, "Response body is null or empty");
         }
 

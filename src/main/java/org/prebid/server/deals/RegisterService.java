@@ -6,7 +6,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.events.AdminEventService;
 import org.prebid.server.deals.model.AdminCentralResponse;
@@ -157,25 +157,24 @@ public class RegisterService implements Initializable, Suspendable {
             final HttpClientResponse response = asyncResult.result();
             final int statusCode = response.getStatusCode();
             final byte[] responseBody = response.getBody();
-            final String bodyAsString = JacksonMapper.asString(responseBody);
             if (statusCode == HttpResponseStatus.OK.code()) {
-                if (StringUtils.isNotBlank(bodyAsString)) {
-                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody, bodyAsString));
+                if (ArrayUtils.isNotEmpty(responseBody)) {
+                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody));
                 }
                 alertHttpService.resetAlertCount(PBS_REGISTER_CLIENT_ERROR);
             } else {
                 final String errorMessage = String.format("Planner responded with non-successful code %s,"
-                        + " response: %s", statusCode, bodyAsString);
+                        + " response: %s", statusCode, JacksonMapper.asString(responseBody));
                 alert(errorMessage, logger::warn);
             }
         }
     }
 
-    private AdminCentralResponse parseRegisterResponse(byte[] responseBody, String bodyAsString) {
+    private AdminCentralResponse parseRegisterResponse(byte[] body) {
         try {
-            return mapper.decodeValue(responseBody, AdminCentralResponse.class);
+            return mapper.decodeValue(body, AdminCentralResponse.class);
         } catch (DecodeException e) {
-            String errorMessage = String.format("Cannot parse register response: %s", bodyAsString);
+            String errorMessage = String.format("Cannot parse register response: %s", JacksonMapper.asString(body));
             alert(errorMessage, logger::warn);
             throw new PreBidException(errorMessage, e);
         }
