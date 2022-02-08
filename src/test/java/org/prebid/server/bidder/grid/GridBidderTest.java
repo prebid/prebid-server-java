@@ -12,10 +12,12 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.grid.model.responce.GridBid;
+import org.prebid.server.bidder.grid.model.responce.GridBidResponse;
+import org.prebid.server.bidder.grid.model.responce.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -24,11 +26,11 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.bidder.grid.model.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
@@ -327,6 +329,26 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBannerBidderBidIfIsPresentContentTypeBannerAtGridBid()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(gridBidBuilder -> gridBidBuilder.impid("123").contentType(banner))));
+
+        // when
+        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldModifyBidExtWithMetaIfDemandSourceIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
@@ -358,18 +380,19 @@ public class GridBidderTest extends VertxTest {
                 .containsExactly(expectedBidExt);
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
-                                                UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidResponseCustomizer.apply(
-                        BidResponse.builder()
+    private static GridBidResponse givenBidResponse(
+            UnaryOperator<GridBidResponse.GridBidResponseBuilder> gridBidResponse,
+            UnaryOperator<GridBid.GridBidBuilder> bidCustomizer) {
+        return gridBidResponse.apply(
+                        GridBidResponse.builder()
                                 .cur("USD")
-                                .seatbid(singletonList(SeatBid.builder()
-                                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                                .seatbid(singletonList(GridSeatBid.builder()
+                                        .bid(singletonList(bidCustomizer.apply(GridBid.builder()).build()))
                                         .build())))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+    private static GridBidResponse givenBidResponse(UnaryOperator<GridBid.GridBidBuilder> bidCustomizer) {
         return givenBidResponse(identity(), bidCustomizer);
     }
 
