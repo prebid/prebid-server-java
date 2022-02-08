@@ -436,7 +436,7 @@ public class BeachfrontBidder implements Bidder<Void> {
      */
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final String bodyString = httpCall.getResponse().getBody();
+        final byte[] bodyString = httpCall.getResponse().getBody();
         final List<BidderBid> processedBidderBids = new ArrayList<>();
 
         try {
@@ -455,7 +455,7 @@ public class BeachfrontBidder implements Bidder<Void> {
     /**
      * Creates response for banner response, by creating response {@link Bid} from {@link BeachfrontResponseSlot}.
      */
-    private List<BidderBid> processBannerResponse(String responseBody) {
+    private List<BidderBid> processBannerResponse(byte[] responseBody) {
         return makeBeachfrontResponseSlots(responseBody).stream()
                 .filter(Objects::nonNull)
                 .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
@@ -468,7 +468,7 @@ public class BeachfrontBidder implements Bidder<Void> {
      * <p>
      * Throws {@link PreBidException} in case of failure.
      */
-    private List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(String responseBody) {
+    private List<BeachfrontResponseSlot> makeBeachfrontResponseSlots(byte[] responseBody) {
         try {
             return mapper.mapper().readValue(
                     responseBody,
@@ -495,7 +495,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 .build();
     }
 
-    private List<BidderBid> processVideoResponse(String responseBody, HttpRequest<Void> httpRequest) {
+    private List<BidderBid> processVideoResponse(byte[] responseBody, HttpRequest<Void> httpRequest) {
         final BidResponse bidResponse = mapper.decodeValue(responseBody, BidResponse.class);
         final BeachfrontVideoRequest videoRequest = mapper.decodeValue(
                 httpRequest.getBody(), BeachfrontVideoRequest.class);

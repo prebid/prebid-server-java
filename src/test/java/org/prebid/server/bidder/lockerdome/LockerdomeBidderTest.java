@@ -215,6 +215,6 @@ public class LockerdomeBidderTest extends VertxTest {
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(HttpRequest.<BidRequest>builder().build(),
-                HttpResponse.of(200, null, body), null);
+                HttpResponse.of(200, null, body.getBytes()), null);
     }
 }

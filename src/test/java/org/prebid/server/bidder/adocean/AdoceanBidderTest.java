@@ -527,6 +527,6 @@ public class AdoceanBidderTest extends VertxTest {
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"
                                 + "&nc=1&nosecure=1&pbsrv_v=1.0.0")
                         .build(),
-                HttpResponse.of(200, null, responseBody), null);
+                HttpResponse.of(200, null, responseBody.getBytes()), null);
     }
 }

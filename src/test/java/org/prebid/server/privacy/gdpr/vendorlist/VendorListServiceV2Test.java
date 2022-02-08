@@ -298,7 +298,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldNotAskToSaveFileIfResponseBodyCouldNotBeParsed() {
         // given
-        givenHttpClientReturnsResponse(200, "response");
+        givenHttpClientReturnsResponse(200, "response".getBytes());
 
         // when
         vendorListService.forVersion(1);
@@ -312,7 +312,7 @@ public class VendorListServiceV2Test extends VertxTest {
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidVendorListVersion() throws JsonProcessingException {
         // given
         final VendorListV2 vendorList = VendorListV2.of(null, null, null);
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         // when
         vendorListService.forVersion(1);
@@ -326,7 +326,7 @@ public class VendorListServiceV2Test extends VertxTest {
     public void shouldNotAskToSaveFileIfFetchedVendorListHasInvalidLastUpdated() throws JsonProcessingException {
         // given
         final VendorListV2 vendorList = VendorListV2.of(1, null, null);
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         // when
         vendorListService.forVersion(1);
@@ -340,7 +340,7 @@ public class VendorListServiceV2Test extends VertxTest {
     public void shouldNotAskToSaveFileIfFetchedVendorListHasNoVendors() throws JsonProcessingException {
         // given
         final VendorListV2 vendorList = VendorListV2.of(1, new Date(), null);
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         // when
         vendorListService.forVersion(1);
@@ -354,7 +354,7 @@ public class VendorListServiceV2Test extends VertxTest {
     public void shouldNotAskToSaveFileIfFetchedVendorListHasEmptyVendors() throws JsonProcessingException {
         // given
         final VendorListV2 vendorList = VendorListV2.of(1, new Date(), emptyMap());
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         // when
         vendorListService.forVersion(1);
@@ -368,7 +368,7 @@ public class VendorListServiceV2Test extends VertxTest {
     public void shouldNotAskToSaveFileIfFetchedVendorListHasAtLeastOneInvalidVendor() throws JsonProcessingException {
         // given
         final VendorListV2 vendorList = VendorListV2.of(1, new Date(), singletonMap(1, VendorV2.builder().build()));
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         // when
         vendorListService.forVersion(1);
@@ -383,7 +383,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldSaveFileWithExpectedPathAndContentIfVendorListNotFound() throws JsonProcessingException {
         // given
-        final String vendorListAsString = mapper.writeValueAsString(givenVendorList());
+        final byte[] vendorListAsString = mapper.writeValueAsBytes(givenVendorList());
         givenHttpClientReturnsResponse(200, vendorListAsString);
         // generate file path to avoid conflicts with path separators in different OS
         final String filePath = new File("/cache/dir/1.json").getPath();
@@ -426,7 +426,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldReturnVendorListFromCache() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(givenVendorList()));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
@@ -474,7 +474,7 @@ public class VendorListServiceV2Test extends VertxTest {
         idToVendor.put(42, secondExternalV2);
 
         final VendorListV2 vendorList = VendorListV2.of(1, new Date(), idToVendor);
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(vendorList));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
@@ -490,7 +490,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldReturnFallbackIfVendorListNotFound() {
         // given
-        givenHttpClientReturnsResponse(404, StringUtils.EMPTY);
+        givenHttpClientReturnsResponse(404, StringUtils.EMPTY.getBytes());
 
         // when
 
@@ -542,7 +542,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldIncrementVendorListErrorMetricWhenFileIsNotSaved() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(givenVendorList()));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture("error")));
@@ -557,7 +557,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldIncrementVendorListOkMetric() throws JsonProcessingException {
         // given
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(givenVendorList()));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(givenVendorList()));
 
         given(fileSystem.writeFile(anyString(), any(), any()))
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
@@ -572,7 +572,7 @@ public class VendorListServiceV2Test extends VertxTest {
     @Test
     public void shouldIncrementVendorListFallbackMetric() {
         // given
-        givenHttpClientReturnsResponse(404, StringUtils.EMPTY);
+        givenHttpClientReturnsResponse(404, StringUtils.EMPTY.getBytes());
 
         // when
 
@@ -598,7 +598,7 @@ public class VendorListServiceV2Test extends VertxTest {
         return VendorListV2.of(1, new Date(), singletonMap(52, vendor));
     }
 
-    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+    private void givenHttpClientReturnsResponse(int statusCode, byte[] response) {
         given(httpClient.get(anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }

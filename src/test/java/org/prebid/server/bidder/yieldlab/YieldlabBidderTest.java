@@ -296,7 +296,7 @@ public class YieldlabBidderTest extends VertxTest {
     private static HttpCall<Void> givenHttpCall(String body) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 }

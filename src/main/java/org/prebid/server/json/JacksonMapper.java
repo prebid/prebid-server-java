@@ -24,6 +24,10 @@ public class JacksonMapper {
         return mapper;
     }
 
+    public static String asString(byte[] bytes) {
+        return bytes != null ? new String(bytes) : null;
+    }
+
     public <T> String encodeToString(T obj) throws EncodeException {
         try {
             return mapper.writeValueAsString(obj);
@@ -60,6 +64,14 @@ public class JacksonMapper {
         try {
             return mapper.readValue(str, type);
         } catch (JsonProcessingException e) {
+            throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()), e);
+        }
+    }
+
+    public <T> T decodeValue(byte[] bytes, TypeReference<T> type) throws DecodeException {
+        try {
+            return mapper.readValue(bytes, type);
+        } catch (IOException e) {
             throw new DecodeException(String.format(FAILED_TO_DECODE, e.getMessage()), e);
         }
     }

@@ -73,12 +73,12 @@ public class GoogleRecaptchaVerifier {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         final RecaptchaResponse recaptchaResponse;
         try {
             recaptchaResponse = mapper.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
         }
 
         if (!Objects.equals(recaptchaResponse.getSuccess(), Boolean.TRUE)) {

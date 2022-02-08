@@ -148,7 +148,8 @@ public class RegisterServiceTest extends VertxTest {
         // given
         given(healthMonitor.calculateHealthIndex()).willReturn(BigDecimal.ONE);
         given(httpClient.post(anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "")));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "".getBytes())));
 
         // when
         registerService.register(MultiMap.caseInsensitiveMultiMap());
@@ -163,7 +164,7 @@ public class RegisterServiceTest extends VertxTest {
         given(healthMonitor.calculateHealthIndex()).willReturn(BigDecimal.ONE);
         given(httpClient.post(anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        mapper.writeValueAsString(AdminCentralResponse.of(null, null, null, null, null,
+                        mapper.writeValueAsBytes(AdminCentralResponse.of(null, null, null, null, null,
                                 ServicesCommand.of("stop"))))));
 
         // when
@@ -209,7 +210,8 @@ public class RegisterServiceTest extends VertxTest {
         // given
         given(healthMonitor.calculateHealthIndex()).willReturn(BigDecimal.ONE);
         given(httpClient.post(anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "")));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(), "".getBytes())));
 
         // when
         registerService.register(MultiMap.caseInsensitiveMultiMap());
@@ -235,7 +237,7 @@ public class RegisterServiceTest extends VertxTest {
     public void registerShouldThrowPrebidExceptionWhenResponseIsInvalidJson() {
         // given
         given(httpClient.post(anyString(), any(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{".getBytes())));
 
         // when and then
         assertThatThrownBy(() -> registerService.register(MultiMap.caseInsensitiveMultiMap()))

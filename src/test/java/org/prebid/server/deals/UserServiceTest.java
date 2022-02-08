@@ -249,7 +249,7 @@ public class UserServiceTest extends VertxTest {
     public void getUserDetailsShouldReturnFailedFutureWhenResponseBodyDecodingFails() {
         // given
         given(httpClient.post(anyString(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "invalid_body")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "invalid_body".getBytes())));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -275,7 +275,7 @@ public class UserServiceTest extends VertxTest {
                 ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToBytes(response))));
 
         // when
         final UserDetails result = userService.getUserDetails(auctionContext, timeout).result();
@@ -299,7 +299,7 @@ public class UserServiceTest extends VertxTest {
         final UserDetailsResponse response = UserDetailsResponse.of(null);
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToBytes(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -318,7 +318,7 @@ public class UserServiceTest extends VertxTest {
                 null, ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToBytes(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -338,7 +338,7 @@ public class UserServiceTest extends VertxTest {
                 singletonList(UserData.of("2", "bluekai", singletonList(Segment.of("6666")))), null));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToBytes(response))));
 
         // when
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
@@ -394,7 +394,7 @@ public class UserServiceTest extends VertxTest {
     public void getUserDetailsShouldAddCachedHttpCallWhenThrowsPrebidException() throws JsonProcessingException {
         // given
         given(httpClient.post(anyString(), anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "invalid_body")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "invalid_body".getBytes())));
 
         // when
         userService.getUserDetails(auctionContext, timeout);
@@ -420,7 +420,7 @@ public class UserServiceTest extends VertxTest {
                 ExtUser.of(asList("L-1111", "O-2222"))));
 
         given(httpClient.post(anyString(), anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToString(response))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, jacksonMapper.encodeToBytes(response))));
 
         // when
         userService.getUserDetails(auctionContext, timeout).result();

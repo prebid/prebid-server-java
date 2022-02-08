@@ -179,7 +179,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         verify(bidder).makeBids(httpCallArgumentCaptor.capture(), any());
         assertThat(httpCallArgumentCaptor.getValue().getResponse())
                 .extracting(HttpResponse::getBody)
-                .isEqualTo("storedResponse");
+                .isEqualTo("storedResponse".getBytes());
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
     }
 
@@ -277,7 +277,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientResponse(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody".getBytes());
 
         final List<BidderBid> bids = asList(BidderBid.of(null, null, null), BidderBid.of(null, null, null));
         given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
@@ -308,7 +308,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
-        givenHttpClientResponse(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody".getBytes());
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
         // when
@@ -370,9 +370,9 @@ public class HttpBidderRequesterTest extends VertxTest {
                 emptyList()));
 
         final HttpClientResponse respWithDeal1 = HttpClientResponse.of(200, null,
-                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal1\"}]}]}");
+                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal1\"}]}]}".getBytes());
         final HttpClientResponse respWithDeal2 = HttpClientResponse.of(200, null,
-                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal2\"}]}]}");
+                "{\"seatbid\":[{\"bid\":[{\"dealid\":\"deal2\"}]}]}".getBytes());
 
         given(httpClient.request(any(), anyString(), any(), eq(firstRequestBody), anyLong()))
                 .willReturn(Future.succeededFuture(respWithDeal1));
@@ -440,7 +440,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientResponse(200, "responseBody");
+        givenHttpClientResponse(200, "responseBody".getBytes());
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().dealid("deal2").build(), null, null);
         given(bidder.makeBids(any(), any())).willReturn(Result.of(singletonList(bidderBid), emptyList()));
@@ -485,8 +485,8 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
 
         givenHttpClientReturnsResponses(
-                HttpClientResponse.of(200, null, "responseBody1"),
-                HttpClientResponse.of(200, null, "responseBody2"));
+                HttpClientResponse.of(200, null, "responseBody1".getBytes()),
+                HttpClientResponse.of(200, null, "responseBody2".getBytes()));
 
         given(bidder.makeBids(any(), any())).willReturn(Result.of(emptyList(), emptyList()));
 
@@ -526,7 +526,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
 
         givenHttpClientReturnsResponses(
-                HttpClientResponse.of(200, null, "responseBody1"));
+                HttpClientResponse.of(200, null, "responseBody1".getBytes()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
@@ -625,7 +625,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         given(requestEnricher.enrichHeaders(any(), any(), any())).willReturn(headers);
 
-        givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1"));
+        givenHttpClientReturnsResponses(HttpClientResponse.of(500, null, "responseBody1".getBytes()));
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().build());
 
@@ -750,13 +750,13 @@ public class HttpBidderRequesterTest extends VertxTest {
                 // simulate timeout for the second request
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")))
                 // simulate 500 status
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(500, null, EMPTY)))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(500, null, EMPTY.getBytes())))
                 // simulate 400 status
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, EMPTY)))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, EMPTY.getBytes())))
                 // simulate 204 status
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY)))
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(204, null, EMPTY.getBytes())))
                 // simulate 200 status
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY)));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, EMPTY.getBytes())));
 
         given(bidder.makeBids(any(), any())).willReturn(
                 Result.of(singletonList(BidderBid.of(Bid.builder().impid("123").build(), null, null)),
@@ -794,7 +794,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                                 .build()),
                 emptyList()));
 
-        givenHttpClientResponse(204, EMPTY);
+        givenHttpClientResponse(204, EMPTY.getBytes());
 
         final BidderRequest bidderRequest = BidderRequest.of("bidder", null, BidRequest.builder().test(1).build());
 
@@ -831,7 +831,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
     }
 
-    private void givenHttpClientResponse(int statusCode, String response) {
+    private void givenHttpClientResponse(int statusCode, byte[] response) {
         given(httpClient.request(any(), anyString(), any(), (byte[]) any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }

@@ -734,7 +734,7 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+        return HttpCall.success(null, HttpResponse.of(200, null, body.getBytes()), null);
     }
 
     private static HttpCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {

@@ -275,7 +275,7 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     private HttpCall<BidRequest> givenHttpCall(String body) {
-        final HttpResponse response = HttpResponse.of(200, null, body);
+        final HttpResponse response = HttpResponse.of(200, null, body.getBytes());
         return HttpCall.success(null, response, null);
     }
 }

@@ -9,6 +9,7 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ExchangeService;
@@ -26,6 +27,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -54,6 +56,8 @@ import java.util.zip.GZIPOutputStream;
 public class HttpBidderRequester {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpBidderRequester.class);
+
+    private static final byte[] EMPTY_RESPONSE = "{}".getBytes();
 
     private final HttpClient httpClient;
     private final BidderRequestCompletionTrackerFactory completionTrackerFactory;
@@ -103,8 +107,7 @@ public class HttpBidderRequester {
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
         final BidderRequestCompletionTracker completionTracker = completionTrackerFactory.create(bidRequest);
-        final ResultBuilder<T> resultBuilder =
-                new ResultBuilder<>(httpRequests, bidderErrors, completionTracker, mapper);
+        final ResultBuilder<T> resultBuilder = ResultBuilder.of(httpRequests, bidderErrors, completionTracker, mapper);
 
         final List<Future<Void>> httpRequestFutures = httpCalls
                 .map(httpCallFuture -> httpCallFuture
@@ -145,7 +148,10 @@ public class HttpBidderRequester {
     }
 
     private <T> Future<HttpCall<T>> makeStoredHttpCall(HttpRequest<T> httpRequest, String storedResponse) {
-        final HttpResponse httpResponse = HttpResponse.of(HttpResponseStatus.OK.code(), null, storedResponse);
+        final HttpResponse httpResponse = HttpResponse.of(
+                HttpResponseStatus.OK.code(),
+                null,
+                storedResponse.getBytes());
         return Future.succeededFuture(HttpCall.success(httpRequest, httpResponse, null));
     }
 
@@ -291,34 +297,24 @@ public class HttpBidderRequester {
         final int statusCode = response.getStatusCode();
 
         if (statusCode == HttpResponseStatus.NO_CONTENT.code()) {
-            final HttpResponse updatedHttpResponse = HttpResponse.of(statusCode, response.getHeaders(), "{}");
+            final HttpResponse updatedHttpResponse = HttpResponse.of(statusCode, response.getHeaders(), EMPTY_RESPONSE);
             return HttpCall.success(httpCall.getRequest(), updatedHttpResponse, null);
         }
 
         return httpCall;
     }
 
+    @Value(staticConstructor = "of")
     private static class ResultBuilder<T> {
 
-        final List<HttpRequest<T>> httpRequests;
-        final List<BidderError> previousErrors;
-        final BidderRequestCompletionTracker completionTracker;
-        private final JacksonMapper mapper;
+        List<HttpRequest<T>> httpRequests;
+        List<BidderError> previousErrors;
+        BidderRequestCompletionTracker completionTracker;
+        JacksonMapper mapper;
 
-        final Map<HttpRequest<T>, HttpCall<T>> httpCallsRecorded = new HashMap<>();
-        final List<BidderBid> bidsRecorded = new ArrayList<>();
-        final List<BidderError> errorsRecorded = new ArrayList<>();
-
-        ResultBuilder(List<HttpRequest<T>> httpRequests,
-                      List<BidderError> previousErrors,
-                      BidderRequestCompletionTracker completionTracker,
-                      JacksonMapper mapper) {
-
-            this.httpRequests = httpRequests;
-            this.previousErrors = previousErrors;
-            this.completionTracker = completionTracker;
-            this.mapper = mapper;
-        }
+        Map<HttpRequest<T>, HttpCall<T>> httpCallsRecorded = new HashMap<>();
+        List<BidderBid> bidsRecorded = new ArrayList<>();
+        List<BidderError> errorsRecorded = new ArrayList<>();
 
         void addHttpCall(HttpCall<T> httpCall, Result<List<BidderBid>> bidsResult) {
             httpCallsRecorded.put(httpCall.getRequest(), httpCall);
@@ -335,7 +331,7 @@ public class HttpBidderRequester {
             }
         }
 
-        BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
+        private BidderSeatBid toBidderSeatBid(boolean debugEnabled) {
             final List<HttpCall<T>> httpCalls = new ArrayList<>(httpCallsRecorded.values());
             httpRequests.stream()
                     .filter(httpRequest -> !httpCallsRecorded.containsKey(httpRequest))
@@ -364,7 +360,7 @@ public class HttpBidderRequester {
 
             final HttpResponse response = httpCall.getResponse();
             if (response != null) {
-                builder.responsebody(response.getBody());
+                builder.responsebody(ObjectUtil.getIfNotNull(response.getBody(), String::new));
                 builder.status(response.getStatusCode());
             }
 

@@ -127,7 +127,7 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 toAccountsResult(response.getStatusCode(), response.getBody(), accountIds));
     }
 
-    private Set<Account> toAccountsResult(int statusCode, String body, Set<String> accountIds) {
+    private Set<Account> toAccountsResult(int statusCode, byte[] body, Set<String> accountIds) {
         if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException(String.format("Error fetching accounts %s via http: "
                     + "unexpected response status %d", accountIds, statusCode));
@@ -203,8 +203,8 @@ public class HttpApplicationSettings implements ApplicationSettings {
                     statusCode));
         }
 
-        final String body = httpClientResponse.getBody();
-        if (StringUtils.isEmpty(body)) {
+        final byte[] body = httpClientResponse.getBody();
+        if (StringUtils.isEmpty(JacksonMapper.asString(body))) {
             throw makeFailedCategoryFetchException(url, "Response body is null or empty");
         }
 
@@ -276,32 +276,36 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
     }
 
-    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                             String errorMessageFormat, Object... args) {
+    private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds,
+                                                             Set<String> impIds,
+                                                             String errorMessage) {
+
         final String errorRequests = requestIds.isEmpty() ? ""
                 : String.format("stored requests for ids %s", requestIds);
         final String separator = requestIds.isEmpty() || impIds.isEmpty() ? "" : " and ";
         final String errorImps = impIds.isEmpty() ? "" : String.format("stored imps for ids %s", impIds);
 
-        final String error = String.format("Error fetching %s%s%s via HTTP: %s", errorRequests, separator, errorImps,
-                String.format(errorMessageFormat, args));
+        final String error = String.format("Error fetching %s%s%s via HTTP: %s",
+                errorRequests, separator, errorImps, errorMessage);
 
         logger.info(error);
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
     private StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                int statusCode, String body) {
+                                                int statusCode, byte[] body) {
         if (statusCode != HttpResponseStatus.OK.code()) {
-            return toFailedStoredDataResult(requestIds, impIds, "HTTP status code %d", statusCode);
+            return toFailedStoredDataResult(requestIds, impIds, String.format("HTTP status code %d", statusCode));
         }
 
         final HttpFetcherResponse response;
         try {
             response = mapper.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
-            return toFailedStoredDataResult(
-                    requestIds, impIds, "parsing json failed for response: %s with message: %s", body, e.getMessage());
+            return toFailedStoredDataResult(requestIds, impIds, String.format(
+                    "parsing json failed for response: %s with message: %s",
+                    JacksonMapper.asString(body),
+                    e.getMessage()));
         }
 
         return parseResponse(requestIds, impIds, response);

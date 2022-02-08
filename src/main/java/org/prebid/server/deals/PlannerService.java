@@ -124,25 +124,24 @@ public class PlannerService implements Suspendable {
                     statusCode));
         }
 
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         if (body == null) {
             throw new PreBidException("Failed to fetch data from planner, response can't be null");
         }
 
         metrics.updateRequestTimeMetric(MetricName.planner_request_time, clock.millis() - startTime);
 
-        logger.debug("Received line item metadata and plans from Planner: {0}", body);
+        logger.debug("Received line item metadata and plans from Planner: {0}", JacksonMapper.asString(body));
 
         try {
-            final List<LineItemMetaData> lineItemMetaData = mapper.decodeValue(body,
-                    LINE_ITEM_METADATA_TYPE_REFERENCE);
+            final List<LineItemMetaData> lineItemMetaData = mapper.decodeValue(body, LINE_ITEM_METADATA_TYPE_REFERENCE);
             validateForEmptyResponse(lineItemMetaData);
             metrics.updateLineItemsNumberMetric(lineItemMetaData.size());
             logger.info("Received line item metadata from Planner, amount: {0}", lineItemMetaData.size());
 
             return lineItemMetaData;
         } catch (DecodeException e) {
-            final String errorMessage = String.format("Cannot parse response: %s", body);
+            final String errorMessage = String.format("Cannot parse response: %s", JacksonMapper.asString(body));
             throw new PreBidException(errorMessage, e);
         }
     }

@@ -17,5 +17,5 @@ public class HttpClientResponse {
 
     MultiMap headers;
 
-    String body;
+    byte[] body;
 }

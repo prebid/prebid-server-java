@@ -110,7 +110,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(null, null))
                 .build();
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(response));
 
         // when
         final Future<Account> future = httpApplicationSettings.getAccountById("someId", timeout);
@@ -128,7 +128,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnFaildedFutureIfResponseIsNotPresent() throws JsonProcessingException {
         // given
         HttpAccountsResponse response = HttpAccountsResponse.of(null);
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(response));
 
         // when
         final Future<Account> future = httpApplicationSettings.getAccountById("notFoundId", timeout);
@@ -144,7 +144,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnErrorIdAccountNotFound() throws JsonProcessingException {
         // given
         HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(response));
 
         // when
         final Future<Account> future = httpApplicationSettings.getAccountById("notExistingId", timeout);
@@ -174,7 +174,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnErrorIfResponseHasInvalidStructure() {
         // given
-        givenHttpClientReturnsResponse(200, "not valid response");
+        givenHttpClientReturnsResponse(200, "not valid response".getBytes());
 
         // when
         final Future<Account> future = httpApplicationSettings.getAccountById("accountId", timeout);
@@ -275,7 +275,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfHttpClientRespondsNot200Status() {
         // given
-        givenHttpClientReturnsResponse(500, "ignored");
+        givenHttpClientReturnsResponse(500, "ignored".getBytes());
 
         // when
         final Future<StoredDataResult> future =
@@ -292,7 +292,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfHttpResponseIsMalformed() {
         // given
-        givenHttpClientReturnsResponse(200, "invalid-response");
+        givenHttpClientReturnsResponse(200, "invalid-response".getBytes());
 
         // when
         final Future<StoredDataResult> future =
@@ -311,7 +311,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfStoredRequestObjectIsMalformed() {
         // given
         final String malformedStoredRequest = "{\"requests\": {\"id1\":\"invalid-stored-request\"}";
-        givenHttpClientReturnsResponse(200, malformedStoredRequest);
+        givenHttpClientReturnsResponse(200, malformedStoredRequest.getBytes());
 
         // when
         final Future<StoredDataResult> future =
@@ -331,7 +331,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getStoredDataShouldReturnResultWithErrorIfStoredImpObjectIsMalformed() {
         // given
         final String malformedStoredRequest = "{\"imps\": {\"id1\":\"invalid-stored-imp\"}";
-        givenHttpClientReturnsResponse(200, malformedStoredRequest);
+        givenHttpClientReturnsResponse(200, malformedStoredRequest.getBytes());
 
         // when
         final Future<StoredDataResult> future =
@@ -351,7 +351,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         // given
         final HttpFetcherResponse response = HttpFetcherResponse.of(
                 singletonMap("id1", mapper.createObjectNode()), singletonMap("id3", mapper.createObjectNode()));
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(response));
 
         // when
         final Future<StoredDataResult> future = httpApplicationSettings.getStoredData(
@@ -375,7 +375,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         final HttpFetcherResponse response = HttpFetcherResponse.of(
                 singletonMap("id1", mapper.createObjectNode().put("field1", "field-value1")),
                 singletonMap("id2", mapper.createObjectNode().put("field2", "field-value2")));
-        givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
+        givenHttpClientReturnsResponse(200, mapper.writeValueAsBytes(response));
 
         // when
         final Future<StoredDataResult> future =
@@ -410,7 +410,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldBuildUrlFromEndpointAdServerAndPublisher() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}".getBytes())));
 
         // when
         httpApplicationSettings.getCategories("primaryAdServer", "publisher", timeout);
@@ -425,7 +425,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldBuildUrlFromEndpointAdServer() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}".getBytes())));
 
         // when
         httpApplicationSettings.getCategories("primaryAdServer", null, timeout);
@@ -440,7 +440,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldReturnFailedFutureWithTimeoutException() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{}".getBytes())));
 
         // when
         final Future<Map<String, String>> result
@@ -457,7 +457,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldReturnFailedFutureWhenResponseStatusIsNot200() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, "{}")));
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(400, null, "{}".getBytes())));
 
         // when
         final Future<Map<String, String>> result
@@ -491,7 +491,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldReturnFailedFutureWhenBodyCantBeParsed() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": {}}}")));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, null, "{\"iab\": {\"id\": {}}}".getBytes())));
 
         // when
         final Future<Map<String, String>> result
@@ -508,7 +509,8 @@ public class HttpApplicationSettingsTest extends VertxTest {
     public void getCategoriesShouldReturnResult() {
         // given
         given(httpClient.get(anyString(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, "{\"iab\": {\"id\": \"id\"}}")));
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, null, "{\"iab\": {\"id\": \"id\"}}".getBytes())));
 
         // when
         final Future<Map<String, String>> result
@@ -520,7 +522,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .containsEntry("iab", "id");
     }
 
-    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+    private void givenHttpClientReturnsResponse(int statusCode, byte[] response) {
         given(httpClient.get(anyString(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(statusCode, null, response)));
     }

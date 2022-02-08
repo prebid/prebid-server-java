@@ -135,12 +135,12 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
             throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: HTTP status code %d",
                     statusCode));
         }
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         try {
             return jacksonMapper.decodeValue(body, PubstackConfig.class);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: failed to parse"
-                    + " response: %s", body), e);
+                    + " response: %s", JacksonMapper.asString(body)), e);
         }
     }
 

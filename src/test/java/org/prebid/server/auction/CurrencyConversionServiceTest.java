@@ -375,7 +375,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
     }
 
     private static void givenHttpClientReturnsResponse(HttpClient httpClient, int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
+        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response.getBytes());
         given(httpClient.get(anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));
     }

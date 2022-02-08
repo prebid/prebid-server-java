@@ -141,7 +141,7 @@ public class UserService {
         final int responseStatusCode = clientResponse.getStatusCode();
         verifyStatusCode(responseStatusCode);
 
-        final String responseBody = clientResponse.getBody();
+        final byte[] responseBody = clientResponse.getBody();
         final User user;
         final int responseTime = responseTime(startTime);
         try {
@@ -152,7 +152,7 @@ public class UserService {
                             .requestUri(requestUrl)
                             .requestBody(requestBody)
                             .responseStatus(responseStatusCode)
-                            .responseBody(responseBody)
+                            .responseBody(JacksonMapper.asString(responseBody))
                             .responseTimeMillis(responseTime)
                             .build()));
         }
@@ -161,25 +161,26 @@ public class UserService {
         return UserDetails.of(user.getData(), user.getExt().getFcapIds());
     }
 
-    private User parseUserDetailsResponse(String responseBody) {
+    private User parseUserDetailsResponse(byte[] responseBody) {
+        final String bodyAsString = JacksonMapper.asString(responseBody);
         final UserDetailsResponse userDetailsResponse;
         try {
             userDetailsResponse = mapper.decodeValue(responseBody, UserDetailsResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+            throw new PreBidException(String.format("Cannot parse response: %s", bodyAsString), e);
         }
 
         final User user = userDetailsResponse.getUser();
         if (user == null) {
-            throw new PreBidException(String.format("Field 'user' is missing in response: %s", responseBody));
+            throw new PreBidException(String.format("Field 'user' is missing in response: %s", bodyAsString));
         }
 
         if (user.getData() == null) {
-            throw new PreBidException(String.format("Field 'user.data' is missing in response: %s", responseBody));
+            throw new PreBidException(String.format("Field 'user.data' is missing in response: %s", bodyAsString));
         }
 
         if (user.getExt() == null) {
-            throw new PreBidException(String.format("Field 'user.ext' is missing in response: %s", responseBody));
+            throw new PreBidException(String.format("Field 'user.ext' is missing in response: %s", bodyAsString));
         }
         return user;
     }

@@ -266,14 +266,14 @@ public class BidscubeBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
         return HttpCall.success(
                 null,
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
+                HttpResponse.of(200, null, mapper.writeValueAsBytes(bidResponse)),
                 null
         );
     }

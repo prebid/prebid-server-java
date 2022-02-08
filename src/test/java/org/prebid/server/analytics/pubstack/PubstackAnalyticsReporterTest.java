@@ -90,7 +90,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "http://newendpoint",
                 Collections.singletonMap(EventType.auction, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsBytes(pubstackConfig))));
 
         // when
         pubstackAnalyticsReporter.initialize();
@@ -111,7 +111,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "invalid",
                 Collections.singletonMap(EventType.auction, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsBytes(pubstackConfig))));
 
         // when and then
         assertThatThrownBy(() -> pubstackAnalyticsReporter.initialize())
@@ -130,7 +130,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "http://newendpoint",
                 Collections.singletonMap(EventType.auction, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
+                Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsBytes(pubstackConfig))));
 
         // when
         pubstackAnalyticsReporter.initialize();
@@ -165,7 +165,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void initializeShouldNotSendEventsAndUpdateConfigsWhenCantParseResponse() {
         // given
         given(httpClient.get(anyString(), anyLong())).willReturn(
-                Future.succeededFuture(HttpClientResponse.of(200, null, "{\"endpoint\" : {}}")));
+                Future.succeededFuture(HttpClientResponse.of(200, null, "{\"endpoint\" : {}}".getBytes())));
 
         // when
         pubstackAnalyticsReporter.initialize();

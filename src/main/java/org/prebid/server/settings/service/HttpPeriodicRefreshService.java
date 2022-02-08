@@ -133,12 +133,12 @@ public class HttpPeriodicRefreshService implements Initializable {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         final HttpRefreshResponse refreshResponse;
         try {
             refreshResponse = mapper.decodeValue(body, HttpRefreshResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
         }
 
         return refreshResponse;

@@ -129,7 +129,7 @@ public class CacheServiceTest extends VertxTest {
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
         given(httpClient.post(anyString(), any(), any(), anyLong())).willReturn(Future.succeededFuture(
-                HttpClientResponse.of(200, null, mapper.writeValueAsString(
+                HttpClientResponse.of(200, null, mapper.writeValueAsBytes(
                         BidCacheResponse.of(singletonList(CacheObject.of("uuid1")))))));
     }
 
@@ -1045,7 +1045,7 @@ public class CacheServiceTest extends VertxTest {
     }
 
     private void givenHttpClientReturnsResponse(int statusCode, String response) {
-        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
+        final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response.getBytes());
         given(httpClient.post(anyString(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));
     }

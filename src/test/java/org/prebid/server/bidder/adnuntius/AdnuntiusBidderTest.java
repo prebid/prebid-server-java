@@ -403,7 +403,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
     private HttpCall<AdnuntiusRequest> givenHttpCall(String body) {
         final HttpRequest<AdnuntiusRequest> request = HttpRequest.<AdnuntiusRequest>builder().build();
-        final HttpResponse response = HttpResponse.of(200, null, body);
+        final HttpResponse response = HttpResponse.of(200, null, body.getBytes());
         return HttpCall.success(request, response, null);
     }
 

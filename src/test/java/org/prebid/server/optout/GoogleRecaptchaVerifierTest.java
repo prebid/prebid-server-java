@@ -72,7 +72,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     @Test
     public void shouldFailIfResponseCodeIsNot200() {
         // given
-        givenHttpClientReturnsResponse(503, "response");
+        givenHttpClientReturnsResponse(503, "response".getBytes());
 
         // when
         final Future<?> future = googleRecaptchaVerifier.verify("recaptcha1");
@@ -85,7 +85,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     @Test
     public void shouldFailIfResponseBodyCouldNotBeParsed() {
         // given
-        givenHttpClientReturnsResponse(200, "response");
+        givenHttpClientReturnsResponse(200, "response".getBytes());
 
         // when
         final Future<?> future = googleRecaptchaVerifier.verify("recaptcha1");
@@ -98,7 +98,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     @Test
     public void shouldFailIfGoogleVerificationFailed() {
         // given
-        givenHttpClientReturnsResponse(200, "{\"success\": false, \"error-codes\": [\"bad-request\"]}");
+        givenHttpClientReturnsResponse(200, "{\"success\": false, \"error-codes\": [\"bad-request\"]}".getBytes());
 
         // when
         final Future<?> future = googleRecaptchaVerifier.verify("recaptcha1");
@@ -112,7 +112,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
     @Test
     public void shouldSuccededIfGoogleVerificationOk() {
         // given
-        givenHttpClientReturnsResponse(200, "{\"success\": true}");
+        givenHttpClientReturnsResponse(200, "{\"success\": true}".getBytes());
 
         // when
         final Future<?> future = googleRecaptchaVerifier.verify("recaptcha1");
@@ -121,7 +121,7 @@ public class GoogleRecaptchaVerifierTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
     }
 
-    private void givenHttpClientReturnsResponse(int statusCode, String response) {
+    private void givenHttpClientReturnsResponse(int statusCode, byte[] response) {
         final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
         given(httpClient.post(anyString(), any(), any(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));

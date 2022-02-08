@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.yieldlab;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -35,6 +34,7 @@ import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.time.Instant;
@@ -305,7 +305,7 @@ public class YieldlabBidder implements Bidder<Void> {
             return mapper.mapper().readValue(
                     httpCall.getResponse().getBody(),
                     mapper.mapper().getTypeFactory().constructCollectionType(List.class, YieldlabResponse.class));
-        } catch (DecodeException | JsonProcessingException e) {
+        } catch (DecodeException | IOException e) {
             throw new PreBidException(e.getMessage());
         }
     }

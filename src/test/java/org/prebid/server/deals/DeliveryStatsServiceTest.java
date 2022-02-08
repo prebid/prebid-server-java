@@ -419,7 +419,7 @@ public class DeliveryStatsServiceTest extends VertxTest {
         }
     }
 
-    private static void givenDeliveryProgressHttpResponse(HttpClient httpClient, int statusCode, String response) {
+    private static void givenDeliveryProgressHttpResponse(HttpClient httpClient, int statusCode, byte[] response) {
         final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
         given(httpClient.post(anyString(), any(), anyString(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));

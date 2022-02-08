@@ -54,11 +54,11 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
                 mapper);
     }
 
-    protected VendorListV2 toVendorList(String content) {
+    protected VendorListV2 toVendorList(byte[] content) {
         try {
             return mapper.mapper().readValue(content, VendorListV2.class);
         } catch (IOException e) {
-            final String message = String.format("Cannot parse vendor list from: %s", content);
+            final String message = String.format("Cannot parse vendor list from: %s", JacksonMapper.asString(content));
 
             logger.error(message, e);
             throw new PreBidException(message, e);

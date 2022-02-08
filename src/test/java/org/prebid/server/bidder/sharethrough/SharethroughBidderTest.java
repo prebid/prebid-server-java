@@ -305,7 +305,7 @@ public class SharethroughBidderTest extends VertxTest {
     private static HttpCall<SharethroughRequestBody> givenHttpCall(SharethroughRequestBody bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<SharethroughRequestBody>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 
@@ -313,7 +313,7 @@ public class SharethroughBidderTest extends VertxTest {
         return HttpCall.success(
                 HttpRequest.<SharethroughRequestBody>builder().uri(uri)
                         .payload(SharethroughRequestBody.of(null, null, null, true, null)).build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 }

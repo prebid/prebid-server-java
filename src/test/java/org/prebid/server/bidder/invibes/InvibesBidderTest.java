@@ -300,7 +300,7 @@ public class InvibesBidderTest extends VertxTest {
     private static HttpCall<InvibesBidRequest> givenHttpCall(InvibesBidRequest bidRequest, String body) {
         return HttpCall.success(
                 HttpRequest.<InvibesBidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 

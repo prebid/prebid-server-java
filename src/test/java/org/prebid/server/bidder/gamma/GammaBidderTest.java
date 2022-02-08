@@ -240,7 +240,7 @@ public class GammaBidderTest extends VertxTest {
         final String adm = "ADM";
         final Bid bid = Bid.builder().id("impId").build();
         final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsBytes(
                 GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
@@ -269,7 +269,7 @@ public class GammaBidderTest extends VertxTest {
         final String nurl = "NURL";
         final Bid bid = Bid.builder().id("impId").build();
         final GammaBid gammaBid = GammaBid.builder().bid(bid).vastXml(adm).vastUrl(nurl).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsBytes(
                 GammaBidResponse.builder()
                         .id("impId")
                         .cur("USD")
@@ -294,7 +294,7 @@ public class GammaBidderTest extends VertxTest {
         final Imp imp = Imp.builder().id("impId").video(Video.builder().build()).build();
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsBytes(
                 BidResponse.builder()
                         .id("impId")
                         .seatbid(singletonList(SeatBid.builder()
@@ -314,7 +314,7 @@ public class GammaBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenNoAdmAndNotVideoType() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsBytes(
                 BidResponse.builder()
                         .id("id")
                         .cur("USD")
@@ -337,7 +337,7 @@ public class GammaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(emptyList()).build();
         final Bid bid = Bid.builder().adm("ADM").build();
-        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsBytes(
                 BidResponse.builder()
                         .id("id")
                         .cur("USD")
@@ -375,7 +375,7 @@ public class GammaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().banner(Banner.builder().build())).build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
+    private static HttpCall<Void> givenHttpCall(byte[] body) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),

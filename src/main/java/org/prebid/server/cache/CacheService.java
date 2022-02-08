@@ -445,7 +445,7 @@ public class CacheService {
                 .requestUri(httpRequest != null ? httpRequest.getUri() : null)
                 .requestBody(httpRequest != null ? httpRequest.getBody() : null)
                 .responseStatus(httpResponse != null ? httpResponse.getStatusCode() : null)
-                .responseBody(httpResponse != null ? httpResponse.getBody() : null)
+                .responseBody(httpResponse != null ? JacksonMapper.asString(httpResponse.getBody()) : null)
                 .responseTimeMillis(responseTime(startTime))
                 .requestHeaders(DEBUG_HEADERS)
                 .build();
@@ -545,7 +545,7 @@ public class CacheService {
      * or throws {@link PreBidException} in case of errors.
      */
     private BidCacheResponse toBidCacheResponse(int statusCode,
-                                                String responseBody,
+                                                byte[] responseBody,
                                                 int bidCount,
                                                 String accountId,
                                                 long startTime) {
@@ -558,7 +558,8 @@ public class CacheService {
         try {
             bidCacheResponse = mapper.decodeValue(responseBody, BidCacheResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+            throw new PreBidException(
+                    String.format("Cannot parse response: %s", JacksonMapper.asString(responseBody)), e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();

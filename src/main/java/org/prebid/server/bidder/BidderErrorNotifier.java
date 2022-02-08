@@ -5,6 +5,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
@@ -69,7 +70,7 @@ public class BidderErrorNotifier {
                     String.format(
                             "Notified bidder about timeout. Status code: %s. Request body: %s",
                             response.getStatusCode(),
-                            new String(timeoutNotification.getBody())),
+                            JacksonMapper.asString(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
         }
 
@@ -84,7 +85,7 @@ public class BidderErrorNotifier {
                     String.format(
                             "Error occurred while notifying bidder about timeout. Error message: %s. Request body: %s",
                             exception.getMessage(),
-                            new String(timeoutNotification.getBody())),
+                            JacksonMapper.asString(timeoutNotification.getBody())),
                     logTimeoutNotificationSamplingRate);
         }
 

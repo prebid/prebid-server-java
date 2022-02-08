@@ -243,7 +243,7 @@ public class ConsumableBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<ConsumableBidRequest> httpCall = HttpCall.success(null,
-                HttpResponse.of(200, null, "invalid"), null);
+                HttpResponse.of(200, null, "invalid".getBytes()), null);
 
         // when
         final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall, null);
@@ -329,11 +329,11 @@ public class ConsumableBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer)))
-                .regs(Regs.of(null, ExtRegs.of(1, null)))
-                .user(User.builder()
-                        .ext(ExtUser.builder().consent("consent").build())
-                        .build()))
+                        .imp(singletonList(givenImp(impCustomizer)))
+                        .regs(Regs.of(null, ExtRegs.of(1, null)))
+                        .user(User.builder()
+                                .ext(ExtUser.builder().consent("consent").build())
+                                .build()))
                 .build();
     }
 
@@ -343,12 +343,12 @@ public class ConsumableBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("firstImp")
-                .banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(120).h(90).build()))
-                        .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpConsumable.of(111, 222, 333, "unit_name")))))
+                        .id("firstImp")
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(120).h(90).build()))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpConsumable.of(111, 222, 333, "unit_name")))))
                 .build();
     }
 
@@ -371,7 +371,7 @@ public class ConsumableBidderTest extends VertxTest {
 
         return HttpCall.success(
                 HttpRequest.<ConsumableBidRequest>builder().build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 }

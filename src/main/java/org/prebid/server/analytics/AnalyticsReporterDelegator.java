@@ -59,6 +59,7 @@ public class AnalyticsReporterDelegator {
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
                                       Metrics metrics) {
+
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -82,6 +83,7 @@ public class AnalyticsReporterDelegator {
     private <T> void delegateEvent(T event,
                                    TcfContext tcfContext,
                                    AsyncResult<Map<Integer, PrivacyEnforcementAction>> privacyEnforcementMapResult) {
+
         if (privacyEnforcementMapResult.succeeded()) {
             final Map<Integer, PrivacyEnforcementAction> privacyEnforcementActionMap =
                     privacyEnforcementMapResult.result();

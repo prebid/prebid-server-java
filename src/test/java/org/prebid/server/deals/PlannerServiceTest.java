@@ -101,7 +101,7 @@ public class PlannerServiceTest extends VertxTest {
                 clock,
                 jacksonMapper);
 
-        givenPlanHttpResponse(200, mapper.writeValueAsString(
+        givenPlanHttpResponse(200, mapper.writeValueAsBytes(
                 asList(givenLineItemMetaData("lineItem1", "1001", "rubicon", now),
                         givenLineItemMetaData("lineItem2", "1002", "appnexus", now))));
     }
@@ -109,7 +109,7 @@ public class PlannerServiceTest extends VertxTest {
     @Test
     public void updateLineItemMetaDataShouldRetryOnceWhenResponseCantBeParsed() {
         // given
-        givenPlanHttpResponse(200, "{");
+        givenPlanHttpResponse(200, "{".getBytes());
 
         // when
         plannerService.updateLineItemMetaData();
@@ -144,7 +144,7 @@ public class PlannerServiceTest extends VertxTest {
     public void updateLineItemMetaDataShouldAlertWithoutRetryWhenPlannerReturnsEmptyLineItemList()
             throws JsonProcessingException {
         // given
-        givenPlanHttpResponse(200, mapper.writeValueAsString(emptyList()));
+        givenPlanHttpResponse(200, mapper.writeValueAsBytes(emptyList()));
 
         // when
         plannerService.updateLineItemMetaData();
@@ -181,7 +181,7 @@ public class PlannerServiceTest extends VertxTest {
         // given
         givenHttpClientReturnsResponses(
                 Future.succeededFuture(HttpClientResponse.of(200, null,
-                        mapper.writeValueAsString(singletonList(LineItemMetaData.builder().lineItemId("id1")
+                        mapper.writeValueAsBytes(singletonList(LineItemMetaData.builder().lineItemId("id1")
                                 .deliverySchedules(singletonList(DeliverySchedule.builder()
                                         .planId("id1")
                                         .startTimeStamp(now.minusHours(1))
@@ -190,7 +190,7 @@ public class PlannerServiceTest extends VertxTest {
                                         .tokens(singleton(Token.of(1, 300))).build()))
                                 .accountId("1").build())))),
                 Future.succeededFuture(HttpClientResponse.of(200, null,
-                        mapper.writeValueAsString(singletonList(LineItemMetaData.builder().lineItemId("id2")
+                        mapper.writeValueAsBytes(singletonList(LineItemMetaData.builder().lineItemId("id2")
                                 .deliverySchedules(singletonList(DeliverySchedule.builder()
                                         .planId("id2")
                                         .startTimeStamp(now.minusHours(1))
@@ -270,7 +270,7 @@ public class PlannerServiceTest extends VertxTest {
     @Test
     public void getIdToLineItemMetaDataShouldNotCallUpdateLineItemWhenBodyCantBeParsed() {
         // given
-        givenPlanHttpResponse(200, "{");
+        givenPlanHttpResponse(200, "{".getBytes());
 
         // when
         plannerService.updateLineItemMetaData();
@@ -308,7 +308,7 @@ public class PlannerServiceTest extends VertxTest {
         verify(lineItemService, never()).updateLineItems(planResponseCaptor.capture(), anyBoolean());
     }
 
-    private void givenPlanHttpResponse(int statusCode, String response) {
+    private void givenPlanHttpResponse(int statusCode, byte[] response) {
         final HttpClientResponse httpClientResponse = HttpClientResponse.of(statusCode, null, response);
         given(httpClient.get(startsWith(PLAN_ENDPOINT), any(), anyLong()))
                 .willReturn(Future.succeededFuture(httpClientResponse));

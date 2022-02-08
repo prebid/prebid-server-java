@@ -520,6 +520,6 @@ public class AdheseBidderTest extends VertxTest {
     private static HttpCall<AdheseRequestBody> givenHttpCall(String responseBody) {
         return HttpCall.success(
                 HttpRequest.<AdheseRequestBody>builder().build(),
-                HttpResponse.of(200, null, responseBody), null);
+                HttpResponse.of(200, null, responseBody.getBytes()), null);
     }
 }

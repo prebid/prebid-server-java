@@ -93,11 +93,11 @@ public class BasicHttpClient implements HttpClient {
     private void handleResponse(io.vertx.core.http.HttpClientResponse response,
                                 Promise<HttpClientResponse> promise, long timerId) {
         response
-                .bodyHandler(buffer -> successResponse(buffer.toString(), response, promise, timerId))
+                .bodyHandler(buffer -> successResponse(buffer.getBytes(), response, promise, timerId))
                 .exceptionHandler(exception -> failResponse(exception, promise, timerId));
     }
 
-    private void successResponse(String body, io.vertx.core.http.HttpClientResponse response,
+    private void successResponse(byte[] body, io.vertx.core.http.HttpClientResponse response,
                                  Promise<HttpClientResponse> promise, long timerId) {
         vertx.cancelTimer(timerId);
 

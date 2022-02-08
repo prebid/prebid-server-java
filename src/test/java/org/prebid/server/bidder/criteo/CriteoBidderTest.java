@@ -118,9 +118,9 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.banner(Banner.builder().format(singletonList(Format.builder()
-                        .w(222)
-                        .h(333)
-                        .build()))
+                                .w(222)
+                                .h(333)
+                                .build()))
                         .build()));
 
         // when
@@ -295,7 +295,7 @@ public class CriteoBidderTest extends VertxTest {
         // given
         final HttpCall<CriteoRequest> httpCall = HttpCall.success(
                 HttpRequest.<CriteoRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, "invalid"),
+                HttpResponse.of(200, null, "invalid".getBytes()),
                 null);
 
         // when
@@ -341,8 +341,8 @@ public class CriteoBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .id("bid-request-id")
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .id("bid-request-id")
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .user(User.builder().buyeruid("buyerid").ext(ExtUser.builder().consent("consent").build()).build())
                 .device(Device.builder().os("ios").ifa("ifa").ip("255.255.255.255").ua("userAgent").build())
                 .site(Site.builder().id("siteId").page("www.criteo.com").build())
@@ -352,14 +352,14 @@ public class CriteoBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("imp_id")
-                .banner(Banner.builder()
-                        .id("banner_id")
-                        .h(300)
-                        .w(300)
-                        .build()
-                )
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1)))))
+                        .id("imp_id")
+                        .banner(Banner.builder()
+                                .id("banner_id")
+                                .h(300)
+                                .w(300)
+                                .build()
+                        )
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpCriteo.of(1, 1)))))
                 .build();
     }
 
@@ -388,7 +388,7 @@ public class CriteoBidderTest extends VertxTest {
 
         return HttpCall.success(
                 HttpRequest.<CriteoRequest>builder().build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 

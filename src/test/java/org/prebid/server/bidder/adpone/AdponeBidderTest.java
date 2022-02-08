@@ -172,7 +172,7 @@ public class AdponeBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(String body) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
-                HttpResponse.of(200, null, body),
+                HttpResponse.of(200, null, body.getBytes()),
                 null);
     }
 }

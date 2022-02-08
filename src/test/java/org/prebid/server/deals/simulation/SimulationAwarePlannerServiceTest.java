@@ -94,7 +94,7 @@ public class SimulationAwarePlannerServiceTest extends VertxTest {
     public void initiateLineItemFetchingShouldNotCallLineItemServiceUpdateMethod() throws JsonProcessingException {
         // given
         given(httpClient.get(anyString(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsBytes(
                         Collections.singletonList(LineItemMetaData.builder().lineItemId("id").build())))));
 
         // when
@@ -122,7 +122,7 @@ public class SimulationAwarePlannerServiceTest extends VertxTest {
             throws JsonProcessingException {
         // given
         given(httpClient.get(anyString(), any(), anyLong()))
-                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(
+                .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsBytes(
                         Collections.singletonList(LineItemMetaData.builder().lineItemId("id").build())))));
 
         // when

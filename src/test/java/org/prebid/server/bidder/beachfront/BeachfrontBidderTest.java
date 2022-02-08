@@ -661,7 +661,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url&prebidserver").build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
+                HttpResponse.of(200, null, mapper.writeValueAsBytes(bidResponse)), null);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -694,7 +694,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url").build(),
-                HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
+                HttpResponse.of(200, null, mapper.writeValueAsBytes(bidResponse)), null);
 
         // when
         final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
@@ -931,7 +931,7 @@ public class BeachfrontBidderTest extends VertxTest {
     private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
         return HttpCall.success(
                 HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
-                HttpResponse.of(200, null, responseBody), null);
+                HttpResponse.of(200, null, responseBody.getBytes()), null);
     }
 
     private static ObjectNode givenBidExt(Integer duration, String primaryCategory) {

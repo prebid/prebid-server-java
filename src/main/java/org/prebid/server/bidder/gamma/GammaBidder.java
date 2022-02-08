@@ -195,7 +195,7 @@ public class GammaBidder implements Bidder<Void> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
-        final String body = httpCall.getResponse().getBody();
+        final byte[] body = httpCall.getResponse().getBody();
         if (body == null) {
             return Result.withError(BidderError.badServerResponse("bad server response: body is empty"));
         }

@@ -156,25 +156,26 @@ public class RegisterService implements Initializable, Suspendable {
         } else {
             final HttpClientResponse response = asyncResult.result();
             final int statusCode = response.getStatusCode();
-            final String responseBody = response.getBody();
+            final byte[] responseBody = response.getBody();
+            final String bodyAsString = JacksonMapper.asString(responseBody);
             if (statusCode == HttpResponseStatus.OK.code()) {
-                if (StringUtils.isNotBlank(responseBody)) {
-                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody));
+                if (StringUtils.isNotBlank(bodyAsString)) {
+                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody, bodyAsString));
                 }
                 alertHttpService.resetAlertCount(PBS_REGISTER_CLIENT_ERROR);
             } else {
                 final String errorMessage = String.format("Planner responded with non-successful code %s,"
-                        + " response: %s", statusCode, responseBody);
+                        + " response: %s", statusCode, bodyAsString);
                 alert(errorMessage, logger::warn);
             }
         }
     }
 
-    private AdminCentralResponse parseRegisterResponse(String responseBody) {
+    private AdminCentralResponse parseRegisterResponse(byte[] responseBody, String bodyAsString) {
         try {
             return mapper.decodeValue(responseBody, AdminCentralResponse.class);
         } catch (DecodeException e) {
-            String errorMessage = String.format("Cannot parse register response: %s", responseBody);
+            String errorMessage = String.format("Cannot parse register response: %s", bodyAsString);
             alert(errorMessage, logger::warn);
             throw new PreBidException(errorMessage, e);
         }

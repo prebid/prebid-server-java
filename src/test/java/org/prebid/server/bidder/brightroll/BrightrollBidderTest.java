@@ -571,11 +571,11 @@ public class BrightrollBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse(
                         "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
-                                + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
+                                + " [Source: (byte[])\"{\"; line: 1, column: 1])\n at [Source: (byte[])\"{\"; line: 1, "
                                 + "column: 2]"));
     }
 
     private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(null, HttpResponse.of(200, null, body), null);
+        return HttpCall.success(null, HttpResponse.of(200, null, body.getBytes()), null);
     }
 }

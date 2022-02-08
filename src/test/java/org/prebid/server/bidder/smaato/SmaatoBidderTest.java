@@ -992,7 +992,7 @@ public class SmaatoBidderTest extends VertxTest {
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body, MultiMap headers) {
         return HttpCall.success(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, headers, body),
+                HttpResponse.of(200, headers, body.getBytes()),
                 null);
     }
 }

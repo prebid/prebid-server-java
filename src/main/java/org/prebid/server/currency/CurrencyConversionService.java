@@ -102,11 +102,11 @@ public class CurrencyConversionService implements Initializable {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
         }
     }
 

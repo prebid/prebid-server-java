@@ -146,7 +146,7 @@ public abstract class VendorListService<T, V> {
     /**
      * Creates vendorList object from string content or throw {@link PreBidException}.
      */
-    protected abstract T toVendorList(String content);
+    protected abstract T toVendorList(byte[] content);
 
     /**
      * Returns a Map of vendor id to Vendors.
@@ -183,13 +183,13 @@ public abstract class VendorListService<T, V> {
      * Creates the cache from previously downloaded vendor lists.
      */
     private Map<Integer, Map<Integer, V>> createCache(FileSystem fileSystem, String cacheDir) {
-        final Map<String, String> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
+        final Map<String, byte[]> versionToFileContent = readFileSystemCache(fileSystem, cacheDir);
 
         final Map<Integer, Map<Integer, V>> cache = Caffeine.newBuilder()
                 .<Integer, Map<Integer, V>>build()
                 .asMap();
 
-        for (Map.Entry<String, String> versionAndFileContent : versionToFileContent.entrySet()) {
+        for (Map.Entry<String, byte[]> versionAndFileContent : versionToFileContent.entrySet()) {
             final T vendorList = toVendorList(versionAndFileContent.getValue());
             final Map<Integer, V> vendorIdToVendors = filterVendorIdToVendors(vendorList);
 
@@ -202,19 +202,19 @@ public abstract class VendorListService<T, V> {
      * Reads files with .json extension in configured directory and
      * returns a {@link Map} where key is a file name without .json extension and value is file content.
      */
-    private Map<String, String> readFileSystemCache(FileSystem fileSystem, String dir) {
+    private Map<String, byte[]> readFileSystemCache(FileSystem fileSystem, String dir) {
         return fileSystem.readDirBlocking(dir).stream()
                 .filter(filepath -> filepath.endsWith(JSON_SUFFIX))
                 .collect(Collectors.toMap(filepath -> StringUtils.removeEnd(new File(filepath).getName(), JSON_SUFFIX),
-                        filename -> fileSystem.readFileBlocking(filename).toString()));
+                        filename -> fileSystem.readFileBlocking(filename).getBytes()));
     }
 
     private Map<Integer, V> readFallbackVendorList(String fallbackVendorListPath) {
-        final String vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).toString();
+        final byte[] vendorListContent = fileSystem.readFileBlocking(fallbackVendorListPath).getBytes();
         final T vendorList = toVendorList(vendorListContent);
         if (!isValid(vendorList)) {
             throw new PreBidException(String.format(
-                    "Fallback vendor list parsed but has invalid data: %s", vendorListContent));
+                    "Fallback vendor list parsed but has invalid data: %s", JacksonMapper.asString(vendorListContent)));
         }
 
         return filterVendorIdToVendors(vendorList);
@@ -252,13 +252,14 @@ public abstract class VendorListService<T, V> {
             throw new PreBidException(String.format("HTTP status code %d", statusCode));
         }
 
-        final String body = response.getBody();
+        final byte[] body = response.getBody();
         final T vendorList = toVendorList(body);
 
         // we should care on obtained vendor list, because it'll be saved and never be downloaded again
         // while application is running
         if (!isValid(vendorList)) {
-            throw new PreBidException(String.format("Fetched vendor list parsed but has invalid data: %s", body));
+            throw new PreBidException(String.format(
+                    "Fetched vendor list parsed but has invalid data: %s", JacksonMapper.asString(body)));
         }
 
         return VendorListResult.of(version, body, vendorList);
@@ -272,7 +273,7 @@ public abstract class VendorListService<T, V> {
         final int version = vendorListResult.getVersion();
         final String filepath = new File(cacheDir, version + JSON_SUFFIX).getPath();
 
-        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsString()), result -> {
+        fileSystem.writeFile(filepath, Buffer.buffer(vendorListResult.getVendorListAsBytes()), result -> {
             if (result.succeeded()) {
                 promise.complete(vendorListResult);
             } else {
@@ -346,7 +347,7 @@ public abstract class VendorListService<T, V> {
 
         int version;
 
-        String vendorListAsString;
+        byte[] vendorListAsBytes;
 
         T vendorList;
     }

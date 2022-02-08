@@ -335,7 +335,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .build();
     }
 
-    private List<AdoceanResponseAdUnit> getAdoceanResponseAdUnitList(String responseBody) {
+    private List<AdoceanResponseAdUnit> getAdoceanResponseAdUnitList(byte[] responseBody) {
         try {
             return mapper.mapper().readValue(
                     responseBody,

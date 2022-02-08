@@ -190,8 +190,8 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<AdnuntiusRequest> httpCall, BidRequest bidRequest) {
         try {
-            final String body = httpCall.getResponse().getBody();
-            final AdnuntiusResponse bidResponse = mapper.decodeValue(body, AdnuntiusResponse.class);
+            final AdnuntiusResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), AdnuntiusResponse.class);
             return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));

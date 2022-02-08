@@ -13,5 +13,5 @@ public class CacheHttpResponse {
 
     int statusCode;
 
-    String body;
+    byte[] body;
 }

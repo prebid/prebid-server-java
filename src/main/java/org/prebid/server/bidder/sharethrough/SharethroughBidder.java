@@ -198,9 +198,9 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<SharethroughRequestBody> httpCall, BidRequest bidRequest) {
         try {
-            final String responseBody = httpCall.getResponse().getBody();
-            final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(responseBody,
-                    ExtImpSharethroughResponse.class);
+            final byte[] responseBody = httpCall.getResponse().getBody();
+            final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(
+                    responseBody, ExtImpSharethroughResponse.class);
             return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
         } catch (IOException | IllegalArgumentException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -210,7 +210,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     /**
      * Converts {@link ExtImpSharethroughResponse} to {@link List} of {@link BidderBid}.
      */
-    private List<BidderBid> toBidderBid(String responseBody, ExtImpSharethroughResponse sharethroughBid,
+    private List<BidderBid> toBidderBid(byte[] responseBody, ExtImpSharethroughResponse sharethroughBid,
                                         HttpRequest<SharethroughRequestBody> request) {
         if (sharethroughBid.getCreatives().isEmpty()) {
             throw new IllegalArgumentException("No creative provided");
@@ -220,8 +220,8 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
                 .buildSharethroughUrlParameters(request.getUri());
 
         final Date date = BooleanUtils.toBoolean(request.getPayload().getTest()) ? TEST_TIME : new Date();
-        final String adMarkup = SharethroughMarkupUtil.getAdMarkup(responseBody, sharethroughBid, strUriParameters,
-                date);
+        final String adMarkup = SharethroughMarkupUtil.getAdMarkup(
+                JacksonMapper.asString(responseBody), sharethroughBid, strUriParameters, date);
 
         final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
         return Collections.singletonList(
