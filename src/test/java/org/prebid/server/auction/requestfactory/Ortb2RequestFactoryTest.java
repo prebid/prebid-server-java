@@ -62,6 +62,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -97,6 +98,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
     @Mock
     private UidsCookieService uidsCookieService;
+    @Mock
+    private AccountValidator accountValidator;
     @Mock
     private RequestValidator requestValidator;
     @Mock
@@ -141,6 +144,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
+        given(accountValidator.validateAccountConfig(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -163,6 +169,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -183,6 +190,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -221,6 +229,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -564,6 +573,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
