@@ -1067,9 +1067,9 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldReturnCorrectValueAfterRoundingUp() {
+    public void resolveShouldReturnCorrectValueAfterRoundingUpFifthDecimalNumber() {
         // given
-        final BidRequest bidRequestTrimToFourDecimal = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder()
                         .publisher(Publisher.builder().domain("appDomain").build())
                         .build())
@@ -1081,7 +1081,19 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .build()))
                 .build();
 
-        final BidRequest bidRequestTrimToWhole = BidRequest.builder()
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.ZERO)
+                        .build(), givenImp(identity()), null).getFloorValue())
+                .isEqualTo(BigDecimal.valueOf(9.0001D));
+    }
+
+    @Test
+    public void resolveShouldReturnCorrectValueAfterRoundingUpToWhole() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder()
                         .publisher(Publisher.builder().domain("appDomain").build())
                         .build())
@@ -1094,19 +1106,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(priceFloorResolver.resolve(bidRequestTrimToFourDecimal,
+        assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
-                        .value("appDomain", BigDecimal.valueOf(9.00009D))
+                        .value("appDomain", BigDecimal.ZERO)
                         .build(), givenImp(identity()), null).getFloorValue())
-                .isEqualTo(BigDecimal.valueOf(9.0001D));
-
-        assertThat(priceFloorResolver.resolve(bidRequestTrimToWhole,
-                PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
-                        .value("appDomain", BigDecimal.valueOf(9.00009D))
-                        .build(), givenImp(identity()), null).getFloorValue())
-                .isEqualTo(BigDecimal.valueOf(10));
+                .isEqualTo(BigDecimal.TEN);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

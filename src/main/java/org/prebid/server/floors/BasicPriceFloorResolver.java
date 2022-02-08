@@ -427,12 +427,12 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return null;
     }
 
-    private Price roundPrice(Price price) {
+    private static Price roundPrice(Price price) {
         final BigDecimal convertedPriceValue = price.getValue()
                 .setScale(4, RoundingMode.HALF_EVEN).stripTrailingZeros();
 
         return convertedPriceValue.scale() < 0
-                ? Price.of(price.getCurrency(), convertedPriceValue.setScale(0))
+                ? Price.of(price.getCurrency(), convertedPriceValue.setScale(0, RoundingMode.UNNECESSARY))
                 : Price.of(price.getCurrency(), convertedPriceValue);
     }
 
