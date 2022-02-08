@@ -1,4 +1,4 @@
-package org.prebid.server.functional.pg
+package org.prebid.server.functional.tests.pg
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
@@ -122,7 +122,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         when: "Sending auction request to PBS"
-        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+        pgPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS sent a request to the bidder with two impressions"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)

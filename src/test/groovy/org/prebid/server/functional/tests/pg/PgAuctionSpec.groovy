@@ -1,4 +1,4 @@
-package org.prebid.server.functional.pg
+package org.prebid.server.functional.tests.pg
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
@@ -25,13 +25,13 @@ import java.time.ZonedDateTime
 
 import static java.time.ZoneOffset.UTC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.deals.lineitem.LineItemStatus.DELETED
+import static org.prebid.server.functional.model.deals.lineitem.LineItemStatus.PAUSED
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.HIGH
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.LOW
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.MEDIUM
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.VERY_HIGH
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.VERY_LOW
-import static org.prebid.server.functional.model.deals.lineitem.Status.DELETED
-import static org.prebid.server.functional.model.deals.lineitem.Status.PAUSED
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.IN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.INTERSECTS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.AD_UNIT_MEDIA_TYPE

@@ -28,7 +28,9 @@ class GeneralPlanner extends NetworkScaffolding {
         setResponse(statusCode)
     }
 
-    void initPlansResponse(PlansResponse plansResponse, HttpStatusCode statusCode = OK_200, Times times = Times.exactly(1)) {
+    void initPlansResponse(PlansResponse plansResponse,
+                           HttpStatusCode statusCode = OK_200,
+                           Times times = Times.exactly(1)) {
         resetPlansEndpoint()
         setPlansResponse(plansResponse, statusCode, times)
     }
@@ -63,7 +65,9 @@ class GeneralPlanner extends NetworkScaffolding {
         getLastRecordedRequestHeaders(plansRequest)
     }
 
-    private void setPlansResponse(PlansResponse plansResponse, HttpStatusCode statusCode, Times times = Times.exactly(1)) {
+    private void setPlansResponse(PlansResponse plansResponse,
+                                  HttpStatusCode statusCode,
+                                  Times times = Times.exactly(1)) {
         setResponse(plansRequest, plansResponse, statusCode, times)
     }
 

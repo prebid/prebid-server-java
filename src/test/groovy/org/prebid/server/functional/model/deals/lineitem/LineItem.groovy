@@ -8,7 +8,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
-import static Status.ACTIVE
+import static LineItemStatus.ACTIVE
 import static java.time.ZoneOffset.UTC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.deals.lineitem.RelativePriority.VERY_HIGH
@@ -43,7 +43,7 @@ class LineItem {
     @JsonFormat(pattern = TIME_PATTERN)
     ZonedDateTime updatedTimeStamp
 
-    Status status
+    LineItemStatus status
 
     List<FrequencyCap> frequencyCaps
 

@@ -1,4 +1,4 @@
-package org.prebid.server.functional.pg
+package org.prebid.server.functional.tests.pg
 
 import org.mockserver.matchers.Times
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
@@ -179,7 +179,6 @@ class AlertSpec extends BasePgSpec {
             alertRequest.source.subSystem == pgPbsProperties.subSystem
             alertRequest.source.hostId == pgPbsProperties.hostId
         }
-
 
         cleanup: "Return initial Planner response status code"
         generalPlanner.initRegisterResponse()

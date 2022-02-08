@@ -11,7 +11,7 @@ import static org.prebid.server.functional.model.request.dealsupdate.ForceDealsU
 import static org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest.Action.SEND_REPORT
 import static org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest.Action.UPDATE_LINE_ITEMS
 
-@ToString(includeNames = true)
+@ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class ForceDealsUpdateRequest {
 

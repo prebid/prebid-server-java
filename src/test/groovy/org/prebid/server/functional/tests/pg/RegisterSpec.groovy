@@ -1,4 +1,4 @@
-package org.prebid.server.functional.pg
+package org.prebid.server.functional.tests.pg
 
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.BidRequest

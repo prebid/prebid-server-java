@@ -1,10 +1,10 @@
-package org.prebid.server.functional.testcontainers
+package org.prebid.server.functional.tests.pg
 
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.normalizeProperty
 
-class PbsContainerProperties {
+class PgProperties {
 
     String env
     String dataCenter
@@ -18,7 +18,7 @@ class PbsContainerProperties {
     int maxDealsPerBidder
     int lineItemsPerReport
 
-    PbsContainerProperties(PrebidServerContainer prebidServerContainer) {
+    PgProperties(PrebidServerContainer prebidServerContainer) {
         Map<String, String> properties = prebidServerContainer.envMap
 
         env = getStringProperty(properties, "profile")

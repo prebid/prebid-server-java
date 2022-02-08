@@ -4,7 +4,7 @@ import groovy.transform.ToString
 
 import java.time.ZonedDateTime
 
-@ToString(includeNames = true)
+@ToString(includeNames = true, ignoreNulls = true)
 class CurrencyServiceState {
 
     ZonedDateTime lastUpdate

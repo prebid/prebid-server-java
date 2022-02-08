@@ -6,6 +6,7 @@ import org.prebid.server.functional.testcontainers.container.PrebidServerContain
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 
+// TODO make container instance into a POGO and add the ability for any given container to live through stopContainers()
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
