@@ -70,6 +70,7 @@ import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -232,6 +233,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
+            AccountValidator accountValidator,
             RequestValidator requestValidator,
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -250,6 +252,7 @@ public class ServiceConfiguration {
                 enforceValidAccount,
                 blacklistedAccounts,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 auctionTimeoutResolver,
                 timeoutFactory,
@@ -707,6 +710,11 @@ public class ServiceConfiguration {
                                       JacksonMapper mapper) {
 
         return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
+    }
+
+    @Bean
+    AccountValidator accountValidator() {
+        return new AccountValidator();
     }
 
     @Bean

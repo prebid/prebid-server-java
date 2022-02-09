@@ -363,7 +363,8 @@ public class PriceFloorFetcherTest extends VertxTest {
                                 .build()))));
 
         // when
-        final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(account -> account.maxRules(1)));
+        final FetchResult firstInvocationResult =
+                priceFloorFetcher.fetch(givenAccount(account -> account.maxRules(1L)));
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
@@ -395,11 +396,11 @@ public class PriceFloorFetcherTest extends VertxTest {
         return configCustomizer.apply(AccountPriceFloorsFetchConfig.builder()
                         .enabled(true)
                         .url("http://test.host.com")
-                        .maxRules(10)
+                        .maxRules(10L)
                         .maxFileSize(10L)
                         .timeout(1300L)
-                        .maxAgeSec(1500)
-                        .periodSec(1700))
+                        .maxAgeSec(1500L)
+                        .periodSec(1700L))
                 .build();
     }
 

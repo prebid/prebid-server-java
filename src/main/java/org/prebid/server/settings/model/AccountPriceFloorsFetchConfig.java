@@ -19,11 +19,11 @@ public class AccountPriceFloorsFetchConfig {
     Long maxFileSize;
 
     @JsonProperty("max-rules")
-    Integer maxRules;
+    Long maxRules;
 
     @JsonProperty("max-age-sec")
-    Integer maxAgeSec;
+    Long maxAgeSec;
 
     @JsonProperty("period-sec")
-    Integer periodSec;
+    Long periodSec;
 }

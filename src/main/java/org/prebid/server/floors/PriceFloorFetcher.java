@@ -194,7 +194,7 @@ public class PriceFloorFetcher {
             throw new PreBidException("Price floor rules should contain at least one model group");
         }
 
-        final Integer maxRules = resolveMaxRules(fetchConfig.getMaxRules());
+        final int maxRules = resolveMaxRules(Math.toIntExact(fetchConfig.getMaxRules()));
 
         CollectionUtils.emptyIfNull(data.getModelGroups()).stream()
                 .filter(Objects::nonNull)

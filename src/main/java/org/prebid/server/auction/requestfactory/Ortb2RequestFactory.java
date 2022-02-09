@@ -55,6 +55,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -74,6 +75,7 @@ public class Ortb2RequestFactory {
     private final boolean enforceValidAccount;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
+    private final AccountValidator accountValidator;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
@@ -89,6 +91,7 @@ public class Ortb2RequestFactory {
     public Ortb2RequestFactory(boolean enforceValidAccount,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
+                               AccountValidator accountValidator,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
@@ -104,6 +107,7 @@ public class Ortb2RequestFactory {
         this.enforceValidAccount = enforceValidAccount;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.accountValidator = Objects.requireNonNull(accountValidator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -301,7 +305,8 @@ public class Ortb2RequestFactory {
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+                        exception -> accountFallback(exception, accountId, httpRequest))
+                .compose(accountValidator::validateAccountConfig);
     }
 
     /**
