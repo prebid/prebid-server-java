@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 
 public class OrbidderBidder implements Bidder<BidRequest> {
 
-    private static final String DEFAULT_CURRENCY = "EUR";
+    private static final String BIDDER_CURRENCY = "EUR";
     private static final TypeReference<ExtPrebid<?, ExtImpOrbidder>> ORBIDDER_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -80,9 +80,9 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
     private BigDecimal parseBidFloorCurrency(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
         if (BidderUtil.isValidPrice(bidfloor)
-                && !StringUtils.equalsIgnoreCase(bidfloorcur, DEFAULT_CURRENCY)
+                && !StringUtils.equalsIgnoreCase(bidfloorcur, BIDDER_CURRENCY)
                 && StringUtils.isNotBlank(bidfloorcur)) {
-            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, DEFAULT_CURRENCY);
+            return currencyConversionService.convertCurrency(bidfloor, bidRequest, bidfloorcur, BIDDER_CURRENCY);
         }
 
         return bidfloor;
@@ -90,7 +90,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, BigDecimal bidFloor) {
         return imp.toBuilder()
-                .bidfloorcur(DEFAULT_CURRENCY)
+                .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
                 .build();
     }
