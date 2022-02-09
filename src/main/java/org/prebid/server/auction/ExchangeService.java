@@ -48,6 +48,7 @@ import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -71,7 +72,6 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
@@ -92,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -162,6 +163,7 @@ public class ExchangeService {
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final HookStageExecutor hookStageExecutor;
     private final HttpInteractionLogger httpInteractionLogger;
+    private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
     private final Metrics metrics;
     private final Clock clock;
@@ -183,6 +185,7 @@ public class ExchangeService {
                            HookStageExecutor hookStageExecutor,
                            ApplicationEventService applicationEventService,
                            HttpInteractionLogger httpInteractionLogger,
+                           PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
                            Metrics metrics,
                            Clock clock,
@@ -207,6 +210,7 @@ public class ExchangeService {
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.applicationEventService = applicationEventService;
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
+        this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -841,7 +845,7 @@ public class ExchangeService {
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, useFirstPartyData, bidderAliases))
+                .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases))
                 .app(prepareApp(app, fpdApp, useFirstPartyData))
                 .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
@@ -860,10 +864,16 @@ public class ExchangeService {
      * For each given imp creates a new imp with extension crafted to contain only "prebid", "context" and
      * bidder-specific extension.
      */
-    private List<Imp> prepareImps(String bidder, List<Imp> imps, boolean useFirstPartyData, BidderAliases aliases) {
+    private List<Imp> prepareImps(String bidder,
+                                  List<Imp> imps,
+                                  BidRequest bidRequest,
+                                  boolean useFirstPartyData,
+                                  BidderAliases aliases) {
+
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
+                        .bidfloor(priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest))
                         .pmp(preparePmp(bidder, imp.getPmp(), aliases))
                         .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
@@ -1413,17 +1423,17 @@ public class ExchangeService {
         return bidderBid.toBuilder().bid(bidBuilder.build()).build();
     }
 
-    private static BidAdjustmentMediaType resolveBidAdjustmentMediaType(String bidImpId,
-                                                                        List<Imp> imps,
-                                                                        BidType bidType) {
+    private static ImpMediaType resolveBidAdjustmentMediaType(String bidImpId,
+                                                              List<Imp> imps,
+                                                              BidType bidType) {
 
         switch (bidType) {
             case banner:
-                return BidAdjustmentMediaType.banner;
+                return ImpMediaType.banner;
             case xNative:
-                return BidAdjustmentMediaType.xNative;
+                return ImpMediaType.xNative;
             case audio:
-                return BidAdjustmentMediaType.audio;
+                return ImpMediaType.audio;
             case video:
                 return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
             default:
@@ -1431,7 +1441,7 @@ public class ExchangeService {
         }
     }
 
-    private static BidAdjustmentMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
+    private static ImpMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
         final Video bidImpVideo = imps.stream()
                 .filter(imp -> imp.getId().equals(bidImpId))
                 .map(Imp::getVideo)
@@ -1445,8 +1455,8 @@ public class ExchangeService {
 
         final Integer placement = bidImpVideo.getPlacement();
         return placement == null || Objects.equals(placement, 1)
-                ? BidAdjustmentMediaType.video
-                : BidAdjustmentMediaType.video_outstream;
+                ? ImpMediaType.video
+                : ImpMediaType.video_outstream;
     }
 
     private static BigDecimal bidAdjustmentForBidder(String bidder,
@@ -1459,16 +1469,16 @@ public class ExchangeService {
         if (extBidadjustmentfactors == null) {
             return null;
         }
-        final BidAdjustmentMediaType mediaType =
+        final ImpMediaType mediaType =
                 resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
         return resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
     }
 
     private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
-                                                         BidAdjustmentMediaType mediaType,
+                                                         ImpMediaType mediaType,
                                                          String bidder) {
-        final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> mediatypes =
+        final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
                 extBidadjustmentfactors.getMediatypes();
         final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
         final BigDecimal adjustmentFactorByMediaType =

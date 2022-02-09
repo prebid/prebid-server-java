@@ -46,7 +46,9 @@ import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
@@ -68,6 +70,7 @@ import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -230,6 +233,7 @@ public class ServiceConfiguration {
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
+            AccountValidator accountValidator,
             RequestValidator requestValidator,
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -239,6 +243,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) DealsProcessor dealsProcessor,
             CountryCodeMapper countryCodeMapper,
+            PriceFloorProcessor priceFloorProcessor,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -247,6 +252,7 @@ public class ServiceConfiguration {
                 enforceValidAccount,
                 blacklistedAccounts,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 auctionTimeoutResolver,
                 timeoutFactory,
@@ -255,6 +261,7 @@ public class ServiceConfiguration {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
     }
@@ -595,6 +602,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             HttpInteractionLogger httpInteractionLogger,
+            PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
             Metrics metrics,
             Clock clock,
@@ -617,6 +625,7 @@ public class ServiceConfiguration {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
                 priceFloorEnforcer,
                 metrics,
                 clock,
@@ -704,6 +713,11 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    AccountValidator accountValidator() {
+        return new AccountValidator();
+    }
+
+    @Bean
     BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog, JacksonMapper mapper) {
         return BidderParamValidator.create(bidderCatalog, "static/bidder-params", mapper);
     }
@@ -716,7 +730,11 @@ public class ServiceConfiguration {
             JacksonMapper mapper,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
+        return new ResponseBidValidator(
+                bannerMaxSizeEnforcement,
+                secureMarkupEnforcement,
+                metrics,
+                mapper,
                 dealsEnabled);
     }
 

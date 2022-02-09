@@ -30,6 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -54,6 +55,7 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -73,20 +75,23 @@ public class Ortb2RequestFactory {
     private final boolean enforceValidAccount;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
+    private final AccountValidator accountValidator;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final DealsProcessor dealsProcessor;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
+    private final DealsProcessor dealsProcessor;
+    private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
+                               AccountValidator accountValidator,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
@@ -95,12 +100,14 @@ public class Ortb2RequestFactory {
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
                                DealsProcessor dealsProcessor,
+                               PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Clock clock) {
 
         this.enforceValidAccount = enforceValidAccount;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.accountValidator = Objects.requireNonNull(accountValidator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -109,6 +116,7 @@ public class Ortb2RequestFactory {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.dealsProcessor = dealsProcessor;
+        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.clock = Objects.requireNonNull(clock);
     }
@@ -196,10 +204,10 @@ public class Ortb2RequestFactory {
                                                              AuctionContext auctionContext) {
 
         return hookStageExecutor.executeEntrypointStage(
-                toCaseInsensitiveMultiMap(routingContext.queryParams()),
-                toCaseInsensitiveMultiMap(routingContext.request().headers()),
-                body,
-                auctionContext.getHookExecutionContext())
+                        toCaseInsensitiveMultiMap(routingContext.queryParams()),
+                        toCaseInsensitiveMultiMap(routingContext.request().headers()),
+                        body,
+                        auctionContext.getHookExecutionContext())
                 .map(stageResult -> toHttpRequest(stageResult, routingContext, auctionContext));
     }
 
@@ -257,6 +265,10 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(auctionContext);
     }
 
+    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
+        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+    }
+
     /**
      * Returns {@link Timeout} based on request.tmax and adjustment value of {@link TimeoutResolver}.
      */
@@ -293,7 +305,8 @@ public class Ortb2RequestFactory {
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
+                        exception -> accountFallback(exception, accountId, httpRequest))
+                .compose(accountValidator::validateAccountConfig);
     }
 
     /**

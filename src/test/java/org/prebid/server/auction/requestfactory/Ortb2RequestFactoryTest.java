@@ -37,6 +37,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -61,6 +62,7 @@ import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.validation.AccountValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -97,6 +99,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private AccountValidator accountValidator;
+    @Mock
     private RequestValidator requestValidator;
     @Mock
     private TimeoutResolver timeoutResolver;
@@ -112,6 +116,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private HookStageExecutor hookStageExecutor;
     @Mock
     private DealsProcessor dealsProcessor;
+    @Mock
+    private PriceFloorProcessor priceFloorProcessor;
     @Mock
     private CountryCodeMapper countryCodeMapper;
 
@@ -138,6 +144,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
 
+        given(accountValidator.validateAccountConfig(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+
         given(hookStageExecutor.executeEntrypointStage(any(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
@@ -156,13 +165,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
-        given(dealsProcessor.populateDealsInfo(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
-
         target = new Ortb2RequestFactory(
                 false,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -171,6 +178,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
     }
@@ -182,6 +190,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -190,6 +199,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
 
@@ -219,6 +229,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -227,6 +238,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
 
@@ -561,6 +573,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 true,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                accountValidator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -569,6 +582,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsProcessor,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
 
