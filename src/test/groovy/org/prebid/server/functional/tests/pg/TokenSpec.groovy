@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.util.PBSUtils
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -34,7 +33,7 @@ class TokenSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested"
         def firstAuctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -50,9 +49,7 @@ class TokenSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Updated line items are fetched by PBS"
-        def plansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == plansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         and: "Auction is requested for the second time"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -75,7 +72,7 @@ class TokenSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -98,7 +95,7 @@ class TokenSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
         def lineItemCount = plansResponse.lineItems.size()
 
         when: "Sending auction request to PBS"
@@ -127,7 +124,7 @@ class TokenSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Auction is happened for the first time"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -151,7 +148,7 @@ class TokenSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -178,7 +175,7 @@ class TokenSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested for the first time"
         def firstAuctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -212,7 +209,7 @@ class TokenSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested"
         def firstAuctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -229,7 +226,7 @@ class TokenSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Updated line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Auction is requested for the second time"
         def secondAuctionResponse = pgPbsService.sendAuctionRequest(bidRequest)

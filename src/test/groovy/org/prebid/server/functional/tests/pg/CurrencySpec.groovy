@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import spock.lang.Shared
 
@@ -21,8 +20,7 @@ class CurrencySpec extends BasePgSpec {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.defaultCurrencyConversionRatesResponse)
     }
 
-    private static final Map<String, String> pgCurrencyConverterPbsConfig = externalCurrencyConverterConfig +
-            PbsPgConfig.getPgConfig(networkServiceContainer)
+    private static final Map<String, String> pgCurrencyConverterPbsConfig = externalCurrencyConverterConfig + pgConfig.properties
     private static final PrebidServerService pgCurrencyConverterPbsService = pbsServiceFactory.getService(pgCurrencyConverterPbsConfig)
 
     @Shared

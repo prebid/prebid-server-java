@@ -59,7 +59,7 @@ class PgAuctionSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -67,7 +67,7 @@ class PgAuctionSpec extends BasePgSpec {
         then: "Auction response contains values according to the payload"
         verifyAll(auctionResponse) {
             auctionResponse.id == bidRequest.id
-            auctionResponse.cur == pgPbsProperties.currency
+            auctionResponse.cur == pgConfig.currency
             !auctionResponse.bidid
             !auctionResponse.customdata
             !auctionResponse.nbr
@@ -105,7 +105,7 @@ class PgAuctionSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -159,7 +159,7 @@ class PgAuctionSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -180,7 +180,7 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(new PlansResponse(lineItems: []))
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -203,7 +203,7 @@ class PgAuctionSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -238,14 +238,14 @@ class PgAuctionSpec extends BasePgSpec {
         def accountId = bidRequest.site.publisher.id
 
         and: "Planner Mock line items to return #maxDealsPerBidder + 1 line items"
-        def maxLineItemsToProcess = pgPbsProperties.maxDealsPerBidder
+        def maxLineItemsToProcess = pgConfig.maxDealsPerBidder
         def plansResponse = new PlansResponse(lineItems: (1..maxLineItemsToProcess + 1).collect {
             LineItem.getDefaultLineItem(accountId)
         })
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -273,7 +273,7 @@ class PgAuctionSpec extends BasePgSpec {
         def lineItemsNumber = plansResponse.lineItems.size()
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -302,7 +302,7 @@ class PgAuctionSpec extends BasePgSpec {
         def lineItemCount = plansResponse.lineItems.size()
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -327,7 +327,7 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "User Service Response is set to return frequency capped id identical to the line item fcapId"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse.tap {
@@ -359,7 +359,7 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "User Service Response is set to return frequency capped id not identical to the line item fcapId"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse.tap {
@@ -399,7 +399,7 @@ class PgAuctionSpec extends BasePgSpec {
         def lineItemIds = plansResponse.lineItems.collect { it.lineItemId } as Set
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -434,7 +434,7 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -444,7 +444,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "#maxDealsPerBidder[3] line items were send to bidder"
         def sentToBidder = auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value)
-        assert sentToBidder?.size() == pgPbsProperties?.maxDealsPerBidder
+        assert sentToBidder?.size() == pgConfig.maxDealsPerBidder
 
         and: "Those line items with the highest priority were sent"
         assert sentToBidder.sort() == higherPriorityLineItemIds.sort()
@@ -468,7 +468,7 @@ class PgAuctionSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is requested"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -478,7 +478,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "#maxDealsPerBidder[3] line items were send to bidder"
         def sentToBidder = auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value)
-        assert sentToBidder?.size() == pgPbsProperties?.maxDealsPerBidder
+        assert sentToBidder?.size() == pgConfig.maxDealsPerBidder
 
         and: "Those line items with the highest CPM were sent"
         assert sentToBidder.sort() == higherCpmLineItemIds.sort()
@@ -519,7 +519,7 @@ class PgAuctionSpec extends BasePgSpec {
         def higherPriorityLineItemIds = highPriorityLowPriceLineItems.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -529,7 +529,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "#maxDealsPerBidder[3] line items were send to bidder"
         def sentToBidder = auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value)
-        assert sentToBidder?.size() == pgPbsProperties?.maxDealsPerBidder
+        assert sentToBidder?.size() == pgConfig.maxDealsPerBidder
 
         and: "Those line items with the highest priority were sent"
         assert sentToBidder.sort() == higherPriorityLineItemIds.sort()

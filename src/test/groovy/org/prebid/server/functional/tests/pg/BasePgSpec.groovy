@@ -13,6 +13,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.DeliveryStatis
 import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
 @PBSTest
@@ -27,10 +28,8 @@ abstract class BasePgSpec extends Specification {
     protected static final Alert alert = new Alert(Dependencies.networkServiceContainer, mapper)
     protected static final UserData userData = new UserData(Dependencies.networkServiceContainer, mapper)
 
-    private static final Map<String, String> pgPbsConfig = pbsServiceFactory.generalSettings() +
-            PbsPgConfig.getPgConfig(Dependencies.networkServiceContainer)
-    protected static final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgPbsConfig)
-    protected static final PgProperties pgPbsProperties = new PgProperties(pbsServiceFactory.getContainer(pgPbsConfig))
+    protected static final PbsPgConfig pgConfig = new PbsPgConfig(Dependencies.networkServiceContainer)
+    protected static final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgConfig.properties)
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
 
     def setupSpec() {
@@ -48,5 +47,11 @@ abstract class BasePgSpec extends Specification {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
+    }
+
+    protected static updateLineItemsAndWait() {
+        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
     }
 }

@@ -126,9 +126,9 @@ class ReportSpec extends BasePgSpec {
 
         verifyAll(reportRequest) {
             (reportRequest.reportId =~ UUID_REGEX).matches()
-            reportRequest.instanceId == pgPbsProperties.hostId
-            reportRequest.vendor == pgPbsProperties.vendor
-            reportRequest.region == pgPbsProperties.region
+            reportRequest.instanceId == pgConfig.hostId
+            reportRequest.vendor == pgConfig.vendor
+            reportRequest.region == pgConfig.region
             !reportRequest.clientAuctions
 
             reportRequest.reportTimeStamp.isBefore(endTime)
@@ -383,7 +383,7 @@ class ReportSpec extends BasePgSpec {
         def initialRequestCount = deliveryStatistics.requestCount
 
         and: "Set Planner response to return #lineItemsPerReport + 1 line items"
-        def lineItemsPerReport = pgPbsProperties.lineItemsPerReport
+        def lineItemsPerReport = pgConfig.lineItemsPerReport
         def plansResponse = new PlansResponse(lineItems: (1..lineItemsPerReport + 1).collect {
             LineItem.getDefaultLineItem(accountId)
         })

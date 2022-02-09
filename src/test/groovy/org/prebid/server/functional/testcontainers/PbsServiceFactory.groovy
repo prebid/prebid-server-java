@@ -61,17 +61,6 @@ class PbsServiceFactory {
          "settings.http.category-endpoint": "$networkServiceContainer.rootUri/video-categories".toString()]
     }
 
-    static Map<String, String> generalSettings() {
-        ["host-id"          : PBSUtils.randomString,
-         "datacenter-region": PBSUtils.randomString,
-         "vendor"           : PBSUtils.randomString,
-         "profile"          : PBSUtils.randomString,
-         "system"           : PBSUtils.randomString,
-         "sub-system"       : PBSUtils.randomString,
-         "data-center"      : PBSUtils.randomString
-        ]
-    }
-
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
         map.each { key, value ->
             value.stop()

@@ -130,12 +130,12 @@ class AlertSpec extends BasePgSpec {
             alertRequest.details == "Service planner failed to send request 1 time(s) with error message :" +
                     " Failed to retrieve line items from GP. Reason: Failed to fetch data from Planner, HTTP status code ${httpStatusCode.code()}"
 
-            alertRequest.source.env == pgPbsProperties.env
-            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-            alertRequest.source.region == pgPbsProperties.region
-            alertRequest.source.system == pgPbsProperties.system
-            alertRequest.source.subSystem == pgPbsProperties.subSystem
-            alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgConfig.env
+            alertRequest.source.dataCenter == pgConfig.dataCenter
+            alertRequest.source.region == pgConfig.region
+            alertRequest.source.system == pgConfig.system
+            alertRequest.source.subSystem == pgConfig.subSystem
+            alertRequest.source.hostId == pgConfig.hostId
         }
 
         cleanup: "Return initial Planner response status code"
@@ -172,12 +172,12 @@ class AlertSpec extends BasePgSpec {
             alertRequest.details.startsWith("Service register failed to send request 1 time(s) with error message :" +
                     " Planner responded with non-successful code ${httpStatusCode.code()}")
 
-            alertRequest.source.env == pgPbsProperties.env
-            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-            alertRequest.source.region == pgPbsProperties.region
-            alertRequest.source.system == pgPbsProperties.system
-            alertRequest.source.subSystem == pgPbsProperties.subSystem
-            alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgConfig.env
+            alertRequest.source.dataCenter == pgConfig.dataCenter
+            alertRequest.source.region == pgConfig.region
+            alertRequest.source.system == pgConfig.system
+            alertRequest.source.subSystem == pgConfig.subSystem
+            alertRequest.source.hostId == pgConfig.hostId
         }
 
         cleanup: "Return initial Planner response status code"
@@ -223,12 +223,12 @@ class AlertSpec extends BasePgSpec {
                     "Report was not send to delivery stats service with a reason: Delivery stats service responded with " +
                     "status code = ${httpStatusCode.code()} for report with id = ")
 
-            alertRequest.source.env == pgPbsProperties.env
-            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-            alertRequest.source.region == pgPbsProperties.region
-            alertRequest.source.system == pgPbsProperties.system
-            alertRequest.source.subSystem == pgPbsProperties.subSystem
-            alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgConfig.env
+            alertRequest.source.dataCenter == pgConfig.dataCenter
+            alertRequest.source.region == pgConfig.region
+            alertRequest.source.system == pgConfig.system
+            alertRequest.source.subSystem == pgConfig.subSystem
+            alertRequest.source.hostId == pgConfig.hostId
         }
 
         cleanup: "Return initial Delivery Statistics response status code"
@@ -265,12 +265,12 @@ class AlertSpec extends BasePgSpec {
             alertRequest.details.startsWith("Service planner failed to send request 1 time(s) with error message : " +
                     "Response without line items was received from planner")
 
-            alertRequest.source.env == pgPbsProperties.env
-            alertRequest.source.dataCenter == pgPbsProperties.dataCenter
-            alertRequest.source.region == pgPbsProperties.region
-            alertRequest.source.system == pgPbsProperties.system
-            alertRequest.source.subSystem == pgPbsProperties.subSystem
-            alertRequest.source.hostId == pgPbsProperties.hostId
+            alertRequest.source.env == pgConfig.env
+            alertRequest.source.dataCenter == pgConfig.dataCenter
+            alertRequest.source.region == pgConfig.region
+            alertRequest.source.system == pgConfig.system
+            alertRequest.source.subSystem == pgConfig.subSystem
+            alertRequest.source.hostId == pgConfig.hostId
         }
 
         cleanup: "Return initial Planner response"

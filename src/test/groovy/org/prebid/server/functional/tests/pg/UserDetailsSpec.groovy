@@ -60,7 +60,7 @@ class UserDetailsSpec extends BasePgSpec {
         assert userDetailsRequest.time?.isAfter(uidsCookie.bday)
         assert userDetailsRequest.ids?.size() == 1
         assert userDetailsRequest.ids[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
-        assert userDetailsRequest.ids[0].type == pgPbsProperties.userIdType
+        assert userDetailsRequest.ids[0].type == pgConfig.userIdType
     }
 
     @Unroll
@@ -241,10 +241,10 @@ class UserDetailsSpec extends BasePgSpec {
             winNotificationRequest.bidderCode == GENERIC.value
             winNotificationRequest.bidId == winEventRequest.bidId
             winNotificationRequest.lineItemId == lineItemId
-            winNotificationRequest.region == pgPbsProperties.region
+            winNotificationRequest.region == pgConfig.region
             winNotificationRequest.userIds?.size() == 1
             winNotificationRequest.userIds[0].id == uidsCookie.tempUIDs.get(GENERIC.value).uid
-            winNotificationRequest.userIds[0].type == pgPbsProperties.userIdType
+            winNotificationRequest.userIds[0].type == pgConfig.userIdType
             timeFormatter.format(winNotificationRequest.lineUpdatedDateTime) == timeFormatter.format(lineItemUpdateTime)
             winNotificationRequest.winEventDateTime.isAfter(winNotificationRequest.lineUpdatedDateTime)
             !winNotificationRequest.frequencyCaps

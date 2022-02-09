@@ -25,9 +25,9 @@ class RegisterSpec extends BasePgSpec {
 
     def "PBS should be able to register its instance in Planner on demand"() {
         given: "Properties values from PBS config"
-        def host = pgPbsProperties.hostId
-        def vendor = pgPbsProperties.vendor
-        def region = pgPbsProperties.region
+        def host = pgConfig.hostId
+        def vendor = pgConfig.vendor
+        def region = pgConfig.region
 
         and: "Initial Planner request count"
         def initialRequestCount = generalPlanner.requestCount
