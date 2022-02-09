@@ -21,6 +21,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +34,7 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
             BidType.xNative);
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -79,6 +81,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -92,15 +95,14 @@ public class AdotBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Bid resolveMacros(Bid bid) {
-        final Bid.BidBuilder modifyBid = bid.toBuilder();
-        final String bidPrice = Objects.toString(bid.getPrice());
-        final String auctionPrice = "${AUCTION_PRICE}";
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
 
-        modifyBid.nurl(StringUtils.replace(bid.getNurl(), auctionPrice, bidPrice));
-        modifyBid.adm(StringUtils.replace(bid.getAdm(), auctionPrice, bidPrice));
-
-        return modifyBid.build();
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
     private BidType getBidType(Bid bid) {
