@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.82.0-SNAPSHOT</version>
+        <version>1.83.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -42,7 +42,7 @@
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
-        <postgresql.version>42.1.4</postgresql.version>
+        <postgresql.version>42.2.25</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
         <metrics.version>4.0.3</metrics.version>

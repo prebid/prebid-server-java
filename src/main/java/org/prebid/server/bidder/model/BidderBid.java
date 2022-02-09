@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.response.Bid;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -10,7 +10,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 /**
  * Bid returned by a {@link Bidder}.
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class BidderBid {
 
@@ -46,20 +46,10 @@ public class BidderBid {
     PriceFloorInfo priceFloorInfo;
 
     public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
-        return of(bid, bidType, bidCurrency, null, null);
-    }
-
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency,
-                               Integer dealPriority, ExtBidPrebidVideo videoInfo) {
-
-        return of(bid, bidType, bidCurrency, dealPriority, videoInfo, null);
-    }
-
-    public BidderBid with(Bid bid) {
-        return of(bid, type, bidCurrency, dealPriority, videoInfo, priceFloorInfo);
-    }
-
-    public BidderBid with(PriceFloorInfo priceFloorInfo) {
-        return of(bid, type, bidCurrency, dealPriority, videoInfo, priceFloorInfo);
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidCurrency)
+                .build();
     }
 }

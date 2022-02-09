@@ -1420,7 +1420,7 @@ public class ExchangeService {
             bidBuilder.ext(updatedBidExt);
         }
 
-        return bidderBid.with(bidBuilder.build());
+        return bidderBid.toBuilder().bid(bidBuilder.build()).build();
     }
 
     private static ImpMediaType resolveBidAdjustmentMediaType(String bidImpId,
