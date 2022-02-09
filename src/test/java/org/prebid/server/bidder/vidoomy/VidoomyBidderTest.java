@@ -66,18 +66,18 @@ public class VidoomyBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2);
+        assertThat(result.getValue()).hasSize(2)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(List::size)
+                .containsOnly(1);
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfFormatBannerNotProvided() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .banner(Banner.builder()
-                        .h(2)
-                        .w(5)
-                        .format(emptyList())
-                        .build()));
+                .banner(Banner.builder().format(emptyList()).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
@@ -208,7 +208,7 @@ public class VidoomyBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("unknown ad unit code '123'"));
+                .containsExactly(BidderError.badServerResponse("Unknown ad unit code '123'"));
     }
 
     private static BidRequest givenBidRequest(
