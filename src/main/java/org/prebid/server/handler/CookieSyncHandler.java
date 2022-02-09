@@ -150,8 +150,8 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         metrics.updateCookieSyncRequestMetric();
 
         toCookieSyncContext(routingContext)
-                .onComplete(cookieSyncContextResult -> handleCookieSyncContextResult(cookieSyncContextResult,
-                        routingContext));
+                .onComplete(cookieSyncContextResult ->
+                        handleCookieSyncContextResult(cookieSyncContextResult, routingContext));
     }
 
     private Future<CookieSyncContext> toCookieSyncContext(RoutingContext routingContext) {
@@ -444,12 +444,13 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         updateCookieSyncMatchMetrics(bidders, bidderStatuses);
 
-        final List<BidderUsersyncStatus> updatedBidderStatuses =
+        final List<BidderUsersyncStatus> trimmedBidderStatuses =
                 trimBiddersToLimit(bidderStatuses, resolveLimit(cookieSyncContext));
+
         final String cookieSyncStatus = uidsCookie.hasLiveUids() ? "ok" : "no_cookie";
 
         final HttpResponseStatus status = HttpResponseStatus.OK;
-        final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
+        final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, trimmedBidderStatuses);
         final String body = mapper.encodeToString(cookieSyncResponse);
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
@@ -460,7 +461,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())
-                .bidderStatus(updatedBidderStatuses)
+                .bidderStatus(trimmedBidderStatuses)
                 .build();
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
         analyticsDelegator.processEvent(event, tcfContext);
@@ -630,12 +631,16 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private static List<BidderUsersyncStatus> trimBiddersToLimit(List<BidderUsersyncStatus> bidderStatuses,
                                                                  Integer limit) {
 
-        if (limit != null && limit > 0 && limit < bidderStatuses.size()) {
-            Collections.shuffle(bidderStatuses);
-            return bidderStatuses.subList(0, limit);
+        if (limit == null || limit <= 0 || limit >= bidderStatuses.size()) {
+            return bidderStatuses;
         }
 
-        return bidderStatuses;
+        final List<BidderUsersyncStatus> allowedBidderStatuses = bidderStatuses.stream()
+                .filter(status -> StringUtils.isEmpty(status.getError()))
+                .collect(Collectors.toList());
+
+        Collections.shuffle(allowedBidderStatuses);
+        return allowedBidderStatuses.subList(0, limit);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {

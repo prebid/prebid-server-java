@@ -76,8 +76,8 @@ import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class CookieSyncHandlerTest extends VertxTest {
 
@@ -1108,10 +1108,15 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldLimitBidderStatuses() throws IOException {
+    public void shouldLimitAllowedBidderStatuses() throws IOException {
         // given
-        given(routingContext.getBody()).willReturn(givenRequestBody(
-                CookieSyncRequest.builder().bidders(asList(RUBICON, APPNEXUS)).gdpr(0).limit(1).build()));
+        final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, APPNEXUS))
+                .gdpr(0)
+                .limit(1)
+                .build();
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(cookieSyncRequest));
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
@@ -1120,13 +1125,24 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .cookieSync(AccountCookieSyncConfig.of(5, 5, null))
                         .build()));
 
-        rubiconUsersyncer = Usersyncer.of(RUBICON,
-                Usersyncer.UsersyncMethod.of("redirect",
+        rubiconUsersyncer = Usersyncer.of(
+                RUBICON,
+                Usersyncer.UsersyncMethod.of(
+                        "redirect",
                         "http://adnxsexample.com/sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}",
-                        null, false), null);
-        appnexusUsersyncer = Usersyncer.of(APPNEXUS_COOKIE,
-                Usersyncer.UsersyncMethod.of("redirect",
-                        "http://rubiconexample.com", null, false), null);
+                        null,
+                        false),
+                null);
+
+        appnexusUsersyncer = Usersyncer.of(
+                APPNEXUS_COOKIE,
+                Usersyncer.UsersyncMethod.of(
+                        "redirect",
+                        "http://rubiconexample.com",
+                        null,
+                        false),
+                null);
+
         givenUsersyncersReturningFamilyName();
 
         givenTcfServiceReturningVendorIdResult(singleton(1));
