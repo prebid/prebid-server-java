@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -144,6 +146,29 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusMetaData::getUsi)
                 .containsExactly("userId", "userId");
         assertThat(result.getErrors()).hasSize(0);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithHeadersIfDeviceIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                        .device(Device.builder().ip("ip").ua("ua").build()),
+                givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("User-Agent", "ua"),
+                        tuple("X-Forwarded-For", "ip"));
     }
 
     @Test

@@ -574,7 +574,7 @@ public class BasicPriceFloorEnforcerTest {
         }
         final List<BidderBid> bidderBids = Arrays.stream(bidCustomizers)
                 .map(bidCustomizer -> bidCustomizer.apply(Bid.builder().impid("impId")).build())
-                .map(bid -> BidderBid.of(bid, null, null, null, null, priceFloorInfo))
+                .map(bid -> BidderBid.builder().bid(bid).priceFloorInfo(priceFloorInfo).build())
                 .collect(Collectors.toList());
         return BidderSeatBid.of(bidderBids, emptyList(), emptyList());
     }
