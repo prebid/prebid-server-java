@@ -29,12 +29,6 @@ import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 
 class ReportSpec extends BasePgSpec {
 
-    def setupSpec() {
-        // cleanup: send all reports which may be created during previous PG test specs execution
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
-    }
-
     def cleanup() {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }

@@ -46,5 +46,7 @@ abstract class BasePgSpec extends Specification {
 
     def cleanupSpec() {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
+        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
     }
 }
