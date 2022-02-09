@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class VidoomyBidder implements Bidder<BidRequest> {
@@ -65,29 +66,35 @@ public class VidoomyBidder implements Bidder<BidRequest> {
         if (banner == null) {
             return imp;
         }
-        validateBannerSize(banner.getW(), banner.getH());
 
+        final Integer width = banner.getW();
+        final Integer height = banner.getH();
         final List<Format> formats = banner.getFormat();
-        if (CollectionUtils.isEmpty(formats)) {
-            throw new PreBidException(String.format("no sizes provided for Banner %s", formats));
-        }
+        validateBannerSizes(width, height, formats);
 
-        final Format firstFormat = formats.get(0);
+        final boolean useFormatSize = width == null || height == null;
+        final Format firstFormat = useFormatSize ? formats.get(0) : null;
         return imp.toBuilder()
                 .banner(banner.toBuilder()
-                        .w(ObjectUtils.defaultIfNull(banner.getW(), ObjectUtil.getIfNotNull(firstFormat, Format::getW)))
-                        .h(ObjectUtils.defaultIfNull(banner.getH(), ObjectUtil.getIfNotNull(firstFormat, Format::getH)))
+                        .w(useFormatSize ? zeroIfFormatMeasureNull(firstFormat, Format::getW) : width)
+                        .h(useFormatSize ? zeroIfFormatMeasureNull(firstFormat, Format::getH) : height)
                         .build())
                 .build();
     }
 
-    private static void validateBannerSize(Integer width, Integer height) {
-        if (width != null && height != null) {
-            if (width == 0 || height == 0) {
-                throw new PreBidException(
-                        String.format("invalid sizes provided for Banner %s x %s", width, height));
-            }
+    private static void validateBannerSizes(Integer width, Integer height, List<Format> formats) {
+        final boolean isMeasuresNotNull = width != null && height != null;
+        if (isMeasuresNotNull && (width == 0 || height == 0)) {
+            throw new PreBidException(String.format("invalid sizes provided for Banner %s x %s", width, height));
         }
+
+        if (!isMeasuresNotNull && CollectionUtils.isEmpty(formats)) {
+            throw new PreBidException(String.format("no sizes provided for Banner %s", formats));
+        }
+    }
+
+    private static Integer zeroIfFormatMeasureNull(Format format, Function<Format, Integer> measureExtractor) {
+        return ObjectUtils.defaultIfNull(ObjectUtil.getIfNotNull(format, measureExtractor), 0);
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp) {

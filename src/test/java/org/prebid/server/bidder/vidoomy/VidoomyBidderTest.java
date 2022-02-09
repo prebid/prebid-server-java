@@ -74,10 +74,44 @@ public class VidoomyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfFormatBannerNotProvided() {
+    public void makeHttpRequestsShouldUseBannerSizeIfValid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .banner(Banner.builder().format(emptyList()).build()));
+                .banner(Banner.builder().w(5).h(5).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsExactly(tuple(5, 5));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfBannerMeasureIsZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().h(0).w(0).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("invalid sizes provided for Banner 0 x 0"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfAllSizesIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().w(5).h(null).format(emptyList()).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
@@ -89,21 +123,24 @@ public class VidoomyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfBannerHasWidthZeroAndHasHeightZero() {
+    public void makeHttpRequestsShouldUseBannerFormatIfBannerSizeIsInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .banner(Banner.builder()
-                        .h(0)
-                        .w(0)
+                        .format(singletonList(Format.builder().w(5).h(5).build()))
                         .build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("invalid sizes provided for Banner 0 x 0"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getW, Banner::getH)
+                .containsExactly(tuple(5, 5));
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
