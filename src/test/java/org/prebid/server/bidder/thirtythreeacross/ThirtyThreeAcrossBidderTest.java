@@ -27,10 +27,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -407,18 +407,18 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         final List<Imp> imps = singletonList(givenImp(impCustomizer));
         return bidRequestCustomizer.apply(BidRequest.builder().imp(imps)).build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
                 ExtImpThirtyThreeAcross.of("siteId", "zoneId", "productId"));
         final Imp.ImpBuilder builder = Imp.builder()
@@ -429,7 +429,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         return impCustomizer.apply(builder).build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
