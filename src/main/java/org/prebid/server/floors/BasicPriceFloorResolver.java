@@ -32,6 +32,7 @@ import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
@@ -39,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,6 +61,7 @@ import java.util.stream.StreamSupport;
 public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorResolver.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final String DEFAULT_RULES_CURRENCY = "USD";
     private static final String SCHEMA_DEFAULT_DELIMITER = "|";
@@ -439,12 +442,12 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final Price resolvedPrice;
         if (StringUtils.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
             if (floorValue.compareTo(floorMinValue) > 0) {
-                resolvedPrice = effectiveFloor;
+                resolvedPrice = roundPrice(effectiveFloor);
             } else {
-                resolvedPrice = effectiveFloorMin;
+                resolvedPrice = roundPrice(effectiveFloorMin);
             }
         } else {
-            resolvedPrice = ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin);
+            resolvedPrice = roundPrice(ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin));
         }
 
         return PriceFloorResult.of(
@@ -469,13 +472,23 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         try {
             return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
         } catch (PreBidException e) {
-            logger.warn(
-                    "Could not convert price floor currency {0} to desired currency {1}",
-                    currentCurrency,
-                    desiredCurrency);
+            final String logMessage =
+                    String.format("Could not convert price floor currency %s to desired currency %s",
+                            currentCurrency, desiredCurrency);
+            logger.debug(logMessage);
+            conditionalLogger.error(logMessage, 0.01d);
         }
 
         return null;
+    }
+
+    private static Price roundPrice(Price price) {
+        final BigDecimal convertedPriceValue = price.getValue()
+                .setScale(4, RoundingMode.HALF_EVEN).stripTrailingZeros();
+
+        return convertedPriceValue.scale() < 0
+                ? Price.of(price.getCurrency(), convertedPriceValue.setScale(0, RoundingMode.UNNECESSARY))
+                : Price.of(price.getCurrency(), convertedPriceValue);
     }
 
     private static class RuleKeyCandidateIterator implements Iterator<String> {
