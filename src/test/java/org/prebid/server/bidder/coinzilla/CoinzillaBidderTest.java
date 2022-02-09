@@ -59,9 +59,9 @@ public class CoinzillaBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedBidRequest = BidRequest.builder()
-                .id("111")
+                .id("requestId")
                 .imp(singletonList(Imp.builder()
-                        .id("123")
+                        .id("impId")
                         .banner(Banner.builder().build())
                         .ext(null)
                         .build()))
@@ -83,7 +83,6 @@ public class CoinzillaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-
         assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
                 .flatExtracting(MultiMap::entries)
@@ -144,17 +143,15 @@ public class CoinzillaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
         final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("777"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("impId"))));
 
         // when
         final Result<List<BidderBid>> result = coinzillaBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final BidderBid expectedBidderBid = BidderBid.of(Bid.builder().impid("777").build(), BidType.banner, "USD");
-
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(expectedBidderBid);
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -166,14 +163,14 @@ public class CoinzillaBidderTest extends VertxTest {
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                        .id("111")
+                        .id("requestId")
                         .imp(Collections.singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123")
+                        .id("impId")
                         .banner(Banner.builder().build())
                         .ext(null))
                 .build();

@@ -75,6 +75,7 @@ public class CoinzillaBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
