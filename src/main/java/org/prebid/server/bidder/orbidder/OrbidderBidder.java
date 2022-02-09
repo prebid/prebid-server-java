@@ -58,7 +58,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final BigDecimal bidFloor = parseBidFloorCurrency(request, imp.getBidfloorcur(), imp.getBidfloor());
+                final BigDecimal bidFloor = resolveBidFloor(request, imp.getBidfloorcur(), imp.getBidfloor());
                 parseImpExt(imp);
                 validImps.add(modifyImp(imp, bidFloor));
             } catch (PreBidException e) {
@@ -78,7 +78,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    private BigDecimal parseBidFloorCurrency(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
+    private BigDecimal resolveBidFloor(BidRequest bidRequest, String bidfloorcur, BigDecimal bidfloor) {
         if (BidderUtil.isValidPrice(bidfloor)
                 && !StringUtils.equalsIgnoreCase(bidfloorcur, BIDDER_CURRENCY)
                 && StringUtils.isNotBlank(bidfloorcur)) {
@@ -88,7 +88,7 @@ public class OrbidderBidder implements Bidder<BidRequest> {
         return bidfloor;
     }
 
-    private Imp modifyImp(Imp imp, BigDecimal bidFloor) {
+    private static Imp modifyImp(Imp imp, BigDecimal bidFloor) {
         return imp.toBuilder()
                 .bidfloorcur(BIDDER_CURRENCY)
                 .bidfloor(bidFloor)
