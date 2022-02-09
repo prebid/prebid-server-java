@@ -1,5 +1,6 @@
 package org.prebid.server.handler.openrtb2;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -441,6 +442,62 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
+    }
+
+    @Test
+    public void shouldRespondWithAdditionalTargetingIncludedWhenSeatBidExists() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final Map<String, JsonNode> targeting = new HashMap<>();
+        targeting.put("key", TextNode.valueOf("value"));
+        targeting.put("test-key", TextNode.valueOf("test-value"));
+
+        givenHoldAuction(BidResponse.builder()
+                .ext(ExtBidResponse.builder().additionalTargeting(targeting).build())
+                .seatbid(singletonList(SeatBid.builder()
+                        .seat("bidder1")
+                        .bid(singletonList(Bid.builder()
+                                .ext(mapper.valueToTree(
+                                        ExtPrebid.of(
+                                                ExtBidPrebid.builder().build(),
+                                                mapper.createObjectNode())))
+                                .build()))
+                        .build()))
+                .build());
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers()).hasSize(4)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("Content-Type", "application/json"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+        verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
+    }
+
+    @Test
+    public void shouldRespondWithAdditionalTargetingIncludedWhenNoSeatBidExists() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final Map<String, JsonNode> targeting = new HashMap<>();
+        targeting.put("key", TextNode.valueOf("value"));
+        targeting.put("test-key", TextNode.valueOf("test-value"));
+
+        givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().additionalTargeting(targeting).build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
     }
 
     @Test

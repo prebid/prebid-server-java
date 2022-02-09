@@ -216,14 +216,18 @@ public class AmpHandler implements Handler<RoutingContext> {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        Map<String, JsonNode> targeting = new HashMap<>(seatBids == null ? Collections.emptyMap() : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+
+        if (bidResponse.getExt() != null && bidResponse.getExt().getAdditionalTargeting() != null) {
+            targeting.putAll(bidResponse.getExt().getAdditionalTargeting());
+        }
 
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
     }
