@@ -22,6 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -29,6 +30,7 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountMetricsConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.BidValidationEnforcement;
@@ -156,6 +158,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
                 + "}"
                 + "},"
+                + "\"metrics\": {\"verbosity-level\": \"detailed\"},"
                 + "\"analytics\": {"
                 + "\"auction-events\": {\"amp\": true},"
                 + "\"modules\": {\"some-analytics\": {\"supported-endpoints\": [\"auction\"]}}"
@@ -224,6 +227,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
                     .status(AccountStatus.active)
+                    .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.detailed))
                     .auction(AccountAuctionConfig.builder()
                             .priceGranularity("med")
                             .bannerCacheTtl(100)

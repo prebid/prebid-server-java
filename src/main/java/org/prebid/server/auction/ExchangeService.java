@@ -242,7 +242,6 @@ public class ExchangeService {
 
         final List<SeatBid> storedAuctionResponses = new ArrayList<>();
         final BidderAliases aliases = aliases(bidRequest);
-        final String publisherId = account.getId();
         final BidRequestCacheInfo cacheInfo = bidRequestCacheInfo(bidRequest);
         final Map<String, MultiBidConfig> bidderToMultiBid = bidderToMultiBids(bidRequest, debugWarnings);
 
@@ -252,7 +251,7 @@ public class ExchangeService {
                         receivedContext, storedResponseResult, aliases, bidderToMultiBid))
 
                 .map(auctionParticipation -> updateRequestMetric(
-                        auctionParticipation, uidsCookie, aliases, publisherId, requestTypeMetric))
+                        auctionParticipation, uidsCookie, aliases, account, requestTypeMetric))
                 .map(bidderRequests -> maybeLogBidderInteraction(receivedContext, bidderRequests))
                 .compose(auctionParticipations -> CompositeFuture.join(
                         auctionParticipations.stream()
@@ -270,10 +269,9 @@ public class ExchangeService {
                         auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
                 .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
                 .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, receivedContext, aliases))
-                .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, publisherId, aliases))
+                .map(auctionParticipations -> updateMetricsFromResponses(auctionParticipations, account, aliases))
 
                 .map(receivedContext::with)
-
                 // produce response from bidder results
                 .compose(context -> bidResponseCreator.create(
                                 context.getAuctionParticipations(),
@@ -1120,14 +1118,14 @@ public class ExchangeService {
     private List<AuctionParticipation> updateRequestMetric(List<AuctionParticipation> auctionParticipations,
                                                            UidsCookie uidsCookie,
                                                            BidderAliases aliases,
-                                                           String publisherId,
+                                                           Account account,
                                                            MetricName requestTypeMetric) {
         auctionParticipations = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
 
         metrics.updateRequestBidderCardinalityMetric(auctionParticipations.size());
-        metrics.updateAccountRequestMetrics(publisherId, requestTypeMetric);
+        metrics.updateAccountRequestMetrics(account, requestTypeMetric);
 
         for (AuctionParticipation auctionParticipation : auctionParticipations) {
             if (auctionParticipation.isRequestBlocked()) {
@@ -1521,7 +1519,7 @@ public class ExchangeService {
      * {@link Bid#getPrice()} is not empty.
      */
     private List<AuctionParticipation> updateMetricsFromResponses(List<AuctionParticipation> auctionParticipations,
-                                                                  String publisherId,
+                                                                  Account account,
                                                                   BidderAliases aliases) {
         final List<BidderResponse> bidderResponses = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
@@ -1531,19 +1529,19 @@ public class ExchangeService {
         for (BidderResponse bidderResponse : bidderResponses) {
             final String bidder = aliases.resolveBidder(bidderResponse.getBidder());
 
-            metrics.updateAdapterResponseTime(bidder, publisherId, bidderResponse.getResponseTime());
+            metrics.updateAdapterResponseTime(bidder, account, bidderResponse.getResponseTime());
 
             final List<BidderBid> bidderBids = bidderResponse.getSeatBid().getBids();
             if (CollectionUtils.isEmpty(bidderBids)) {
-                metrics.updateAdapterRequestNobidMetrics(bidder, publisherId);
+                metrics.updateAdapterRequestNobidMetrics(bidder, account);
             } else {
-                metrics.updateAdapterRequestGotbidsMetrics(bidder, publisherId);
+                metrics.updateAdapterRequestGotbidsMetrics(bidder, account);
 
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
 
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-                    metrics.updateAdapterBidMetrics(bidder, publisherId, cpm, bid.getAdm() != null,
+                    metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null,
                             bidderBid.getType().toString());
                 }
             }
@@ -1796,8 +1794,6 @@ public class ExchangeService {
 
         // account might be null if request is rejected by the entrypoint hook
         if (account != null) {
-            final String accountId = account.getId();
-
             stageOutcomes.values().stream()
                     .flatMap(Collection::stream)
                     .map(StageExecutionOutcome::getGroups)
@@ -1808,7 +1804,7 @@ public class ExchangeService {
                             outcome -> outcome.getHookId().getModuleCode(),
                             Collectors.summingLong(HookExecutionOutcome::getExecutionTime)))
                     .forEach((moduleCode, executionTime) ->
-                            metrics.updateAccountModuleDurationMetric(accountId, moduleCode, executionTime));
+                            metrics.updateAccountModuleDurationMetric(account, moduleCode, executionTime));
         }
 
         return context;
@@ -1837,7 +1833,7 @@ public class ExchangeService {
 
         // account might be null if request is rejected by the entrypoint hook
         if (account != null) {
-            metrics.updateAccountHooksMetrics(account.getId(), moduleCode, status, action);
+            metrics.updateAccountHooksMetrics(account, moduleCode, status, action);
         }
     }
 
