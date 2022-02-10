@@ -28,13 +28,13 @@ import org.prebid.server.util.HttpUtil;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
@@ -60,24 +60,18 @@ public class TappxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> imps = request.getImp();
-        final Imp firstImp = imps.get(0);
 
         final ExtImpTappx extImpTappx;
         final String url;
         try {
-            extImpTappx = parseImpExt(firstImp);
+            extImpTappx = parseImpExt(imps.get(0));
             url = resolveUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final List<Imp> updatedImps = Stream.concat(
-                        Stream.of(modifyImp(firstImp, extImpTappx)),
-                        imps.stream().skip(1))
-                .collect(Collectors.toList());
-
-        final BidRequest outgoingRequest = modifyRequest(request, updatedImps, extImpTappx);
-        return Result.withValue(makeRequest(outgoingRequest, url));
+        final BidRequest modifiedRequest = modifyRequest(request, modifyImps(imps, extImpTappx), extImpTappx);
+        return Result.withValue(makeHttpRequest(modifiedRequest, url));
     }
 
     private ExtImpTappx parseImpExt(Imp imp) {
@@ -88,12 +82,18 @@ public class TappxBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static List<Imp> modifyImps(List<Imp> imps, ExtImpTappx extImpTappx) {
+        List<Imp> modifiedImps = new ArrayList<>(imps);
+        modifiedImps.set(0, modifyImp(imps.get(0), extImpTappx));
+
+        return modifiedImps;
+    }
+
     private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
         final String subdomain = extImpTappx.getEndpoint();
-        final String tappxkey = extImpTappx.getTappxkey();
         final boolean isNewEndpoint = NEW_ENDPOINT_PATTERN.matcher(subdomain).matches();
 
-        final String baseUri = resolveHost(subdomain, isNewEndpoint);
+        final String baseUri = isNewEndpoint ? resolveNewHost(subdomain) : resolveOldHost();
         final URIBuilder uriBuilder;
         try {
             uriBuilder = new URIBuilder(baseUri);
@@ -106,31 +106,31 @@ public class TappxBidder implements Bidder<BidRequest> {
             uriBuilder.setPathSegments(ListUtils.union(pathSegments, Collections.singletonList(subdomain)));
         }
 
-        uriBuilder.addParameter("tappxkey", tappxkey);
+        uriBuilder.addParameter("tappxkey", extImpTappx.getTappxkey());
         uriBuilder.addParameter("v", VERSION);
         uriBuilder.addParameter("type_cnn", TYPE_CNN);
 
-        if (Integer.valueOf(0).equals(test)) {
+        if (test != null && test == 0) {
             uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
         }
 
         return uriBuilder.toString();
     }
 
-    private String resolveHost(String subdomain, boolean isNewHost) {
-        if (isNewHost) {
-            return endpointUrl.replace(SUBDOMAIN_MACRO, subdomain + ".pub") + "/rtb/";
-        }
+    private String resolveNewHost(String subdomain) {
+        return endpointUrl.replace(SUBDOMAIN_MACRO, subdomain + ".pub") + "/rtb/";
+    }
+
+    private String resolveOldHost() {
         return endpointUrl.replace(SUBDOMAIN_MACRO, "ssp.api") + "/rtb/v2";
     }
 
     private static Imp modifyImp(Imp imp, ExtImpTappx extImpTappx) {
         final BigDecimal extBidFloor = extImpTappx.getBidfloor();
-        if (extBidFloor == null || extBidFloor.signum() != 1) {
-            return imp;
-        }
 
-        return imp.toBuilder().bidfloor(extBidFloor).build();
+        return extBidFloor != null && extBidFloor.signum() == 1
+                ? imp.toBuilder().bidfloor(extBidFloor).build()
+                : imp;
     }
 
     private BidRequest modifyRequest(BidRequest request, List<Imp> imps, ExtImpTappx extImpTappx) {
@@ -153,7 +153,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         return extRequest;
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest request, String endpointUrl) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String endpointUrl) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .headers(HttpUtil.headers())
