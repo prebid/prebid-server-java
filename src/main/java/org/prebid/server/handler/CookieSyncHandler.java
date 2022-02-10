@@ -11,10 +11,10 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -58,11 +58,13 @@ import org.prebid.server.util.ObjectUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 public class CookieSyncHandler implements Handler<RoutingContext> {
@@ -638,12 +640,17 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             return bidderStatuses;
         }
 
-        final List<BidderUsersyncStatus> allowedBidderStatuses = bidderStatuses.stream()
-                .filter(status -> StringUtils.isEmpty(status.getError()))
+        final List<BidderUsersyncStatus> allowedStatuses = bidderStatuses.stream()
+                .filter(status -> !status.isRejected())
                 .collect(Collectors.toList());
+        Collections.shuffle(allowedStatuses);
 
-        Collections.shuffle(allowedBidderStatuses);
-        return allowedBidderStatuses.subList(0, limit);
+        final List<BidderUsersyncStatus> rejectedStatuses = bidderStatuses.stream()
+                .filter(BidderUsersyncStatus::isRejected)
+                .collect(Collectors.toList());
+        Collections.shuffle(rejectedStatuses);
+
+        return ListUtils.union(allowedStatuses, rejectedStatuses).subList(0, limit);
     }
 
     private void handleErrors(Throwable error, RoutingContext routingContext, TcfContext tcfContext) {
