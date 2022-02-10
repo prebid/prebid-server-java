@@ -434,10 +434,8 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .account("account")
                         .build()));
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(null, null, true))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(null, null, true)));
 
         appnexusUsersyncer = Usersyncer.of(APPNEXUS_COOKIE,
                 Usersyncer.UsersyncMethod.of("redirect", "http://adnxsexample.com", null, false), null);
@@ -1092,10 +1090,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(5, 5, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(5, 5, null)));
 
         givenDefaultRubiconUsersyncer();
         givenDefaultAppnexusUsersyncer();
@@ -1128,10 +1124,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(2, null, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(2, null, null)));
 
         givenDefaultRubiconUsersyncer();
         givenDefaultAppnexusUsersyncer();
@@ -1163,10 +1157,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(2, null, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(2, null, null)));
 
         givenDefaultRubiconUsersyncer();
         givenDefaultAppnexusUsersyncer();
@@ -1199,10 +1191,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(5, null, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(5, null, null)));
 
         givenDefaultRubiconUsersyncer();
         givenDefaultAppnexusUsersyncer();
@@ -1235,10 +1225,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(5, 2, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(5, 2, null)));
 
         givenDefaultRubiconUsersyncer();
         givenDefaultAppnexusUsersyncer();
@@ -1297,10 +1285,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(1, null, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(1, null, null)));
 
         rubiconUsersyncer = Usersyncer.of(RUBICON,
                 Usersyncer.UsersyncMethod.of("redirect",
@@ -1331,10 +1317,8 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.isActive(anyString())).willReturn(true);
 
-        given(applicationSettings.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(
-                Account.builder()
-                        .cookieSync(AccountCookieSyncConfig.of(5, 1, null))
-                        .build()));
+        given(applicationSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.succeededFuture(givenAccountWithCookieSyncConfig(5, 1, null)));
 
         rubiconUsersyncer = createUsersyncer(
                 RUBICON,
@@ -1555,6 +1539,16 @@ public class CookieSyncHandlerTest extends VertxTest {
         } catch (JsonProcessingException e) {
             throw new RuntimeException();
         }
+    }
+
+    private static Account givenAccountWithCookieSyncConfig(
+            Integer defaultLimit,
+            Integer maxLimit,
+            Boolean defaultCoopSync) {
+
+        return Account.builder()
+                .cookieSync(AccountCookieSyncConfig.of(defaultLimit, maxLimit, defaultCoopSync))
+                .build();
     }
 
     private void givenUsersyncersReturningFamilyName() {
