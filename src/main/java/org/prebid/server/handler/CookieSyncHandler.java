@@ -639,12 +639,12 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final List<BidderUsersyncStatus> allowedStatuses = bidderStatuses.stream()
-                .filter(status -> !status.isRejected())
+                .filter(status -> StringUtils.isEmpty(status.getError()))
                 .collect(Collectors.toList());
         Collections.shuffle(allowedStatuses);
 
         final List<BidderUsersyncStatus> rejectedStatuses = bidderStatuses.stream()
-                .filter(BidderUsersyncStatus::isRejected)
+                .filter(status -> StringUtils.isNotEmpty(status.getError()))
                 .collect(Collectors.toList());
         Collections.shuffle(rejectedStatuses);
 
