@@ -7,7 +7,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -27,14 +27,14 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TappxBidder implements Bidder<BidRequest> {
 
@@ -44,135 +44,123 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
+    private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
 
     private final String endpointUrl;
+    private final Clock clock;
     private final JacksonMapper mapper;
 
-    public TappxBidder(String endpointUrl, JacksonMapper mapper) {
+    public TappxBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<Imp> imps = request.getImp();
+        final Imp firstImp = imps.get(0);
+
         final ExtImpTappx extImpTappx;
         final String url;
         try {
-            extImpTappx = parseBidRequestToExtImpTappx(request);
+            extImpTappx = parseImpExt(firstImp);
             url = resolveUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
-        final BidRequest outgoingRequest = modifyRequest(request, extImpTappx);
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(url)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build());
+        final List<Imp> updatedImps = Stream.concat(
+                        Stream.of(modifyImp(firstImp, extImpTappx)),
+                        imps.stream().skip(1))
+                .collect(Collectors.toList());
+
+        final BidRequest outgoingRequest = modifyRequest(request, updatedImps, extImpTappx);
+        return Result.withValue(makeRequest(outgoingRequest, url));
     }
 
-    /**
-     * Retrieves first {@link ExtImpTappx} from {@link Imp}.
-     */
-    private ExtImpTappx parseBidRequestToExtImpTappx(BidRequest request) {
+    private ExtImpTappx parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(request.getImp().get(0).getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), TAPX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    /**
-     * Builds endpoint url based on adapter-specific pub settings from imp.ext.
-     */
     private String resolveUrl(ExtImpTappx extImpTappx, Integer test) {
-        final String subdomen = extImpTappx.getSubdomen();
-        if (StringUtils.isBlank(subdomen)) {
-            throw new PreBidException("Tappx endpoint undefined");
-        }
-
+        final String subdomain = extImpTappx.getEndpoint();
         final String tappxkey = extImpTappx.getTappxkey();
-        if (StringUtils.isBlank(tappxkey)) {
-            throw new PreBidException("Tappx tappxkey undefined");
-        }
+        final boolean isNewEndpoint = NEW_ENDPOINT_PATTERN.matcher(subdomain).matches();
 
-        final boolean isMatcherEndpoint = isMatcherEndpoint(subdomen);
-        final String host = resolvedHost(subdomen, isMatcherEndpoint);
-
-        return buildUrl(host, subdomen, tappxkey, test, isMatcherEndpoint);
-    }
-
-    private String resolvedHost(String subdomen, boolean isMatcherEndpoint) {
-        if (isMatcherEndpoint) {
-            return subdomen.replace("{{subdomen}}", subdomen + ".pub") + "/rtb/";
-        }
-        return subdomen.replace("{{subdomen}}", "ssp.api") + "/rtb/v2";
-    }
-
-    private String buildUrl(String host, String subdomen, String tappxkey, Integer test, Boolean isMatcherEndpoint) {
+        final String baseUri = resolveHost(subdomain, isNewEndpoint);
+        final URIBuilder uriBuilder;
         try {
-            final String baseUri = resolveBaseUri(host);
-            final URIBuilder uriBuilder = new URIBuilder(baseUri);
-
-            if (!isMatcherEndpoint) {
-                final List<String> pathSegments = new ArrayList<>();
-                uriBuilder.getPathSegments().stream()
-                        .filter(StringUtils::isNotBlank)
-                        .forEach(pathSegments::add);
-                pathSegments.add(StringUtils.strip(subdomen, "/"));
-                uriBuilder.setPathSegments(pathSegments);
-            }
-
-            uriBuilder.addParameter("tappxkey", tappxkey);
-            uriBuilder.addParameter("v", VERSION);
-            uriBuilder.addParameter("type_cnn", TYPE_CNN);
-
-            if (test != null && test == 0) {
-                final String ts = String.valueOf(System.nanoTime());
-                uriBuilder.addParameter("ts", ts);
-            }
-            return uriBuilder.build().toString();
+            uriBuilder = new URIBuilder(baseUri);
         } catch (URISyntaxException e) {
             throw new PreBidException(String.format("Failed to build endpoint URL: %s", e.getMessage()));
         }
-    }
 
-    private String resolveBaseUri(String host) {
-        return StringUtils.startsWithAny(host.toLowerCase(), "http://", "https://")
-                ? host
-                : endpointUrl + host;
-    }
-
-    private boolean isMatcherEndpoint(String endpointUrl) {
-        final Pattern versionPattern = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
-        final Matcher versionMatcher = versionPattern.matcher(endpointUrl);
-        return versionMatcher.matches();
-    }
-
-    /**
-     * Modify request's first imp.
-     */
-    private BidRequest modifyRequest(BidRequest request, ExtImpTappx extImpTappx) {
-        final List<Imp> modifiedImps = new ArrayList<>(request.getImp());
-        final BigDecimal extBidfloor = extImpTappx.getBidfloor();
-        if (extBidfloor != null && extBidfloor.signum() > 0) {
-            final Imp modifiedFirstImp = request.getImp().get(0).toBuilder().bidfloor(extBidfloor).build();
-            modifiedImps.set(0, modifiedFirstImp);
+        if (!isNewEndpoint) {
+            final List<String> pathSegments = uriBuilder.getPathSegments();
+            uriBuilder.setPathSegments(ListUtils.union(pathSegments, Collections.singletonList(subdomain)));
         }
 
-        return request.toBuilder().imp(modifiedImps).ext(getExtRequest(extImpTappx)).build();
+        uriBuilder.addParameter("tappxkey", tappxkey);
+        uriBuilder.addParameter("v", VERSION);
+        uriBuilder.addParameter("type_cnn", TYPE_CNN);
+
+        if (Integer.valueOf(0).equals(test)) {
+            uriBuilder.addParameter("ts", String.valueOf(clock.millis()));
+        }
+
+        return uriBuilder.toString();
     }
 
-    private ExtRequest getExtRequest(ExtImpTappx extImpTappx) {
-        final ExtRequest extRequest = ExtRequest.empty();
-        final TappxBidderExt tappxBidderExt = TappxBidderExt.of(extImpTappx.getTappxkey(), extImpTappx.getMktag(),
-                extImpTappx.getBcid(), extImpTappx.getBcrid());
-        extRequest.addProperty("bidder", mapper.mapper().valueToTree(tappxBidderExt));
+    private String resolveHost(String subdomain, boolean isNewHost) {
+        if (isNewHost) {
+            return endpointUrl.replace(SUBDOMAIN_MACRO, subdomain + ".pub") + "/rtb/";
+        }
+        return endpointUrl.replace(SUBDOMAIN_MACRO, "ssp.api") + "/rtb/v2";
+    }
 
+    private static Imp modifyImp(Imp imp, ExtImpTappx extImpTappx) {
+        final BigDecimal extBidFloor = extImpTappx.getBidfloor();
+        if (extBidFloor == null || extBidFloor.signum() != 1) {
+            return imp;
+        }
+
+        return imp.toBuilder().bidfloor(extBidFloor).build();
+    }
+
+    private BidRequest modifyRequest(BidRequest request, List<Imp> imps, ExtImpTappx extImpTappx) {
+        return request.toBuilder()
+                .imp(imps)
+                .ext(createRequestExt(extImpTappx))
+                .build();
+    }
+
+    private ExtRequest createRequestExt(ExtImpTappx extImpTappx) {
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.builder()
+                .tappxkey(extImpTappx.getTappxkey())
+                .mktag(extImpTappx.getMktag())
+                .bcid(extImpTappx.getBcid())
+                .bcrid(extImpTappx.getBcrid())
+                .build();
+
+        final ExtRequest extRequest = ExtRequest.empty();
+        extRequest.addProperty("bidder", mapper.mapper().valueToTree(tappxBidderExt));
         return extRequest;
+    }
+
+    private HttpRequest<BidRequest> makeRequest(BidRequest request, String endpointUrl) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(request))
+                .payload(request)
+                .build();
     }
 
     @Override
