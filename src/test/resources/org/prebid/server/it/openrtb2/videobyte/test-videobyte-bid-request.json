@@ -7,13 +7,12 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
-      "bidfloorcur": "EUR",
       "ext": {
         "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
+          "host": "lbs-ru.ads",
+          "pubId": "pubId",
+          "placementId": "placementId",
+          "nid": "nid"
         }
       }
     }
@@ -21,6 +20,7 @@
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
+    "ref": "www.referer.com",
     "publisher": {
       "domain": "example.com"
     },

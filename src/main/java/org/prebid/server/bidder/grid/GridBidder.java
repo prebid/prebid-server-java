@@ -276,7 +276,8 @@ public class GridBidder implements Bidder<BidRequest> {
         }
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode().set("networkName", TextNode.valueOf(demandSource)))
+                .meta(mapper.mapper().createObjectNode()
+                        .set("demandsource", TextNode.valueOf(demandSource)))
                 .build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }

@@ -6,7 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 3.33,
+          "price": 6.66,
           "adm": "adm001",
           "adid": "adid001",
           "cid": "cid001",
@@ -15,23 +15,20 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "demandsource": "trustx"
-              }
+              "type": "banner"
             },
-            "origbidcpm": 3.33
+            "origbidcpm": 6.66
           }
         }
       ],
-      "seat": "grid",
+      "seat": "coinzilla",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "grid": "{{ grid.response_time_ms }}"
+      "coinzilla": "{{ coinzilla.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

@@ -7,13 +7,9 @@
         "w": 300,
         "h": 250
       },
-      "tagid": "tag_id",
-      "bidfloorcur": "EUR",
       "ext": {
         "bidder": {
-          "accountId": "orbidder-test",
-          "placementId": "test-placement",
-          "bidfloor": 0.1
+          "placementId": "testPlacementId"
         }
       }
     }

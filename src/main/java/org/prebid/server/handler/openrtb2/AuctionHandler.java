@@ -167,6 +167,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
+
                 body = message;
                 final String accountId = ((UnauthorizedAccountException) exception).getAccountId();
                 metrics.updateAccountRequestRejectedMetrics(accountId);

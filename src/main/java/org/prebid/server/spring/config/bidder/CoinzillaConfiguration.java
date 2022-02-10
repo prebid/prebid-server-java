@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.orbidder.OrbidderBidder;
-import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.bidder.coinzilla.CoinzillaBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,27 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/orbidder.yaml", factory = YamlPropertySourceFactory.class)
-public class OrbidderConfiguration {
+@PropertySource(value = "classpath:/bidder-config/coinzilla.yaml", factory = YamlPropertySourceFactory.class)
+public class CoinzillaConfiguration {
 
-    private static final String BIDDER_NAME = "orbidder";
+    private static final String BIDDER_NAME = "coinzilla";
 
-    @Bean("orbidderConfigurationProperties")
-    @ConfigurationProperties("adapters.orbidder")
+    @Bean("coinzillaConfigurationProperties")
+    @ConfigurationProperties("adapters.coinzilla")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps orbidderBidderDeps(BidderConfigurationProperties orbidderConfigurationProperties,
-                                  CurrencyConversionService currencyConversionService,
-                                  @NotBlank @Value("${external-url}") String externalUrl,
-                                  JacksonMapper mapper) {
+    BidderDeps coinzillaBidderDeps(BidderConfigurationProperties coinzillaConfigurationProperties,
+                                   @NotBlank @Value("${external-url}") String externalUrl,
+                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(orbidderConfigurationProperties)
+                .withConfig(coinzillaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .bidderCreator(config -> new CoinzillaBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

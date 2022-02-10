@@ -14,24 +14,22 @@
           "w": 300,
           "h": 250,
           "ext": {
+            "origbidcpm": 3.33,
+            "origbidcur": "USD",
             "prebid": {
-              "type": "banner",
-              "meta": {
-                "demandsource": "trustx"
-              }
-            },
-            "origbidcpm": 3.33
+              "type": "banner"
+            }
           }
         }
       ],
-      "seat": "grid",
+      "seat": "videobyte",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "grid": "{{ grid.response_time_ms }}"
+      "videobyte": "{{ videobyte.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
