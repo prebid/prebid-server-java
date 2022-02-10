@@ -14,6 +14,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -52,6 +53,7 @@ import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -78,6 +80,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     private final String externalUrl;
     private final long defaultTimeout;
+    private final Integer defaultMaxLimit;
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
@@ -95,6 +98,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
     public CookieSyncHandler(String externalUrl,
                              long defaultTimeout,
+                             Integer defaultMaxLimit,
                              UidsCookieService uidsCookieService,
                              ApplicationSettings applicationSettings,
                              BidderCatalog bidderCatalog,
@@ -110,6 +114,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         this.externalUrl = HttpUtil.validateUrl(Objects.requireNonNull(externalUrl));
         this.defaultTimeout = defaultTimeout;
+        this.defaultMaxLimit = defaultMaxLimit;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -168,7 +173,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
 
         return accountById(requestAccount, timeout)
                 .compose(account -> privacyEnforcementService.contextFromCookieSyncRequest(
-                                cookieSyncRequest, routingContext.request(), account, timeout)
+                        cookieSyncRequest, routingContext.request(), account, timeout)
                         .map(privacyContext -> CookieSyncContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
@@ -610,22 +615,20 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .forEach(metrics::updateCookieSyncMatchesMetric);
     }
 
-    private static Integer resolveLimit(CookieSyncContext cookieSyncContext) {
-        final Integer limit = cookieSyncContext.getCookieSyncRequest().getLimit();
+    private Integer resolveLimit(CookieSyncContext cookieSyncContext) {
+        final AccountCookieSyncConfig accountCookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
 
-        final AccountCookieSyncConfig cookieSyncConfig = cookieSyncContext.getAccount().getCookieSync();
-        if (cookieSyncConfig == null) {
-            return limit;
-        }
+        final Integer resolvedLimit = ObjectUtils.firstNonNull(
+                cookieSyncContext.getCookieSyncRequest().getLimit(),
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getDefaultLimit));
 
-        final Integer resolvedLimit = ObjectUtils.defaultIfNull(limit, cookieSyncConfig.getDefaultLimit());
-        if (resolvedLimit == null) {
-            return null;
-        }
+        final Integer resolvedMaxLimit = ObjectUtils.firstNonNull(
+                ObjectUtil.getIfNotNull(accountCookieSyncConfig, AccountCookieSyncConfig::getMaxLimit),
+                defaultMaxLimit);
 
-        final Integer maxLimit = cookieSyncConfig.getMaxLimit();
-
-        return maxLimit == null ? resolvedLimit : Math.min(resolvedLimit, maxLimit);
+        return resolvedLimit != null && resolvedMaxLimit != null && resolvedLimit > resolvedMaxLimit
+                ? resolvedMaxLimit
+                : resolvedLimit;
     }
 
     private static List<BidderUsersyncStatus> trimBiddersToLimit(List<BidderUsersyncStatus> bidderStatuses,

@@ -133,6 +133,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         cookieSyncHandler = new CookieSyncHandler(
                 "http://external-url",
                 2000,
+                100,
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
@@ -374,9 +375,22 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(bidderCatalog.isActive(anyString())).willReturn(true);
         given(bidderCatalog.isActive(disabledBidder)).willReturn(false);
 
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false,
+                emptyList(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
@@ -410,9 +424,22 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         final List<Collection<String>> coopBidders = asList(singletonList(RUBICON), singletonList(disabledBidder));
 
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false,
+                coopBidders,
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).coopSync(true).build()));
@@ -444,9 +471,21 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         final List<Collection<String>> coopBidders = singletonList(singletonList(RUBICON));
 
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, coopBidders,
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false, coopBidders,
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder()
@@ -489,9 +528,22 @@ public class CookieSyncHandlerTest extends VertxTest {
         final List<Collection<String>> priorityBidders = asList(singletonList(APPNEXUS), singletonList(RUBICON),
                 asList("bidder1", "bidder2"), singletonList("spam"));
 
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, true, priorityBidders,
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                true,
+                priorityBidders,
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         given(routingContext.getBody()).willReturn(givenRequestBody(
                 CookieSyncRequest.builder().bidders(singletonList(APPNEXUS)).limit(2).build()));
@@ -528,9 +580,22 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(APPNEXUS, RUBICON, disabledBidder)));
 
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false,
+                emptyList(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         appnexusUsersyncer = createUsersyncer(APPNEXUS_COOKIE, "http://adnxsexample.com", "redirect");
         rubiconUsersyncer = createUsersyncer(RUBICON, "http://rubiconexample.com", "redirect");
@@ -710,9 +775,22 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldSkipVendorHostCheckAndContinueWithBiddersCheckWhenHostVendorIdIsMissing() throws IOException {
         // given
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, null, false, emptyList(),
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                null,
+                false,
+                emptyList(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         final Uids uids = Uids.builder().uids(singletonMap(RUBICON, UidWithExpiry.live("J5VLCWQP-26-CWFT"))).build();
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
@@ -804,9 +882,22 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithNoCookieStatusIfHostVendorRejectedByTcf() throws IOException {
         // given
-        cookieSyncHandler = new CookieSyncHandler("http://external-url", 2000, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, 1, false, emptyList(),
-                analyticsReporterDelegator, metrics, timeoutFactory, jacksonMapper);
+        cookieSyncHandler = new CookieSyncHandler(
+                "http://external-url",
+                2000,
+                100,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                1,
+                false,
+                emptyList(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
+                jacksonMapper);
 
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
