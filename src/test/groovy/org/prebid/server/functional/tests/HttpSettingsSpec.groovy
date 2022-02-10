@@ -1,12 +1,12 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
@@ -120,7 +120,8 @@ class HttpSettingsSpec extends BaseSpec {
         assert response.uidsCookie.bday
         assert !response.uidsCookie.tempUIDs
         assert !response.uidsCookie.uids
-        assert response.responseBody == ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
+        assert response.responseBody ==
+                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(request.account) == 1
