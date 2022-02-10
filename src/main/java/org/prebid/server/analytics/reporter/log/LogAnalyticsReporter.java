@@ -1,16 +1,16 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter.log;
 
-import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import lombok.AllArgsConstructor;
-import lombok.Value;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.analytics.reporter.log.model.LogEvent;
 import org.prebid.server.json.JacksonMapper;
 
 import java.util.Objects;
@@ -32,21 +32,24 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     public <T> Future<Void> processEvent(T event) {
         final LogEvent<?> logEvent;
 
-        if (event instanceof AuctionEvent) {
-            logEvent = new LogEvent<>("/openrtb2/auction", ((AuctionEvent) event).getBidResponse());
-        } else if (event instanceof AmpEvent) {
-            logEvent = new LogEvent<>("/openrtb2/amp", ((AmpEvent) event).getBidResponse());
-        } else if (event instanceof VideoEvent) {
-            logEvent = new LogEvent<>("/openrtb2/video", ((VideoEvent) event).getBidResponse());
+        if (event instanceof AmpEvent) {
+            logEvent = LogEvent.of("/openrtb2/amp", ((AmpEvent) event).getBidResponse());
+        } else if (event instanceof AuctionEvent) {
+            logEvent = LogEvent.of("/openrtb2/auction", ((AuctionEvent) event).getBidResponse());
+        } else if (event instanceof CookieSyncEvent) {
+            logEvent = LogEvent.of("/cookie_sync", ((CookieSyncEvent) event).getBidderStatus());
+        } else if (event instanceof NotificationEvent) {
+            final NotificationEvent notificationEvent = (NotificationEvent) event;
+            logEvent = LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
         } else if (event instanceof SetuidEvent) {
             final SetuidEvent setuidEvent = (SetuidEvent) event;
-            logEvent = new LogEvent<>(
+            logEvent = LogEvent.of(
                     "/setuid",
                     setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess());
-        } else if (event instanceof CookieSyncEvent) {
-            logEvent = new LogEvent<>("/cookie_sync", ((CookieSyncEvent) event).getBidderStatus());
+        } else if (event instanceof VideoEvent) {
+            logEvent = LogEvent.of("/openrtb2/video", ((VideoEvent) event).getBidResponse());
         } else {
-            logEvent = new LogEvent<>("unknown", null);
+            logEvent = LogEvent.of("unknown", null);
         }
 
         logger.debug(mapper.encodeToString(logEvent));
@@ -62,15 +65,5 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
     @Override
     public String name() {
         return "logAnalytics";
-    }
-
-    @AllArgsConstructor
-    @Value
-    private static class LogEvent<T> {
-
-        String type;
-
-        @JsonUnwrapped
-        T event;
     }
 }

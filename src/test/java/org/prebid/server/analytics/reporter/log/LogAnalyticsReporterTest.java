@@ -1,4 +1,4 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter.log;
 
 import org.junit.Test;
 import org.prebid.server.VertxTest;

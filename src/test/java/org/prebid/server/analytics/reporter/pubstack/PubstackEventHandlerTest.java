@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack;
+package org.prebid.server.analytics.reporter.pubstack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,7 +13,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.deals.model.DeepDebugLog;

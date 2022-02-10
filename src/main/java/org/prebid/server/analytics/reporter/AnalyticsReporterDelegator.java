@@ -1,4 +1,4 @@
-package org.prebid.server.analytics;
+package org.prebid.server.analytics.reporter;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -11,6 +11,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -59,6 +60,7 @@ public class AnalyticsReporterDelegator {
                                       Vertx vertx,
                                       PrivacyEnforcementService privacyEnforcementService,
                                       Metrics metrics) {
+
         this.delegates = Objects.requireNonNull(delegates);
         this.vertx = Objects.requireNonNull(vertx);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -82,6 +84,7 @@ public class AnalyticsReporterDelegator {
     private <T> void delegateEvent(T event,
                                    TcfContext tcfContext,
                                    AsyncResult<Map<Integer, PrivacyEnforcementAction>> privacyEnforcementMapResult) {
+
         if (privacyEnforcementMapResult.succeeded()) {
             final Map<Integer, PrivacyEnforcementAction> privacyEnforcementActionMap =
                     privacyEnforcementMapResult.result();
@@ -150,6 +153,7 @@ public class AnalyticsReporterDelegator {
         return event;
     }
 
+    @SuppressWarnings("ConstantConditions")
     private static AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
         final BidRequest bidRequest = context != null ? context.getBidRequest() : null;
         final BidRequest updatedBidRequest = updateBidRequest(bidRequest, adapter);
@@ -215,21 +219,23 @@ public class AnalyticsReporterDelegator {
 
     private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
         final MetricName eventType;
-        if (event instanceof AuctionEvent) {
-            eventType = MetricName.event_auction;
-        } else if (event instanceof AmpEvent) {
+
+        if (event instanceof AmpEvent) {
             eventType = MetricName.event_amp;
-        } else if (event instanceof VideoEvent) {
-            eventType = MetricName.event_video;
-        } else if (event instanceof SetuidEvent) {
-            eventType = MetricName.event_setuid;
+        } else if (event instanceof AuctionEvent) {
+            eventType = MetricName.event_auction;
         } else if (event instanceof CookieSyncEvent) {
             eventType = MetricName.event_cookie_sync;
         } else if (event instanceof NotificationEvent) {
             eventType = MetricName.event_notification;
+        } else if (event instanceof SetuidEvent) {
+            eventType = MetricName.event_setuid;
+        } else if (event instanceof VideoEvent) {
+            eventType = MetricName.event_video;
         } else {
             eventType = MetricName.event_unknown;
         }
+
         metrics.updateAnalyticEventMetric(analyticsCode, eventType, result);
     }
 }

@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack;
+package org.prebid.server.analytics.reporter.pubstack;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -9,7 +9,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
@@ -148,8 +148,8 @@ public class PubstackEventHandler {
     }
 
     private static byte[] gzip(String value) {
-        try (ByteArrayOutputStream obj = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(
-                obj)) {
+        try (ByteArrayOutputStream obj = new ByteArrayOutputStream();
+                GZIPOutputStream gzip = new GZIPOutputStream(obj)) {
 
             gzip.write(value.getBytes(StandardCharsets.UTF_8));
             gzip.finish();

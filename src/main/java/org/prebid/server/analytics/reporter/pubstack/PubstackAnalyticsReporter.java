@@ -1,4 +1,4 @@
-package org.prebid.server.analytics.pubstack;
+package org.prebid.server.analytics.reporter.pubstack;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -11,11 +11,12 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.pubstack.model.EventType;
-import org.prebid.server.analytics.pubstack.model.PubstackAnalyticsProperties;
-import org.prebid.server.analytics.pubstack.model.PubstackConfig;
+import org.prebid.server.analytics.reporter.pubstack.model.EventType;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
+import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -26,7 +27,6 @@ import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -38,16 +38,6 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private static final String EVENT_REPORT_ENDPOINT_PATH = "/intake";
     private static final String CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
-    private static final Map<String, EventType> CLASS_TO_EVENT_TYPE;
-
-    static {
-        CLASS_TO_EVENT_TYPE = new HashMap<>();
-        CLASS_TO_EVENT_TYPE.put(AuctionEvent.class.getName(), EventType.auction);
-        CLASS_TO_EVENT_TYPE.put(AmpEvent.class.getName(), EventType.amp);
-        CLASS_TO_EVENT_TYPE.put(VideoEvent.class.getName(), EventType.video);
-        CLASS_TO_EVENT_TYPE.put(SetuidEvent.class.getName(), EventType.setuid);
-        CLASS_TO_EVENT_TYPE.put(CookieSyncEvent.class.getName(), EventType.cookiesync);
-    }
 
     private final long configurationRefreshDelay;
     private final long timeout;
@@ -62,6 +52,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
                                      HttpClient httpClient,
                                      JacksonMapper jacksonMapper,
                                      Vertx vertx) {
+
         this.configurationRefreshDelay =
                 Objects.requireNonNull(pubstackAnalyticsProperties.getConfigurationRefreshDelayMs());
         this.timeout = Objects.requireNonNull(pubstackAnalyticsProperties.getTimeoutMs());
@@ -79,6 +70,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
             HttpClient httpClient,
             JacksonMapper jacksonMapper,
             Vertx vertx) {
+
         return Arrays.stream(EventType.values())
                 .collect(Collectors.toMap(Function.identity(),
                         eventType -> new PubstackEventHandler(
@@ -94,11 +86,30 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
     }
 
+    @Override
     public <T> Future<Void> processEvent(T event) {
-        final EventType eventType = CLASS_TO_EVENT_TYPE.get(event.getClass().getName());
+        final EventType eventType;
+
+        if (event instanceof AmpEvent) {
+            eventType = EventType.amp;
+        } else if (event instanceof AuctionEvent) {
+            eventType = EventType.auction;
+        } else if (event instanceof CookieSyncEvent) {
+            eventType = EventType.cookiesync;
+        } else if (event instanceof NotificationEvent) {
+            eventType = EventType.notification;
+        } else if (event instanceof SetuidEvent) {
+            eventType = EventType.setuid;
+        } else if (event instanceof VideoEvent) {
+            eventType = EventType.video;
+        } else {
+            eventType = null;
+        }
+
         if (eventType != null) {
             eventHandlers.get(eventType).handle(event);
         }
+
         return Future.succeededFuture();
     }
 
