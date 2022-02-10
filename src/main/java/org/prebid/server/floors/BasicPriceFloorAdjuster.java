@@ -2,14 +2,18 @@ package org.prebid.server.floors;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
@@ -22,16 +26,37 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
             return imp.getBidfloor();
         }
 
-        // TODO: check with Bret 34 answer
-        final ImpMediaType mediaType = null;
+        final ImpMediaType mediaType = chooseMediaType(extBidadjustmentfactors, bidder);
 
-        return resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
+        final BigDecimal factor = mediaType != null
+                ? resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder)
+                : BigDecimal.ONE;
+
+        //Scale needs to be set, either way BigDecimal cannot be passed forward
+        return imp.getBidfloor() != null
+                ? BidderUtil.roundFloor(imp.getBidfloor().divide(factor, 30, RoundingMode.HALF_EVEN))
+                : imp.getBidfloor();
     }
 
     private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
         return ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getBidadjustmentfactors);
+    }
+
+    private static ImpMediaType chooseMediaType(ExtRequestBidadjustmentfactors extBidadjustmentfactors, String bidder) {
+        final TreeMap<BigDecimal, ImpMediaType> factorToMediatype = new TreeMap<>();
+
+        for (ImpMediaType mediaType : extBidadjustmentfactors.getAvailableMediaTypes()) {
+            Map<String, BigDecimal> mediaTypeValues = extBidadjustmentfactors.getMediatypes().get(mediaType);
+            final BigDecimal factor = mediaTypeValues.get(bidder);
+            if (factor == null) {
+                continue;
+            }
+            factorToMediatype.put(factor.setScale(4, RoundingMode.UNNECESSARY), mediaType);
+        }
+
+        return MapUtils.isEmpty(factorToMediatype) ? null : factorToMediatype.firstEntry().getValue();
     }
 
     private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,

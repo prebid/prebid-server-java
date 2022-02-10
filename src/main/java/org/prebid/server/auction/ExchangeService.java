@@ -873,11 +873,18 @@ public class ExchangeService {
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
-                        .bidfloor(priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest))
+                        .bidfloor(resolveBidFloor(imp, bidder, bidRequest))
                         .pmp(preparePmp(bidder, imp.getPmp(), aliases))
                         .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * @return Bidfloor divided by factor from {@link PriceFloorAdjuster}
+     */
+    private BigDecimal resolveBidFloor(Imp imp, String bidder, BidRequest bidRequest) {
+        return priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest);
     }
 
     /**

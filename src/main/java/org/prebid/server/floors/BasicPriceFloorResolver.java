@@ -37,10 +37,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -483,12 +483,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     }
 
     private static Price roundPrice(Price price) {
-        final BigDecimal convertedPriceValue = price.getValue()
-                .setScale(4, RoundingMode.HALF_EVEN).stripTrailingZeros();
-
-        return convertedPriceValue.scale() < 0
-                ? Price.of(price.getCurrency(), convertedPriceValue.setScale(0, RoundingMode.UNNECESSARY))
-                : Price.of(price.getCurrency(), convertedPriceValue);
+        return price != null ? Price.of(price.getCurrency(), BidderUtil.roundFloor(price.getValue())) : null;
     }
 
     private static class RuleKeyCandidateIterator implements Iterator<String> {

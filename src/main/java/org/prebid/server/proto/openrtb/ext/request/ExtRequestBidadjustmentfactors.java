@@ -6,9 +6,11 @@ import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
@@ -27,5 +29,9 @@ public class ExtRequestBidadjustmentfactors {
     @JsonAnySetter
     public void addFactor(String key, BigDecimal value) {
         adjustments.put(key, value);
+    }
+
+    public List<ImpMediaType> getAvailableMediaTypes() {
+        return new ArrayList<>(mediatypes.keySet());
     }
 }
