@@ -19,6 +19,10 @@ import org.prebid.server.bidder.grid.model.responce.GridBid;
 import org.prebid.server.bidder.grid.model.responce.GridBidResponse;
 import org.prebid.server.bidder.grid.model.responce.GridBidderBid;
 import org.prebid.server.bidder.grid.model.responce.GridSeatBid;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -30,11 +34,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -221,17 +221,22 @@ public class GridBidder implements Bidder<BidRequest> {
                 .map(GridSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(gridBid -> modifiedGridBidderBid(gridBid, bidRequest.getImp(), gridBidResponse.getCur()))
+                .map(gridBid -> resolveGridBidderBid(gridBid, bidRequest.getImp(), gridBidResponse.getCur()))
                 .map(GridBidder::toBidderBid)
                 .collect(Collectors.toList());
     }
 
+    private GridBidderBid resolveGridBidderBid(GridBid gridBid, List<Imp> imps, String currency) {
+        final GridBid modifiedGridBid = gridBid.toBuilder().ext(modifyBidExt(gridBid)).build();
+        return GridBidderBid.of(modifiedGridBid, resolveBidType(gridBid, imps), currency);
+    }
+
     private static BidderBid toBidderBid(GridBidderBid gridBidderBid) {
-        return BidderBid.of(resolvedBid(gridBidderBid.getBid()), gridBidderBid.getType(),
+        return BidderBid.of(resolveBid(gridBidderBid.getBid()), gridBidderBid.getType(),
                 gridBidderBid.getBidCurrency());
     }
 
-    private static Bid resolvedBid(GridBid gridBid) {
+    private static Bid resolveBid(GridBid gridBid) {
         return Bid.builder()
                 .id(gridBid.getId())
                 .impid(gridBid.getImpid())
@@ -262,11 +267,6 @@ public class GridBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private GridBidderBid modifiedGridBidderBid(GridBid gridBid, List<Imp> imps, String currency) {
-        final GridBid modifiedGridBid = gridBid.toBuilder().ext(modifyBidExt(gridBid)).build();
-        return GridBidderBid.of(modifiedGridBid, getBidMediaType(gridBid, imps), currency);
-    }
-
     private ObjectNode modifyBidExt(GridBid gridBid) {
         final String demandSource = ObjectUtils.defaultIfNull(gridBid.getExt(), MissingNode.getInstance())
                 .at("/bidder/grid/demandSource").textValue();
@@ -282,7 +282,7 @@ public class GridBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 
-    private static BidType getBidMediaType(GridBid gridBid, List<Imp> imps) {
+    private static BidType resolveBidType(GridBid gridBid, List<Imp> imps) {
         final BidType contentType = gridBid.getContentType();
         final String impId = gridBid.getImpid();
         if (contentType != null) {
