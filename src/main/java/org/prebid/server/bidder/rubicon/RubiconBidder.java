@@ -127,7 +127,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String ADSERVER_EID = "adserver.org";
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String LIVERAMP_EID = "liveramp.com";
-    private static final String RUBICON_EID = "rubiconproject.com";
+    private static final String SOURCE_RUBICON = "rubiconproject.com";
 
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
@@ -939,7 +939,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String resolvedId = userId == null ? resolveUserId(extUser) : null;
         final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
         final String userBuyeruid = user != null ? user.getBuyeruid() : null;
-        final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : extractUserBuyeruid(extUserEids);
+        final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(extUserEids);
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
                 : null;
@@ -1049,13 +1049,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
     }
 
-    private static String extractUserBuyeruid(List<ExtUserEid> eids) {
+    private static String resolveBuyeruidFromEids(List<ExtUserEid> eids) {
         return CollectionUtils.emptyIfNull(eids).stream()
                 .filter(Objects::nonNull)
-                .filter(eid -> RUBICON_EID.equals(eid.getSource()))
+                .filter(eid -> SOURCE_RUBICON.equals(eid.getSource()))
                 .map(ExtUserEid::getUids)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .filter(RubiconBidder::validateExtUserEidUidForUserBuyeruid)
                 .map(ExtUserEidUid::getId)
                 .findFirst()
