@@ -17,6 +17,8 @@ class PbsPgConfig {
     public static final String PG_ENDPOINT_USERNAME = "pg"
     public static final String PG_ENDPOINT_PASSWORD = "pg"
 
+    private static final int NEXT_MONTH = LocalDate.now().plusMonths(1).monthValue
+
     final Map<String, String> properties
     final String env
     final String dataCenter
@@ -30,10 +32,8 @@ class PbsPgConfig {
     final int maxDealsPerBidder
     final int lineItemsPerReport
 
-    private static final Integer NEXT_MONTH = LocalDate.now().plusMonths(1).monthValue
-
     PbsPgConfig(NetworkServiceContainer networkServiceContainer) {
-        properties = getPgConfig(networkServiceContainer.rootUri)
+        properties = getPgConfig(networkServiceContainer.rootUri).asImmutable()
         env = properties.get("profile")
         dataCenter = properties.get("data-center")
         region = properties.get("datacenter-region")

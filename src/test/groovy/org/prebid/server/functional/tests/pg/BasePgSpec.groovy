@@ -49,7 +49,7 @@ abstract class BasePgSpec extends Specification {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
     }
 
-    protected static updateLineItemsAndWait() {
+    protected static void updateLineItemsAndWait() {
         def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
         PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
