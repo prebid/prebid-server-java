@@ -1541,10 +1541,9 @@ public class CookieSyncHandlerTest extends VertxTest {
         }
     }
 
-    private static Account givenAccountWithCookieSyncConfig(
-            Integer defaultLimit,
-            Integer maxLimit,
-            Boolean defaultCoopSync) {
+    private static Account givenAccountWithCookieSyncConfig(Integer defaultLimit,
+                                                            Integer maxLimit,
+                                                            Boolean defaultCoopSync) {
 
         return Account.builder()
                 .cookieSync(AccountCookieSyncConfig.of(defaultLimit, maxLimit, defaultCoopSync))
