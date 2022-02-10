@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.alkimi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,9 @@ public class AlkimiBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+
+    private static final String TYPE_BANNER = "Banner";
+    private static final String TYPE_VIDEO = "Video";
 
     private static final TypeReference<ExtPrebid<?, ExtImpAlkimi>> ALKIMI_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
@@ -122,11 +127,20 @@ public class AlkimiBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Imp updateImp(Imp imp, ExtImpAlkimi ext) {
+    private ObjectNode writeImpExt(ExtImpAlkimi extImpAlkimi) {
+        try {
+            return mapper.mapper().convertValue(Map.of("bidder", extImpAlkimi), ObjectNode.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Error while writing Ext in Alkimi Bidder");
+        }
+    }
+
+    private Imp updateImp(Imp imp, ExtImpAlkimi ext) {
         BigDecimal bidFloor = ext.getBidFloor();
         Integer position = ext.getPos();
 
         Imp.ImpBuilder impBuilder = imp.toBuilder();
+        ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = ext.toBuilder();
         impBuilder.bidfloor(bidFloor);
 
         if (imp.getBanner() != null) {
@@ -139,6 +153,9 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                                 .h(firstFormat.getH())
                                 .pos(position)
                                 .build());
+                extBuilder.width(firstFormat.getW());
+                extBuilder.height(firstFormat.getH());
+                extBuilder.impMediaType(TYPE_BANNER);
             }
         }
 
@@ -148,8 +165,12 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                     .video(video.toBuilder()
                             .pos(position)
                             .build());
+            extBuilder.width(video.getW());
+            extBuilder.height(video.getH());
+            extBuilder.impMediaType(TYPE_VIDEO);
         }
 
+        impBuilder.ext(writeImpExt(extBuilder.build()));
         return impBuilder.build();
     }
 }
