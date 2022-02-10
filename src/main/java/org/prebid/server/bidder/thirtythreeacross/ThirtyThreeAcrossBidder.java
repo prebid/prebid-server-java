@@ -3,7 +3,6 @@ package org.prebid.server.bidder.thirtythreeacross;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -12,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -69,9 +69,13 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         for (Imp imp : modifiedRequest.getImp()) {
             try {
                 validateImp(imp);
-                final ExtImpThirtyThreeAcross extImpThirtyThreeAcross = parseImpExt(imp);
-                final Imp updatedImp = updateImp(imp, extImpThirtyThreeAcross);
-                impsMap.computeIfAbsent(computeKey(updatedImp), k -> new ArrayList<>()).add(updatedImp);
+                final ExtImpThirtyThreeAcross extImpTtx = parseImpExt(imp);
+
+                final String productId = extImpTtx.getProductId();
+                final ThirtyThreeAcrossImpExt modifiedImpExt = createImpExt(productId, extImpTtx);
+                final Imp updatedImp = updateImp(imp, productId, modifiedImpExt);
+
+                impsMap.computeIfAbsent(getImpGroupName(modifiedImpExt), ignored -> new ArrayList<>()).add(updatedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -94,8 +98,8 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest modifyRequestExt(ExtRequest ext) throws PreBidException {
-        final Map<String, JsonNode> properties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
-        final JsonNode extTtxNode = ObjectUtil.getIfNotNull(properties, p -> p.get("ttx"));
+        final Map<String, JsonNode> extProperties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
+        final JsonNode extTtxNode = ObjectUtil.getIfNotNull(extProperties, properties -> properties.get("ttx"));
         final ThirtyThreeAcrossExtTtx extTtx;
         try {
             extTtx = mapper.mapper().convertValue(extTtxNode, ThirtyThreeAcrossExtTtx.class);
@@ -104,8 +108,8 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         }
 
         final ExtRequest modifiedExt = ExtRequest.empty();
-        if (properties != null) {
-            modifiedExt.addProperties(properties);
+        if (extProperties != null) {
+            modifiedExt.addProperties(extProperties);
         }
         modifiedExt.addProperty("ttx", mapper.mapper().valueToTree(modifyRequestExtTtx(extTtx)));
 
@@ -113,25 +117,19 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     }
 
     private static ThirtyThreeAcrossExtTtx modifyRequestExtTtx(ThirtyThreeAcrossExtTtx extTtx) {
-        final List<ThirtyThreeAcrossExtTtxCaller> callers;
-        if (extTtx == null || CollectionUtils.isEmpty(extTtx.getCaller())) {
-            callers = Collections.singletonList(PREBID_CALLER);
-        } else {
-            callers = new ArrayList<>(extTtx.getCaller());
-            callers.add(PREBID_CALLER);
-        }
-
-        return ThirtyThreeAcrossExtTtx.of(callers);
+        return ThirtyThreeAcrossExtTtx.of(extTtx != null && CollectionUtils.isNotEmpty(extTtx.getCaller())
+                ? ListUtils.union(extTtx.getCaller(), Collections.singletonList(PREBID_CALLER))
+                : Collections.singletonList(PREBID_CALLER));
     }
 
-    private void validateImp(Imp imp) throws PreBidException {
+    private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
             throw new PreBidException(
                     String.format("Imp ID %s must have at least one of [Banner, Video] defined", imp.getId()));
         }
     }
 
-    private ExtImpThirtyThreeAcross parseImpExt(Imp imp) throws PreBidException {
+    private ExtImpThirtyThreeAcross parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), THIRTY_THREE_ACROSS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -139,15 +137,21 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpThirtyThreeAcross extImpThirtyThreeAcross) throws PreBidException {
-        final String productId = extImpThirtyThreeAcross.getProductId();
+    private static ThirtyThreeAcrossImpExt createImpExt(String productId, ExtImpThirtyThreeAcross extImpTtx) {
+        final String zoneId = extImpTtx.getZoneId();
+
+        return ThirtyThreeAcrossImpExt.of(ThirtyThreeAcrossImpExtTtx.of(
+                productId, StringUtils.isNotEmpty(zoneId) ? zoneId : extImpTtx.getSiteId()));
+    }
+
+    private Imp updateImp(Imp imp, String productId, ThirtyThreeAcrossImpExt impExt) {
         return imp.toBuilder()
                 .video(updatedVideo(imp.getVideo(), productId))
-                .ext(createImpExt(productId, extImpThirtyThreeAcross.getZoneId(), extImpThirtyThreeAcross.getSiteId()))
+                .ext(mapper.mapper().valueToTree(impExt))
                 .build();
     }
 
-    private static Video updatedVideo(Video video, String productId) throws PreBidException {
+    private static Video updatedVideo(Video video, String productId) {
         if (video == null) {
             return null;
         }
@@ -184,15 +188,9 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         return videoPlacement;
     }
 
-    private ObjectNode createImpExt(String productId, String zoneId, String siteId) {
-        final ThirtyThreeAcrossImpExt thirtyThreeAcrossImpExt = ThirtyThreeAcrossImpExt.of(
-                ThirtyThreeAcrossImpExtTtx.of(productId, StringUtils.isNotEmpty(zoneId) ? zoneId : siteId));
-        return mapper.mapper().valueToTree(thirtyThreeAcrossImpExt);
-    }
-
-    private String computeKey(Imp imp) {
-        final JsonNode ttx = imp.getExt().get("ttx");
-        return ttx.get("prod").asText() + ttx.get("zoneid").asText();
+    private static String getImpGroupName(ThirtyThreeAcrossImpExt impExt) {
+        final ThirtyThreeAcrossImpExtTtx impExtTtx = impExt.getTtx();
+        return impExtTtx.getProd() + impExtTtx.getZoneid();
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request, List<Imp> requestImps) {
@@ -219,7 +217,7 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
