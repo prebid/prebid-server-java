@@ -15,7 +15,6 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.between.BetweenBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -51,7 +50,7 @@ public class VidoomyBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new BetweenBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new VidoomyBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -112,6 +111,21 @@ public class VidoomyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .banner(Banner.builder().w(5).h(null).format(emptyList()).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("no sizes provided for Banner []"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfAllSizesIsInvalidAndFormatIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .banner(Banner.builder().w(5).h(null).format(null).build()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);

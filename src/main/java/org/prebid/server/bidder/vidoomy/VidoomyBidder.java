@@ -83,13 +83,13 @@ public class VidoomyBidder implements Bidder<BidRequest> {
     }
 
     private static void validateBannerSizes(Integer width, Integer height, List<Format> formats) {
-        final boolean isMeasuresNotNull = width != null && height != null;
-        if (isMeasuresNotNull && (width == 0 || height == 0)) {
+        final boolean sizePresent = width != null && height != null;
+        if (sizePresent && (width == 0 || height == 0)) {
             throw new PreBidException(String.format("invalid sizes provided for Banner %s x %s", width, height));
         }
 
-        if (!isMeasuresNotNull && CollectionUtils.isEmpty(formats)) {
-            throw new PreBidException(String.format("no sizes provided for Banner %s", formats));
+        if (!sizePresent && CollectionUtils.isEmpty(formats)) {
+            throw new PreBidException("no sizes provided for Banner []");
         }
     }
 
@@ -115,18 +115,11 @@ public class VidoomyBidder implements Bidder<BidRequest> {
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
 
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                headers,
-                HttpUtil.USER_AGENT_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getUa));
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                headers,
-                HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getIpv6));
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                headers,
-                HttpUtil.X_FORWARDED_FOR_HEADER,
-                ObjectUtil.getIfNotNull(device, Device::getIp));
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
+        }
 
         return headers;
     }
@@ -152,15 +145,11 @@ public class VidoomyBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(
-                        bid,
-                        resolveBidType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
-                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
                 if (imp.getVideo() != null) {
