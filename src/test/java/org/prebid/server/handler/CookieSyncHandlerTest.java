@@ -1275,6 +1275,36 @@ public class CookieSyncHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldFavourAllowedStatusesToRejected() throws IOException {
+        // given
+        givenDefaultCookieSyncHandlerWithDefaultMaxLimit(2);
+        final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
+                .bidders(asList(RUBICON, "grid", APPNEXUS))
+                .gdpr(0)
+                .limit(2)
+                .build();
+
+        given(routingContext.getBody()).willReturn(givenRequestBody(cookieSyncRequest));
+
+        given(bidderCatalog.isActive(anyString())).willReturn(true);
+
+        givenDefaultRubiconUsersyncer();
+        givenDefaultAppnexusUsersyncer();
+
+        givenUsersyncersReturningFamilyName();
+
+        givenTcfServiceReturningVendorIdResult(singleton(1));
+        givenTcfServiceReturningBidderNamesResult(Set.of(APPNEXUS, RUBICON));
+
+        // when
+        cookieSyncHandler.handle(routingContext);
+
+        // then
+        final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
+        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2);
+    }
+
+    @Test
     public void shouldLimitBidderStatusesWithAccountDefaultLimit() throws IOException {
         // given
         given(routingContext.getBody()).willReturn(givenRequestBody(CookieSyncRequest.builder()
