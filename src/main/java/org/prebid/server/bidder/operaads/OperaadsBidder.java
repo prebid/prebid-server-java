@@ -27,10 +27,12 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.operaads.ExtImpOperaads;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,6 +46,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
             };
     private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String BIDDER_CURRENCY = "USD";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -56,7 +59,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         try {
-            checkRequest(request);
+            validateDevice(request.getDevice());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -65,55 +68,20 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final Imp resolvedImp;
-            final ExtImpOperaads extImpOperaads;
             try {
-                extImpOperaads = parseImpExt(imp);
-                resolvedImp = resolveImpId(imp, extImpOperaads.getPlacementId());
+                final ExtImpOperaads extImpOperaads = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp, extImpOperaads.getPlacementId());
+
+                requests.add(createRequest(request, modifiedImp, extImpOperaads));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
-                continue;
             }
-            requests.add(createRequest(request, resolvedImp, extImpOperaads));
         }
 
         return Result.of(requests, errors);
     }
 
-    private Imp resolveImpId(Imp imp, String placementId) {
-        if (imp.getVideo() != null) {
-            return imp.toBuilder()
-                    .id(buildImpId(imp.getId(), BidType.video.getName()))
-                    .tagid(placementId)
-                    .xNative(null)
-                    .banner(null)
-                    .build();
-        } else if (imp.getXNative() != null) {
-            return imp.toBuilder()
-                    .id(buildImpId(imp.getId(), BidType.xNative.getName()))
-                    .tagid(placementId)
-                    .xNative(resolveNative(imp.getXNative()))
-                    .video(null)
-                    .banner(null)
-                    .build();
-        } else if (imp.getBanner() != null) {
-            return imp.toBuilder()
-                    .id(buildImpId(imp.getId(), BidType.banner.getName()))
-                    .tagid(placementId)
-                    .banner(resolveBanner(imp.getBanner()))
-                    .xNative(null)
-                    .video(null)
-                    .build();
-        }
-        throw new PreBidException("Not found any imp.type");
-    }
-
-    private static String buildImpId(String id, String type) {
-        return String.format("%s:opa:%s", id, type);
-    }
-
-    private static void checkRequest(BidRequest request) {
-        final Device device = request.getDevice();
+    private static void validateDevice(Device device) {
         if (device == null || StringUtils.isEmpty(device.getOs())) {
             throw new PreBidException("Request is missing device OS information");
         }
@@ -123,30 +91,41 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OPERAADS_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Missing bidder ext in impression with id: %s", imp.getId()));
-        }
-    }
-
-    private Native resolveNative(Native xNative) {
-        try {
-            final JsonNode nativeNode = mapper.mapper().readTree(xNative.getRequest()).get("native");
-            if (nativeNode != null && nativeNode.isObject()) {
-                final JsonNode requestNode = mapper.mapper().createObjectNode().set("native", nativeNode);
-                return xNative.toBuilder()
-                        .request(mapper.encodeToString(requestNode))
-                        .build();
-            }
-        } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
-        return xNative;
     }
 
-    private static Banner resolveBanner(Banner banner) {
+    private Imp modifyImp(Imp imp, String placementId) {
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                .tagid(placementId);
+
+        final String impId = imp.getId();
+        if (imp.getBanner() != null) {
+            impBuilder.id(buildImpId(impId, BidType.banner))
+                    .banner(modifyBanner(imp.getBanner()))
+                    .video(null)
+                    .xNative(null);
+        } else if (imp.getVideo() != null) {
+            impBuilder.id(buildImpId(impId, BidType.video))
+                    .xNative(null);
+        } else if (imp.getXNative() != null) {
+            impBuilder.id(buildImpId(impId, BidType.xNative))
+                    .xNative(modifyNative(imp.getXNative()));
+        }
+
+        return impBuilder.build();
+    }
+
+    private static String buildImpId(String originalId, BidType type) {
+        return String.format("%s:opa:%s", originalId, type.getName());
+    }
+
+    private static Banner modifyBanner(Banner banner) {
         final Integer w = banner.getW();
         final Integer h = banner.getH();
         final List<Format> formats = banner.getFormat();
-        if (w == null || h == null || w == 0 || h == 0) {
+
+        if (w == null || w == 0 || h == null || h == 0) {
             if (CollectionUtils.isNotEmpty(formats)) {
                 final Format firstFormat = formats.get(0);
                 return banner.toBuilder()
@@ -160,79 +139,104 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         return banner;
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpOperaads extImpOperaads) {
-        final String resolvedUrl = endpointUrl
-                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getPublisherId()))
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getEndpointId()));
+    private Native modifyNative(Native xNative) {
+        final JsonNode requestNode;
+        try {
+            requestNode = mapper.mapper().readTree(xNative.getRequest());
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
 
+        final JsonNode nativeNode = requestNode.path("native");
+        if (nativeNode.isMissingNode()) {
+            final JsonNode modifiedRequestNode = mapper.mapper().createObjectNode().set("native", requestNode);
+            return xNative.toBuilder()
+                    .request(mapper.encodeToString(modifiedRequestNode))
+                    .build();
+        }
+
+        return xNative;
+    }
+
+    private HttpRequest<BidRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpOperaads extImpOperaads) {
         final BidRequest outgoingRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .build();
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(resolvedUrl)
+                .uri(resolveUrl(extImpOperaads))
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 
+    private String resolveUrl(ExtImpOperaads extImpOperaads) {
+        return endpointUrl
+                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getPublisherId()))
+                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImpOperaads.getEndpointId()));
+    }
+
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
-    }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(OperaadsBidder::isBidValid)
-                .map(bid -> BidderBid.of(parseBid(bid), parseBidTypeById(bid.getImpid()),
-                        bidResponse.getCur()))
-                .filter(Objects::nonNull)
+                .filter(OperaadsBidder::isValidBid)
+                .map(this::createBidderBid)
                 .collect(Collectors.toList());
     }
 
-    private static boolean isBidValid(Bid bid) {
-        final BigDecimal price = bid.getPrice();
-        return price != null && price.compareTo(BigDecimal.ZERO) > 0;
+    private static boolean isValidBid(Bid bid) {
+        return BidderUtil.isValidPrice(ObjectUtil.getIfNotNull(bid, Bid::getPrice));
     }
 
-    private static Bid parseBid(Bid bid) {
-        final Bid.BidBuilder modifyBid = bid.toBuilder();
-        final String impid = bid.getImpid();
-        final String[] impIds = splitImpId(impid);
-        if (impIds.length < 2) {
-            return modifyBid.impid(impid).build();
+    private BidderBid createBidderBid(Bid bid) {
+        final String impId = bid.getImpid();
+        final String[] idParts = StringUtils.split(impId, ":");
+
+        if (idParts == null || idParts.length < 2) {
+            throw new PreBidException("BidType not provided.");
         }
-        return modifyBid.impid(impIds[0]).build();
+
+        return BidderBid.of(
+                modifyBid(bid, constructImpId(idParts)),
+                parseBidType(idParts[idParts.length - 1]),
+                BIDDER_CURRENCY);
     }
 
-    private static BidType parseBidTypeById(String impId) {
-        final String[] impIds = splitImpId(impId);
-        if (impIds.length < 2) {
-            return null;
+    private static Bid modifyBid(Bid bid, String impId) {
+        return bid.toBuilder().impid(impId).build();
+    }
+
+    private static String constructImpId(String[] idParts) {
+        return Arrays.stream(idParts)
+                .limit(idParts.length - 2)
+                .collect(Collectors.joining(":"));
+    }
+
+    private BidType parseBidType(String bidType) {
+        try {
+            return mapper.mapper().convertValue(bidType, BidType.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
         }
-        return BidType.valueOf(impIds[impIds.length - 1]);
-    }
-
-    private static String[] splitImpId(String bidId) {
-        return StringUtils.split(bidId, ":");
     }
 }
 
