@@ -69,9 +69,9 @@ public class AlgorixBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                extImpAlgorix = extImpAlgorix == null ? parseImpExt(imp) : extImpAlgorix;
-                final ExtImpPrebid extImpPrebid = parseImpPrebidExt(imp);
-                updatedImps.add(updateImp(imp, extImpPrebid));
+                final ExtPrebid<ExtImpPrebid, ExtImpAlgorix> impExt = parseImpExt(imp);
+                extImpAlgorix = extImpAlgorix == null ? impExt.getBidder() : extImpAlgorix;
+                updatedImps.add(updateImp(imp, impExt.getPrebid()));
             } catch (PreBidException error) {
                 errors.add(BidderError.badInput(error.getMessage()));
             }
@@ -99,51 +99,66 @@ public class AlgorixBidder implements Bidder<BidRequest> {
      * @param imp BidRequest Imp
      * @return Algorix Ext Imp
      */
-    private ExtImpAlgorix parseImpExt(Imp imp) {
+    private ExtPrebid<ExtImpPrebid, ExtImpAlgorix> parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException error) {
-            throw new PreBidException(String.format("Impression Id=%s, has invalid Ext", imp.getId()));
-        }
-    }
-
-    private ExtImpPrebid parseImpPrebidExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE).getPrebid();
+            return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException error) {
             throw new PreBidException(String.format("Impression Id=%s, has invalid Ext", imp.getId()));
         }
     }
 
     /**
-     * Update Imp for transform banner Size
+     * Update Imp for transform banner Size or Video Rewarded Tag
      *
      * @param imp imp
+     * @param extImpPrebid ImpPrebid Ext
      * @return new imp
      */
     private Imp updateImp(Imp imp, ExtImpPrebid extImpPrebid) {
         if (imp.getBanner() != null) {
-            final Banner banner = imp.getBanner();
-            if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
-                    && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
-                return imp.toBuilder()
-                        .banner(banner.toBuilder()
-                                .w(firstFormat.getW())
-                                .h(firstFormat.getH())
-                                .build())
-                        .build();
-            }
+            imp = updateBannerImp(imp);
         }
         if (imp.getVideo() != null) {
-            if (Objects.nonNull(extImpPrebid) && Objects.equals(extImpPrebid.getIsRewardedInventory(), 1)) {
-                final Video video = imp.getVideo();
-                return imp.toBuilder()
-                        .video(video.toBuilder()
-                                .ext(mapper.mapper().valueToTree(AlgorixVideoExt.of(1)))
-                                .build())
-                        .build();
-            }
+            imp = updateVideoImp(imp, extImpPrebid);
+        }
+        return imp;
+    }
+
+    /**
+     * update Imp for Banner Size
+     * transform banner size from first Banner.Format
+     * @param imp Imp
+     * @return new Imp
+     */
+    private Imp updateBannerImp(Imp imp) {
+        final Banner banner = imp.getBanner();
+        if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
+                && CollectionUtils.isNotEmpty(banner.getFormat())) {
+            final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
+            imp = imp.toBuilder()
+                    .banner(banner.toBuilder()
+                            .w(firstFormat.getW())
+                            .h(firstFormat.getH())
+                            .build())
+                    .build();
+        }
+        return imp;
+    }
+
+    /**
+     * update Imp for Video Rewarded Tag
+     * @param imp imp
+     * @param extImpPrebid ImpPrebid ext
+     * @return new imp
+     */
+    private Imp updateVideoImp(Imp imp, ExtImpPrebid extImpPrebid) {
+        if (extImpPrebid != null && Objects.equals(extImpPrebid.getIsRewardedInventory(), 1)) {
+            final Video video = imp.getVideo();
+            imp = imp.toBuilder()
+                    .video(video.toBuilder()
+                            .ext(mapper.mapper().valueToTree(AlgorixVideoExt.of(1)))
+                            .build())
+                    .build();
         }
         return imp;
     }

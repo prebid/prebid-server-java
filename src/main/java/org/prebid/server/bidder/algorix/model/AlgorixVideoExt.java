@@ -1,12 +1,8 @@
 package org.prebid.server.bidder.algorix.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Builder(toBuilder = true)
-@Value
+@Value(staticConstructor = "of")
 public class AlgorixVideoExt {
 
     Integer rewarded;
