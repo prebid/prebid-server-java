@@ -84,6 +84,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_COOKIE = "adnxs";
+    public static final String NON_EXISTING_BIDDER = "nonExistingBidder";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -1279,7 +1280,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         givenDefaultCookieSyncHandlerWithDefaultMaxLimit(2);
         final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
-                .bidders(asList(RUBICON, "grid", APPNEXUS))
+                .bidders(asList(RUBICON, NON_EXISTING_BIDDER, APPNEXUS))
                 .gdpr(0)
                 .limit(2)
                 .build();
