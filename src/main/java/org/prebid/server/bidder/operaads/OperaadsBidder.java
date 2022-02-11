@@ -208,8 +208,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid createBidderBid(Bid bid) {
-        final String impId = bid.getImpid();
-        final String[] idParts = StringUtils.split(impId, ":");
+        final String[] idParts = StringUtils.split(bid.getImpid(), ":");
 
         if (idParts == null || idParts.length < 2) {
             throw new PreBidException("BidType not provided.");
