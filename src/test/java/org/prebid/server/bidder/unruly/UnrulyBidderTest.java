@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -18,7 +20,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,6 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.bidder.model.BidderError.Type.bad_input;
 import static org.prebid.server.bidder.model.BidderError.Type.bad_server_response;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -49,24 +49,6 @@ public class UnrulyBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new UnrulyBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = unrulyBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("ext data not provided in imp id=123");
-                    assertThat(error.getType()).isEqualTo(bad_input);
-                });
     }
 
     @Test
@@ -164,7 +146,9 @@ public class UnrulyBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("bid responses mediaType didn't match supported mediaTypes"));
+
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
@@ -202,12 +186,14 @@ public class UnrulyBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
+        assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Bid response imp ID 111 not found");
                     assertThat(error.getType()).isEqualTo(bad_server_response);
                 });
+
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("111").build(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -224,10 +210,14 @@ public class UnrulyBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnruly.of(123)))))
+        final ObjectNode impExt = mapper.valueToTree(
+                ExtPrebid.of(null, mapper.createObjectNode().set("siteId", IntNode.valueOf(123))));
+
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("123")
+                                .video(Video.builder().build())
+                                .ext(impExt))
                 .build();
     }
 
