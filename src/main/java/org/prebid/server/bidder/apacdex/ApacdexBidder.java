@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.apacdex;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
@@ -36,6 +37,7 @@ public class ApacdexBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpApacdex>> APACDEX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final JsonPointer BID_TYPE_POINTER = JsonPointer.valueOf("/prebid/type");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -61,18 +63,18 @@ public class ApacdexBidder implements Bidder<BidRequest> {
         return Result.withValue(makeHttpRequest(request, imps));
     }
 
-    private Imp modifyImp(Imp imp, ExtImpApacdex extImpApacdex) {
-        return imp.toBuilder()
-                .ext(mapper.mapper().valueToTree(extImpApacdex))
-                .build();
-    }
-
     private ExtImpApacdex parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), APACDEX_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private Imp modifyImp(Imp imp, ExtImpApacdex extImpApacdex) {
+        return imp.toBuilder()
+                .ext(mapper.mapper().valueToTree(extImpApacdex))
+                .build();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, List<Imp> imps) {
@@ -85,8 +87,8 @@ public class ApacdexBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(headers)
-                .payload(modifyBidRequest)
                 .body(mapper.encodeToBytes(modifyBidRequest))
+                .payload(modifyBidRequest)
                 .build();
     }
 
@@ -122,25 +124,26 @@ public class ApacdexBidder implements Bidder<BidRequest> {
 
     private BidderBid constructBidderBid(Bid bid, String currency, List<BidderError> errors) {
         final JsonNode extNode = bid.getExt();
-        final JsonNode typeNode = isNotEmptyOrMissedNode(extNode) ? extNode.at("/prebid/type") : null;
+        final JsonNode bidTypeNode = extNode != null ? extNode.at(BID_TYPE_POINTER) : null;
 
-        try {
-            return BidderBid.of(bid, getBidType(typeNode, bid.getImpid()), currency);
-        } catch (PreBidException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
+        if (bidTypeNode == null || !bidTypeNode.isTextual()) {
+            errors.add(BidderError.badServerResponse(
+                    String.format("Failed to parse bid media type for impression %s", bid.getImpid())));
             return null;
         }
+
+        final BidType bidType = parseBidType(bidTypeNode, errors);
+        return bidType != null
+                ? BidderBid.of(bid, parseBidType(bidTypeNode, errors), currency)
+                : null;
     }
 
-    private BidType getBidType(JsonNode typeNode, String impid) {
+    private BidType parseBidType(JsonNode bidTypeNode, List<BidderError> errors) {
         try {
-            return mapper.mapper().convertValue(typeNode, BidType.class);
+            return mapper.mapper().convertValue(bidTypeNode, BidType.class);
         } catch (IllegalArgumentException ignore) {
-            throw new PreBidException(String.format("Failed to parse bid media type for impression %s", impid));
+            errors.add(BidderError.badServerResponse(String.format("invalid BidType: %s", bidTypeNode.asText())));
+            return null;
         }
-    }
-
-    private static boolean isNotEmptyOrMissedNode(JsonNode node) {
-        return node != null && !node.isEmpty();
     }
 }

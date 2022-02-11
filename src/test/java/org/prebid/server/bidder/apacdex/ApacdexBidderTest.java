@@ -202,6 +202,26 @@ public class ApacdexBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnErrorWhenExtBidTypeNotFound() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                mapper.writeValueAsString(BidResponse.builder()
+                        .seatbid(List.of(SeatBid.builder()
+                                .bid(List.of(givenBid("124", null, bidBuilder -> bidBuilder.ext(null))))
+                                .build()))
+                        .build()));
+
+        // when
+        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("Failed to parse bid media type for impression 124"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorWhenUnrecognisedTypeAndOneValue() throws JsonProcessingException {
         // given
         final ObjectNode givenExt = getExtUnknownTypeJsonNode();
@@ -221,9 +241,7 @@ public class ApacdexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput(
-                String.format("Failed to parse bid media type for impression %s", 124))
-        );
+        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("invalid BidType: unknownType"));
     }
 
     private static BidRequest givenBidRequest(
