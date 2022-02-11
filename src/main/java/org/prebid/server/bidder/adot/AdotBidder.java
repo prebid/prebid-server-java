@@ -21,6 +21,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +34,7 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
             BidType.xNative);
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -79,6 +81,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -86,10 +89,20 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private BidderBid createBidderBid(Bid bid, BidResponse bidResponse) {
         try {
-            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
+            return BidderBid.of(resolveMacros(bid), getBidType(bid), bidResponse.getCur());
         } catch (PreBidException e) {
             return null;
         }
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
     private BidType getBidType(Bid bid) {
