@@ -54,7 +54,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -71,119 +70,26 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final int MAX_IMP_PER_REQUEST = 10;
     private static final int DEFAULT_PLATFORM_ID = 5;
     private static final String POD_SEPARATOR = "_";
-    private static final Map<Integer, String> IAB_CATEGORIES = new HashMap<>();
 
     private static final TypeReference<ExtPrebid<?, ExtImpAppnexus>> APPNEXUS_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
-    static {
-        IAB_CATEGORIES.put(1, "IAB20-3");
-        IAB_CATEGORIES.put(2, "IAB18-5");
-        IAB_CATEGORIES.put(3, "IAB10-1");
-        IAB_CATEGORIES.put(4, "IAB2-3");
-        IAB_CATEGORIES.put(5, "IAB19-8");
-        IAB_CATEGORIES.put(6, "IAB22-1");
-        IAB_CATEGORIES.put(7, "IAB18-1");
-        IAB_CATEGORIES.put(8, "IAB12-3");
-        IAB_CATEGORIES.put(9, "IAB5-1");
-        IAB_CATEGORIES.put(10, "IAB4-5");
-        IAB_CATEGORIES.put(11, "IAB13-4");
-        IAB_CATEGORIES.put(12, "IAB8-7");
-        IAB_CATEGORIES.put(13, "IAB9-7");
-        IAB_CATEGORIES.put(14, "IAB7-1");
-        IAB_CATEGORIES.put(15, "IAB20-18");
-        IAB_CATEGORIES.put(16, "IAB10-7");
-        IAB_CATEGORIES.put(17, "IAB19-18");
-        IAB_CATEGORIES.put(18, "IAB13-6");
-        IAB_CATEGORIES.put(19, "IAB18-4");
-        IAB_CATEGORIES.put(20, "IAB1-5");
-        IAB_CATEGORIES.put(21, "IAB1-6");
-        IAB_CATEGORIES.put(22, "IAB3-4");
-        IAB_CATEGORIES.put(23, "IAB19-13");
-        IAB_CATEGORIES.put(24, "IAB22-2");
-        IAB_CATEGORIES.put(25, "IAB3-9");
-        IAB_CATEGORIES.put(26, "IAB17-18");
-        IAB_CATEGORIES.put(27, "IAB19-6");
-        IAB_CATEGORIES.put(28, "IAB1-7");
-        IAB_CATEGORIES.put(29, "IAB9-30");
-        IAB_CATEGORIES.put(30, "IAB20-7");
-        IAB_CATEGORIES.put(31, "IAB20-17");
-        IAB_CATEGORIES.put(32, "IAB7-32");
-        IAB_CATEGORIES.put(33, "IAB16-5");
-        IAB_CATEGORIES.put(34, "IAB19-34");
-        IAB_CATEGORIES.put(35, "IAB11-5");
-        IAB_CATEGORIES.put(36, "IAB12-3");
-        IAB_CATEGORIES.put(37, "IAB11-4");
-        IAB_CATEGORIES.put(38, "IAB12-3");
-        IAB_CATEGORIES.put(39, "IAB9-30");
-        IAB_CATEGORIES.put(41, "IAB7-44");
-        IAB_CATEGORIES.put(42, "IAB7-1");
-        IAB_CATEGORIES.put(43, "IAB7-30");
-        IAB_CATEGORIES.put(50, "IAB19-30");
-        IAB_CATEGORIES.put(51, "IAB17-12");
-        IAB_CATEGORIES.put(52, "IAB19-30");
-        IAB_CATEGORIES.put(53, "IAB3-1");
-        IAB_CATEGORIES.put(55, "IAB13-2");
-        IAB_CATEGORIES.put(56, "IAB19-30");
-        IAB_CATEGORIES.put(57, "IAB19-30");
-        IAB_CATEGORIES.put(58, "IAB7-39");
-        IAB_CATEGORIES.put(59, "IAB22-1");
-        IAB_CATEGORIES.put(60, "IAB7-39");
-        IAB_CATEGORIES.put(61, "IAB21-3");
-        IAB_CATEGORIES.put(62, "IAB5-1");
-        IAB_CATEGORIES.put(63, "IAB12-3");
-        IAB_CATEGORIES.put(64, "IAB20-18");
-        IAB_CATEGORIES.put(65, "IAB11-2");
-        IAB_CATEGORIES.put(66, "IAB17-18");
-        IAB_CATEGORIES.put(67, "IAB9-9");
-        IAB_CATEGORIES.put(68, "IAB9-5");
-        IAB_CATEGORIES.put(69, "IAB7-44");
-        IAB_CATEGORIES.put(71, "IAB22-3");
-        IAB_CATEGORIES.put(73, "IAB19-30");
-        IAB_CATEGORIES.put(74, "IAB8-5");
-        IAB_CATEGORIES.put(78, "IAB22-1");
-        IAB_CATEGORIES.put(85, "IAB12-2");
-        IAB_CATEGORIES.put(86, "IAB22-3");
-        IAB_CATEGORIES.put(87, "IAB11-3");
-        IAB_CATEGORIES.put(112, "IAB7-32");
-        IAB_CATEGORIES.put(113, "IAB7-32");
-        IAB_CATEGORIES.put(114, "IAB7-32");
-        IAB_CATEGORIES.put(115, "IAB7-32");
-        IAB_CATEGORIES.put(118, "IAB9-5");
-        IAB_CATEGORIES.put(119, "IAB9-5");
-        IAB_CATEGORIES.put(120, "IAB9-5");
-        IAB_CATEGORIES.put(121, "IAB9-5");
-        IAB_CATEGORIES.put(122, "IAB9-5");
-        IAB_CATEGORIES.put(123, "IAB9-5");
-        IAB_CATEGORIES.put(124, "IAB9-5");
-        IAB_CATEGORIES.put(125, "IAB9-5");
-        IAB_CATEGORIES.put(126, "IAB9-5");
-        IAB_CATEGORIES.put(127, "IAB22-1");
-        IAB_CATEGORIES.put(132, "IAB1-2");
-        IAB_CATEGORIES.put(133, "IAB19-30");
-        IAB_CATEGORIES.put(137, "IAB3-9");
-        IAB_CATEGORIES.put(138, "IAB19-3");
-        IAB_CATEGORIES.put(140, "IAB2-3");
-        IAB_CATEGORIES.put(141, "IAB2-1");
-        IAB_CATEGORIES.put(142, "IAB2-3");
-        IAB_CATEGORIES.put(143, "IAB17-13");
-        IAB_CATEGORIES.put(166, "IAB11-4");
-        IAB_CATEGORIES.put(175, "IAB3-1");
-        IAB_CATEGORIES.put(176, "IAB13-4");
-        IAB_CATEGORIES.put(182, "IAB8-9");
-        IAB_CATEGORIES.put(183, "IAB3-5");
-    }
-
     private final String endpointUrl;
     private final Integer headerBiddingSource;
+    private final Map<Integer, String> iabCategories;
     private final JacksonMapper mapper;
 
     private final Random rand = new Random();
 
-    public AppnexusBidder(String endpointUrl, Integer platformId, JacksonMapper mapper) {
+    public AppnexusBidder(String endpointUrl,
+                          Integer platformId,
+                          Map<Integer, String> iabCategories,
+                          JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.headerBiddingSource = ObjectUtils.defaultIfNull(platformId, DEFAULT_PLATFORM_ID);
+        this.iabCategories = ObjectUtils.defaultIfNull(iabCategories, Collections.emptyMap());
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -548,12 +454,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             cat = Collections.emptyList();
         }
 
-        return BidderBid.of(
-                bid.toBuilder().cat(cat).build(),
-                bidType(appnexus.getBidAdType()),
-                currency,
-                appnexus.getDealPriority(),
-                makeExtBidVideo(appnexus));
+        return BidderBid.builder()
+                .bid(bid.toBuilder().cat(cat).build())
+                .type(bidType(appnexus.getBidAdType()))
+                .bidCurrency(currency)
+                .dealPriority(appnexus.getDealPriority())
+                .videoInfo(makeExtBidVideo(appnexus))
+                .build();
     }
 
     private static ExtBidPrebidVideo makeExtBidVideo(AppnexusBidExtAppnexus extAppnexus) {
@@ -564,8 +471,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return duration != null ? ExtBidPrebidVideo.of(duration, null) : null;
     }
 
-    private static String iabCategory(Integer brandId) {
-        return brandId != null ? IAB_CATEGORIES.get(brandId) : null;
+    private String iabCategory(Integer brandId) {
+        return brandId != null ? iabCategories.get(brandId) : null;
     }
 
     private static BidType bidType(Integer bidAdType) {

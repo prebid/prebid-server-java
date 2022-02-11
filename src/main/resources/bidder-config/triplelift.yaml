@@ -12,8 +12,13 @@ adapters:
       supported-vendors:
       vendor-id: 28
     usersync:
-      url: https://eb2.3lift.com/getuid?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+      url: https://eb2.3lift.com/sync?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=triplelift&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: triplelift
-      type: redirect
+      type: iframe
       support-cors: false
+      secondary:
+        url: https://eb2.3lift.com/getuid?gdpr={{gdpr}}&cmp_cs={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
+        redirect-url: /setuid?bidder=triplelift&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
+        type: redirect
+        support-cors: false

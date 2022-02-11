@@ -195,6 +195,11 @@ public class AmpRequestFactory {
             return;
         }
 
+        if (consentType == ConsentType.unknown) {
+            errors.add("Invalid consent_type param passed");
+            return;
+        }
+
         if (consentType == ConsentType.tcfV1) {
             errors.add("Consent type tcfV1 is no longer supported");
             return;

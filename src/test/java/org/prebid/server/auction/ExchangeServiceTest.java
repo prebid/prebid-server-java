@@ -2929,12 +2929,13 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestBidderCardinalityMetric(1);
-        verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(any(), eq(MetricName.openrtb2web));
         verify(metrics)
                 .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
-        verify(metrics).updateAdapterResponseTime(eq("someBidder"), eq("accountId"), anyInt());
-        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
-        verify(metrics).updateAdapterBidMetrics(eq("someBidder"), eq("accountId"), eq(10000L), eq(false), eq("banner"));
+        verify(metrics).updateAdapterResponseTime(eq("someBidder"), any(), anyInt());
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
+        verify(metrics).updateAdapterBidMetrics(
+                eq("someBidder"), any(), eq(10000L), eq(false), eq("banner"));
     }
 
     @Test
@@ -2964,7 +2965,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest, account));
 
         // then
-        verify(metrics).updateAccountRequestMetrics(eq(""), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(eq(Account.empty("")), eq(MetricName.openrtb2web));
     }
 
     @Test
@@ -2979,7 +2980,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(metrics).updateAdapterRequestNobidMetrics(eq("someBidder"), eq("accountId"));
+        verify(metrics).updateAdapterRequestNobidMetrics(eq("someBidder"), any());
     }
 
     @Test
@@ -3004,7 +3005,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badinput));
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badserverresponse));
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.failedtorequestbids));
@@ -3627,41 +3628,41 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
-        verify(metrics, times(6)).updateAccountHooksMetrics(anyString(), any(), any(), any());
+        verify(metrics, times(6)).updateAccountHooksMetrics(any(), any(), any(), any());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.update));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.invocation_failure),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.no_action));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module2"),
                 eq(ExecutionStatus.timeout),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module3"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.update));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module3"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.no_action));
-        verify(metrics, times(3)).updateAccountModuleDurationMetric(anyString(), any(), any());
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module1"), eq(14L));
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module2"), eq(6L));
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module3"), eq(8L));
+        verify(metrics, times(3)).updateAccountModuleDurationMetric(any(), any(), any());
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module1"), eq(14L));
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module2"), eq(6L));
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module3"), eq(8L));
     }
 
     @Test

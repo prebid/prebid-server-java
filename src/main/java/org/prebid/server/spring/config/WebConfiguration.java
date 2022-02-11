@@ -13,7 +13,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -276,7 +276,7 @@ public class WebConfiguration {
                 videoRequestFactory,
                 videoResponseFactory,
                 exchangeService,
-               cacheService, analyticsReporter,
+                cacheService, analyticsReporter,
                 metrics,
                 clock,
                 prebidVersionProvider,
