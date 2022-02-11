@@ -23,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.List;
 import java.util.function.Function;
 
@@ -34,13 +35,13 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class TappxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://";
+    private static final String ENDPOINT_URL = "https://{{subdomain}}.domain";
 
     private TappxBidder tappxBidder;
 
     @Before
     public void setUp() {
-        tappxBidder = new TappxBidder(ENDPOINT_URL, jacksonMapper);
+        tappxBidder = new TappxBidder(ENDPOINT_URL, Clock.systemDefaultZone(), jacksonMapper);
     }
 
     @Test
@@ -62,29 +63,6 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfEndpointUrlComposingFails() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("invalid host", "tappxkey", "endpoint", null,
-                                        null, null, null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage())
-                            .startsWith("Failed to build endpoint URL: Illegal character in authority at index 8");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                });
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequestImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -99,8 +77,12 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         final ExtRequest extRequest = ExtRequest.empty();
-        final TappxBidderExt tappxBidderExt = TappxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
-                singletonList("bcrid"));
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.builder()
+                .tappxkey("tappxkey")
+                .mktag("mktag")
+                .bcid(singletonList("bcid"))
+                .bcrid(singletonList("bcrid"))
+                .build();
         extRequest.addProperty("bidder", mapper.valueToTree(tappxBidderExt));
 
         assertThat(result.getErrors()).isEmpty();
@@ -119,8 +101,12 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         final ExtRequest extRequest = ExtRequest.empty();
-        final TappxBidderExt tappxBidderExt = TappxBidderExt.of("tappxkey", "mktag", singletonList("bcid"),
-                singletonList("bcrid"));
+        final TappxBidderExt tappxBidderExt = TappxBidderExt.builder()
+                .tappxkey("tappxkey")
+                .mktag("mktag")
+                .bcid(singletonList("bcid"))
+                .bcrid(singletonList("bcrid"))
+                .build();
         extRequest.addProperty("bidder", mapper.valueToTree(tappxBidderExt));
 
         assertThat(result.getErrors()).isEmpty();
@@ -161,31 +147,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://host/endpoint?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-                });
-    }
-
-    @Test
-    public void makeHttpRequestShouldBuildCorrectUriWithPathInHostParameter() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host/rtb/v2/", "tappxkey", "endpoint", BigDecimal.ONE,
-                                        null, null, null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://host/rtb/v2/endpoint?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
+        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -199,7 +161,7 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host/rtb/v2", "tappxkey", "endpoint", BigDecimal.ONE,
+                                ExtImpTappx.of(null, "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
                 .build();
@@ -209,7 +171,7 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://host/rtb/v2/endpoint?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
+        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -218,12 +180,12 @@ public class TappxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestShouldBuildCorrectUriWithPathInHostParameterAndSlashBeforeEndpoint() {
+    public void makeHttpRequestShouldBuildCorrectUriWithEndPointParameterIfMatched() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host/rtb/v2", "tappxkey", "/endpoint", BigDecimal.ONE,
+                                ExtImpTappx.of(null, "tappxkey", "zz855226test", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
                 .build();
@@ -233,31 +195,8 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://host/rtb/v2/endpoint?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
-                    assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-                });
-    }
-
-    @Test
-    public void makeHttpRequestShouldBuildCorrectUriWithWeirdCaseHttpsSchemeInHostParam() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("htTpS://host-host.com/rtb/v2", "tappxkey", "/endpoint",
-                                        BigDecimal.ONE, null, null, null))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = tappxBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "htTpS://host-host.com/rtb/v2/endpoint?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
+        final String expectedUri =
+                "https://zz855226test.pub.domain/rtb/?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
@@ -271,7 +210,7 @@ public class TappxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("endpoint.host", "tappxkey", "endpoint", BigDecimal.ONE,
+                                ExtImpTappx.of(null, "tappxkey", "endpoint", BigDecimal.ONE,
                                         null, null, null))))
                         .build()))
                 .build();
@@ -281,52 +220,12 @@ public class TappxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedUri = "https://endpoint.host?tappxkey=tappxkey&v=1.3&type_cnn=prebid";
+        final String expectedUri = "https://ssp.api.domain/rtb/v2/endpoint?tappxkey=tappxkey&v=1.4&type_cnn=prebid";
         assertThat(result.getValue()).hasSize(1)
                 .allSatisfy(httpRequest -> {
                     assertThat(httpRequest.getUri()).isEqualTo(expectedUri);
                     assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
                 });
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenEitherOfExtParametersIsEmpty() {
-        // given
-        final BidRequest bidRequestEmptyHost = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("", "tappxkey", "endpoint", BigDecimal.ONE,
-                                        null, null, null)))).build()))
-                .build();
-
-        final BidRequest bidRequestEmptyTappxKey = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host", "", "endpoint", BigDecimal.ONE,
-                                        null, null, null)))).build()))
-                .build();
-
-        final BidRequest bidRequestEmptyEndpoint = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpTappx.of("host", "tappxkey", "", BigDecimal.ONE,
-                                        null, null, null)))).build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> emptyHostResult = tappxBidder.makeHttpRequests(bidRequestEmptyHost);
-        final Result<List<HttpRequest<BidRequest>>> emptyTappxKeyResult =
-                tappxBidder.makeHttpRequests(bidRequestEmptyTappxKey);
-        final Result<List<HttpRequest<BidRequest>>> emptyEndpointResult =
-                tappxBidder.makeHttpRequests(bidRequestEmptyEndpoint);
-
-        // then
-        assertThat(emptyHostResult.getErrors()).hasSize(1);
-        assertThat(emptyHostResult.getErrors().get(0).getMessage()).startsWith("Tappx host undefined");
-        assertThat(emptyTappxKeyResult.getErrors()).hasSize(1);
-        assertThat(emptyTappxKeyResult.getErrors().get(0).getMessage()).startsWith("Tappx tappxkey undefined");
-        assertThat(emptyEndpointResult.getErrors()).hasSize(1);
-        assertThat(emptyEndpointResult.getErrors().get(0).getMessage()).startsWith("Tappx endpoint undefined");
     }
 
     @Test
