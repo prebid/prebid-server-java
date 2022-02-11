@@ -47,7 +47,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     private static ImpMediaType chooseMediaType(ExtRequestBidadjustmentfactors extBidadjustmentfactors, String bidder) {
         final TreeMap<BigDecimal, ImpMediaType> factorToMediatype = new TreeMap<>();
 
-        for (ImpMediaType mediaType : extBidadjustmentfactors.getAvailableMediaTypes()) {
+        for (ImpMediaType mediaType : extBidadjustmentfactors.getMediatypes().keySet()) {
             Map<String, BigDecimal> mediaTypeValues = extBidadjustmentfactors.getMediatypes().get(mediaType);
             final BigDecimal factor = mediaTypeValues.get(bidder);
             if (factor == null) {
