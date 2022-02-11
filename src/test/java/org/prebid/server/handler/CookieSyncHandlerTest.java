@@ -1301,7 +1301,9 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         final CookieSyncResponse cookieSyncResponse = captureCookieSyncResponse();
-        assertThat(cookieSyncResponse.getBidderStatus()).hasSize(2);
+        assertThat(cookieSyncResponse.getBidderStatus())
+                .extracting(BidderUsersyncStatus::getBidder)
+                .containsExactlyInAnyOrder(APPNEXUS, RUBICON);
     }
 
     @Test
