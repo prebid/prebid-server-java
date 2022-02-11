@@ -77,7 +77,8 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse,
+    private static List<BidderBid> extractBids(BidRequest bidRequest,
+                                               BidResponse bidResponse,
                                                List<BidderError> errors) {
 
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
@@ -85,7 +86,8 @@ public class UnrulyBidder implements Bidder<BidRequest> {
                 : bidsFromResponse(bidRequest, bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse,
+    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest,
+                                                    BidResponse bidResponse,
                                                     List<BidderError> errors) {
 
         return bidResponse.getSeatbid().stream()
