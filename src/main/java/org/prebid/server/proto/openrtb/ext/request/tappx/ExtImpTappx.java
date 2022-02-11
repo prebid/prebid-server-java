@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request.tappx;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -12,8 +13,10 @@ public class ExtImpTappx {
 
     String host;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String tappxkey;
 
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     String endpoint;
 
     BigDecimal bidfloor;
