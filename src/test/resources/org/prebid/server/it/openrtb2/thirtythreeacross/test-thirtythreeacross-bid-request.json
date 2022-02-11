@@ -38,5 +38,19 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "ttx": {
+      "caller": [
+        {
+          "name": "caller",
+          "version": "1.0"
+        },
+        {
+          "name": "Prebid-Server-Java",
+          "version": "n/a"
+        }
+      ]
+    }
   }
 }

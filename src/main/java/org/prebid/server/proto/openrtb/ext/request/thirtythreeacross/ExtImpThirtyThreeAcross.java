@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.ttx;
+package org.prebid.server.proto.openrtb.ext.request.thirtythreeacross;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
@@ -9,7 +9,7 @@ import lombok.Value;
  */
 @AllArgsConstructor(staticName = "of")
 @Value
-public class ExtImpTtx {
+public class ExtImpThirtyThreeAcross {
 
     @JsonProperty("siteId")
     String siteId;

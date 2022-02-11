@@ -1,6 +1,7 @@
-package org.prebid.server.bidder.ttx;
+package org.prebid.server.bidder.thirtythreeacross;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -17,38 +18,97 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.ttx.proto.TtxImpExt;
-import org.prebid.server.bidder.ttx.proto.TtxImpExtTtx;
-import org.prebid.server.bidder.ttx.response.TtxBidExt;
-import org.prebid.server.bidder.ttx.response.TtxBidExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossExtTtx;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossExtTtxCaller;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExt;
+import org.prebid.server.bidder.thirtythreeacross.proto.ThirtyThreeAcrossImpExtTtx;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ttx.ExtImpTtx;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.thirtythreeacross.ExtImpThirtyThreeAcross;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class TtxBidderTest extends VertxTest {
+public class ThirtyThreeAcrossBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private TtxBidder ttxBidder;
+    private ThirtyThreeAcrossBidder thirtyThreeAcrossBidder;
 
     @Before
     public void setUp() {
-        ttxBidder = new TtxBidder(ENDPOINT_URL, jacksonMapper);
+        thirtyThreeAcrossBidder = new ThirtyThreeAcrossBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new TtxBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ThirtyThreeAcrossBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAppendErrorIfExtTtxCouldNotBeParsed() {
+        // given
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.createArrayNode());
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors()).hasSize(1)
+                .extracting(BidderError::getMessage)
+                .allSatisfy(error -> assertThat(error).startsWith("Cannot deserialize value of"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddExtTtxIfNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(singletonList(
+                ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server-Java", "n/a")))));
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(ext);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateExtTtx() {
+        // given
+        final ExtRequest ext = ExtRequest.empty();
+        ext.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(singletonList(
+                ThirtyThreeAcrossExtTtxCaller.of("Caller", "1.0")))));
+        final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtRequest updatedExt = ExtRequest.empty();
+        updatedExt.addProperty("ttx", mapper.valueToTree(ThirtyThreeAcrossExtTtx.of(List.of(
+                ThirtyThreeAcrossExtTtxCaller.of("Caller", "1.0"),
+                ThirtyThreeAcrossExtTtxCaller.of("Prebid-Server-Java", "n/a")))));
+        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(updatedExt);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -59,7 +119,7 @@ public class TtxBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -77,7 +137,7 @@ public class TtxBidderTest extends VertxTest {
                 bidRequestBuilder.site(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -93,7 +153,7 @@ public class TtxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -111,7 +171,7 @@ public class TtxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -119,22 +179,22 @@ public class TtxBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(
-                        mapper.valueToTree(TtxImpExt.of(TtxImpExtTtx.of("productId", "zoneId"))));
+                .containsExactly(mapper.valueToTree(
+                        ThirtyThreeAcrossImpExt.of(ThirtyThreeAcrossImpExtTtx.of("productId", "zoneId"))));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfVideoParamsNotPresent() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder
-                                .video(Video.builder().build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpThirtyThreeAcross.of("11", null, "3")))))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -145,15 +205,16 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUpdateNotPresentPlacement() {
         // given
+        final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
+                ExtImpThirtyThreeAcross.of("11", null, "3"));
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder
-                                .video(validVideo())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .video(validVideo())
+                        .ext(mapper.valueToTree(ext)))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -168,15 +229,16 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotUpdatePlacementWhenProductIdIsNotInstreamAndPlacementIsNotZero() {
         // given
+        final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
+                ExtImpThirtyThreeAcross.of("11", null, "3"));
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder
-                                .video(validVideo().toBuilder().placement(23).build())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "3")))))))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .video(validVideo().toBuilder().placement(23).build())
+                        .ext(mapper.valueToTree(ext)))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -191,15 +253,16 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUpdatePlacementAndStartDelayIfProdIsInstream() {
         // given
+        final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
+                ExtImpThirtyThreeAcross.of("11", null, "instream"));
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        givenImp(impBuilder -> impBuilder
-                                .video(validVideo())
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("11", null, "instream")))))))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .video(validVideo())
+                        .ext(mapper.valueToTree(ext)))))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -219,7 +282,7 @@ public class TtxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ttxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -233,7 +296,7 @@ public class TtxBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -251,7 +314,7 @@ public class TtxBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -265,7 +328,7 @@ public class TtxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -283,7 +346,7 @@ public class TtxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -294,23 +357,20 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoInBidExt() throws JsonProcessingException {
         // given
-        final TtxBidExt ttxBidExt = TtxBidExt.of(TtxBidExtTtx.of("video"));
+        final ObjectNode bidExt = mapper.createObjectNode().set("ttx",
+                mapper.createObjectNode().put("mediaType", "video"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .ext(mapper.valueToTree(ttxBidExt)))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .ext(mapper.valueToTree(ttxBidExt))
-                .build();
+        final Bid expectedBid = Bid.builder().ext(bidExt).build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, video, "USD"));
     }
@@ -318,23 +378,20 @@ public class TtxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfExtNotContainVideoString() throws JsonProcessingException {
         // given
-        final TtxBidExt ttxBidExt = TtxBidExt.of(TtxBidExtTtx.of("notVideo"));
+        final ObjectNode bidExt = mapper.createObjectNode().set("ttx",
+                mapper.createObjectNode().put("mediaType", "notVideo"));
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .ext(mapper.valueToTree(ttxBidExt)))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = ttxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Bid expectedBid = Bid.builder()
-                .ext(mapper.valueToTree(ttxBidExt))
-                .build();
+        final Bid expectedBid = Bid.builder().ext(bidExt).build();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
     }
@@ -350,27 +407,29 @@ public class TtxBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        final List<Imp> imps = singletonList(givenImp(impCustomizer));
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(imps)).build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        final ExtPrebid<?, ExtImpThirtyThreeAcross> ext = ExtPrebid.of(null,
+                ExtImpThirtyThreeAcross.of("siteId", "zoneId", "productId"));
+        final Imp.ImpBuilder builder = Imp.builder()
                 .id("123")
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpTtx.of("siteId", "zoneId", "productId")))))
-                .build();
+                .ext(mapper.valueToTree(ext));
+
+        return impCustomizer.apply(builder).build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()

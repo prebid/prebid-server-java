@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "ttx",
+      "seat": "thirtythreeacross",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "ttx": "{{ ttx.response_time_ms }}"
+      "thirtythreeacross": "{{ thirtythreeacross.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
