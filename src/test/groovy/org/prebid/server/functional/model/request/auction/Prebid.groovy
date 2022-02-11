@@ -15,6 +15,7 @@ class Prebid {
     PrebidStoredRequest storedRequest
     Amp amp
     Channel channel
+    Map<String, String> aliases
     List<PrebidSchain> schains
     List<MultiBid> multibid
     Pbs pbs
