@@ -6,6 +6,8 @@ import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorEnforcement
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
+
 @ToString(includeNames = true, ignoreNulls = true)
 class PriceFloorRules implements ResponseModel {
 
@@ -17,7 +19,7 @@ class PriceFloorRules implements ResponseModel {
     PriceFloorData data
 
     static PriceFloorRules getPriceFloorRules() {
-        new PriceFloorRules(floorMin: 0.5,
+        new PriceFloorRules(floorMin: FLOOR_MIN,
                 floorProvider: PBSUtils.randomString,
                 data: PriceFloorData.priceFloorData)
     }

@@ -51,6 +51,9 @@ class Bidder extends NetworkScaffolding {
     }
 
     List<BidderRequest> getBidderRequests(String bidRequestId) {
+
+        getRecordedRequestsBody(bidRequestId).each { println "bidder request : "+ it
+        println "===="}
         getRecordedRequestsBody(bidRequestId).collect { mapper.decode(it, BidderRequest) }
     }
 

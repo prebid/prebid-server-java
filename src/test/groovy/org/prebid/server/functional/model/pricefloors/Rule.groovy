@@ -7,8 +7,9 @@ import java.lang.reflect.Modifier
 
 class Rule {
 
-    private static final String delimiter = "|"
+    private static final String DEFAULT_DELIMITER = "|"
 
+    private String delimiter
     private String siteDomain
     private String pubDomain
     private String domain
@@ -20,19 +21,21 @@ class Rule {
     private String pbAdSlot
     private Country country
     private DeviceType deviceType
-
+// TODO add factory for delimiter
     @JsonValue
     String getRule() {
-        def result = ""
-        this.class.declaredFields.findAll { !it.synthetic && !Modifier.isStatic(it.modifiers) && this[it.name] != null}.each {
-            result += this[it.name]
-            result += delimiter
+        delimiter = delimiter ?: DEFAULT_DELIMITER
+        def stringBuilder = new StringBuilder()
+        this.class.declaredFields.findAll { !it.synthetic && !Modifier.isStatic(it.modifiers) && this[it.name] != null && it.name != "delimiter" }.each {
+            stringBuilder.append(this[it.name])
+                         .append(delimiter)
         }
-        StringUtils.removeEnd(result, delimiter).toLowerCase()
+        StringUtils.removeEnd(stringBuilder.toString(), delimiter).toLowerCase()
     }
 
     @JsonValue
     String getRule(List<PriceFloorField> fields) {
+        delimiter = delimiter ?: DEFAULT_DELIMITER
         def result = ""
         def classFields = this.class.declaredFields.findAll { !it.synthetic }
         fields.each {

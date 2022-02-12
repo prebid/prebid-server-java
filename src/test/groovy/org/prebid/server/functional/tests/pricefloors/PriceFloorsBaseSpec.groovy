@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.Rule
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.DistributionChannel
@@ -21,6 +22,8 @@ import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import java.math.RoundingMode
+
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 @PBSTest
@@ -30,12 +33,16 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                                                             "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
     protected static final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
-    protected static final String fetchUrl = Dependencies.networkServiceContainer.rootUri +
+    protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
 
     protected static final int DEFAULT_MODEL_WEIGHT = 1
     protected static final int MAX_MODEL_WEIGHT = 1000000
+    public static final float FLOOR_MIN = 0.5
+    public static final int CURRENCY_CONVERSION_PRECISION = 3
+    private static final int FLOOR_VALUE_PRECISION = 4
+    private static final int DEFAULT_TARGETING_PRECISION = 1
 
     def setupSpec() {
         floorsProvider.setResponse()
@@ -57,13 +64,14 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         new AccountConfig(auction: new AccountAuctionConfig(priceFloors: floors))
     }
 
-    static Account getAccountWithEnabledFetch(String accountId) {
-        def priceFloors = new AccountPriceFloorsConfig(enabled: true, fetch: new PriceFloorsFetch(url: fetchUrl, enabled: true))
+    protected static Account getAccountWithEnabledFetch(String accountId) {
+        def priceFloors = new AccountPriceFloorsConfig(enabled: true,
+                fetch: new PriceFloorsFetch(url: basicFetchUrl + accountId, enabled: true))
         def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(priceFloors: priceFloors))
         new Account(uuid: accountId, config: accountConfig)
     }
 
-    static BidRequest getBidRequestWithFloors(DistributionChannel channel = SITE) {
+    protected static BidRequest getBidRequestWithFloors(DistributionChannel channel = SITE) {
         def floors = ExtPrebidFloors.extPrebidFloors
         BidRequest.getDefaultBidRequest(channel).tap {
             imp[0].bidFloor = floors.data.modelGroups[0].values[rule]
@@ -75,10 +83,10 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     static BidRequest getStoredRequestWithFloors(DistributionChannel channel = SITE) {
         channel == SITE
                 ? BidRequest.defaultStoredRequest.tap { ext.prebid.floors = ExtPrebidFloors.extPrebidFloors }
-                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
+                :
+                new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
 
     }
-
 
     static String getRule() {
         new Rule(mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule
@@ -88,15 +96,38 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         PBSUtils.getRandomNumber(DEFAULT_MODEL_WEIGHT, MAX_MODEL_WEIGHT)
     }
 
-    static BigDecimal getRandomFloorValue() {
-        PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(1, 2), 2)
-    }
-
-    static BigDecimal getRandomCurrencyRate() {
-        PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(1, 2), 5)
+    static BigDecimal getAdjustedValue(BigDecimal floorValue, Float bidAdjustment) {
+        def adjustedValue = floorValue / bidAdjustment
+        PBSUtils.getRoundedFractionalNumber(adjustedValue as BigDecimal, FLOOR_VALUE_PRECISION)
     }
 
     static BidRequest getBidRequestWithMultipleMediaTypes() {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
+    }
+
+    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest, BigDecimal expectedFloorValue) {
+        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+                5000,
+                1000)
+    }
+
+    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
+        pbsService.sendAuctionRequest(bidRequest)
+        Thread.sleep(1000)
+    }
+
+    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest, BigDecimal expectedFloorValue) {
+        PBSUtils.waitUntil({ pbsService.sendAmpRequest(ampRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+                5000,
+                1000)
+    }
+
+    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest) {
+        pbsService.sendAmpRequest(ampRequest)
+        Thread.sleep(1000)
+    }
+
+    protected BigDecimal getRoundedFloorValue(BigDecimal floorValue) {
+        floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
     }
 }

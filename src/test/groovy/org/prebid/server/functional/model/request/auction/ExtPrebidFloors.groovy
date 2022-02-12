@@ -5,6 +5,8 @@ import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
+
 @ToString(includeNames = true, ignoreNulls = true)
 class ExtPrebidFloors {
 
@@ -19,9 +21,8 @@ class ExtPrebidFloors {
     Integer skipRate
     PriceFloorData data
 
-    static ExtPrebidFloors getExtPrebidFloors(){
-        new ExtPrebidFloors(
-                floorMin: 0.5,
+    static ExtPrebidFloors getExtPrebidFloors() {
+        new ExtPrebidFloors(floorMin: FLOOR_MIN,
                 floorProvider: PBSUtils.randomString,
                 data: PriceFloorData.priceFloorData
         )

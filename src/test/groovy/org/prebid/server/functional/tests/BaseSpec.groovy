@@ -16,6 +16,8 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
+import static java.math.RoundingMode.DOWN
+
 @PBSTest
 abstract class BaseSpec extends Specification {
 
@@ -63,5 +65,9 @@ abstract class BaseSpec extends Specification {
 
     protected static List<String> getLogsByText(List<String> logs, String text) {
         logs.findAll { it.contains(text) }
+    }
+
+    protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
+        "${value.setScale(1, DOWN)}0"
     }
 }

@@ -11,11 +11,8 @@ class PriceFloorsFetch {
     Boolean enabled
     String url
     Long timeoutMs
-    Long minTimeoutMs
-    Long maxTimeoutMs
     Long maxFileSizeKb
     Integer maxRules
     Integer maxAgeSec
-    Integer minMaxAgeSec
     Integer periodSec
 }

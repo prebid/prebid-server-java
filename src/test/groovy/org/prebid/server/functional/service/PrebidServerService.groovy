@@ -81,8 +81,9 @@ class PrebidServerService {
     @Step("[POST] /openrtb2/auction")
     BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def response = postAuction(bidRequest, headers)
-
+        println "RESPONSE +++++ " + response.body().asString()
         checkResponseStatusCode(response)
+
         response.as(BidResponse)
     }
 
@@ -100,6 +101,7 @@ class PrebidServerService {
     AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         def response = getAmp(ampRequest, headers)
 
+        println response.body().asString()
         checkResponseStatusCode(response)
         response.as(AmpResponse)
     }
@@ -280,6 +282,7 @@ class PrebidServerService {
         if (responseStatusCode != statusCode) {
             def responseBody = response.body.asString()
             log.error(responseBody)
+            log.error("===")
             throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))
         }
     }

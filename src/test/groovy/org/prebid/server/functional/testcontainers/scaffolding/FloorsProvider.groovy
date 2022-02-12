@@ -14,7 +14,7 @@ import static org.mockserver.model.HttpStatusCode.OK_200
 
 class FloorsProvider extends NetworkScaffolding {
 
-    public static final String FLOORS_ENDPOINT = "/floors-provider"
+    public static final String FLOORS_ENDPOINT = "/floors-provider/"
 
     FloorsProvider(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
         super(mockServerContainer, FLOORS_ENDPOINT, mapper)
@@ -22,8 +22,7 @@ class FloorsProvider extends NetworkScaffolding {
 
     @Override
     protected HttpRequest getRequest(String accountId) {
-        request().withPath(FLOORS_ENDPOINT)
-                 .withQueryStringParameter("account", accountId)
+        request().withPath(FLOORS_ENDPOINT + accountId)
     }
 
     @Override
@@ -33,7 +32,7 @@ class FloorsProvider extends NetworkScaffolding {
 
     @Override
     void setResponse() {
-        mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
+        mockServerClient.when(request().withPath("^.*$endpoint.*\$"), Times.unlimited(), TimeToLive.unlimited(), -10)
                         .respond{request -> request.withPath(endpoint)
                                 ? response().withStatusCode(OK_200.code()).withBody(defaultResponse)
                                 : HttpResponse.notFoundResponse()}

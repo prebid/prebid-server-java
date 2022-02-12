@@ -4,10 +4,20 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum DeviceType {
 
-    DESKTOP, PHONE, TABLET, MULTIPLE
+    DESKTOP("desktop"),
+    PHONE("phone"),
+    TABLET("tablet"),
+    MULTIPLE("*")
 
     @JsonValue
-    String getValue() {
-        name().toLowerCase()
+    final String value
+
+    DeviceType(String value) {
+        this.value = value
+    }
+
+    @Override
+    String toString() {
+        value
     }
 }

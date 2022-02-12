@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+
 import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.DeviceType
@@ -9,22 +10,24 @@ import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.AdServer
 import org.prebid.server.functional.model.request.auction.App
+import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.ImpExtData
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
 
+import static org.prebid.server.functional.model.ChannelType.APP
+import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
 import static org.prebid.server.functional.model.pricefloors.DeviceType.PHONE
 import static org.prebid.server.functional.model.pricefloors.DeviceType.TABLET
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
+import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BOGUS
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BUNDLE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.CHANNEL
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.COUNTRY
@@ -36,11 +39,12 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PB_
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PUB_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
+import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
-    @PendingFeature
-    def "PBS should ignore rule and log warning when total number of split entries in a given rule doesn't match the number of fields"() {
+    def "PBS should ignore rule when total number of split entries in a given rule doesn't match the number of fields"() {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -49,30 +53,173 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsProviderFloorValue = 0.8
+        def floorValue = 0.8
         def invalidRule = new Rule(mediaType: BANNER, country: Country.MULTIPLE,
                 siteDomain: PBSUtils.randomString).rule
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY])
-            data.modelGroups[0].values = [(rule)       : floorsProviderFloorValue,
-                                          (invalidRule): floorsProviderFloorValue + 0.1]
+            data.modelGroups[0].values = [(rule)       : floorValue,
+                                          (invalidRule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        def response  = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloor == floorValue
+        assert bidderRequest.imp[0].ext.prebid.floors.floorRule == rule
+        assert bidderRequest.imp[0].ext.prebid.floors.floorRuleValue == floorValue
+    }
+
+    def "PBS should support different delimiters for floor rules"() {
+        given: "Default bidRequest"
+        def bidRequest =  BidRequest.defaultBidRequest
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY], delimiter: delimiter)
+            data.modelGroups[0].values = [(new Rule(delimiter: delimiter, mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule)       : PBSUtils.randomFloorValue,
+                                          (new Rule(delimiter: delimiter, mediaType: BANNER, country: Country.MULTIPLE).rule): floorValue]}
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request"
        def response =  floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
-        assert bidderRequest.ext?.prebid?.floors?.data?.modelGroups == floorsResponse.data.modelGroups[0].values[0]
+        then: "PBS should not contain errors, warnings"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
 
-        and: "PBS should log a warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999] //TODO what code?
-        assert response.ext?.warnings[ErrorType.PREBID]*.message == ["placeholder"]
+        and: "PBS should not reject the entire auction"
+        assert !response.seatbid.isEmpty()
+
+        and: "Bidder request bidFloor should correspond to appropriate media type"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
+
+        where:
+        delimiter << [".", "/"]
     }
 
-    @PendingFeature
+    def "PBS should treat rule values case-insensitive"() {
+        given: "BidRequest with domain"
+        def domain = PBSUtils.randomString
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+                                            site.domain = domain
+                                            site.publisher.id = accountId}
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
+            data.modelGroups[0].values =
+                    [(new Rule(domain: domain).rule.toUpperCase())               : floorValue,
+                     (new Rule(domain: PBSUtils.randomString).rule.toUpperCase()): floorValue + 0.1]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0]?.bidFloor == floorValue
+    }
+
+    def "PBS should consider rules file invalid when rules file contains an unrecognized dimension in the schema"() {
+        given: "BidRequest with domain"
+        def domain = PBSUtils.randomString
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+                                            site.domain = domain
+                                            site.publisher.id = accountId}
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups <<  ModelGroup.modelGroup
+            data.modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
+            data.modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue + 0.1]
+            data.modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
+            data.modelGroups[1].values = [(new Rule(domain: domain).rule) : floorValue]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        def response =  floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should pass bidFloor"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert !bidderRequest.imp[0]?.bidFloor
+        assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
+        assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
+
+        and: "PBS should not contain errors, warnings"
+        assert !response.ext?.warnings
+        assert !response.ext?.errors
+
+        and: "PBS should not reject the entire auction"
+        assert !response.seatbid.isEmpty()
+    }
+
+    def "PBS should round floor value to 4-digits of precision"() {
+        given: "BidRequest with domain"
+        def domain = PBSUtils.randomString
+        def accountId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+                                            site.domain = domain
+                                            site.publisher.id = accountId}
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(FLOOR_MIN, 2), 6) as BigDecimal
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
+            data.modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue]
+        }
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should be rounded"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0]?.bidFloor == getRoundedFloorValue(floorValue)
+    }
+
     def "PBS should choose correct rule when media type is defined in rules"() {
         given: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
@@ -88,21 +235,23 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate media type"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == 0.6
 
         where:
         bidRequest                       | bothFloorValue   | bannerFloorValue | videoFloorValue
-        bidRequestWithMultipleMediaTypes | 0.6              | randomFloorValue | randomFloorValue
-        BidRequest.defaultBidRequest     | randomFloorValue | 0.6              | randomFloorValue
-        BidRequest.defaultVideoRequest   | randomFloorValue | randomFloorValue | 0.6
+        bidRequestWithMultipleMediaTypes | 0.6              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        BidRequest.defaultBidRequest     | PBSUtils.randomFloorValue | 0.6              | PBSUtils.randomFloorValue
+        BidRequest.defaultVideoRequest   | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.6
     }
 
-    @PendingFeature
     def "PBS should choose rule with '*' when imp[0].banner.format contains multiple sizes"() {
         given: "Default BidRequest with format"
         def lowerWidth = 300
@@ -130,15 +279,17 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when size is defined in rules"() {
         given: "Default BidRequest with size"
         def width = 300
@@ -160,11 +311,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
 
         where:
@@ -180,36 +334,53 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                     imp[0].video.h = heightVal } }]
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when domain is defined in rules"() {
         given: "BidRequest with domain"
         def domain = PBSUtils.randomString
-        def bidRequest = bidRequestClosure(domain) as BidRequest
+        def accountId = PBSUtils.randomString
+        def bidRequest = bidRequestClosure(domain, accountId) as BidRequest
 
         and: "Account with enabled fetch, fetch.url in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        def account = getAccountWithEnabledFetch(accountId)
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
             data.modelGroups[0].values =
                     [(new Rule(domain: domain).rule)               : floorValue,
                      (new Rule(domain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
-        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+        floorsProvider.setResponse(accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
-        bidRequestClosure << [{ String domainVal -> BidRequest.defaultBidRequest.tap { site.domain = domainVal } },
-                       { String domainVal -> BidRequest.defaultBidRequest.tap { site.publisher.domain = domainVal } }]
+        bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
+                                            site.domain = domainVal
+                                            site.publisher.id = accountIdVal} },
+                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
+                                            site.publisher.domain = domainVal
+                                            site.publisher.id = accountIdVal} },
+                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
+                                            site = null
+                                            app =  App.defaultApp
+                                            app.domain = domainVal
+                                            app.publisher.id = accountIdVal} },
+                               { String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
+                                            site = null
+                                            app =  App.defaultApp
+                                            app.publisher.domain = domainVal
+                                            app.publisher.id = accountIdVal} }]
     }
 
     def "PBS should choose correct rule when siteDomain is defined in rules"() {
@@ -223,7 +394,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
             data.modelGroups[0].values =
@@ -232,11 +403,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
@@ -261,7 +435,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [PUB_DOMAIN])
             data.modelGroups[0].values =
@@ -270,11 +444,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
@@ -288,7 +465,6 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                                     app.publisher.id = accountIdVal} }]
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when bundle is defined in rules"() {
         given: "BidRequest with domain"
         def bundle = PBSUtils.randomString
@@ -301,7 +477,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [BUNDLE])
             data.modelGroups[0].values =
@@ -310,18 +486,20 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when channel is defined in rules"() {
         given: "BidRequest with domain"
-        def channel = PBSUtils.randomString
+        def channel = WEB
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.channel = new Channel(name: channel)
         }
@@ -331,24 +509,26 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [CHANNEL])
             data.modelGroups[0].values =
                     [(new Rule(channel: channel).rule)              : floorValue,
-                     (new Rule(channel: PBSUtils.randomString).rule): floorValue + 0.1]
+                     (new Rule(channel: APP).rule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when gptSlot is defined in rules"() {
         given: "BidRequest with domain"
         def gptSlot = PBSUtils.randomString
@@ -359,7 +539,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [GPT_SLOT])
             data.modelGroups[0].values =
@@ -368,23 +548,23 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String gptSlotVal -> BidRequest.defaultBidRequest.tap {
                                     imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: gptSlotVal))} },
                               { String gptSlotVal -> BidRequest.defaultBidRequest.tap {
-                                    imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: PBSUtils.randomString, adSlot: gptSlotVal))} },
-                              { String gptSlotVal -> BidRequest.defaultBidRequest.tap {
                                     imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal)} }]
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when pbAdSlot is defined in rules"() {
         given: "BidRequest with domain"
         def pbAdSlot = PBSUtils.randomString
@@ -397,7 +577,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
             data.modelGroups[0].values =
@@ -406,15 +586,17 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when country is defined in rules"() {
         given: "BidRequest with domain"
         def country = USA
@@ -427,7 +609,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [COUNTRY])
             data.modelGroups[0].values =
@@ -436,15 +618,17 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
-    @PendingFeature
     def "PBS should choose correct rule when devicetype is defined in rules"() {
         given: "BidRequest with device.ua"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -462,32 +646,34 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                     [(new Rule(deviceType: PHONE).rule)              : phoneFloorValue,
                      (new Rule(deviceType: TABLET).rule)             : tabletFloorValue,
                      (new Rule(deviceType: DESKTOP).rule)            : desktopFloorValue,
-                     (new Rule(deviceType: DeviceType.MULTIPLE).rule): floorValue]
+                     (new Rule(deviceType: DeviceType.MULTIPLE).rule): PBSUtils.randomFloorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == 0.8
 
         where:
         deviceType            | phoneFloorValue  | tabletFloorValue | desktopFloorValue
-        "Phone"               | 0.8              | randomFloorValue | randomFloorValue
-        "iPhone"              | 0.8              | randomFloorValue | randomFloorValue
-        "Android.*Mobile"     | 0.8              | randomFloorValue | randomFloorValue
-        "Mobile.*Android"     | 0.8              | randomFloorValue | randomFloorValue
-        "tablet"              | randomFloorValue | 0.8              | randomFloorValue
-        "iPad"                | randomFloorValue | 0.8              | randomFloorValue
-        "Windows NT.*touch"   | randomFloorValue | 0.8              | randomFloorValue
-        "touch.*Windows NT"   | randomFloorValue | 0.8              | randomFloorValue
-        "Android"             | randomFloorValue | 0.8              | randomFloorValue
-        PBSUtils.randomString | randomFloorValue | randomFloorValue | 0.8
+        "Phone"               | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "iPhone"              | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "Android.*Mobile"     | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "Mobile.*Android"     | 0.8              | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+        "tablet"              | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        "iPad"                | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        "Windows NT.*touch"   | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        "touch.*Windows NT"   | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        "Android"             | PBSUtils.randomFloorValue | 0.8              | PBSUtils.randomFloorValue
+        PBSUtils.randomString | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.8
     }
 
-    @PendingFeature
     def "PBS should choose no rule specifying deviceType when device is not present"() {
         given: "BidRequest with device.ua"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -499,12 +685,11 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups << ModelGroup.modelGroup
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            data.modelGroups[0].values =
-                    [(new Rule(mediaType: BANNER).rule): floorValue]
+            data.modelGroups[0].values = [(new Rule(mediaType: BANNER).rule): floorValue]
             data.modelGroups[1].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
             data.modelGroups[1].values =
                     [(new Rule(deviceType: PHONE).rule)              : floorValue + 0.1,
@@ -514,15 +699,17 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
     }
 
-    @PendingFeature
     def "PBS should use data.modelGroups[].default when no matching rules are found"() {
         given: "BidRequest with device.ua"
         def bidRequest = BidRequest.defaultBidRequest
@@ -532,7 +719,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = randomFloorValue
+        def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
             data.modelGroups[0].values = [(new Rule(mediaType: VIDEO).rule): floorValue + 0.1]
@@ -540,11 +727,72 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to defaultFloor"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0]?.bidFloor == floorValue
+    }
+
+    def "PBS should choose correct rule based on full match when domain, mediaType, gptSlot are defined in rules"() {
+       given: "Default bidRequest with domain, mediaType, adSlot"
+        def domain ="example.com"
+        def adSlot = "/111/k/categorytop/footer_right/300x250"
+        def bidRequest =  BidRequest.defaultBidRequest.tap {
+            site.domain = domain
+            imp[0].banner = Banner.defaultBanner
+            imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: adSlot))
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = new File("src/test/resources/org/prebid/server/functional/floor-rules.json").text
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule value"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0]?.bidFloor == 0.06
+    }
+
+   def "PBS should choose correct rule based on incomplete match when domain, mediaType, gptSlot are defined in rules"() {
+        given: "Default bidRequest with domain, mediaType, adSlot"
+        def domain ="example.com"
+        def adSlot = "test"
+        def bidRequest =  BidRequest.defaultBidRequest.tap {
+            site.domain = domain
+            imp[0].banner = Banner.defaultBanner
+            imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: adSlot))
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = new File("src/test/resources/org/prebid/server/functional/floor-rules.json").text
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule value"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0]?.bidFloor == 0.04
     }
 }

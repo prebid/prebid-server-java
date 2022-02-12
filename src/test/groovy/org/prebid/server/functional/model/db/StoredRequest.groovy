@@ -38,4 +38,9 @@ class StoredRequest {
         new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: bidRequest.site.publisher.id,
                 requestData: storedRequest)
     }
+
+    static StoredRequest getDbStoredRequest(BidRequest bidRequest, String accountId, BidRequest storedRequest) {
+        new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: accountId,
+                requestData: storedRequest)
+    }
 }

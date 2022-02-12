@@ -50,48 +50,6 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
-    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
-        def expectedCountReached = false
-        def startTime = System.currentTimeMillis()
-        def elapsedTime = 0
-
-        while (elapsedTime < pollTime) {
-            def requestCount = getRequestCount()
-            if (requestCount == expectedCount) {
-                expectedCountReached = true
-                break
-            } else if (requestCount > expectedCount) {
-                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
-            } else {
-                elapsedTime += System.currentTimeMillis() - startTime
-                Thread.sleep(pollFrequency)
-            }
-        }
-
-        expectedCountReached
-    }
-
-    boolean checkRequestCount(String value, int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
-        def expectedCountReached = false
-        def startTime = System.currentTimeMillis()
-        def elapsedTime = 0
-
-        while (elapsedTime < pollTime) {
-            def requestCount = getRequestCount(value)
-            if (requestCount == expectedCount) {
-                expectedCountReached = true
-                break
-            } else if (requestCount > expectedCount) {
-                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
-            } else {
-                elapsedTime += System.currentTimeMillis() - startTime
-                Thread.sleep(pollFrequency)
-            }
-        }
-
-        expectedCountReached
-    }
-
     void setResponse(HttpRequest httpRequest,
                      ResponseModel responseModel,
                      HttpStatusCode statusCode = OK_200,
@@ -105,7 +63,7 @@ abstract class NetworkScaffolding {
     void setResponse(String value, ResponseModel responseModel, Map<String, String> headers = [:]) {
         def responseHeaders = headers.collect { new Header(it.key, it.value) }
         def mockResponse = mapper.encode(responseModel)
-        mockServerClient.when(getRequest(value), Times.exactly(1))
+        mockServerClient.when(getRequest(value), Times.unlimited())
                         .respond(response().withStatusCode(OK_200.code())
                                            .withBody(mockResponse, APPLICATION_JSON)
                                            .withHeaders(responseHeaders))
@@ -138,6 +96,13 @@ abstract class NetworkScaffolding {
     void setResponseWithTimeout(String value, int timeoutSec = 5) {
         mockServerClient.when(getRequest(value), Times.exactly(1))
                         .respond(response().withDelay(SECONDS, timeoutSec))
+    }
+
+
+    protected def getRequestAndResponse() {
+        mockServerClient.retrieveRecordedRequestsAndResponses(
+                request()
+        )
     }
 
     List<String> getRecordedRequestsBody(HttpRequest httpRequest) {

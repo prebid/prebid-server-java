@@ -8,7 +8,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
 @EqualsAndHashCode
-@JsonNaming(PropertyNamingStrategies.LowerCamelCaseStrategy)
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
 class Imp {
 
