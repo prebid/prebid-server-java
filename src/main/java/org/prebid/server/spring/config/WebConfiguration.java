@@ -296,7 +296,8 @@ public class WebConfiguration {
     CookieSyncHandler cookieSyncHandler(
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${cookie-sync.coop-sync.default-max-limit:#{null}}") Integer defaultMaxLimit,
+            @Value("${cookie-sync.coop-sync.default-limit:#{null}}") Integer coopSyncDefaultLimit,
+            @Value("${cookie-sync.coop-sync.max-limit:#{null}}") Integer coopSyncMaxLimit,
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
@@ -313,7 +314,8 @@ public class WebConfiguration {
         return new CookieSyncHandler(
                 externalUrl,
                 defaultTimeoutMs,
-                defaultMaxLimit,
+                coopSyncDefaultLimit,
+                coopSyncMaxLimit,
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
