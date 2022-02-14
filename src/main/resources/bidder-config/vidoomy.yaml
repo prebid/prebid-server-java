@@ -1,0 +1,19 @@
+adapters:
+  vidoomy:
+    endpoint: https://p.vidoomy.com/api/rtbserver/pbs
+    meta-info:
+      maintainer-email: support@vidoomy.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 380
+    usersync:
+      url: https://vid.vidoomy.com/sync?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect=
+      redirect-url: /setuid?bidder=vidoomy&gdpr=0&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{VID}}
+      cookie-family-name: vidoomy
+      type: iframe
+      supportCors: false

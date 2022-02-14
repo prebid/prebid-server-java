@@ -5,13 +5,17 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 250
+        "h": 250,
+        "format": [
+          {
+            "w": 728,
+            "h": 90
+          }
+        ]
       },
       "ext": {
-        "tappx": {
-          "tappxkey": "pub-12345-android-9876",
-          "endpoint": "test",
-          "bidfloor": 1.5
+        "vidoomy": {
+          "zoneId": "zone-id-123"
         }
       }
     }

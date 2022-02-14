@@ -5,14 +5,17 @@
       "id": "imp_id",
       "banner": {
         "w": 300,
-        "h": 250
+        "h": 250,
+        "format": [
+          {
+            "w": 728,
+            "h": 90
+          }
+        ]
       },
-      "bidfloor": 1.5,
       "ext": {
         "bidder": {
-          "tappxkey": "pub-12345-android-9876",
-          "endpoint": "test",
-          "bidfloor": 1.5
+          "zoneId": "zone-id-123"
         }
       }
     }
@@ -39,11 +42,6 @@
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "bidder": {
-      "tappxkey": "pub-12345-android-9876"
     }
   }
 }

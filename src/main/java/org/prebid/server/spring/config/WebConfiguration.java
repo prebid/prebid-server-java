@@ -296,6 +296,7 @@ public class WebConfiguration {
     CookieSyncHandler cookieSyncHandler(
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${cookie-sync.coop-sync.default-max-limit:#{null}}") Integer defaultMaxLimit,
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
@@ -308,9 +309,22 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId,
-                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporterDelegator, metrics, timeoutFactory,
+
+        return new CookieSyncHandler(
+                externalUrl,
+                defaultTimeoutMs,
+                defaultMaxLimit,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                hostVendorId,
+                defaultCoopSync,
+                coopSyncPriorities.getPri(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
                 mapper);
     }
 

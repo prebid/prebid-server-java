@@ -16,21 +16,21 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class TappxTest extends IntegrationTest {
+public class VidoomyTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromTappx() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromVidoomy() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/tappx-exchange/rtb/v2/test"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/tappx/test-tappx-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/tappx/test-tappx-bid-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/vidoomy-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/vidoomy/test-vidoomy-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/vidoomy/test-vidoomy-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/tappx/test-auction-tappx-request.json",
+        final Response response = responseFor("openrtb2/vidoomy/test-auction-vidoomy-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/tappx/test-auction-tappx-response.json", response, singletonList("tappx"));
+        assertJsonEquals("openrtb2/vidoomy/test-auction-vidoomy-response.json", response,
+                singletonList("vidoomy"));
     }
 }
-
