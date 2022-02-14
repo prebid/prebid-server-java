@@ -64,9 +64,7 @@ class ReportSpec extends BasePgSpec {
 
         and: "Line items are fetched"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(PBSUtils.randomString))
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         and: "Delivery report batch is created"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
@@ -107,9 +105,7 @@ class ReportSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         and: "PBS generates delivery report batch"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
@@ -212,9 +208,7 @@ class ReportSpec extends BasePgSpec {
         def lineItemCount = plansResponse.lineItems.size() as Long
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         when: "Auction request to PBS is sent"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -284,9 +278,7 @@ class ReportSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         when: "Auction request to PBS is sent"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -339,9 +331,7 @@ class ReportSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         when: "Auction request to PBS is sent"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -390,9 +380,7 @@ class ReportSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         when: "PBS generates delivery report batch"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
@@ -429,9 +417,7 @@ class ReportSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         and: "PBS generates delivery report batch"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
@@ -492,9 +478,7 @@ class ReportSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "PBS requests Planner line items"
-        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
+        updateLineItemsAndWait()
 
         and: "Auction request to PBS is sent for the first time"
         pgPbsService.sendAuctionRequest(bidRequest)

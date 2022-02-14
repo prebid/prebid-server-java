@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.Dependencies
@@ -39,7 +38,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id))
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial user details request count is taken"
         def initialRequestCount = userData.recordedUserDetailsRequestCount
@@ -77,7 +76,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial user details request count is taken"
         def initialRequestCount = userData.recordedUserDetailsRequestCount
@@ -121,7 +120,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial user details request count is taken"
         def initialRequestCount = userData.recordedUserDetailsRequestCount
@@ -171,7 +170,7 @@ class UserDetailsSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Bad User Service Response is set"
         userData.setUserDataResponse(new UserDetailsResponse(user: null))
@@ -206,7 +205,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial win notification request count"
         def initialRequestCount = userData.requestCount
@@ -264,7 +263,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id))
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial win notification request count"
         def initialRequestCount = userData.requestCount
@@ -313,7 +312,7 @@ class UserDetailsSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial win notification request count"
         def initialRequestCount = userData.requestCount
