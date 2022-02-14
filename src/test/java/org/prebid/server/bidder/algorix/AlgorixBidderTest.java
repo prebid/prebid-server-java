@@ -13,6 +13,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.algorix.model.AlgorixResponseBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpCall;
@@ -286,6 +287,69 @@ public class AlgorixBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfAlgorixBidExtOfBannerMediaType() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("banner"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("banner")))
+                        .build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfAlgorixBidExtOfVideoMediaType() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("video"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("video")))
+                        .build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfAlgorixBidExtOfNativeMediaType() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder ->
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("native"))))));
+
+        // when
+        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("native")))
+                        .build(), xNative, "USD"));
     }
 
     private static BidRequest givenBidRequest(
