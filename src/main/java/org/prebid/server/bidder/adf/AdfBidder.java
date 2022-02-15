@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 public class AdfBidder implements Bidder<BidRequest> {
 
+    private static final String FIELD_EXT_NAME = "pt";
     private static final TypeReference<ExtPrebid<?, ExtImpAdf>> ADF_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -63,7 +64,8 @@ public class AdfBidder implements Bidder<BidRequest> {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
             modifiedImps.add(imp.toBuilder().tagid(Objects.requireNonNull(adfImp).getMid()).build());
-            priceType = ObjectUtils.defaultIfNull(priceType, adfImp.getPriceType());
+            priceType = StringUtils.isEmpty(priceType)
+                    && StringUtils.isNotEmpty(adfImp.getPriceType()) ? adfImp.getPriceType() : "";
         }
 
         final BidRequest resolvedBidRequest = StringUtils.isNotEmpty(priceType)
@@ -79,7 +81,7 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyBidRequest(BidRequest.BidRequestBuilder bidRequest, String priceType) {
-        final ObjectNode adfNode = mapper.mapper().createObjectNode().put("pt", priceType);
+        final ObjectNode adfNode = mapper.mapper().createObjectNode().put(FIELD_EXT_NAME, priceType);
         final ExtRequest fillExtRequest = mapper.fillExtension(ExtRequest.empty(), adfNode);
 
         return bidRequest.ext(fillExtRequest).build();
