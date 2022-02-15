@@ -44,6 +44,7 @@ abstract class BaseSpec extends Specification {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+        pbsServiceFactory.stopContainers()
     }
 
     protected static int getRandomTimeout() {

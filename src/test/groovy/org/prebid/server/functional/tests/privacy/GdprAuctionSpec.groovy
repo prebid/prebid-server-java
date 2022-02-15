@@ -1,7 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
@@ -13,6 +12,8 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 import spock.lang.Unroll
 
+import static org.prebid.server.functional.model.ChannelType.WEB
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
@@ -56,7 +57,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             !privacy.originPrivacy?.coppa?.coppa
             privacy.resolvedPrivacy?.coppa?.coppa == 0
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC] ==
+            privacy.privacyActionsPerBidder[GENERIC] ==
                     ["Geolocation was masked in request to bidder according to TCF policy."]
 
             privacy.errors?.isEmpty()
@@ -89,7 +90,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
             privacy.resolvedPrivacy?.tcf?.tcfConsentVersion == 2
             !privacy.resolvedPrivacy?.tcf?.inEea
 
-            privacy.privacyActionsPerBidder[BidderName.GENERIC].isEmpty()
+            privacy.privacyActionsPerBidder[GENERIC].isEmpty()
 
             privacy.errors == ["Placeholder: invalid consent string"]
         }
@@ -105,10 +106,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
         and: "Save account config into DB"
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        def account = new Account(uuid: bidRequest.app.publisher.id, config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
@@ -132,10 +130,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(validConsentString)
 
         and: "Save account config into DB"
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
@@ -146,7 +141,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         where:
         gdprConfig << [new AccountGdprConfig(enabled: true),
-                       new AccountGdprConfig(enabled: false, channelEnabled: [(ChannelType.WEB): true])]
+                       new AccountGdprConfig(enabled: false, channelEnabled: [(WEB): true])]
     }
 
     @Unroll
@@ -159,10 +154,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
         and: "Save account config into DB"
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        def account = new Account(uuid: bidRequest.app.publisher.id, config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -187,10 +179,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(validConsentString)
 
         and: "Save account config into DB"
-        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
-        def accountConfig = new AccountConfig(privacy: privacy)
-        def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
-        accountDao.save(account)
+        accountDao.save(getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -201,7 +190,13 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
 
         where:
-        gdprConfig << [new AccountGdprConfig(enabled: true, channelEnabled: [(ChannelType.WEB): false]),
+        gdprConfig << [new AccountGdprConfig(enabled: true, channelEnabled: [(WEB): false]),
                        new AccountGdprConfig(enabled: false)]
+    }
+
+    private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig){
+        def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
+        def accountConfig = new AccountConfig(privacy: privacy)
+        new Account(uuid: accountId, config: accountConfig)
     }
 }

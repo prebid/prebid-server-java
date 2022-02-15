@@ -14,19 +14,20 @@ import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
-
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 @PBSTest
 abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2
-    protected static final PrebidServerService privacyPbsService = pbsServiceFactory.getService(
+    @Shared
+    protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(
             ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
@@ -77,9 +78,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     }
 
     protected static void cacheVendorList(PrebidServerService pbsService = defaultPbsService) {
-        def waitTime = 1000
-        def count = 0
-        while (count < 10) {
+        def isVendorListCachedClosure = {
             def validConsentString = new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
                     .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
@@ -88,14 +87,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
             pbsService.sendAuctionRequest(bidRequest)
 
-            if (pbsService.sendCollectedMetricsRequest()["privacy.tcf.v2.vendorlist.missing"] == 0) {
-                break
-            }
-            Thread.sleep(waitTime)
-            count++
+            pbsService.sendCollectedMetricsRequest()["privacy.tcf.v2.vendorlist.missing"] == 0
         }
-        if (count == 10) {
-            throw new IllegalStateException("Vendor list isn't loaded in more than ${count * waitTime} seconds")
-        }
+        PBSUtils.waitUntil(isVendorListCachedClosure, 10000, 1000)
     }
 }
