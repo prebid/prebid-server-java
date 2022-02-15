@@ -144,7 +144,7 @@ vtrack:
 cookie-sync:
   coop-sync:
     default: true
-    default-max-limit: 8
+    default-limit: 8
   default-timeout-ms: 2000
 logging:
   http-interaction:
