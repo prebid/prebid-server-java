@@ -54,6 +54,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
@@ -250,6 +251,8 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Timeout timeout;
 
+    private DealsProcessor dealsProcessor;
+
     @SuppressWarnings("unchecked")
     @Before
     public void setUp() {
@@ -310,11 +313,13 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
+        dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
                 0,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -340,6 +345,7 @@ public class ExchangeServiceTest extends VertxTest {
                         -1,
                         bidderCatalog,
                         storedResponseProcessor,
+                        dealsProcessor,
                         privacyEnforcementService,
                         fpdResolver,
                         schainResolver,
@@ -612,6 +618,7 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -2550,6 +2557,7 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
