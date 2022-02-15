@@ -92,7 +92,7 @@ class RegisterSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial Planner request count"
         def initialRequestCount = generalPlanner.requestCount
@@ -144,7 +144,7 @@ class RegisterSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial Planner request count"
         def initialRequestCount = generalPlanner.requestCount
@@ -205,7 +205,7 @@ class RegisterSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Initial Planner request count"
         initialRequestCount = generalPlanner.requestCount

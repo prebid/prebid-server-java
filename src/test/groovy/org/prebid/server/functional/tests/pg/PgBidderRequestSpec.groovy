@@ -38,7 +38,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "User Service response is set"
         def userResponse = UserDetailsResponse.defaultUserResponse
@@ -75,7 +75,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest)
@@ -119,7 +119,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest)
