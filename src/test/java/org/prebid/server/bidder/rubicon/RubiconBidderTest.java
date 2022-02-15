@@ -1174,6 +1174,100 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldUseUserBuyeruidIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .buyeruid("buyeruid")
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "ppuid")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("buyeruid");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseUidIdIfUserBuyeruidAbsentAndSpecialEidSourceAndStypeIsPpuid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "ppuid")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("extUserEidUidId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseUidIdIfUserBuyeruidAbsentAndSpecialEidSourceAndStypeIsOther() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .ext(ExtUser.builder()
+                                .eids(singletonList(ExtUserEid.of(
+                                        "rubiconproject.com",
+                                        null,
+                                        singletonList(ExtUserEidUid.of(
+                                                "extUserEidUidId",
+                                                null,
+                                                ExtUserEidUidExt.of(null, "other")
+                                        )),
+                                        null)))
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getBuyeruid)
+                .containsExactly("extUserEidUidId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateUserExtTpIdWithAdServerEidSource() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder.user(User.builder()

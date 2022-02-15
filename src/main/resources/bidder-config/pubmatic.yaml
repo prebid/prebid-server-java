@@ -22,8 +22,14 @@ adapters:
       supported-vendors:
       vendor-id: 76
     usersync:
-      url: https://image8.pubmatic.com/AdServer/ImgSync?p=159706&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&pu=
-      redirect-url: /setuid?bidder=pubmatic&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=#PMUID
+      url: https://ads.pubmatic.com/AdServer/js/user_sync.html?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&predirect=
+      redirect-url: /setuid?bidder=pubmatic&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: pubmatic
-      type: redirect
+      type: iframe
       support-cors: false
+      secondary:
+        url: https://image8.pubmatic.com/AdServer/ImgSync?p=159706&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&pu=
+        redirect-url: /setuid?bidder=pubmatic&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=#PMUID
+        cookie-family-name: pubmatic
+        type: redirect
+        support-cors: false

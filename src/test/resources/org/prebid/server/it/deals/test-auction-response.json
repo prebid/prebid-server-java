@@ -370,7 +370,8 @@
                     "accountId": 2001,
                     "siteId": 3001,
                     "zoneId": 4001,
-                    "dealsonly": true
+                    "dealsonly": true,
+                    "pgdealsonly": true
                   }
                 }
               }
@@ -558,13 +559,6 @@
         }
       },
       "trace": {
-        "deals": [
-          {
-            "time": "2020-04-27T13:08:04.049Z",
-            "category": "cleanup",
-            "message": "No Line Items from bidders rubicon matching imp with id impId3 and ready to serve. Removing imp from requests to all bidders because dealsonly flag is on for these bidders and no other valid bidders in imp."
-          }
-        ],
         "lineitems": {
           "lineItem3": [
             {
@@ -714,6 +708,14 @@
           ]
         }
       }
+    },
+    "warnings": {
+      "prebid": [
+        {
+          "code": 999,
+          "message": "Not calling rubicon bidders for impression impId3 due to pgdealsonly flag and no available PG line items."
+        }
+      ]
     },
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}",

@@ -6,6 +6,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Ignore
 import spock.lang.Shared
 
@@ -32,6 +33,6 @@ class AnalyticsSpec extends BaseSpec {
         pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should call pubstack analytics"
-        assert analytics.checkRequestCount(analyticsRequestCount + 1)
+        PBSUtils.waitUntil { analytics.requestCount == analyticsRequestCount + 1 }
     }
 }

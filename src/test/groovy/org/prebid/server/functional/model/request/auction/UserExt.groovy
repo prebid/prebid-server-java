@@ -7,4 +7,7 @@ import org.prebid.server.functional.util.privacy.ConsentString
 class UserExt {
 
     ConsentString consent
+    List<String> fcapids
+    UserTime time
+    UserExtData data
 }
