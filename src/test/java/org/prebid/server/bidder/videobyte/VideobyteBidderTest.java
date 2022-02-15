@@ -273,7 +273,7 @@ public class VideobyteBidderTest extends VertxTest {
 
     private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
-        final HttpResponse response = HttpResponse.of(200, null, body);
+        final HttpResponse response = HttpResponse.of(200, null, body.getBytes());
         return HttpCall.success(request, response, null);
     }
 
