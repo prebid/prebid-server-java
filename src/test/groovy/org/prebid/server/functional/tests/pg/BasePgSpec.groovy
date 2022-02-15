@@ -14,6 +14,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Shared
 import spock.lang.Specification
 
 @PBSTest
@@ -29,8 +30,10 @@ abstract class BasePgSpec extends Specification {
     protected static final UserData userData = new UserData(Dependencies.networkServiceContainer, mapper)
 
     protected static final PbsPgConfig pgConfig = new PbsPgConfig(Dependencies.networkServiceContainer)
-    protected static final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgConfig.properties)
     protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
+
+    @Shared
+    protected final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgConfig.properties)
 
     def setupSpec() {
         generalPlanner.setResponse()
@@ -49,7 +52,7 @@ abstract class BasePgSpec extends Specification {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
     }
 
-    protected static void updateLineItemsAndWait() {
+    protected void updateLineItemsAndWait() {
         def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
         PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
