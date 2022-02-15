@@ -2,7 +2,6 @@ package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -55,8 +54,7 @@ public class AdfBidderTest extends VertxTest {
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
                 .imp(singletonList(givenImp(impBuilder -> impBuilder.tagid("12345"))))
-                .ext(jacksonMapper.fillExtension(ExtRequest.empty(),
-                        mapper.createObjectNode().put("pt", "gross")))
+                .ext(givenExtRequest())
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
@@ -75,12 +73,10 @@ public class AdfBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsOnly(jacksonMapper.fillExtension(
-                        ExtRequest.empty(), mapper.createObjectNode()
-                                .set("pt", TextNode.valueOf("gross"))));
+                .containsExactly(givenExtRequest());
     }
 
     @Test
@@ -89,12 +85,9 @@ public class AdfBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(List.of(
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of("12345", null, null, "gross"))))),
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of("1", null, null, "gross"))))),
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of(null, null, null, "gross"))))))));
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt("12345", "gross"))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt("1", "gross"))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt("gross"))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adfBidder.makeHttpRequests(bidRequest);
@@ -114,12 +107,9 @@ public class AdfBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
                 requestBuilder -> requestBuilder.imp(List.of(
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of("12345", null, null, "gross"))))),
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of("1", null, null, "net"))))),
-                        givenEmptyImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdf.of(null, 321, "placement", null))))))));
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt("12345", "gross"))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt("1", "net"))),
+                        givenEmptyImp(impBuilder -> impBuilder.ext(givenImpExt(321, "placement"))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = adfBidder.makeHttpRequests(bidRequest);
@@ -131,9 +121,9 @@ public class AdfBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("12345", null, null, "gross"))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of("1", null, null, "net"))),
-                        mapper.valueToTree(ExtPrebid.of(null, ExtImpAdf.of(null, 321, "placement", null)))
+                        givenImpExt("12345", "gross"),
+                        givenImpExt("1", "net"),
+                        givenImpExt(321, "placement")
                 );
     }
 
@@ -277,5 +267,25 @@ public class AdfBidderTest extends VertxTest {
 
     private static ObjectNode createBidExtPrebidWithType(String type) {
         return mapper.createObjectNode().set("prebid", mapper.createObjectNode().put("type", type));
+    }
+
+    private ObjectNode givenImpExt(Integer inv, String mname) {
+        return mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpAdf.of(null, inv, mname, null)));
+    }
+
+    private ObjectNode givenImpExt(String mid, String priceTyp) {
+        return mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpAdf.of(mid, null, null, priceTyp)));
+    }
+
+    private ObjectNode givenImpExt(String priceTyp) {
+        return mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpAdf.of(null, null, null, priceTyp)));
+    }
+
+    private ExtRequest givenExtRequest() {
+        return jacksonMapper.fillExtension(ExtRequest.empty(),
+                mapper.createObjectNode().put("pt", "gross"));
     }
 }

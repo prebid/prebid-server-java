@@ -10,6 +10,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -52,42 +53,39 @@ public class AdfBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        String priceType = "";
+        String priceType = null;
+        ExtImpAdf adfImp = null;
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpAdf adfImp = parseExt(imp);
-                final Imp modifiedImp = imp.toBuilder().tagid(adfImp.getMid()).build();
-                modifiedImps.add(modifiedImp);
-                priceType = StringUtils.isEmpty(priceType)
-                        && StringUtils.isNotEmpty(adfImp.getPriceType()) ? adfImp.getPriceType() : "";
+                adfImp = parseImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
+            modifiedImps.add(imp.toBuilder().tagid(Objects.requireNonNull(adfImp).getMid()).build());
+            priceType = ObjectUtils.defaultIfNull(priceType, adfImp.getPriceType());
         }
 
-        if (StringUtils.isNotEmpty(priceType)) {
-            bidRequest = modifyBidRequest(bidRequest.toBuilder(), priceType);
-        }
+        final BidRequest resolvedBidRequest = StringUtils.isNotEmpty(priceType)
+                ? modifyBidRequest(bidRequest.toBuilder(), priceType)
+                : bidRequest;
 
         if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
-        final HttpRequest<BidRequest> httpRequest = makeRequest(bidRequest, modifiedImps);
+        final HttpRequest<BidRequest> httpRequest = makeRequest(resolvedBidRequest, modifiedImps);
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private BidRequest modifyBidRequest(BidRequest.BidRequestBuilder bidRequest, String priceType) {
-        final ObjectNode adfNode = mapper.mapper().createObjectNode()
-                .put("pt", priceType);
-        final ExtRequest fillExtRequest =
-                mapper.fillExtension(ExtRequest.empty(), adfNode);
+        final ObjectNode adfNode = mapper.mapper().createObjectNode().put("pt", priceType);
+        final ExtRequest fillExtRequest = mapper.fillExtension(ExtRequest.empty(), adfNode);
 
         return bidRequest.ext(fillExtRequest).build();
     }
 
-    private ExtImpAdf parseExt(Imp imp) throws PreBidException {
+    private ExtImpAdf parseImpExt(Imp imp) throws PreBidException {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADF_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
