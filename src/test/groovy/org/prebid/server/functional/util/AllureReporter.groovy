@@ -12,11 +12,9 @@ import io.qameta.allure.model.Status
 import io.qameta.allure.model.StatusDetails
 import io.qameta.allure.model.TestResult
 import io.qameta.allure.util.AnnotationUtils
-import org.apache.commons.lang3.StringUtils
 import org.spockframework.runtime.AbstractRunListener
 import org.spockframework.runtime.extension.IGlobalExtension
 import org.spockframework.runtime.extension.builtin.UnrollIterationNameProvider
-import org.spockframework.runtime.model.BlockInfo
 import org.spockframework.runtime.model.ErrorInfo
 import org.spockframework.runtime.model.FeatureInfo
 import org.spockframework.runtime.model.IterationInfo
@@ -48,6 +46,7 @@ import static io.qameta.allure.util.ResultsUtils.getStatus
 import static io.qameta.allure.util.ResultsUtils.getStatusDetails
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.Comparator.comparing
+import static org.apache.commons.lang3.StringUtils.EMPTY
 
 /**
  * This is a temporary port of https://github.com/allure-framework/allure-java/tree/master/allure-spock to add support
@@ -275,19 +274,19 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
 
 
     private void writeBlocks(FeatureInfo feature, IterationInfo iteration) {
-        def blockText = StringUtils.EMPTY
-        for (BlockInfo block : feature.blocks) {
-            if (!isEmptyOrContainsOnlyEmptyStrings(block.texts)) {
-                def size = block.texts.size()
-                for (int i = 0; i < size; i++) {
-                    if (iteration != null) {
-                        blockText = generationParams(block.texts[i], feature.dataVariables, iteration)
-                    }
-                    def kind = i == 0 ? block.kind.name() : "and"
+        def andBlockKind = "AND"
+        def emptyBlockText = "-----"
+        feature.blocks.each {
+            if (!isEmptyOrContainsOnlyEmptyStrings(it.texts)) {
+                it.texts.eachWithIndex { String entry, int i ->
+                    def blockText = iteration
+                            ? generationParams(entry, feature.dataVariables, iteration)
+                            : EMPTY
+                    def kind = i == 0 ? it.kind.name() : andBlockKind
                     writeStep(kind, blockText)
                 }
             } else {
-                writeStep(block.kind.name(), "-----")
+                writeStep(it.kind.name(), emptyBlockText)
             }
         }
     }
@@ -295,13 +294,11 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     private String generationParams(String input,
                                     final List<String> dataVariables,
                                     final IterationInfo iteration) {
-        def tempFeature = new FeatureInfo()
-        tempFeature.setName(input)
-        for (String variable : dataVariables) {
-            tempFeature.addParameterName(variable)
-        }
-        tempFeature.setIterationNameProvider(new UnrollIterationNameProvider(tempFeature, input, false))
-        tempFeature.iterationNameProvider.getName(iteration)
+        new FeatureInfo().tap {
+            setName(input)
+            dataVariables.each { String variable -> it.addParameterName(variable) }
+            setIterationNameProvider(new UnrollIterationNameProvider(it, input, false))
+        }.iterationNameProvider.getName(iteration)
     }
 
     private boolean isEmptyOrContainsOnlyEmptyStrings(List<String> strings) {
@@ -309,7 +306,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     }
 
     private void writeStep(String kind, String data) {
-        def kindText = stepSpockMap.get(kind.toUpperCase())
+        def kindText = stepSpockMap.get(kind)
         def stringBuilder = new StringBuffer()
         stringBuilder << kindText << '\t' << data
         Allure.step(stringBuilder.toString())
