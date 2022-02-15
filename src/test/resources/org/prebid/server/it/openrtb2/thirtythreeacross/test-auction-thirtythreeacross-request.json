@@ -8,7 +8,7 @@
         "h": 250
       },
       "ext": {
-        "ttx": {
+        "thirtythreeacross": {
           "siteId": "site-id",
           "productId": "inview",
           "zoneId": "zone-id"
@@ -20,6 +20,16 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "ttx": {
+      "caller": [
+        {
+          "name": "caller",
+          "version": "1.0"
+        }
+      ]
     }
   }
 }

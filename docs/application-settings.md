@@ -19,6 +19,7 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
+- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
@@ -103,6 +104,7 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        debug-allow: true
       metrics:
         verbosity-level: basic
       privacy:
@@ -262,7 +264,8 @@ example:
     },
     "events": {
       "enabled": true
-    }
+    },
+    "debug-allow": true
   },
   "metrics": {
       "verbosity-level": "basic"

@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.ttx.TtxBidder;
+import org.prebid.server.bidder.vidoomy.VidoomyBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/ttx.yaml", factory = YamlPropertySourceFactory.class)
-public class TtxConfiguration {
+@PropertySource(value = "classpath:/bidder-config/vidoomy.yaml", factory = YamlPropertySourceFactory.class)
+public class VidoomyConfiguration {
 
-    private static final String BIDDER_NAME = "ttx";
+    private static final String BIDDER_NAME = "vidoomy";
 
-    @Bean("ttxConfigurationProperties")
-    @ConfigurationProperties("adapters.ttx")
+    @Bean("vidoomyConfigurationProperties")
+    @ConfigurationProperties("adapters.vidoomy")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps ttxBidderDeps(BidderConfigurationProperties ttxConfigurationProperties,
-                             @NotBlank @Value("${external-url}") String externalUrl,
-                             JacksonMapper mapper) {
+    BidderDeps vidoomyBidderDeps(BidderConfigurationProperties vidoomyConfigurationProperties,
+                                 @NotBlank @Value("${external-url}") String externalUrl,
+                                 JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(ttxConfigurationProperties)
+                .withConfig(vidoomyConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TtxBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new VidoomyBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
