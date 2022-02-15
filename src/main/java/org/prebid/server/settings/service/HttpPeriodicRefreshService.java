@@ -14,6 +14,7 @@ import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpRefreshResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -138,7 +139,8 @@ public class HttpPeriodicRefreshService implements Initializable {
         try {
             refreshResponse = mapper.decodeValue(body, HttpRefreshResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
+            throw new PreBidException(String.format(
+                    "Cannot parse response: %s", MapperUtil.bodyAsString(body, response.getHeaders())), e);
         }
 
         return refreshResponse;

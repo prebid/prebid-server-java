@@ -18,6 +18,8 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.DataFormat;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -48,6 +50,7 @@ public abstract class VendorListService<T, V> {
 
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
+    protected static final DataFormat VENDOR_LIST_DATA_FORMAT = DataFormat.JSON;
 
     private final String cacheDir;
     private final String endpointTemplate;
@@ -214,7 +217,8 @@ public abstract class VendorListService<T, V> {
         final T vendorList = toVendorList(vendorListContent);
         if (!isValid(vendorList)) {
             throw new PreBidException(String.format(
-                    "Fallback vendor list parsed but has invalid data: %s", JacksonMapper.asString(vendorListContent)));
+                    "Fallback vendor list parsed but has invalid data: %s",
+                    MapperUtil.bodyAsString(vendorListContent, VENDOR_LIST_DATA_FORMAT)));
         }
 
         return filterVendorIdToVendors(vendorList);
@@ -259,7 +263,8 @@ public abstract class VendorListService<T, V> {
         // while application is running
         if (!isValid(vendorList)) {
             throw new PreBidException(String.format(
-                    "Fetched vendor list parsed but has invalid data: %s", JacksonMapper.asString(body)));
+                    "Fetched vendor list parsed but has invalid data: %s",
+                    MapperUtil.bodyAsString(body, response.getHeaders())));
         }
 
         return VendorListResult.of(version, body, vendorList);

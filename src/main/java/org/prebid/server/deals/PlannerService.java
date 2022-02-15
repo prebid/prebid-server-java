@@ -17,6 +17,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -125,7 +126,7 @@ public class PlannerService implements Suspendable {
         }
 
         final byte[] body = response.getBody();
-        final String bodyAsString = JacksonMapper.asString(body);
+        final String bodyAsString = MapperUtil.bodyAsString(body, response.getHeaders());
         if (body == null) {
             throw new PreBidException("Failed to fetch data from planner, response can't be null");
         }

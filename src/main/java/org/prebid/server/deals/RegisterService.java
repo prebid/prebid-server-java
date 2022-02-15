@@ -21,6 +21,7 @@ import org.prebid.server.health.HealthMonitor;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -151,30 +152,34 @@ public class RegisterService implements Initializable, Suspendable {
     private void handleRegister(AsyncResult<HttpClientResponse> asyncResult) {
         if (asyncResult.failed()) {
             final Throwable cause = asyncResult.cause();
-            final String errorMessage = String.format("Error occurred while registering with the Planner: %s", cause);
-            alert(errorMessage, logger::warn);
+            alert(String.format("Error occurred while registering with the Planner: %s", cause), logger::warn);
         } else {
             final HttpClientResponse response = asyncResult.result();
             final int statusCode = response.getStatusCode();
             final byte[] responseBody = response.getBody();
+            final MultiMap responseHeaders = response.getHeaders();
             if (statusCode == HttpResponseStatus.OK.code()) {
                 if (ArrayUtils.isNotEmpty(responseBody)) {
-                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody));
+                    adminEventService.publishAdminCentralEvent(parseRegisterResponse(responseBody, responseHeaders));
                 }
                 alertHttpService.resetAlertCount(PBS_REGISTER_CLIENT_ERROR);
             } else {
-                final String errorMessage = String.format("Planner responded with non-successful code %s,"
-                        + " response: %s", statusCode, JacksonMapper.asString(responseBody));
-                alert(errorMessage, logger::warn);
+                alert(
+                        String.format(
+                                "Planner responded with non-successful code %s, response: %s",
+                                statusCode, MapperUtil.bodyAsString(responseBody, responseHeaders)),
+                        logger::warn);
             }
         }
     }
 
-    private AdminCentralResponse parseRegisterResponse(byte[] body) {
+    private AdminCentralResponse parseRegisterResponse(byte[] body, MultiMap headers) {
         try {
             return mapper.decodeValue(body, AdminCentralResponse.class);
         } catch (DecodeException e) {
-            String errorMessage = String.format("Cannot parse register response: %s", JacksonMapper.asString(body));
+            String errorMessage = String.format(
+                    "Cannot parse register response: %s",
+                    MapperUtil.bodyAsString(body, headers));
             alert(errorMessage, logger::warn);
             throw new PreBidException(errorMessage, e);
         }

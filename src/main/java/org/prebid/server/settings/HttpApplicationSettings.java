@@ -23,6 +23,7 @@ import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -271,10 +272,11 @@ public class HttpApplicationSettings implements ApplicationSettings {
                 toFailedStoredDataResult(requestIds, impIds, throwable.getMessage()));
     }
 
-    private Future<StoredDataResult> processStoredDataResponse(HttpClientResponse response, Set<String> requestIds,
+    private Future<StoredDataResult> processStoredDataResponse(HttpClientResponse response,
+                                                               Set<String> requestIds,
                                                                Set<String> impIds) {
-        return Future.succeededFuture(
-                toStoredDataResult(requestIds, impIds, response.getStatusCode(), response.getBody()));
+
+        return Future.succeededFuture(toStoredDataResult(requestIds, impIds, response));
     }
 
     private static StoredDataResult toFailedStoredDataResult(Set<String> requestIds,
@@ -293,19 +295,23 @@ public class HttpApplicationSettings implements ApplicationSettings {
         return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.singletonList(error));
     }
 
-    private StoredDataResult toStoredDataResult(Set<String> requestIds, Set<String> impIds,
-                                                int statusCode, byte[] body) {
+    private StoredDataResult toStoredDataResult(Set<String> requestIds,
+                                                Set<String> impIds,
+                                                HttpClientResponse clientResponse) {
+
+        final int statusCode = clientResponse.getStatusCode();
         if (statusCode != HttpResponseStatus.OK.code()) {
             return toFailedStoredDataResult(requestIds, impIds, String.format("HTTP status code %d", statusCode));
         }
 
+        final byte[] body = clientResponse.getBody();
         final HttpFetcherResponse response;
         try {
             response = mapper.decodeValue(body, HttpFetcherResponse.class);
         } catch (DecodeException e) {
             return toFailedStoredDataResult(requestIds, impIds, String.format(
                     "parsing json failed for response: %s with message: %s",
-                    JacksonMapper.asString(body),
+                    MapperUtil.bodyAsString(body, clientResponse.getHeaders()),
                     e.getMessage()));
         }
 

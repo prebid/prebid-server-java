@@ -10,6 +10,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -78,7 +79,8 @@ public class GoogleRecaptchaVerifier {
         try {
             recaptchaResponse = mapper.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
+            throw new PreBidException(String.format(
+                    "Cannot parse response: %s", MapperUtil.bodyAsString(body, response.getHeaders())), e);
         }
 
         if (!Objects.equals(recaptchaResponse.getSuccess(), Boolean.TRUE)) {

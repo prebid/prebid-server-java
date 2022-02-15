@@ -27,6 +27,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -359,7 +360,7 @@ public class HttpBidderRequester {
 
             final HttpResponse response = httpCall.getResponse();
             if (response != null) {
-                builder.responsebody(JacksonMapper.asString(response.getBody()));
+                builder.responsebody(MapperUtil.bodyAsString(response.getBody(), response.getHeaders()));
                 builder.status(response.getStatusCode());
             }
 

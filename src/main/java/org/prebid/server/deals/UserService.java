@@ -2,6 +2,7 @@ package org.prebid.server.deals;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
@@ -26,6 +27,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
@@ -145,14 +147,14 @@ public class UserService {
         final User user;
         final int responseTime = responseTime(startTime);
         try {
-            user = parseUserDetailsResponse(responseBody);
+            user = parseUserDetailsResponse(responseBody, clientResponse.getHeaders());
         } finally {
             context.getDebugHttpCalls().put(USER_SERVICE, Collections.singletonList(
                     DebugHttpCall.builder()
                             .requestUri(requestUrl)
                             .requestBody(requestBody)
                             .responseStatus(responseStatusCode)
-                            .responseBody(JacksonMapper.asString(responseBody))
+                            .responseBody(MapperUtil.bodyAsString(responseBody, clientResponse.getHeaders()))
                             .responseTimeMillis(responseTime)
                             .build()));
         }
@@ -161,8 +163,8 @@ public class UserService {
         return UserDetails.of(user.getData(), user.getExt().getFcapIds());
     }
 
-    private User parseUserDetailsResponse(byte[] responseBody) {
-        final String bodyAsString = JacksonMapper.asString(responseBody);
+    private User parseUserDetailsResponse(byte[] responseBody, MultiMap headers) {
+        final String bodyAsString = MapperUtil.bodyAsString(responseBody, headers);
         final UserDetailsResponse userDetailsResponse;
         try {
             userDetailsResponse = mapper.decodeValue(responseBody, UserDetailsResponse.class);

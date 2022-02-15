@@ -16,6 +16,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -106,7 +107,8 @@ public class CurrencyConversionService implements Initializable {
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", JacksonMapper.asString(body)), e);
+            throw new PreBidException(String.format(
+                    "Cannot parse response: %s", MapperUtil.bodyAsString(body, response.getHeaders())), e);
         }
     }
 

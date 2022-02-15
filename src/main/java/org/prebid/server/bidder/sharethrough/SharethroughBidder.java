@@ -14,6 +14,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
 import org.prebid.server.bidder.sharethrough.model.Size;
@@ -28,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -197,11 +199,14 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
     @Override
     public Result<List<BidderBid>> makeBids(HttpCall<SharethroughRequestBody> httpCall, BidRequest bidRequest) {
+        final HttpResponse response = httpCall.getResponse();
+        final byte[] responseBody = response.getBody();
+
         try {
-            final byte[] responseBody = httpCall.getResponse().getBody();
             final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(
                     responseBody, ExtImpSharethroughResponse.class);
-            return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
+            return Result.withValues(toBidderBid(
+                    responseBody, response.getHeaders(), sharethroughBid, httpCall.getRequest()));
         } catch (IOException | IllegalArgumentException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -210,8 +215,11 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     /**
      * Converts {@link ExtImpSharethroughResponse} to {@link List} of {@link BidderBid}.
      */
-    private List<BidderBid> toBidderBid(byte[] responseBody, ExtImpSharethroughResponse sharethroughBid,
+    private List<BidderBid> toBidderBid(byte[] responseBody,
+                                        MultiMap headers,
+                                        ExtImpSharethroughResponse sharethroughBid,
                                         HttpRequest<SharethroughRequestBody> request) {
+
         if (sharethroughBid.getCreatives().isEmpty()) {
             throw new IllegalArgumentException("No creative provided");
         }
@@ -221,7 +229,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
 
         final Date date = BooleanUtils.toBoolean(request.getPayload().getTest()) ? TEST_TIME : new Date();
         final String adMarkup = SharethroughMarkupUtil.getAdMarkup(
-                JacksonMapper.asString(responseBody), sharethroughBid, strUriParameters, date);
+                MapperUtil.bodyAsString(responseBody, headers), sharethroughBid, strUriParameters, date);
 
         final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
         return Collections.singletonList(

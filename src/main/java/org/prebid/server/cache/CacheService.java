@@ -37,10 +37,12 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.proto.DataFormat;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.http.HttpClient;
@@ -71,6 +73,7 @@ public class CacheService {
 
     private static final MultiMap CACHE_HEADERS = HttpUtil.headers();
     private static final Map<String, List<String>> DEBUG_HEADERS = HttpUtil.toDebugHeaders(CACHE_HEADERS);
+    private static final DataFormat CACHE_DATA_FORMAT = DataFormat.JSON;
     private static final String BID_WURL_ATTRIBUTE = "wurl";
     private static final String XML_CREATIVE_TYPE = "xml";
     private static final String JSON_CREATIVE_TYPE = "json";
@@ -445,10 +448,14 @@ public class CacheService {
                 .requestUri(httpRequest != null ? httpRequest.getUri() : null)
                 .requestBody(httpRequest != null ? httpRequest.getBody() : null)
                 .responseStatus(httpResponse != null ? httpResponse.getStatusCode() : null)
-                .responseBody(httpResponse != null ? JacksonMapper.asString(httpResponse.getBody()) : null)
+                .responseBody(httpResponse != null ? resolveResponseBody(httpResponse.getBody()) : null)
                 .responseTimeMillis(responseTime(startTime))
                 .requestHeaders(DEBUG_HEADERS)
                 .build();
+    }
+
+    private static String resolveResponseBody(byte[] body) {
+        return MapperUtil.bodyAsString(body, CACHE_DATA_FORMAT);
     }
 
     /**
@@ -559,7 +566,7 @@ public class CacheService {
             bidCacheResponse = mapper.decodeValue(responseBody, BidCacheResponse.class);
         } catch (DecodeException e) {
             throw new PreBidException(
-                    String.format("Cannot parse response: %s", JacksonMapper.asString(responseBody)), e);
+                    String.format("Cannot parse response: %s", resolveResponseBody(responseBody)), e);
         }
 
         final List<CacheObject> responses = bidCacheResponse.getResponses();

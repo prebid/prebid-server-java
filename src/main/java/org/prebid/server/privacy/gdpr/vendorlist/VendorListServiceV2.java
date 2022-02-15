@@ -11,6 +11,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorListV2;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.http.HttpClient;
 
 import java.io.IOException;
@@ -58,7 +59,9 @@ public class VendorListServiceV2 extends VendorListService<VendorListV2, VendorV
         try {
             return mapper.mapper().readValue(content, VendorListV2.class);
         } catch (IOException e) {
-            final String message = String.format("Cannot parse vendor list from: %s", JacksonMapper.asString(content));
+            final String message = String.format(
+                    "Cannot parse vendor list from: %s",
+                    MapperUtil.bodyAsString(content, VENDOR_LIST_DATA_FORMAT));
 
             logger.error(message, e);
             throw new PreBidException(message, e);

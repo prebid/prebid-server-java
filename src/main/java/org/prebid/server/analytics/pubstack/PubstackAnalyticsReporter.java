@@ -20,6 +20,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.MapperUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
@@ -140,7 +141,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
             return jacksonMapper.decodeValue(body, PubstackConfig.class);
         } catch (DecodeException e) {
             throw new PreBidException(String.format("[pubstack] Failed to fetch config, reason: failed to parse"
-                    + " response: %s", JacksonMapper.asString(body)), e);
+                    + " response: %s", MapperUtil.bodyAsString(body, response.getHeaders())), e);
         }
     }
 

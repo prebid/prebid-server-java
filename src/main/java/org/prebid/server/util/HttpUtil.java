@@ -15,6 +15,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.proto.DataFormat;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -30,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +45,8 @@ public final class HttpUtil {
     public static final String APPLICATION_JSON_CONTENT_TYPE =
             HttpHeaderValues.APPLICATION_JSON + ";" + HttpHeaderValues.CHARSET + "="
                     + StandardCharsets.UTF_8.toString().toLowerCase();
+    private static final CharSequence APPLICATION_X_PROTOBUF_CONTENT_TYPE =
+            HttpHeaders.createOptimized("application/x-protobuf");
 
     public static final CharSequence X_FORWARDED_FOR_HEADER = HttpHeaders.createOptimized("X-Forwarded-For");
     public static final CharSequence DNT_HEADER = HttpHeaders.createOptimized("DNT");
@@ -72,6 +76,8 @@ public final class HttpUtil {
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
 
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
+
+    private static final Supplier<DataFormat> DEFAULT_DATA_FORMAT = () -> DataFormat.JSON;
 
     private HttpUtil() {
     }
@@ -122,6 +128,21 @@ public final class HttpUtil {
         if (StringUtils.isNotEmpty(headerValue)) {
             headers.add(headerName, headerValue);
         }
+    }
+
+    public static DataFormat resolveDataFormat(MultiMap headers) {
+        return ObjectUtil.firstNonNull(
+                dataFormatIfHeaderPresentOrNull(headers, APPLICATION_X_PROTOBUF_CONTENT_TYPE, DataFormat.PROTOBUF),
+                DEFAULT_DATA_FORMAT);
+    }
+
+    private static Supplier<DataFormat> dataFormatIfHeaderPresentOrNull(MultiMap headers,
+                                                                        CharSequence headerValue,
+                                                                        DataFormat dataFormat) {
+
+        return headers.contains(CONTENT_TYPE_HEADER, headerValue, true)
+                ? () -> dataFormat
+                : () -> null;
     }
 
     public static ZonedDateTime getDateFromHeader(MultiMap headers, String header) {
