@@ -140,7 +140,7 @@ public final class HttpUtil {
                                                                         CharSequence headerValue,
                                                                         DataFormat dataFormat) {
 
-        return headers.contains(CONTENT_TYPE_HEADER, headerValue, true)
+        return headers != null && headers.contains(CONTENT_TYPE_HEADER, headerValue, true)
                 ? () -> dataFormat
                 : () -> null;
     }
