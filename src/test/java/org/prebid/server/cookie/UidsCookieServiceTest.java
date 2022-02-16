@@ -295,34 +295,6 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
-    public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() throws IOException {
-        // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new LinkedHashMap<>()).build(), jacksonMapper)
-                .updateUid("improvedigital", "improvedigitalUid")
-                .updateUid(RUBICON, "rubiconUid")
-                .updateUid("conversant", "conversantUid")
-                .updateUid(ADNXS, "adnxsUid")
-                .updateUid("sharethrough", "sharethroughUid")
-                .updateUid("somoaudience", "somoaudienceUid")
-                .updateUid("yahoossp", "yahoosspUid");
-
-        // the size of uidsCookie above is 530, therefore it is expected to be modified.
-        final int maxCookieSizeBytes = 500;
-        uidsCookieService = new UidsCookieService(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE, null,
-                null, HOST_COOKIE_DOMAIN, 90, maxCookieSizeBytes, jacksonMapper);
-
-        // when
-        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
-
-        // then
-        final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
-
-        // 7 UIDs were added above.
-        // NOTE: order can be different, therefore unable to check what exact UID is missing
-        assertThat(uids).hasSize(6);
-    }
-
-    @Test
     public void toCookieShouldReturnCookieWithExpectedValue() throws IOException {
         // given
         final UidsCookie uidsCookie = new UidsCookie(
