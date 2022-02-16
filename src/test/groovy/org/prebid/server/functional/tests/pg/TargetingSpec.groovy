@@ -207,7 +207,8 @@ class TargetingSpec extends BasePgSpec {
         }
 
         APP_BUNDLE    | BidRequest.defaultBidRequest.tap {
-            app = App.defaultApp.tap { bundle = stringTargetingValue }
+            app = new App(id: PBSUtils.randomString,
+                    bundle: stringTargetingValue)
         }
 
         UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
@@ -320,7 +321,7 @@ class TargetingSpec extends BasePgSpec {
                     }
                 },
                 BidRequest.defaultBidRequest.tap {
-                    app = App.defaultApp.tap {
+                    app = new App(id: PBSUtils.randomString).tap {
                         ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
                     }
                 }
