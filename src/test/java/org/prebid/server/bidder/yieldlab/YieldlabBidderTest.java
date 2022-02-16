@@ -27,7 +27,9 @@ import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -45,17 +47,20 @@ public class YieldlabBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
+    private Clock clock;
+
     private YieldlabBidder yieldlabBidder;
 
     @Before
     public void setUp() {
-        yieldlabBidder = new YieldlabBidder(ENDPOINT_URL, jacksonMapper);
+        clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
+        yieldlabBidder = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new YieldlabBidder("invalid_url", jacksonMapper))
+                .isThrownBy(() -> new YieldlabBidder("invalid_url", clock, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -277,7 +282,7 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
+        final String timestamp = String.valueOf(clock.instant().getEpochSecond());
         final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
                 + "<AdSystem>Yieldlab</AdSystem>"
                 + "<VASTAdTagURI>"
