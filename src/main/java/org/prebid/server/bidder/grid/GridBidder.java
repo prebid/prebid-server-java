@@ -17,6 +17,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.grid.model.ExtImp;
+import org.prebid.server.bidder.grid.model.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -28,11 +32,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.bidder.grid.model.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.util.HttpUtil;
@@ -236,7 +236,8 @@ public class GridBidder implements Bidder<BidRequest> {
         }
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode().set("networkName", TextNode.valueOf(demandSource)))
+                .meta(mapper.mapper().createObjectNode()
+                        .set("demandsource", TextNode.valueOf(demandSource)))
                 .build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }

@@ -348,7 +348,7 @@ public class GridBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         final ObjectNode expectedBidMeta = mapper.createObjectNode()
-                .set("networkName", TextNode.valueOf("demandSource"));
+                .set("demandsource", TextNode.valueOf("demandSource"));
         final ObjectNode expectedBidExt = mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder().meta(expectedBidMeta).build(), null));
 

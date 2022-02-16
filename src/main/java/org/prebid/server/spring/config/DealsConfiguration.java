@@ -14,6 +14,7 @@ import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.AdminCentralService;
 import org.prebid.server.deals.AlertHttpService;
+import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.DeliveryProgressReportFactory;
 import org.prebid.server.deals.DeliveryProgressService;
@@ -72,8 +73,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Configuration
-@ConditionalOnProperty(prefix = "deals", name = "enabled", havingValue = "true")
 public class DealsConfiguration {
+
+    @Bean
+    DealsProcessor dealsProcessor(JacksonMapper mapper) {
+        return new DealsProcessor(mapper);
+    }
 
     @Configuration
     @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == false")
@@ -551,121 +556,145 @@ public class DealsConfiguration {
         }
     }
 
-    @Bean
-    @ConfigurationProperties
-    DeploymentProperties deploymentProperties() {
-        return new DeploymentProperties();
-    }
+    @Configuration
+    @ConditionalOnExpression("${deals.enabled} == true")
+    public static class DealsMainConfiguration {
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.planner")
-    PlannerProperties plannerProperties() {
-        return new PlannerProperties();
-    }
+        @Bean
+        @ConfigurationProperties
+        DeploymentProperties deploymentProperties() {
+            return new DeploymentProperties();
+        }
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.delivery-stats")
-    DeliveryStatsProperties deliveryStatsProperties() {
-        return new DeliveryStatsProperties();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.planner")
+        PlannerProperties plannerProperties() {
+            return new PlannerProperties();
+        }
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.delivery-progress")
-    DeliveryProgressProperties deliveryProgressProperties() {
-        return new DeliveryProgressProperties();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.delivery-stats")
+        DeliveryStatsProperties deliveryStatsProperties() {
+            return new DeliveryStatsProperties();
+        }
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.user-data")
-    UserDetailsProperties userDetailsProperties() {
-        return new UserDetailsProperties();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.delivery-progress")
+        DeliveryProgressProperties deliveryProgressProperties() {
+            return new DeliveryProgressProperties();
+        }
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.alert-proxy")
-    AlertProxyProperties alertProxyProperties() {
-        return new AlertProxyProperties();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.user-data")
+        UserDetailsProperties userDetailsProperties() {
+            return new UserDetailsProperties();
+        }
 
-    @Bean
-    @ConfigurationProperties(prefix = "deals.simulation")
-    SimulationProperties simulationProperties() {
-        return new SimulationProperties();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.alert-proxy")
+        AlertProxyProperties alertProxyProperties() {
+            return new AlertProxyProperties();
+        }
 
-    @Bean
-    BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory() {
-        return new DealsBidderRequestCompletionTrackerFactory();
-    }
+        @Bean
+        @ConfigurationProperties(prefix = "deals.simulation")
+        SimulationProperties simulationProperties() {
+            return new SimulationProperties();
+        }
 
-    @Bean
-    DealsProcessor dealsProcessor(
-            LineItemService lineItemService,
-            @Autowired(required = false) DeviceInfoService deviceInfoService,
-            @Autowired(required = false) GeoLocationService geoLocationService,
-            UserService userService,
-            Clock clock,
-            JacksonMapper mapper,
-            CriteriaLogManager criteriaLogManager) {
+        @Bean
+        BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory() {
+            return new DealsBidderRequestCompletionTrackerFactory();
+        }
 
-        return new DealsProcessor(
-                lineItemService, deviceInfoService, geoLocationService, userService, clock, mapper, criteriaLogManager);
-    }
-
-    @Bean
-    DeliveryProgressReportFactory deliveryProgressReportFactory(
-            DeploymentProperties deploymentProperties,
-            @Value("${deals.delivery-progress-report.competitors-number}") int competitorsNumber,
-            LineItemService lineItemService) {
-
-        return new DeliveryProgressReportFactory(
-                deploymentProperties.toComponentProperties(), competitorsNumber, lineItemService);
-    }
-
-    @Bean
-    AlertHttpService alertHttpService(JacksonMapper mapper,
-                                      HttpClient httpClient,
+        @Bean
+        DealsPopulator dealsPopulator(LineItemService lineItemService,
+                                      @Autowired(required = false) DeviceInfoService deviceInfoService,
+                                      @Autowired(required = false) GeoLocationService geoLocationService,
+                                      UserService userService,
                                       Clock clock,
-                                      DeploymentProperties deploymentProperties,
-                                      AlertProxyProperties alertProxyProperties) {
-        return new AlertHttpService(mapper, httpClient, clock, deploymentProperties.toComponentProperties(),
-                alertProxyProperties.toComponentProperties());
-    }
+                                      JacksonMapper mapper,
+                                      CriteriaLogManager criteriaLogManager) {
 
-    @Bean
-    TargetingService targetingService(JacksonMapper mapper) {
-        return new TargetingService(mapper);
-    }
+            return new DealsPopulator(
+                    lineItemService,
+                    deviceInfoService,
+                    geoLocationService,
+                    userService,
+                    clock,
+                    mapper,
+                    criteriaLogManager);
+        }
 
-    @Bean
-    AdminCentralService adminCentralService(
-            CriteriaManager criteriaManager,
-            LineItemService lineItemService,
-            DeliveryProgressService deliveryProgressService,
-            @Autowired(required = false) @Qualifier("settingsCache") SettingsCache settingsCache,
-            @Autowired(required = false) @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
-            @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
-            JacksonMapper mapper,
-            List<Suspendable> suspendables) {
-        return new AdminCentralService(criteriaManager, lineItemService, deliveryProgressService,
-                settingsCache, ampSettingsCache, cachingApplicationSettings, mapper, suspendables);
-    }
+        @Bean
+        DeliveryProgressReportFactory deliveryProgressReportFactory(
+                DeploymentProperties deploymentProperties,
+                @Value("${deals.delivery-progress-report.competitors-number}") int competitorsNumber,
+                LineItemService lineItemService) {
 
-    @Bean
-    ApplicationEventService applicationEventService(EventBus eventBus) {
-        return new ApplicationEventService(eventBus);
-    }
+            return new DeliveryProgressReportFactory(
+                    deploymentProperties.toComponentProperties(), competitorsNumber, lineItemService);
+        }
 
-    @Bean
-    AdminEventService adminEventService(EventBus eventBus) {
-        return new AdminEventService(eventBus);
-    }
+        @Bean
+        AlertHttpService alertHttpService(JacksonMapper mapper,
+                                          HttpClient httpClient,
+                                          Clock clock,
+                                          DeploymentProperties deploymentProperties,
+                                          AlertProxyProperties alertProxyProperties) {
 
-    @Bean
-    EventServiceInitializer eventServiceInitializer(List<ApplicationEventProcessor> applicationEventProcessors,
-                                                    List<AdminEventProcessor> adminEventProcessors,
-                                                    EventBus eventBus) {
-        return new EventServiceInitializer(applicationEventProcessors, adminEventProcessors, eventBus);
+            return new AlertHttpService(
+                    mapper,
+                    httpClient,
+                    clock,
+                    deploymentProperties.toComponentProperties(),
+                    alertProxyProperties.toComponentProperties());
+        }
+
+        @Bean
+        TargetingService targetingService(JacksonMapper mapper) {
+            return new TargetingService(mapper);
+        }
+
+        @Bean
+        AdminCentralService adminCentralService(
+                CriteriaManager criteriaManager,
+                LineItemService lineItemService,
+                DeliveryProgressService deliveryProgressService,
+                @Autowired(required = false) @Qualifier("settingsCache") SettingsCache settingsCache,
+                @Autowired(required = false) @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
+                @Autowired(required = false) CachingApplicationSettings cachingApplicationSettings,
+                JacksonMapper mapper,
+                List<Suspendable> suspendables) {
+
+            return new AdminCentralService(
+                    criteriaManager,
+                    lineItemService,
+                    deliveryProgressService,
+                    settingsCache,
+                    ampSettingsCache,
+                    cachingApplicationSettings,
+                    mapper,
+                    suspendables);
+        }
+
+        @Bean
+        ApplicationEventService applicationEventService(EventBus eventBus) {
+            return new ApplicationEventService(eventBus);
+        }
+
+        @Bean
+        AdminEventService adminEventService(EventBus eventBus) {
+            return new AdminEventService(eventBus);
+        }
+
+        @Bean
+        EventServiceInitializer eventServiceInitializer(List<ApplicationEventProcessor> applicationEventProcessors,
+                                                        List<AdminEventProcessor> adminEventProcessors,
+                                                        EventBus eventBus) {
+
+            return new EventServiceInitializer(applicationEventProcessors, adminEventProcessors, eventBus);
+        }
     }
 
     @Validated

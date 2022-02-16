@@ -20,6 +20,7 @@ class App {
     Publisher publisher
     Content content
     String keywords
+    AppExt ext
 
     static App getDefaultApp() {
         new App(id: PBSUtils.randomString)

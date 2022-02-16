@@ -8,6 +8,7 @@
         "h": 250
       },
       "tagid": "tag_id",
+      "bidfloorcur": "EUR",
       "ext": {
         "bidder": {
           "accountId": "orbidder-test",

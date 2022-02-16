@@ -10,8 +10,8 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     public static final int PORT = 8080
     public static final int DEBUG_PORT = 8000
     public static final int ADMIN_PORT = 8060
-    public static final String ADMIN_ENDPOINT_USERNAME = "user"
-    public static final String ADMIN_ENDPOINT_PASSWORD = "user"
+    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
     public static final String APP_WORKDIR = "/app/prebid-server/"
 
     private static final String DB_ACCOUNT_QUERY = """
@@ -159,6 +159,8 @@ LIMIT 1
     private static String normalizeProperty(String property) {
         property.replace(".", "_")
                 .replace("-", "")
+                .replace("[", "_")
+                .replace("]", "_")
     }
 
     @Override

@@ -1,12 +1,12 @@
 package org.prebid.server.bidder.tappx.model;
 
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
 @Value
-@AllArgsConstructor(staticName = "of")
+@Builder
 public class TappxBidderExt {
 
     String tappxkey;
