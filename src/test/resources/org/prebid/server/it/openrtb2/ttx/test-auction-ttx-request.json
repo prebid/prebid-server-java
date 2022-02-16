@@ -1,0 +1,35 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "ttx": {
+          "siteId": "site-id",
+          "productId": "inview",
+          "zoneId": "zone-id"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "ttx": {
+      "caller": [
+        {
+          "name": "caller",
+          "version": "1.0"
+        }
+      ]
+    }
+  }
+}
