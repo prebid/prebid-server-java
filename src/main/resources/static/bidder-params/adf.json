@@ -28,8 +28,8 @@
       "type": [
         "string"
       ],
-      "pattern": "gross|net",
-      "description": "gross or net. Default is net."
+      "description": "gross or net. Default is net.",
+      "pattern": "gross|net"
     }
   },
   "anyOf": [

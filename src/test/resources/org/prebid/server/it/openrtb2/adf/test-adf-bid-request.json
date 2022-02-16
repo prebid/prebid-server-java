@@ -57,5 +57,16 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      }
+    },
+    "pt": "net",
+    "someObj": {
+      "someField": "someValue"
+    }
   }
 }

@@ -37,5 +37,10 @@
     "ext": {
       "gdpr": 0
     }
+  },
+  "ext": {
+    "someObj": {
+      "someField": "someValue"
+    }
   }
 }
