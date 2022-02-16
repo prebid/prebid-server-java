@@ -46,6 +46,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -1221,14 +1223,60 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // given
         given(idGenerator.generateId()).willReturn("f6965ea7-f281-4eb9-9de2-560a52d954a3");
 
-        final BidRequest bidRequest = BidRequest.builder().build();
+        final ExtRequest extRequest = jacksonMapper.fillExtension(
+                ExtRequest.empty(),
+                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+        final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
 
         // when
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
         assertThat(result.getSource())
-                .isEqualTo(Source.builder().tid("f6965ea7-f281-4eb9-9de2-560a52d954a3").build());
+                .extracting(Source::getTid)
+                .isEqualTo("f6965ea7-f281-4eb9-9de2-560a52d954a3");
+    }
+
+    @Test
+    public void shouldSetSourceExtSchainIfNotDefinedAndExtSchainPresent() {
+        // given
+        final ExtRequest extRequest = jacksonMapper.fillExtension(
+                ExtRequest.empty(),
+                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+        final BidRequest bidRequest = BidRequest.builder().ext(extRequest).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getExt)
+                .isEqualTo(ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)));
+    }
+
+    @Test
+    public void shouldModifySourceExtIfSourceExtSchainNotDefinedAndExtSchainPresent() {
+        // given
+        final ExtSource extSource = jacksonMapper.fillExtension(
+                ExtSource.of(null),
+                mapper.createObjectNode().put("someField", "someValue"));
+        final ExtRequest extRequest = jacksonMapper.fillExtension(
+                ExtRequest.empty(),
+                mapper.createObjectNode().putPOJO("schain", ExtSourceSchain.of("ver", 1, null, null)));
+        final BidRequest bidRequest = BidRequest.builder()
+                .source(Source.builder().ext(extSource).build())
+                .ext(extRequest)
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        assertThat(result.getSource())
+                .extracting(Source::getExt)
+                .isEqualTo(jacksonMapper.fillExtension(
+                        ExtSource.of(ExtSourceSchain.of("ver", 1, null, null)),
+                        mapper.createObjectNode().put("someField", "someValue")));
     }
 
     @Test
@@ -1822,10 +1870,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final ExtRequest expectedExtBidRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
-                .cache(ExtRequestPrebidCache.of(null, null, null))
-                .pbs(ExtRequestPrebidPbs.of(ENDPOINT))
-                .channel(ExtRequestPrebidChannel.of("amp"))
-                .build());
+                        .cache(ExtRequestPrebidCache.of(null, null, null))
+                        .pbs(ExtRequestPrebidPbs.of(ENDPOINT))
+                        .channel(ExtRequestPrebidChannel.of("amp"))
+                        .build());
         assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
     }
 
@@ -1844,8 +1892,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final ExtRequest expectedExtBidRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
-                .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
-                .build());
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
+                        .build());
         assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
     }
 

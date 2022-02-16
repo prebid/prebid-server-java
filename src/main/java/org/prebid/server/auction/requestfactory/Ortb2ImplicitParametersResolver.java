@@ -39,6 +39,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidPbs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -116,18 +118,14 @@ public class Ortb2ImplicitParametersResolver {
                        HttpRequestContext httpRequest,
                        TimeoutResolver timeoutResolver,
                        String endpoint) {
-        checkBlacklistedApp(bidRequest);
 
-        final BidRequest result;
+        checkBlacklistedApp(bidRequest);
 
         final Device device = bidRequest.getDevice();
         final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
 
         final Site site = bidRequest.getSite();
         final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
-
-        final Source source = bidRequest.getSource();
-        final Source populatedSource = populateSource(source);
 
         final List<Imp> populatedImps = populateImps(bidRequest, httpRequest);
 
@@ -145,24 +143,32 @@ public class Ortb2ImplicitParametersResolver {
         final ExtRequest populatedExt = populateRequestExt(
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
 
-        if (populatedDevice != null || populatedSite != null || populatedSource != null
-                || populatedImps != null || resolvedAt != null || resolvedCurrencies != null || resolvedTmax != null
-                || populatedExt != null) {
+        final Source source = bidRequest.getSource();
+        final Source populatedSource = populateSource(source, populatedExt);
 
-            result = bidRequest.toBuilder()
+        if (ObjectUtils.anyNotNull(
+                populatedDevice,
+                populatedSite,
+                populatedImps,
+                resolvedAt,
+                resolvedCurrencies,
+                resolvedTmax,
+                populatedExt,
+                populatedSource)) {
+
+            return bidRequest.toBuilder()
                     .device(populatedDevice != null ? populatedDevice : device)
                     .site(populatedSite != null ? populatedSite : site)
-                    .source(populatedSource != null ? populatedSource : source)
                     .imp(populatedImps != null ? populatedImps : imps)
                     .at(resolvedAt != null ? resolvedAt : at)
                     .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
                     .tmax(resolvedTmax != null ? resolvedTmax : tmax)
                     .ext(populatedExt != null ? populatedExt : ext)
+                    .source(populatedSource != null ? populatedSource : source)
                     .build();
-        } else {
-            result = bidRequest;
         }
-        return result;
+
+        return bidRequest;
     }
 
     private void checkBlacklistedApp(BidRequest bidRequest) {
@@ -402,21 +408,60 @@ public class Ortb2ImplicitParametersResolver {
         }
     }
 
-    /**
-     * Returns {@link Source} with updated source.tid or null if nothing changed.
-     */
-    private Source populateSource(Source source) {
+    private Source populateSource(Source source, ExtRequest extRequest) {
         final String tid = source != null ? source.getTid() : null;
-        if (StringUtils.isEmpty(tid)) {
-            final String generatedId = sourceIdGenerator.generateId();
-            if (StringUtils.isNotEmpty(generatedId)) {
-                final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
-                return builder
-                        .tid(generatedId)
-                        .build();
-            }
+        final String populatedTid = populateSourceTid(tid);
+
+        final ExtSource sourceExt = source != null ? source.getExt() : null;
+        final ExtSource populatedSourceExt = populateExtSource(sourceExt, extRequest);
+
+        if (ObjectUtils.anyNotNull(populatedTid, populatedSourceExt)) {
+            return (source != null ? source.toBuilder() : Source.builder())
+                    .tid(populatedTid != null ? populatedTid : tid)
+                    .ext(populatedSourceExt != null ? populatedSourceExt : sourceExt)
+                    .build();
         }
+
         return null;
+    }
+
+    private String populateSourceTid(String tid) {
+        if (StringUtils.isNotEmpty(tid)) {
+            return null;
+        }
+
+        final String generatedId = sourceIdGenerator.generateId();
+        if (StringUtils.isEmpty(generatedId)) {
+            return null;
+        }
+
+        return generatedId;
+    }
+
+    private ExtSource populateExtSource(ExtSource extSource, ExtRequest extRequest) {
+        final ExtSourceSchain extSourceSchain = extSource != null ? extSource.getSchain() : null;
+        if (extSourceSchain != null || extRequest == null) {
+            return null;
+        }
+
+        final ExtSourceSchain extRequestSchain;
+        try {
+            extRequestSchain = mapper.mapper().convertValue(extRequest.getProperty("schain"), ExtSourceSchain.class);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Error occurred while copying BidRequest.Ext.Schain to BidRequest.Source.Ext.Schain.");
+            return null;
+        }
+
+        return extRequestSchain != null ? modifyExtSource(extSource, extRequestSchain) : null;
+    }
+
+    private ExtSource modifyExtSource(ExtSource extSource, ExtSourceSchain extSourceSchain) {
+        final ExtSource modifiedExtSource = ExtSource.of(extSourceSchain);
+        if (extSource != null) {
+            modifiedExtSource.addProperties(extSource.getProperties());
+        }
+
+        return modifiedExtSource;
     }
 
     /**
