@@ -109,6 +109,8 @@ public class TargetingService {
                 return new IntersectsStrings(category,
                         parseArrayFunction(value, MatchingFunction.INTERSECTS, TargetingService::parseString));
             case domain:
+                return prepareDomainExpression(category, value, lineItemId);
+            case publisherDomain:
                 return new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
             case referrer:
             case appBundle:
@@ -133,6 +135,17 @@ public class TargetingService {
             default:
                 throw new IllegalStateException(String.format("Unexpected targeting category type %s", category));
         }
+    }
+
+    private static Or prepareDomainExpression(TargetingCategory category, JsonNode value, String lineItemId) {
+        final DomainMetricAwareExpression domainExpression =
+                new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
+
+        final TargetingCategory publisherDomainCategory = new TargetingCategory(TargetingCategory.Type.publisherDomain);
+        final DomainMetricAwareExpression publisherDomainExpression =
+                new DomainMetricAwareExpression(parseStringFunction(publisherDomainCategory, value), lineItemId);
+
+        return new Or(List.of(domainExpression, publisherDomainExpression));
     }
 
     private static <T> List<T> parseArrayFunction(JsonNode value, MatchingFunction function,

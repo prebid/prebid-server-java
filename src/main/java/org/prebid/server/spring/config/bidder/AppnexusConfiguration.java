@@ -15,15 +15,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.stereotype.Component;
 
 import javax.validation.constraints.NotBlank;
+import java.util.Map;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/appnexus.yaml", factory = YamlPropertySourceFactory.class)
 public class AppnexusConfiguration {
 
     private static final String BIDDER_NAME = "appnexus";
+
+    @Bean("appnexusConfigurationProperties")
+    @ConfigurationProperties("adapters.appnexus")
+    AppnexusConfigurationProperties configurationProperties() {
+        return new AppnexusConfigurationProperties();
+    }
 
     @Bean
     BidderDeps appnexusBidderDeps(AppnexusConfigurationProperties appnexusConfigurationProperties,
@@ -33,18 +39,20 @@ public class AppnexusConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(appnexusConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AppnexusBidder(
-                        config.getEndpoint(), appnexusConfigurationProperties.getPlatformId(), mapper))
+                .bidderCreator(config -> new AppnexusBidder(config.getEndpoint(),
+                        appnexusConfigurationProperties.getPlatformId(),
+                        appnexusConfigurationProperties.getIabCategories(),
+                        mapper))
                 .assemble();
     }
 
     @Data
     @EqualsAndHashCode(callSuper = true)
     @NoArgsConstructor
-    @Component("appnexusConfigurationProperties")
-    @ConfigurationProperties("adapters.appnexus")
     private static class AppnexusConfigurationProperties extends BidderConfigurationProperties {
 
         Integer platformId;
+
+        Map<Integer, String> iabCategories;
     }
 }

@@ -71,4 +71,13 @@ public class IntersectsStringsTest {
         // when and then
         assertThat(expression.matches(context)).isFalse();
     }
+
+    @Test
+    public void matchesShouldReturnFalseWhenActualValueIsNotDefined() {
+        // given
+        willReturn(null).given(context).lookupStrings(any());
+
+        // when and then
+        assertThat(expression.matches(context)).isFalse();
+    }
 }

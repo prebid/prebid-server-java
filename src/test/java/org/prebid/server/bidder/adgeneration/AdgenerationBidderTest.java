@@ -1,12 +1,15 @@
 package org.prebid.server.bidder.adgeneration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -24,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -31,6 +35,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class AdgenerationBidderTest extends VertxTest {
 
@@ -81,6 +86,30 @@ public class AdgenerationBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnRequestWithExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ip("123").ua("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactly(
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("User-Agent", "test"),
+                        tuple("X-Forwarded-For", "123"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnHttpsUrlIfAtLeastOneImpIsSecured() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -94,8 +123,8 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
     }
 
     @Test
@@ -112,8 +141,116 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.2");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceOsIsAndroid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("android").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceOsIsIos() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("ios").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAppHasBundle() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .app(App.builder().bundle("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appbundle=test&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAppHasAppName() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .app(App.builder().name("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appname=test&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceHasIfaAndOsIsIos() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ifa("51s").os("ios").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2&idfa=51s");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceHasIfaAndOsIsAndroid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ifa("51s").os("android").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1&advertising_id=51s");
     }
 
     @Test
@@ -128,10 +265,11 @@ public class AdgenerationBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&tp=http%3A%2F%2Fwww.example.com");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true"
+                        + "&t=json3&currency=JPY&sdkname=prebidserver&adapterver=1.0.3"
+                        + "&tp=http%3A%2F%2Fwww.example.com&sdktype=0");
     }
 
     @Test
@@ -151,8 +289,8 @@ public class AdgenerationBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&sdktype=0&hb=true&t=json3&"
-                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.2&sizes=300x500");
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sizes=300x500&sdktype=0");
     }
 
     @Test
@@ -302,7 +440,7 @@ public class AdgenerationBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -312,9 +450,9 @@ public class AdgenerationBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdgeneration.of("123")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdgeneration.of("123")))))
                 .build();
     }
 
