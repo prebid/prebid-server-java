@@ -41,7 +41,6 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.assertj.core.api.Assertions.within;
 
 public class YieldlabBidderTest extends VertxTest {
 
@@ -115,7 +114,7 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
 
         // then
-        final int expectedTime = (int) Instant.now().getEpochSecond();
+        final long expectedTime = clock.instant().getEpochSecond();
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -125,7 +124,7 @@ public class YieldlabBidderTest extends VertxTest {
                     assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&ids=buyeruid&yl_rtb_ifa&"
                             + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
-                    assertThat(Integer.parseInt(ts)).isCloseTo(expectedTime, within(10));
+                    assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
                 });
 
         assertThat(result.getValue()).hasSize(1)
@@ -235,7 +234,7 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
+        final String timestamp = String.valueOf(clock.instant().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
         final String adm = String.format(
                 "<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>",
