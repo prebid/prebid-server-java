@@ -375,7 +375,9 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
         // for passing validation tests
-        final String timestamp = isDebugEnabled(bidRequest) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
+        final String timestamp = isDebugEnabled(bidRequest)
+                ? "200000"
+                : String.valueOf(clock.instant().getEpochSecond());
 
         final URIBuilder uriBuilder = new URIBuilder()
                 .addParameter("ts", timestamp)
