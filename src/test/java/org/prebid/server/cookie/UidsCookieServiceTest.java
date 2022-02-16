@@ -22,6 +22,11 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -164,6 +169,26 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uidsCookie.allowsSync()).isFalse();
         assertThat(uidsCookie.uidFrom(RUBICON)).isNull();
         assertThat(uidsCookie.uidFrom(ADNXS)).isNull();
+    }
+
+    @Test
+    public void toCookieShouldTrimUidsToNotExceedCookieBytesLengthLimit() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", null, null, "cookie-domain", 90, 4096, jacksonMapper);
+
+        final Map<String, UidWithExpiry> uidWithExpiryMap = IntStream.range(0, 1000)
+                .mapToObj(i -> "a" + i)
+                .collect(Collectors.toMap(Function.identity(), UidWithExpiry::expired));
+
+        final Uids uids = Uids.builder().uids(uidWithExpiryMap).build();
+        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        assertThat(cookie.encode().getBytes().length).isLessThan(4096);
     }
 
     @Test
