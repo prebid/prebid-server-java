@@ -380,7 +380,7 @@ public class VideoStoredRequestProcessor {
                 : null;
         final PriceGranularity updatedPriceGranularity = precision != null && precision != 0
                 ? priceGranularity
-                : PriceGranularity.createFromString("med");
+                : PriceGranularity.createFromString("MED");
 
         final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
                 .includebidderkeys(true)

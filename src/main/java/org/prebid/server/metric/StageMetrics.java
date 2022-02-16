@@ -14,13 +14,13 @@ class StageMetrics extends UpdatableMetrics {
     private static final EnumMap<Stage, String> STAGE_TO_METRIC = new EnumMap<>(Stage.class);
 
     static {
-        STAGE_TO_METRIC.put(Stage.entrypoint, "entrypoint");
-        STAGE_TO_METRIC.put(Stage.raw_auction_request, "rawauction");
-        STAGE_TO_METRIC.put(Stage.processed_auction_request, "procauction");
-        STAGE_TO_METRIC.put(Stage.bidder_request, "bidrequest");
-        STAGE_TO_METRIC.put(Stage.raw_bidder_response, "rawbidresponse");
-        STAGE_TO_METRIC.put(Stage.processed_bidder_response, "procbidresponse");
-        STAGE_TO_METRIC.put(Stage.auction_response, "auctionresponse");
+        STAGE_TO_METRIC.put(Stage.ENTRYPOINT, "entrypoint");
+        STAGE_TO_METRIC.put(Stage.RAW_AUCTION_REQUEST, "rawauction");
+        STAGE_TO_METRIC.put(Stage.PROCESSED_AUCTION_REQUEST, "procauction");
+        STAGE_TO_METRIC.put(Stage.BIDDER_REQUEST, "bidrequest");
+        STAGE_TO_METRIC.put(Stage.RAW_BIDDER_RESPONSE, "rawbidresponse");
+        STAGE_TO_METRIC.put(Stage.PROCESSED_BIDDER_RESPONSE, "procbidresponse");
+        STAGE_TO_METRIC.put(Stage.AUCTION_RESPONSE, "auctionresponse");
     }
 
     private static final String UNKNOWN_STAGE = "unknown";

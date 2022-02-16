@@ -27,7 +27,7 @@ public class RubiconTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/rubicon/test-auction-rubicon-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/rubicon/test-auction-rubicon-response.json", response, singletonList("rubicon"));

@@ -35,7 +35,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class SmartrtbBidderTest extends VertxTest {
 
@@ -133,7 +133,7 @@ public class SmartrtbBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = smartrtbBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -165,7 +165,7 @@ public class SmartrtbBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(null).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().ext(null).build(), BANNER, "USD"));
     }
 
     @Test

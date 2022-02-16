@@ -247,9 +247,9 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
+                return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

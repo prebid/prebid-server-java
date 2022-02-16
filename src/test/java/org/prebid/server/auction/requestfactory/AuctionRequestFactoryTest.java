@@ -109,7 +109,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
                 TcfContext.empty());
         defaultActionContext = AuctionContext.builder()
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
@@ -506,7 +506,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isSucceeded();
-        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.OPENRTB2_WEB);
     }
 
     @Test
@@ -520,7 +520,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isSucceeded();
-        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.OPENRTB2_APP);
     }
 
     @Test

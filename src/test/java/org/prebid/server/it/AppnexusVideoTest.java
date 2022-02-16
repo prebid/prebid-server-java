@@ -48,7 +48,7 @@ public class AppnexusVideoTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/video/test-video-appnexus-request.json",
-                Endpoint.openrtb2_video);
+                Endpoint.OPENRTB2_VIDEO);
 
         // then
         assertJsonEquals("openrtb2/video/test-video-appnexus-response.json", response, emptyList());

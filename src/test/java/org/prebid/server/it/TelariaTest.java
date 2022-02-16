@@ -27,7 +27,7 @@ public class TelariaTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/telaria/test-auction-telaria-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/telaria/test-auction-telaria-response.json", response, singletonList("telaria"));

@@ -32,30 +32,30 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate) {
         return InvocationResultImpl.<PAYLOAD>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.update)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.ACTION)
                 .payloadUpdate(payloadUpdate)
                 .build();
     }
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> failed(String message) {
         return InvocationResultImpl.<PAYLOAD>builder()
-                .status(InvocationStatus.failure)
+                .status(InvocationStatus.FAILURE)
                 .message(message)
                 .build();
     }
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> noAction() {
         return InvocationResultImpl.<PAYLOAD>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .build();
     }
 
     public static <PAYLOAD> InvocationResult<PAYLOAD> rejected(String message) {
         return InvocationResultImpl.<PAYLOAD>builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.reject)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.REJECT)
                 .message(message)
                 .build();
     }

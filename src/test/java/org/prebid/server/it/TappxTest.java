@@ -27,7 +27,7 @@ public class TappxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/tappx/test-auction-tappx-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/tappx/test-auction-tappx-response.json", response, singletonList("tappx"));

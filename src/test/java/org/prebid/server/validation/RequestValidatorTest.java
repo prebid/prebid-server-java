@@ -1822,7 +1822,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Banner price granularity error: precision must be non-negative");
+                .containsOnly("BANNER price granularity error: precision must be non-negative");
     }
 
     @Test
@@ -2912,7 +2912,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenAdjustmentMediaFactorNegative() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.BANNER,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(-1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2955,7 +2955,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnValidationMessageWhenMediaBidderUnknown() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.X_NATIVE,
                         Collections.singletonMap("unknownBidder", BigDecimal.valueOf(1.1)))))
                 .build();
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -2977,7 +2977,7 @@ public class RequestValidatorTest extends VertxTest {
     public void validateShouldReturnEmptyValidationMessagesWhenBidderIsKnownAndAdjustmentIsValid() {
         // given
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.X_NATIVE,
                         Collections.singletonMap("rubicon", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor("rubicon", BigDecimal.valueOf(1.1));
@@ -3000,7 +3000,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final String rubiconAlias = "rubicon_alias";
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.xNative,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.X_NATIVE,
                         Collections.singletonMap("rubicon_alias", BigDecimal.valueOf(2.1)))))
                 .build();
         givenAdjustments.addFactor(rubiconAlias, BigDecimal.valueOf(1.1));

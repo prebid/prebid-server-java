@@ -100,7 +100,7 @@ public class SimulationAwareHttpBidderRequester extends HttpBidderRequester {
                         .map(dealInfo -> createBid(idToImps.get(impToDealInfo.getKey()), dealInfo.getDealId(),
                                 dealInfo.getLineItemId()))
                         .filter(Objects::nonNull))
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.BANNER, DEFAULT_CURRENCY))
                 .collect(Collectors.toList());
 
         return Future.succeededFuture(BidderSeatBid.of(bidderBids, Collections.emptyList(), Collections.emptyList()));

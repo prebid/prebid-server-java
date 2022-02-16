@@ -25,7 +25,7 @@ public class AxonixTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/axonix/test-auction-axonix-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/axonix/test-auction-axonix-response.json", response, singletonList("axonix"));

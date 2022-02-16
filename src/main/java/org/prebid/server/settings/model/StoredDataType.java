@@ -5,5 +5,10 @@ package org.prebid.server.settings.model;
  */
 public enum StoredDataType {
 
-    request, imp, seatbid
+    REQUEST, IMP, SEATBID;
+
+    @Override
+    public String toString() {
+        return super.toString().toLowerCase();
+    }
 }

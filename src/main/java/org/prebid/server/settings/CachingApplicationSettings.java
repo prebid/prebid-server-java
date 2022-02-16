@@ -75,7 +75,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
                 accountId,
                 timeout,
                 delegate::getAccountById,
-                event -> metrics.updateSettingsCacheEventMetric(MetricName.account, event));
+                event -> metrics.updateSettingsCacheEventMetric(MetricName.ACCOUNT, event));
     }
 
     /**
@@ -139,12 +139,12 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
         final T cachedValue = cache.get(key);
         if (cachedValue != null) {
-            metricUpdater.accept(MetricName.hit);
+            metricUpdater.accept(MetricName.HIT);
 
             return Future.succeededFuture(cachedValue);
         }
 
-        metricUpdater.accept(MetricName.miss);
+        metricUpdater.accept(MetricName.MISS);
 
         final String preBidExceptionMessage = accountToErrorCache.get(key);
         if (preBidExceptionMessage != null) {

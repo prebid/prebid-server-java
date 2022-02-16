@@ -191,7 +191,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
         }
         return bids.stream()
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.VIDEO, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 }

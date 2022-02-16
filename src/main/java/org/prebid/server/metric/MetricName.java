@@ -3,163 +3,164 @@ package org.prebid.server.metric;
 public enum MetricName {
 
     // connection
-    connection_accept_errors,
+    CONNECTION_ACCEPT_ERRORS,
 
     // circuit breaker
-    db,
-    geo,
-    http,
-    opened,
-    existing,
+    DB,
+    GEO,
+    HTTP,
+    OPENED,
+    EXISTING,
 
     // database
-    db_query_time,
+    DB_QUERY_TIME,
 
     // geo location
-    geolocation_requests,
-    geolocation_request_time,
-    geolocation_successful,
-    geolocation_fail,
+    GEOLOCATION_REQUESTS,
+    GEOLOCATION_REQUEST_TIME,
+    GEOLOCATION_SUCCESSFUL,
+    GEOLOCATION_FAIL,
 
     // auction
-    requests,
-    app_requests,
-    no_cookie_requests,
-    request_time,
-    prices,
-    imps_requested,
-    imps_banner,
-    imps_video,
-    imps_native,
-    imps_audio,
-    bids_received,
-    adm_bids_received,
-    nurl_bids_received,
+    REQUESTS,
+    APP_REQUESTS,
+    NO_COOKIE_REQUESTS,
+    REQUEST_TIME,
+    PRICES,
+    IMPS_REQUESTED,
+    IMPS_BANNER,
+    IMPS_VIDEO,
+    IMPS_NATIVE,
+    IMPS_AUDIO,
+    BIDS_RECEIVED,
+    ADM_BIDS_RECEIVED,
+    NURL_BIDS_RECEIVED,
 
     // request types,
-    openrtb2web("openrtb2-web"),
-    openrtb2app("openrtb2-app"),
-    amp,
-    video,
-    cookiesync,
-    setuid,
+    OPENRTB2_WEB("openrtb2-web"),
+    OPENRTB2_APP("openrtb2-app"),
+    AMP,
+    VIDEO,
+    COOKIESYNC,
+    SETUID,
 
     // event types
-    event_auction("auction"),
-    event_amp("amp"),
-    event_video("video"),
-    event_notification("event"),
-    event_cookie_sync("cookie_sync"),
-    event_setuid("setuid"),
-    event_unknown("unknown"),
+    EVENT_AUCTION("auction"),
+    EVENT_AMP("amp"),
+    EVENT_VIDEO("video"),
+    EVENT_NOTIFICATION("event"),
+    EVENT_COOKIE_SYNC("cookie_sync"),
+    EVENT_SETUID("setuid"),
+    EVENT_UNKNOWN("unknown"),
 
     // request and adapter statuses
-    ok,
-    failed,
-    nobid,
-    gotbids,
-    badinput,
-    blacklisted_account,
-    blacklisted_app,
-    badserverresponse,
-    failedtorequestbids,
-    timeout,
-    unknown_error,
-    err,
-    networkerr,
+    OK,
+    FAILED,
+    NOBID,
+    GOTBIDS,
+    BADINPUT,
+    BLACKLISTED_ACCOUNT,
+    BLACKLISTED_APP,
+    BADSERVERRESPONSE,
+    FAILEDTOREQUESTBIDS,
+    TIMEOUT,
+    UNKNOWN_ERROR,
+    ERR,
+    NETWORKERR,
 
     // bids validation
-    warn,
+    WARN,
 
     // cookie sync
-    cookie_sync_requests,
-    opt_outs,
-    bad_requests,
-    sets,
-    gen,
-    matches,
-    blocked,
+    COOKIE_SYNC_REQUESTS,
+    OPT_OUTS,
+    BAD_REQUESTS,
+    SETS,
+    GEN,
+    MATCHES,
+    BLOCKED,
+
 
     // tcf
-    userid_removed,
-    geo_masked,
-    request_blocked,
-    analytics_blocked,
+    USERID_REMOVED,
+    GEO_MASKED,
+    REQUEST_BLOCKED,
+    ANALYTICS_BLOCKED,
 
     // privacy
-    coppa,
-    lmt,
-    specified,
-    opt_out("opt-out"),
-    invalid,
-    in_geo("in-geo"),
-    out_geo("out-geo"),
-    unknown_geo("unknown-geo"),
+    COPPA,
+    LMT,
+    SPECIFIED,
+    OPT_OUT("opt-out"),
+    INVALID,
+    IN_GEO("in-geo"),
+    OUT_GEO("out-geo"),
+    UNKNOWN_GEO("unknown-geo"),
 
     // vendor list
-    missing,
-    fallback,
+    MISSING,
+    FALLBACK,
 
     // stored data
-    stored_requests_found,
-    stored_requests_missing,
-    stored_imps_found,
-    stored_imps_missing,
+    STORED_REQUESTS_FOUND,
+    STORED_REQUESTS_MISSING,
+    STORED_IMPS_FOUND,
+    STORED_IMPS_MISSING,
 
     // cache creative types
-    json,
-    xml,
+    JSON,
+    XML,
 
     // account.*.requests.
-    rejected,
+    REJECTED,
 
     // currency rates
-    stale,
+    STALE,
 
     // settings cache
-    stored_request("stored-request"),
-    amp_stored_request("amp-stored-request"),
-    account,
-    initialize,
-    update,
-    hit,
-    miss,
+    STORED_REQUEST("stored-request"),
+    AMP_STORED_REQUEST("amp-stored-request"),
+    ACCOUNT,
+    INITIALIZE,
+    UPDATE,
+    HIT,
+    MISS,
 
     // hooks
-    call,
-    success,
-    noop,
-    reject,
-    unknown,
-    failure,
-    execution_error("execution-error"),
-    duration,
+    CALL,
+    SUCCESS,
+    NOOP,
+    REJECT,
+    UNKNOWN,
+    FAILURE,
+    EXECUTION_ERROR("execution-error"),
+    DURATION,
 
     // win notifications
-    win_notifications,
-    win_requests,
-    win_request_preparation_failed,
-    win_request_time,
-    win_request_failed,
-    win_request_successful,
+    WIN_NOTIFICATIONS,
+    WIN_REQUESTS,
+    WIN_REQUEST_PREPARATION_FAILED,
+    WIN_REQUEST_TIME,
+    WIN_REQUEST_FAILED,
+    WIN_REQUEST_SUCCESSFUL,
 
     // user details
-    user_details_requests,
-    user_details_request_preparation_failed,
-    user_details_request_time,
-    user_details_request_failed,
-    user_details_request_successful,
+    USER_DETAILS_REQUESTS,
+    USER_DETAILS_REQUEST_PREPARATION_FAILED,
+    USER_DETAILS_REQUEST_TIME,
+    USER_DETAILS_REQUEST_FAILED,
+    USER_DETAILS_REQUEST_SUCCESSFUL,
 
     // pg
-    planner_lineitems_received,
-    planner_requests,
-    planner_request_failed,
-    planner_request_successful,
-    planner_request_time,
-    delivery_requests,
-    delivery_request_failed,
-    delivery_request_successful,
-    delivery_request_time;
+    PLANNER_LINEITEMS_RECEIVED,
+    PLANNER_REQUESTS,
+    PLANNER_REQUEST_FAILED,
+    PLANNER_REQUEST_SUCCESSFUL,
+    PLANNER_REQUEST_TIME,
+    DELIVERY_REQUESTS,
+    DELIVERY_REQUEST_FAILED,
+    DELIVERY_REQUEST_SUCCESSFUL,
+    DELIVERY_REQUEST_TIME;
 
 
     private final String name;
@@ -174,6 +175,6 @@ public enum MetricName {
 
     @Override
     public String toString() {
-        return name;
+        return name.toLowerCase();
     }
 }

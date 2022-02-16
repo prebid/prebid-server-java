@@ -92,7 +92,7 @@ public class VideoRequestFactoryTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.video)))
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.VIDEO)))
                 .willReturn(AuctionContext.builder().build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
@@ -293,7 +293,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null))
                 .targeting(ExtRequestTargeting.builder()
-                        .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
+                        .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("MED")))
                         .includebidderkeys(true)
                         .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false, null))
                         .build())
@@ -323,11 +323,11 @@ public class VideoRequestFactoryTest extends VertxTest {
         // then
         verify(routingContext).getBodyAsString();
         verify(videoStoredRequestProcessor).processVideoRequest("", null, emptySet(), requestVideo);
-        verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.video));
+        verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.VIDEO));
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
         verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
-        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver), eq(Endpoint.openrtb2_video.value()));
+        verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver), eq(Endpoint.OPENRTB2_VIDEO.value()));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
         assertThat(result.result().getData().getBidRequest()).isEqualTo(bidRequest);

@@ -27,7 +27,7 @@ public class YieldmoTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/yieldmo/test-auction-yieldmo-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/yieldmo/test-auction-yieldmo-response.json", response, singletonList("yieldmo"));

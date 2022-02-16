@@ -36,8 +36,8 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class MadvertiseBidderTest extends VertxTest {
 
@@ -191,7 +191,7 @@ public class MadvertiseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -239,7 +239,7 @@ public class MadvertiseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, null));
     }
 
     @Test
@@ -262,9 +262,9 @@ public class MadvertiseBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactlyInAnyOrder(
-                        BidderBid.of(Bid.builder().impid("123").attr(singletonList(6)).build(), video, null),
-                        BidderBid.of(Bid.builder().impid("124").attr(singletonList(16)).build(), video, null),
-                        BidderBid.of(Bid.builder().impid("125").attr(singletonList(7)).build(), video, null));
+                        BidderBid.of(Bid.builder().impid("123").attr(singletonList(6)).build(), VIDEO, null),
+                        BidderBid.of(Bid.builder().impid("124").attr(singletonList(16)).build(), VIDEO, null),
+                        BidderBid.of(Bid.builder().impid("125").attr(singletonList(7)).build(), VIDEO, null));
     }
 
     private static BidRequest givenBidRequest(

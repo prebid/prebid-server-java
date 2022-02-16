@@ -26,7 +26,7 @@ public class AdgenerationTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adgeneration/test-auction-adgeneration-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adgeneration/test-auction-adgeneration-response.json", response,

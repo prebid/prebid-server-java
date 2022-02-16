@@ -343,7 +343,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -391,7 +391,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -410,7 +410,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.xNative, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.X_NATIVE, "EUR"));
     }
 
     @Test
@@ -429,7 +429,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.audio, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.AUDIO, "EUR"));
     }
 
     @Test

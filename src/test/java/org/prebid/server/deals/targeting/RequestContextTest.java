@@ -50,7 +50,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnDomainFromSite() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s
                         .domain("domain.com")
@@ -66,7 +66,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnDomainFromSitePublisher() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s
                                 .publisher(Publisher.builder().domain("domain.com").build())))),
@@ -81,7 +81,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenDomainIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(identity()))),
                 imp(identity()),
@@ -95,7 +95,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullForDomainWhenSiteIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -109,7 +109,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnPublisherDomainFromSitePublisher() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.PUBLISHER_DOMAIN);
         final RequestContext context =
                 new RequestContext(
                         request(r -> r.site(site(s -> s
@@ -125,7 +125,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullForPublisherDomainWhenSiteIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.PUBLISHER_DOMAIN);
         final RequestContext context =
                 new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
 
@@ -136,7 +136,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnReferrer() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.referrer);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.REFERRER);
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.page("https://domain.com/index")))),
                 imp(identity()),
@@ -150,7 +150,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAppBundle() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.appBundle);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.APP_BUNDLE);
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.bundle("com.google.calendar")))),
                 imp(identity()),
@@ -164,7 +164,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenBundleIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.appBundle);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.APP_BUNDLE);
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(identity()))),
                 imp(identity()),
@@ -178,7 +178,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenAppIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.appBundle);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.APP_BUNDLE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -192,7 +192,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAdslotFromContextDataPbadslot() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
@@ -213,7 +213,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAdslotFromContextDataAdserverAdslot() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
@@ -233,7 +233,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAdslotFromDataPbadslot() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
@@ -250,7 +250,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAdslotFromDataAdserverAdslot() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
@@ -266,7 +266,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnAdslotFromAlternativeAdServerAdSlotPath() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", obj("adserver", obj("adslot", "/123/456")))))),
@@ -280,7 +280,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenAdslotIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.ADSLOT);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", mapper.createObjectNode())))),
@@ -294,7 +294,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnCountryFromDeviceGeoExtValue() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.deviceGeoExt,
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DEVICE_GEO_EXT,
                 "vendor.attribute");
         final ExtGeo extGeo = ExtGeo.of();
         extGeo.addProperty("vendor", obj("attribute", "value"));
@@ -311,7 +311,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnRegionFromDeviceGeoExtValue() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.deviceGeoExt,
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DEVICE_GEO_EXT,
                 "vendor.nested.attribute");
         final ExtGeo extGeo = ExtGeo.of();
         extGeo.addProperty("vendor", obj("nested", obj("attribute", "value")));
@@ -328,7 +328,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnMetroFromDeviceExtValue() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.deviceExt,
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DEVICE_EXT,
                 "vendor.attribute");
         final ExtDevice extDevice = ExtDevice.of(null, null);
         extDevice.addProperty("vendor", obj("attribute", "value"));
@@ -346,7 +346,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnMetroFromDeviceExtNestedValue() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.deviceExt,
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DEVICE_EXT,
                 "vendor.nested.attribute");
         final ExtDevice extDevice = ExtDevice.of(null, null);
         extDevice.addProperty("vendor", obj("nested", obj("attribute", "value")));
@@ -363,7 +363,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnSimpleBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", "123")))))),
@@ -377,7 +377,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNestedBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam,
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM,
                 "rubicon.inv.code");
         final RequestContext context = new RequestContext(
                 request(identity()),
@@ -392,7 +392,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenBidderParamIsNotString() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", obj("siteId", mapper.valueToTree(123))))),
@@ -406,7 +406,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenBidderParamIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", "phony"))),
@@ -420,7 +420,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldReturnNullWhenImpExtIsMissingForBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -435,7 +435,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSimpleUserFirstPartyDataFromObject() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "buyeruid");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "buyeruid");
         final ExtUser extUser = ExtUser.builder().data(obj("buyeruid", "456")).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u
@@ -453,7 +453,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSimpleUserFirstPartyDataFromExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final ExtUser extUser = ExtUser.builder().data(obj("sport", "hockey")).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -469,7 +469,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnUserFirstPartyDataFromExtWhenObjectAttributeTypeIsNotString() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "yob");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "yob");
         final ExtUser extUser = ExtUser.builder().data(obj("yob", "1900")).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.yob(1800).ext(extUser)))),
@@ -485,7 +485,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnNestedUserFirstPartyData() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "section.sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "section.sport");
         final ExtUser extUser = ExtUser.builder().data(obj("section", obj("sport", "hockey"))).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -501,7 +501,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnNullWhenUserFirstPartyDataIsNotString() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(123))).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -517,7 +517,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnNullWhenUserExtIsMissingForUserFirstPartyData() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(identity()))),
                 imp(identity()),
@@ -532,7 +532,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnNullWhenUserIsMissingForUserFirstPartyData() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.userFirstPartyData, "sport");
+                TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -547,7 +547,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSiteFirstPartyDataFromImpExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "basketball")));
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
@@ -566,7 +566,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSiteFirstPartyDataFromSiteExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "hockey")));
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
@@ -585,7 +585,7 @@ public class RequestContextTest extends VertxTest {
     public void lookupStringShouldReturnSiteFirstPartyDataFromAppExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+                TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "section.sport");
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "hockey")));
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.ext(extApp)))),
@@ -600,7 +600,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -610,13 +610,13 @@ public class RequestContextTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> context.lookupString(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching string value for: location");
+                .hasMessage("Unexpected category for fetching string value for: LOCATION");
     }
 
     @Test
     public void lookupIntegerShouldReturnDowFromUserExt() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.dow);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOW);
         final ExtUser extUser = ExtUser.builder().build();
         extUser.addProperty("time", obj("userdow", 5));
         final RequestContext context = new RequestContext(
@@ -632,7 +632,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnHourFromExt() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.hour);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.HOUR);
         final ExtUser extUser = ExtUser.builder().build();
         extUser.addProperty("time", obj("userhour", 15));
         final RequestContext context = new RequestContext(
@@ -648,7 +648,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("rubicon", obj("siteId", mapper.valueToTree(123))))))),
@@ -662,7 +662,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnNullWhenBidderParamIsNotInteger() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", obj("siteId", mapper.valueToTree(123.456d))))),
@@ -676,7 +676,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnNullWhenBidderParamIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("rubicon", "phony"))),
@@ -690,7 +690,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(123))).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -705,7 +705,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldReturnSiteFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "sport");
         final ExtSite extSite = ExtSite.of(null, obj("sport", mapper.valueToTree(123)));
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
@@ -720,7 +720,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegerShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(request(identity()), imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -728,13 +728,13 @@ public class RequestContextTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> context.lookupInteger(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching integer value for: domain");
+                .hasMessage("Unexpected category for fetching integer value for: DOMAIN");
     }
 
     @Test
     public void lookupStringsShouldReturnMediaTypeBannerAndVideo() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.mediaType);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.MEDIA_TYPE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(identity())).video(Video.builder().build())),
@@ -748,7 +748,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnMediaTypeVideoAndNative() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.mediaType);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.MEDIA_TYPE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.video(Video.builder().build()).xNative(Native.builder().build())),
@@ -762,7 +762,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -777,7 +777,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenBidderParamIsNotArray() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -792,7 +792,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnListOfSingleStringWhenBidderParamIsString() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -807,7 +807,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnOnlyStringsWhenNonStringBidderParamPresent() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -822,7 +822,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenBidderParamIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder", obj("prebid", obj("bidder",
@@ -837,7 +837,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(asList("123", "456")))).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -852,7 +852,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnSiteFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "sport");
         final ExtSite extSite = ExtSite.of(null, obj("sport", mapper.valueToTree(asList("123", "456"))));
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
@@ -867,7 +867,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnSegmentsWithDesiredSource() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(asList(
                         data(d -> d.id("rubicon").segment(asList(segment(s -> s.id("1")), segment(s -> s.id("2"))))),
@@ -884,7 +884,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenDesiredSourceIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(
                         data(d -> d.id("bluekai").segment(
@@ -900,7 +900,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldSkipSegmentsWithoutIds() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(
                         data(d -> d.id("rubicon").segment(asList(segment(s -> s.id("1")), segment(identity()))))))))),
@@ -915,7 +915,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenSegmentsAreMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(data(d -> d.id("rubicon"))))))),
                 imp(identity()),
@@ -929,7 +929,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldTolerateMissingSource() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.data(singletonList(data(identity())))))),
                 imp(identity()),
@@ -943,7 +943,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenDataIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(identity()))),
                 imp(identity()),
@@ -957,7 +957,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnEmptyListWhenUserIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_SEGMENT, "rubicon");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -971,7 +971,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -981,13 +981,13 @@ public class RequestContextTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> context.lookupStrings(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching string values for: domain");
+                .hasMessage("Unexpected category for fetching string values for: DOMAIN");
     }
 
     @Test
     public void lookupIntegersShouldReturnBidderParam() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -1002,7 +1002,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnEmptyListWhenBidderParamIsNotArray() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -1017,7 +1017,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnListOfSingleIntegerWhenBidderParamIsInteger() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -1032,7 +1032,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnOnlyIntegersWhenNonIntegerBidderParamPresent() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -1047,7 +1047,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnEmptyListWhenBidderParamIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(obj("prebid", obj("bidder",
@@ -1062,7 +1062,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_FIRST_PARTY_DATA, "sport");
         final ExtUser extUser = ExtUser.builder().data(obj("sport", mapper.valueToTree(asList(123, 456)))).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
@@ -1077,7 +1077,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldReturnSiteFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.siteFirstPartyData, "sport");
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SITE_FIRST_PARTY_DATA, "sport");
         final ExtSite extSite = ExtSite.of(null, obj("sport", mapper.valueToTree(asList(123, 456))));
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s.ext(extSite)))),
@@ -1092,19 +1092,19 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupIntegersShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
 
         // when and then
         assertThatThrownBy(() -> context.lookupIntegers(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching integer values for: domain");
+                .hasMessage("Unexpected category for fetching integer values for: DOMAIN");
     }
 
     @Test
     public void lookupSizesShouldReturnSizes() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SIZE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(b -> b.format(asList(format(300, 250), format(400, 300)))))),
@@ -1118,7 +1118,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupSizesShouldReturnEmptyListWhenFormatIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SIZE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.banner(banner(identity()))),
@@ -1132,7 +1132,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupSizesShouldReturnEmptyListWhenBannerIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.SIZE);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -1146,7 +1146,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupSizesShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -1156,13 +1156,13 @@ public class RequestContextTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> context.lookupSizes(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching sizes for: domain");
+                .hasMessage("Unexpected category for fetching sizes for: DOMAIN");
     }
 
     @Test
     public void lookupGeoLocationShouldReturnLocation() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lat(50f).lon(60f)))))),
                 imp(identity()),
@@ -1176,7 +1176,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupGeoLocationShouldReturnNullWhenLonIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lat(50f)))))),
                 imp(identity()),
@@ -1190,7 +1190,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupGeoLocationShouldReturnNullWhenLatIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(d -> d.geo(geo(g -> g.lon(60f)))))),
                 imp(identity()),
@@ -1204,7 +1204,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupGeoLocationShouldReturnNullWhenGeoIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(r -> r.device(device(identity()))),
                 imp(identity()),
@@ -1218,7 +1218,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupGeoLocationShouldReturnNullWhenDeviceIsMissing() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.location);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -1232,7 +1232,7 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupGeoLocationShouldThrowExceptionWhenUnexpectedCategory() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
+        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(identity()),
@@ -1242,7 +1242,7 @@ public class RequestContextTest extends VertxTest {
         // when and then
         assertThatThrownBy(() -> context.lookupGeoLocation(category))
                 .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching geo location for: domain");
+                .hasMessage("Unexpected category for fetching geo location for: DOMAIN");
     }
 
     private static BidRequest request(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> customizer) {

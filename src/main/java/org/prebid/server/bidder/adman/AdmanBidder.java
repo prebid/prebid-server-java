@@ -133,9 +133,9 @@ public class AdmanBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
         throw new PreBidException(String.format("Failed to find impression \"%s\"", impId));

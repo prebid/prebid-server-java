@@ -12,6 +12,6 @@ public class NoneIdGenerator implements IdGenerator {
 
     @Override
     public IdGeneratorType getType() {
-        return IdGeneratorType.none;
+        return IdGeneratorType.NONE;
     }
 }

@@ -23,7 +23,7 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class MedianetBidderTest extends VertxTest {
 
@@ -68,7 +68,7 @@ public class MedianetBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                .allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                     && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
     }
 
@@ -113,7 +113,7 @@ public class MedianetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,

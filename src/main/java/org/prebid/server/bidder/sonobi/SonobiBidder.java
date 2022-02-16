@@ -132,9 +132,9 @@ public class SonobiBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
 

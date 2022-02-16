@@ -140,7 +140,7 @@ public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static BidType getBidMediaType(List<Integer> bidAttrs) {
         return CollectionUtils.emptyIfNull(bidAttrs).stream().anyMatch(VIDEO_BID_ATTRS::contains)
-                ? BidType.video
-                : BidType.banner;
+                ? BidType.VIDEO
+                : BidType.BANNER;
     }
 }

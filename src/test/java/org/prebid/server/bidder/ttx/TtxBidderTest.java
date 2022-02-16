@@ -32,8 +32,8 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class TtxBidderTest extends VertxTest {
 
@@ -66,7 +66,7 @@ public class TtxBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value of");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -239,7 +239,7 @@ public class TtxBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                 });
         assertThat(result.getValue()).isEmpty();
     }
@@ -288,7 +288,7 @@ public class TtxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -312,7 +312,7 @@ public class TtxBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ttxBidExt))
                 .build();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, video, "USD"));
+                .containsOnly(BidderBid.of(expectedBid, VIDEO, "USD"));
     }
 
     @Test
@@ -336,7 +336,7 @@ public class TtxBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ttxBidExt))
                 .build();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsOnly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     private static Video validVideo() {

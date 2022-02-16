@@ -63,11 +63,11 @@ public class UsersyncMethodChooser {
     }
 
     private boolean bidderNotExcluded(String bidder, CookieSyncRequest.MethodFilter filter) {
-        return filter.getFilter() == CookieSyncRequest.FilterType.exclude && !bidderInList(bidder, filter.getBidders());
+        return filter.getFilter() == CookieSyncRequest.FilterType.EXCLUDE && !bidderInList(bidder, filter.getBidders());
     }
 
     private boolean bidderIncluded(String bidder, CookieSyncRequest.MethodFilter filter) {
-        return filter.getFilter() == CookieSyncRequest.FilterType.include && bidderInList(bidder, filter.getBidders());
+        return filter.getFilter() == CookieSyncRequest.FilterType.INCLUDE && bidderInList(bidder, filter.getBidders());
     }
 
     private boolean bidderInList(String bidder, JsonNode bidders) {

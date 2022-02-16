@@ -167,7 +167,7 @@ public class TripleliftNativeBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.xNative, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.X_NATIVE, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 }

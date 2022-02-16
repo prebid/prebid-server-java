@@ -2,5 +2,10 @@ package org.prebid.server.hooks.v1;
 
 public enum InvocationStatus {
 
-    success, failure
+    SUCCESS, FAILURE;
+
+    @Override
+    public String toString() {
+        return super.toString().toLowerCase();
+    }
 }

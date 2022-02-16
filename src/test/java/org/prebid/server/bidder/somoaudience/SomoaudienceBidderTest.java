@@ -193,7 +193,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while decoding");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly("http://somoaudience.com?s=placementId");
@@ -219,7 +219,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -240,7 +240,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -260,7 +260,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.video, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.VIDEO, "EUR"));
     }
 
     @Test
@@ -279,7 +279,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.xNative, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.X_NATIVE, "EUR"));
     }
 
     @Test
@@ -297,7 +297,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -315,7 +315,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -373,7 +373,7 @@ public class SomoaudienceBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Failed to decode: ");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                 });
     }
 

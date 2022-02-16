@@ -27,7 +27,7 @@ public class CriteoTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/criteo/test-auction-criteo-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/criteo/test-auction-criteo-response.json", response, singletonList("criteo"));

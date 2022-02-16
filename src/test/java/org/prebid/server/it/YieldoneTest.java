@@ -27,7 +27,7 @@ public class YieldoneTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/yieldone/test-auction-yieldone-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/yieldone/test-auction-yieldone-response.json", response, singletonList("yieldone"));

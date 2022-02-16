@@ -177,7 +177,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
 
     private Bid updateBid(Bid bid, BidType bidType, List<BidderError> errors) {
         final String bidAdm = bid.getAdm();
-        final String resolvedAdm = bidType.equals(BidType.xNative) && StringUtils.isNotEmpty(bidAdm)
+        final String resolvedAdm = bidType.equals(BidType.X_NATIVE) && StringUtils.isNotEmpty(bidAdm)
                 ? resolveBidAdm(bidAdm, errors)
                 : null;
         return resolvedAdm != null ? bid.toBuilder().adm(resolvedAdm).build() : bid;
@@ -225,9 +225,9 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 } else if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
             }
         }

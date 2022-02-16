@@ -7,19 +7,19 @@ import java.util.Arrays;
 
 public enum Stage {
 
-    entrypoint,
-    raw_auction_request("raw-auction-request"),
-    processed_auction_request("processed-auction-request"),
-    bidder_request("bidder-request"),
-    raw_bidder_response("raw-bidder-response"),
-    processed_bidder_response("processed-bidder-response"),
-    auction_response("auction-response");
+    ENTRYPOINT,
+    RAW_AUCTION_REQUEST("raw-auction-request"),
+    PROCESSED_AUCTION_REQUEST("processed-auction-request"),
+    BIDDER_REQUEST("bidder-request"),
+    RAW_BIDDER_RESPONSE("raw-bidder-response"),
+    PROCESSED_BIDDER_RESPONSE("processed-bidder-response"),
+    AUCTION_RESPONSE("auction-response");
 
     @JsonValue
     private final String value;
 
     Stage() {
-        this.value = name();
+        this.value = name().toLowerCase();
     }
 
     Stage(String value) {

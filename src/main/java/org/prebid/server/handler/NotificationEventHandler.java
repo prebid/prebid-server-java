@@ -150,7 +150,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             }
 
             boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
-            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.ENABLED;
 
             if (!eventsEnabledForAccount && eventsEnabledForRequest) {
                 respondWithUnauthorized(routingContext,
@@ -161,8 +161,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
             final EventRequest.Type eventType = eventRequest.getType();
             if (eventsEnabledForRequest) {
                 final NotificationEvent notificationEvent = NotificationEvent.builder()
-                        .type(eventType == EventRequest.Type.win
-                                ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
+                        .type(eventType == EventRequest.Type.WIN
+                                ? NotificationEvent.Type.WIN : NotificationEvent.Type.IMP)
                         .bidId(eventRequest.getBidId())
                         .account(account)
                         .bidder(eventRequest.getBidder())
@@ -175,7 +175,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 analyticsDelegator.processEvent(notificationEvent);
 
             }
-            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
+            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.IMAGE);
         }
     }
 
@@ -189,12 +189,12 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {
         if (respondWithPixel) {
-            HttpUtil.executeSafely(routingContext, Endpoint.event,
+            HttpUtil.executeSafely(routingContext, Endpoint.EVENT,
                     response -> response
                             .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
                             .end(Buffer.buffer(trackingPixel.getContent())));
         } else {
-            HttpUtil.executeSafely(routingContext, Endpoint.event,
+            HttpUtil.executeSafely(routingContext, Endpoint.EVENT,
                     HttpServerResponse::end);
         }
     }
@@ -214,7 +214,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.event,
+        HttpUtil.executeSafely(routingContext, Endpoint.EVENT,
                 response -> response
                         .setStatusCode(status.code())
                         .end(body));

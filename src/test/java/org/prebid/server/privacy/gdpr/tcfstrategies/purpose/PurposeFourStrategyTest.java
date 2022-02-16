@@ -93,7 +93,7 @@ public class PurposeFourStrategyTest {
     public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToNoType() {
         // given
         final List<String> vendorExceptions = Arrays.asList("b1", "b3");
-        final Purpose purpose = Purpose.of(EnforcePurpose.no, false, vendorExceptions);
+        final Purpose purpose = Purpose.of(EnforcePurpose.NO, false, vendorExceptions);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
@@ -130,7 +130,7 @@ public class PurposeFourStrategyTest {
     public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToBaseType() {
         // given
         final List<String> vendorExceptions = Arrays.asList("b1", "b3");
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, false, vendorExceptions);
+        final Purpose purpose = Purpose.of(EnforcePurpose.BASIC, false, vendorExceptions);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll());
@@ -167,7 +167,7 @@ public class PurposeFourStrategyTest {
     public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
         // given
         final List<String> vendorExceptions = Arrays.asList("b1", "b2", "b3", "b5", "b7");
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, vendorExceptions);
+        final Purpose purpose = Purpose.of(EnforcePurpose.BASIC, null, vendorExceptions);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -203,7 +203,7 @@ public class PurposeFourStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldPassEmptyListWithFullEnforcementsWhenAllBiddersAreExcluded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.full, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.FULL, null, Arrays.asList("b1", "b2", "b3", "b5", "b7"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -239,7 +239,7 @@ public class PurposeFourStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldAllowPurposeAndNaturallyVendorExceptions() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.full, null, Arrays.asList("b1", "b2"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.FULL, null, Arrays.asList("b1", "b2"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -281,7 +281,7 @@ public class PurposeFourStrategyTest {
     @Test
     public void processTypePurposeStrategyShouldAllowPurposeAndNaturallyWhenVendorPermissionsReturnedForDowngraded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.no, null, Arrays.asList("b1", "b2"));
+        final Purpose purpose = Purpose.of(EnforcePurpose.NO, null, Arrays.asList("b1", "b2"));
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());

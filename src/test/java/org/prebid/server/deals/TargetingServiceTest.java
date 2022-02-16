@@ -65,94 +65,96 @@ public class TargetingServiceTest extends VertxTest {
         // then
         assertThat(definition).isNotNull().isEqualTo(TargetingDefinition.of(
                 new And(asList(
-                        new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200))),
-                        new IntersectsStrings(category(Type.mediaType), asList("banner", "video")),
+                        new IntersectsSizes(category(Type.SIZE), asList(Size.of(300, 250), Size.of(400, 200))),
+                        new IntersectsStrings(category(Type.MEDIA_TYPE), asList("banner", "video")),
                         new Or(asList(
                                 new Or(asList(
-                                        new DomainMetricAwareExpression(new Matches(category(Type.domain),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.DOMAIN),
                                                 "*nba.com*"), "lineItemId"),
-                                        new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.PUBLISHER_DOMAIN),
                                                 "*nba.com*"), "lineItemId"))),
                                 new Or(asList(
-                                        new DomainMetricAwareExpression(new Matches(category(Type.domain),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.DOMAIN),
                                                 "nba.com*"), "lineItemId"),
-                                        new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.PUBLISHER_DOMAIN),
                                                 "nba.com*"), "lineItemId"))),
                                 new Or(asList(
-                                        new DomainMetricAwareExpression(new InStrings(category(Type.domain),
+                                        new DomainMetricAwareExpression(new InStrings(category(Type.DOMAIN),
                                                 asList("nba.com", "cnn.com")), "lineItemId"),
-                                        new DomainMetricAwareExpression(new InStrings(category(Type.publisherDomain),
+                                        new DomainMetricAwareExpression(new InStrings(category(Type.PUBLISHER_DOMAIN),
                                                 asList("nba.com", "cnn.com")), "lineItemId")))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.referrer), "*sports*"),
-                                new Matches(category(Type.referrer), "http://nba.com/lalakers*"),
-                                new InStrings(category(Type.referrer),
+                                new Matches(category(Type.REFERRER), "*sports*"),
+                                new Matches(category(Type.REFERRER), "http://nba.com/lalakers*"),
+                                new InStrings(category(Type.REFERRER),
                                         asList("http://cnn.com/culture", "http://cnn.com/weather"))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.appBundle), "*com.google.calendar*"),
-                                new Matches(category(Type.appBundle), "com.google.calendar*"),
-                                new InStrings(category(Type.appBundle),
+                                new Matches(category(Type.APP_BUNDLE), "*com.google.calendar*"),
+                                new Matches(category(Type.APP_BUNDLE), "com.google.calendar*"),
+                                new InStrings(category(Type.APP_BUNDLE),
                                         asList("com.google.calendar", "com.tmz"))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.adslot), "*/home/top*"),
-                                new Matches(category(Type.adslot), "/home/top*"),
-                                new InStrings(category(Type.adslot), asList("/home/top", "/home/bottom"))
+                                new Matches(category(Type.ADSLOT), "*/home/top*"),
+                                new Matches(category(Type.ADSLOT), "/home/top*"),
+                                new InStrings(category(Type.ADSLOT), asList("/home/top", "/home/bottom"))
                         )),
-                        new InStrings(category(Type.deviceGeoExt, "vendor.attribute"),
+                        new InStrings(category(Type.DEVICE_GEO_EXT, "vendor.attribute"),
                                 asList("device_geo_ext_value1", "device_geo_ext_value2")),
-                        new InStrings(category(Type.deviceGeoExt, "vendor.nested.attribute"),
+                        new InStrings(category(Type.DEVICE_GEO_EXT, "vendor.nested.attribute"),
                                 asList("device_geo_ext_nested_value1", "device_geo_ext_nested_value2")),
-                        new InStrings(category(Type.deviceExt, "vendor.attribute"),
+                        new InStrings(category(Type.DEVICE_EXT, "vendor.attribute"),
                                 asList("device_ext_value1", "device_ext_value2")),
-                        new InStrings(category(Type.deviceExt, "vendor.nested.attribute"),
+                        new InStrings(category(Type.DEVICE_EXT, "vendor.nested.attribute"),
                                 asList("device_ext_nested_value1", "device_ext_nested_value2")),
-                        new InIntegers(category(Type.pagePosition), asList(1, 3)),
-                        new Within(category(Type.location), GeoRegion.of(123.456f, 789.123f, 10.0f)),
+                        new InIntegers(category(Type.PAGE_POSITION), asList(1, 3)),
+                        new Within(category(Type.LOCATION), GeoRegion.of(123.456f, 789.123f, 10.0f)),
                         new Or(asList(
-                                new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321)),
-                                new IntersectsIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321))
+                                new InIntegers(category(Type.BIDDER_PARAM, "rubicon.siteId"), asList(123, 321)),
+                                new IntersectsIntegers(category(Type.BIDDER_PARAM, "rubicon.siteId"), asList(123, 321))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.bidderParam, "appnexus.placementName"), "*somePlacement*"),
-                                new Matches(category(Type.bidderParam, "appnexus.placementName"), "somePlacement*"),
-                                new InStrings(category(Type.bidderParam, "appnexus.placementName"),
+                                new Matches(category(Type.BIDDER_PARAM, "appnexus.placementName"), "*somePlacement*"),
+                                new Matches(category(Type.BIDDER_PARAM, "appnexus.placementName"), "somePlacement*"),
+                                new InStrings(category(Type.BIDDER_PARAM, "appnexus.placementName"),
                                         asList("somePlacement1", "somePlacement2")),
-                                new IntersectsStrings(category(Type.bidderParam, "appnexus.placementName"),
+                                new IntersectsStrings(category(Type.BIDDER_PARAM, "appnexus.placementName"),
                                         asList("somePlacement1", "somePlacement2"))
                         )),
                         new Or(asList(
                                 new IntersectsStrings(
-                                        category(Type.userSegment, "rubicon"), asList("123", "234", "345")),
+                                        category(Type.USER_SEGMENT, "rubicon"), asList("123", "234", "345")),
                                 new IntersectsStrings(
-                                        category(Type.userSegment, "bluekai"), asList("123", "234", "345"))
+                                        category(Type.USER_SEGMENT, "bluekai"), asList("123", "234", "345"))
                         )),
                         new Or(asList(
-                                new InIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321)),
-                                new IntersectsIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321))
+                                new InIntegers(category(Type.USER_FIRST_PARTY_DATA, "someId"), asList(123, 321)),
+                                new IntersectsIntegers(category(Type.USER_FIRST_PARTY_DATA, "someId"), asList(123, 321))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.userFirstPartyData, "sport"), "*hockey*"),
-                                new Matches(category(Type.userFirstPartyData, "sport"), "hockey*"),
-                                new InStrings(category(Type.userFirstPartyData, "sport"), asList("hockey", "soccer")),
+                                new Matches(category(Type.USER_FIRST_PARTY_DATA, "sport"), "*hockey*"),
+                                new Matches(category(Type.USER_FIRST_PARTY_DATA, "sport"), "hockey*"),
+                                new InStrings(category(Type.USER_FIRST_PARTY_DATA, "sport"),
+                                        asList("hockey", "soccer")),
                                 new IntersectsStrings(
-                                        category(Type.userFirstPartyData, "sport"), asList("hockey", "soccer"))
+                                        category(Type.USER_FIRST_PARTY_DATA, "sport"), asList("hockey", "soccer"))
                         )),
                         new Or(asList(
-                                new InIntegers(category(Type.siteFirstPartyData, "someId"), asList(123, 321)),
-                                new IntersectsIntegers(category(Type.siteFirstPartyData, "someId"), asList(123, 321))
+                                new InIntegers(category(Type.SITE_FIRST_PARTY_DATA, "someId"), asList(123, 321)),
+                                new IntersectsIntegers(category(Type.SITE_FIRST_PARTY_DATA, "someId"), asList(123, 321))
                         )),
                         new Or(asList(
-                                new Matches(category(Type.siteFirstPartyData, "sport"), "*hockey*"),
-                                new Matches(category(Type.siteFirstPartyData, "sport"), "hockey*"),
-                                new InStrings(category(Type.siteFirstPartyData, "sport"), asList("hockey", "soccer")),
+                                new Matches(category(Type.SITE_FIRST_PARTY_DATA, "sport"), "*hockey*"),
+                                new Matches(category(Type.SITE_FIRST_PARTY_DATA, "sport"), "hockey*"),
+                                new InStrings(category(Type.SITE_FIRST_PARTY_DATA, "sport"),
+                                        asList("hockey", "soccer")),
                                 new IntersectsStrings(
-                                        category(Type.siteFirstPartyData, "sport"), asList("hockey", "soccer"))
+                                        category(Type.SITE_FIRST_PARTY_DATA, "sport"), asList("hockey", "soccer"))
                         )),
-                        new InIntegers(category(Type.dow), asList(5, 6)),
-                        new InIntegers(category(Type.hour), asList(10, 11, 12, 13, 14))
+                        new InIntegers(category(Type.DOW), asList(5, 6)),
+                        new InIntegers(category(Type.HOUR), asList(10, 11, 12, 13, 14))
                 ))));
     }
 
@@ -407,19 +409,19 @@ public class TargetingServiceTest extends VertxTest {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
                 new And(asList(
-                        new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200))),
-                        new IntersectsStrings(category(Type.mediaType), asList("banner", "video")),
+                        new IntersectsSizes(category(Type.SIZE), asList(Size.of(300, 250), Size.of(400, 200))),
+                        new IntersectsStrings(category(Type.MEDIA_TYPE), asList("banner", "video")),
                         new DomainMetricAwareExpression(
-                                new Matches(category(Type.domain), "*nba.com*"), "lineItemId"),
+                                new Matches(category(Type.DOMAIN), "*nba.com*"), "lineItemId"),
                         new DomainMetricAwareExpression(
-                                new Matches(category(Type.domain), "lakers.nba.com"), "lineItemId"),
+                                new Matches(category(Type.DOMAIN), "lakers.nba.com"), "lineItemId"),
                         new DomainMetricAwareExpression(
-                                new Matches(category(Type.publisherDomain), "nba.com"), "lineItemId"),
-                        new InIntegers(category(Type.pagePosition), asList(1, 3)),
-                        new Within(category(Type.location), GeoRegion.of(50.424744f, 30.506435f, 10.0f)),
-                        new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321)),
-                        new IntersectsStrings(category(Type.userSegment, "rubicon"), asList("123", "234", "345")),
-                        new IntersectsIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321)))));
+                                new Matches(category(Type.PUBLISHER_DOMAIN), "nba.com"), "lineItemId"),
+                        new InIntegers(category(Type.PAGE_POSITION), asList(1, 3)),
+                        new Within(category(Type.LOCATION), GeoRegion.of(50.424744f, 30.506435f, 10.0f)),
+                        new InIntegers(category(Type.BIDDER_PARAM, "rubicon.siteId"), asList(123, 321)),
+                        new IntersectsStrings(category(Type.USER_SEGMENT, "rubicon"), asList("123", "234", "345")),
+                        new IntersectsIntegers(category(Type.USER_FIRST_PARTY_DATA, "someId"), asList(123, 321)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
@@ -480,7 +482,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForIntersectsStringsOnSingleString() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new IntersectsStrings(category(Type.userFirstPartyData, "segment"), asList("test", "111")));
+                new IntersectsStrings(category(Type.USER_FIRST_PARTY_DATA, "segment"), asList("test", "111")));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
@@ -506,7 +508,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnTrueForIntersectsIntegersOnSingleInteger() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new IntersectsIntegers(category(Type.userFirstPartyData, "segment"), asList(123, 456)));
+                new IntersectsIntegers(category(Type.USER_FIRST_PARTY_DATA, "segment"), asList(123, 456)));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
@@ -773,7 +775,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotInIntegers() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 778))));
+                new Not(new InIntegers(category(Type.BIDDER_PARAM, "rubicon.siteId"), asList(123, 778))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .build();
@@ -799,7 +801,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotInStrings() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new InStrings(category(Type.domain), asList("nba.com", "cnn.com"))));
+                new Not(new InStrings(category(Type.DOMAIN), asList("nba.com", "cnn.com"))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
@@ -823,7 +825,7 @@ public class TargetingServiceTest extends VertxTest {
     @Test
     public void matchesTargetingShouldReturnFalseForNotIntersectsInteger() {
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new IntersectsIntegers(category(Type.userFirstPartyData, "someId"), asList(123, 321))));
+                new Not(new IntersectsIntegers(category(Type.USER_FIRST_PARTY_DATA, "someId"), asList(123, 321))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .user(User.builder()
@@ -848,7 +850,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotIntersectsSizes() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200)))));
+                new Not(new IntersectsSizes(category(Type.SIZE), asList(Size.of(300, 250), Size.of(400, 200)))));
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -875,7 +877,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotWithin() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new Within(category(Type.location), GeoRegion.of(50.424744f, 30.506435f, 10.0f))));
+                new Not(new Within(category(Type.LOCATION), GeoRegion.of(50.424744f, 30.506435f, 10.0f))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder()
@@ -904,8 +906,8 @@ public class TargetingServiceTest extends VertxTest {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
                 new Not(new And(asList(
-                        new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200))),
-                        new IntersectsStrings(category(Type.mediaType), asList("banner", "video"))))));
+                        new IntersectsSizes(category(Type.SIZE), asList(Size.of(300, 250), Size.of(400, 200))),
+                        new IntersectsStrings(category(Type.MEDIA_TYPE), asList("banner", "video"))))));
 
         final BidRequest bidRequest = BidRequest.builder().build();
 
@@ -932,7 +934,7 @@ public class TargetingServiceTest extends VertxTest {
     public void matchesTargetingShouldReturnFalseForNotMatches() {
         // given
         final TargetingDefinition targetingDefinition = TargetingDefinition.of(
-                new Not(new Matches(category(Type.domain), "*nba.com*")));
+                new Not(new Matches(category(Type.DOMAIN), "*nba.com*")));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()

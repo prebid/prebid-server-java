@@ -185,8 +185,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class ExchangeServiceTest extends VertxTest {
 
@@ -565,7 +565,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(bidder, mock(Bidder.class), givenSeatBid(singletonList(
                 givenBid(Bid.builder().build()))));
 
-        final BidderBid hookChangedBid = BidderBid.of(Bid.builder().id("newId").build(), video, "USD");
+        final BidderBid hookChangedBid = BidderBid.of(Bid.builder().id("newId").build(), VIDEO, "USD");
         doAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                 false,
                 BidderResponsePayloadImpl.of(singletonList(hookChangedBid)))))
@@ -1175,7 +1175,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .containsOnly(
                         BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                                BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
+                                BidderBid.of(expectedThirdBid, BANNER, null)), emptyList(), emptyList()), 0),
                         BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
 
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
@@ -1396,7 +1396,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any(), any(), any(), any()))
                 .willReturn(ValidationResult.error("BidResponse currency is not valid: USDD"));
 
-        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.GENERIC.getCode(),
                 "BidResponse currency is not valid: USDD"));
         givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
 
@@ -1471,7 +1471,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))),
                 builder -> builder.id("requestId").tmax(500L));
 
-        final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), banner, "USD");
+        final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), BANNER, "USD");
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid), null, emptyList());
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willReturn(singletonList(
@@ -2645,7 +2645,7 @@ public class ExchangeServiceTest extends VertxTest {
                         "Dropped bid 'invalid_bid_2'. Does not contain a positive (or zero if there is a deal) 'price'",
                         "Dropped bid 'invalid_bid_3'. Does not contain a positive (or zero if there is a deal) 'price'"
                 );
-        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.unknown_error);
+        verify(metrics, times(3)).updateAdapterRequestErrorMetric("bidder", MetricName.UNKNOWN_ERROR);
     }
 
     @Test
@@ -2744,7 +2744,7 @@ public class ExchangeServiceTest extends VertxTest {
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "CUR1");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "CUR1");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, BANNER, "CUR1");
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
@@ -2788,7 +2788,7 @@ public class ExchangeServiceTest extends VertxTest {
         expectedBidExt.put("origbidcpm", new BigDecimal("2.0"));
         expectedBidExt.put("origbidcur", "USD");
         final Bid expectedBid = Bid.builder().impid("impId1").price(updatedPrice).ext(expectedBidExt).build();
-        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, banner, "USD");
+        final BidderBid expectedBidderBid = BidderBid.of(expectedBid, BANNER, "USD");
         assertThat(argumentCaptor.getValue())
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
@@ -2892,7 +2892,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
                         Bid.builder().id("bidId").impid("impId").price(price)
-                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), BANNER, null)),
                 emptyList(),
                 emptyList()));
 
@@ -2929,9 +2929,9 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestBidderCardinalityMetric(1);
-        verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.OPENRTB2_WEB));
         verify(metrics)
-                .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
+                .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.OPENRTB2_WEB), eq(true));
         verify(metrics).updateAdapterResponseTime(eq("someBidder"), eq("accountId"), anyInt());
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
         verify(metrics).updateAdapterBidMetrics(eq("someBidder"), eq("accountId"), eq(10000L), eq(false), eq("banner"));
@@ -2948,7 +2948,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateAdapterRequestTypeAndNoCookieMetrics(
-                eq("someBidder"), eq(MetricName.openrtb2web), eq(false));
+                eq("someBidder"), eq(MetricName.OPENRTB2_WEB), eq(false));
     }
 
     @Test
@@ -2964,7 +2964,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest, account));
 
         // then
-        verify(metrics).updateAccountRequestMetrics(eq(""), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(eq(""), eq(MetricName.OPENRTB2_WEB));
     }
 
     @Test
@@ -3005,11 +3005,11 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
-        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badinput));
-        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badserverresponse));
-        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.failedtorequestbids));
-        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.timeout));
-        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.unknown_error));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.BADINPUT));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.BADSERVERRESPONSE));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.FAILEDTOREQUESTBIDS));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.TIMEOUT));
+        verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.UNKNOWN_ERROR));
     }
 
     @Test
@@ -3070,10 +3070,10 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
-                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
+                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), VIDEO, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.VIDEO,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3104,10 +3104,10 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
-                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
+                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), VIDEO, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.VIDEO,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3141,7 +3141,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.BANNER,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3174,7 +3174,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
+                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.BANNER,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
@@ -3254,7 +3254,7 @@ public class ExchangeServiceTest extends VertxTest {
     public void shouldReturnEmptyBidResponseWhenRequestIsRejected() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.OPENRTB2_AUCTION))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
                 .build();
@@ -3279,7 +3279,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
                 .debugContext(DebugContext.of(true, null))
                 .build();
@@ -3347,9 +3347,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, TraceLevel.BASIC))
                 .build();
 
         // when
@@ -3369,7 +3369,7 @@ public class ExchangeServiceTest extends VertxTest {
                 16L,
                 asList(
                         ExtModulesTraceStage.of(
-                                Stage.entrypoint,
+                                Stage.ENTRYPOINT,
                                 12L,
                                 singletonList(ExtModulesTraceStageOutcome.of(
                                         "http-request",
@@ -3381,14 +3381,14 @@ public class ExchangeServiceTest extends VertxTest {
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module1", "hook1"))
                                                                         .executionTime(4L)
-                                                                        .status(ExecutionStatus.success)
+                                                                        .status(ExecutionStatus.SUCCESS)
                                                                         .message("Message 1-1")
-                                                                        .action(ExecutionAction.update)
+                                                                        .action(ExecutionAction.UPDATE)
                                                                         .build(),
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module1", "hook2"))
                                                                         .executionTime(6L)
-                                                                        .status(ExecutionStatus.invocation_failure)
+                                                                        .status(ExecutionStatus.INVOCATION_FAILURE)
                                                                         .message("Message 1-2")
                                                                         .build())),
                                                 ExtModulesTraceGroup.of(
@@ -3397,18 +3397,18 @@ public class ExchangeServiceTest extends VertxTest {
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module1", "hook2"))
                                                                         .executionTime(4L)
-                                                                        .status(ExecutionStatus.success)
+                                                                        .status(ExecutionStatus.SUCCESS)
                                                                         .message("Message 1-2")
-                                                                        .action(ExecutionAction.no_action)
+                                                                        .action(ExecutionAction.NO_ACTION)
                                                                         .build(),
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module2", "hook1"))
                                                                         .executionTime(6L)
-                                                                        .status(ExecutionStatus.timeout)
+                                                                        .status(ExecutionStatus.TIMEOUT)
                                                                         .message("Message 2-1")
                                                                         .build())))))),
                         ExtModulesTraceStage.of(
-                                Stage.auction_response,
+                                Stage.AUCTION_RESPONSE,
                                 4L,
                                 singletonList(ExtModulesTraceStageOutcome.of(
                                         "auction-response",
@@ -3420,15 +3420,15 @@ public class ExchangeServiceTest extends VertxTest {
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module3", "hook1"))
                                                                         .executionTime(4L)
-                                                                        .status(ExecutionStatus.success)
+                                                                        .status(ExecutionStatus.SUCCESS)
                                                                         .message("Message 3-1")
-                                                                        .action(ExecutionAction.update)
+                                                                        .action(ExecutionAction.UPDATE)
                                                                         .build(),
                                                                 ExtModulesTraceInvocationResult.builder()
                                                                         .hookId(HookId.of("module3", "hook2"))
                                                                         .executionTime(4L)
-                                                                        .status(ExecutionStatus.success)
-                                                                        .action(ExecutionAction.no_action)
+                                                                        .status(ExecutionStatus.SUCCESS)
+                                                                        .action(ExecutionAction.NO_ACTION)
                                                                         .build())))))))));
     }
 
@@ -3441,9 +3441,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(false, TraceLevel.verbose))
+                .debugContext(DebugContext.of(false, TraceLevel.VERBOSE))
                 .build();
 
         // when
@@ -3482,9 +3482,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, TraceLevel.BASIC))
                 .build();
 
         // when
@@ -3504,9 +3504,9 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
-                .debugContext(DebugContext.of(true, TraceLevel.basic))
+                .debugContext(DebugContext.of(true, TraceLevel.BASIC))
                 .requestRejected(true)
                 .build();
 
@@ -3531,11 +3531,11 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         new EnumMap<>(singletonMap(
-                                Stage.entrypoint,
+                                Stage.ENTRYPOINT,
                                 singletonList(StageExecutionOutcome.of("http-request", emptyList()))))))
-                .debugContext(DebugContext.of(false, TraceLevel.basic))
+                .debugContext(DebugContext.of(false, TraceLevel.BASIC))
                 .build();
 
         // when
@@ -3551,7 +3551,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
                 .debugContext(DebugContext.empty())
                 .requestRejected(true)
@@ -3564,46 +3564,46 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
         verify(metrics).updateHooksMetrics(
                 eq("module1"),
-                eq(Stage.entrypoint),
+                eq(Stage.ENTRYPOINT),
                 eq("hook1"),
-                eq(ExecutionStatus.success),
+                eq(ExecutionStatus.SUCCESS),
                 eq(4L),
-                eq(ExecutionAction.update));
+                eq(ExecutionAction.UPDATE));
         verify(metrics).updateHooksMetrics(
                 eq("module1"),
-                eq(Stage.entrypoint),
+                eq(Stage.ENTRYPOINT),
                 eq("hook2"),
-                eq(ExecutionStatus.invocation_failure),
+                eq(ExecutionStatus.INVOCATION_FAILURE),
                 eq(6L),
                 isNull());
         verify(metrics).updateHooksMetrics(
                 eq("module1"),
-                eq(Stage.entrypoint),
+                eq(Stage.ENTRYPOINT),
                 eq("hook2"),
-                eq(ExecutionStatus.success),
+                eq(ExecutionStatus.SUCCESS),
                 eq(4L),
-                eq(ExecutionAction.no_action));
+                eq(ExecutionAction.NO_ACTION));
         verify(metrics).updateHooksMetrics(
                 eq("module2"),
-                eq(Stage.entrypoint),
+                eq(Stage.ENTRYPOINT),
                 eq("hook1"),
-                eq(ExecutionStatus.timeout),
+                eq(ExecutionStatus.TIMEOUT),
                 eq(6L),
                 isNull());
         verify(metrics).updateHooksMetrics(
                 eq("module3"),
-                eq(Stage.auction_response),
+                eq(Stage.AUCTION_RESPONSE),
                 eq("hook1"),
-                eq(ExecutionStatus.success),
+                eq(ExecutionStatus.SUCCESS),
                 eq(4L),
-                eq(ExecutionAction.update));
+                eq(ExecutionAction.UPDATE));
         verify(metrics).updateHooksMetrics(
                 eq("module3"),
-                eq(Stage.auction_response),
+                eq(Stage.AUCTION_RESPONSE),
                 eq("hook2"),
-                eq(ExecutionStatus.success),
+                eq(ExecutionStatus.SUCCESS),
                 eq(4L),
-                eq(ExecutionAction.no_action));
+                eq(ExecutionAction.NO_ACTION));
         verify(metrics, never()).updateAccountHooksMetrics(any(), any(), any(), any());
         verify(metrics, never()).updateAccountModuleDurationMetric(any(), any(), any());
     }
@@ -3617,7 +3617,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes()))
                 .debugContext(DebugContext.empty())
                 .build();
@@ -3631,33 +3631,33 @@ public class ExchangeServiceTest extends VertxTest {
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module1"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.update));
+                eq(ExecutionStatus.SUCCESS),
+                eq(ExecutionAction.UPDATE));
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module1"),
-                eq(ExecutionStatus.invocation_failure),
+                eq(ExecutionStatus.INVOCATION_FAILURE),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module1"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.no_action));
+                eq(ExecutionStatus.SUCCESS),
+                eq(ExecutionAction.NO_ACTION));
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module2"),
-                eq(ExecutionStatus.timeout),
+                eq(ExecutionStatus.TIMEOUT),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module3"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.update));
+                eq(ExecutionStatus.SUCCESS),
+                eq(ExecutionAction.UPDATE));
         verify(metrics).updateAccountHooksMetrics(
                 eq("accountId"),
                 eq("module3"),
-                eq(ExecutionStatus.success),
-                eq(ExecutionAction.no_action));
+                eq(ExecutionStatus.SUCCESS),
+                eq(ExecutionAction.NO_ACTION));
         verify(metrics, times(3)).updateAccountModuleDurationMetric(anyString(), any(), any());
         verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module1"), eq(14L));
         verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module2"), eq(6L));
@@ -3882,9 +3882,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .debugWarnings(new ArrayList<>())
                 .account(account)
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .timeout(timeout)
-                .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
+                .hookExecutionContext(HookExecutionContext.of(Endpoint.OPENRTB2_AUCTION))
                 .debugContext(DebugContext.empty())
                 .txnLog(TxnLog.create())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
@@ -3955,11 +3955,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderBid givenBid(Bid bid) {
-        return BidderBid.of(bid, BidType.banner, null);
+        return BidderBid.of(bid, BidType.BANNER, null);
     }
 
     private static BidderBid givenBid(Bid bid, String cur) {
-        return BidderBid.of(bid, BidType.banner, cur);
+        return BidderBid.of(bid, BidType.BANNER, cur);
     }
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilder) {
@@ -4058,16 +4058,16 @@ public class ExchangeServiceTest extends VertxTest {
     private static EnumMap<Stage, List<StageExecutionOutcome>> stageOutcomes() {
         final Map<Stage, List<StageExecutionOutcome>> stageOutcomes = new HashMap<>();
 
-        stageOutcomes.put(Stage.entrypoint, singletonList(StageExecutionOutcome.of(
+        stageOutcomes.put(Stage.ENTRYPOINT, singletonList(StageExecutionOutcome.of(
                 "http-request",
                 asList(
                         GroupExecutionOutcome.of(asList(
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module1", "hook1"))
                                         .executionTime(4L)
-                                        .status(ExecutionStatus.success)
+                                        .status(ExecutionStatus.SUCCESS)
                                         .message("Message 1-1")
-                                        .action(ExecutionAction.update)
+                                        .action(ExecutionAction.UPDATE)
                                         .errors(asList("error message 1-1 1", "error message 1-1 2"))
                                         .warnings(asList("warning message 1-1 1", "warning message 1-1 2"))
                                         .debugMessages(asList("debug message 1-1 1", "debug message 1-1 2"))
@@ -4086,7 +4086,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module1", "hook2"))
                                         .executionTime(6L)
-                                        .status(ExecutionStatus.invocation_failure)
+                                        .status(ExecutionStatus.INVOCATION_FAILURE)
                                         .message("Message 1-2")
                                         .errors(asList("error message 1-2 1", "error message 1-2 2"))
                                         .warnings(asList("warning message 1-2 1", "warning message 1-2 2"))
@@ -4095,39 +4095,39 @@ public class ExchangeServiceTest extends VertxTest {
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module1", "hook2"))
                                         .executionTime(4L)
-                                        .status(ExecutionStatus.success)
+                                        .status(ExecutionStatus.SUCCESS)
                                         .message("Message 1-2")
-                                        .action(ExecutionAction.no_action)
+                                        .action(ExecutionAction.NO_ACTION)
                                         .errors(asList("error message 1-2 3", "error message 1-2 4"))
                                         .warnings(asList("warning message 1-2 3", "warning message 1-2 4"))
                                         .build(),
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module2", "hook1"))
                                         .executionTime(6L)
-                                        .status(ExecutionStatus.timeout)
+                                        .status(ExecutionStatus.TIMEOUT)
                                         .message("Message 2-1")
                                         .errors(asList("error message 2-1 1", "error message 2-1 2"))
                                         .warnings(asList("warning message 2-1 1", "warning message 2-1 2"))
                                         .build()))))));
 
-        stageOutcomes.put(Stage.auction_response, singletonList(StageExecutionOutcome.of(
+        stageOutcomes.put(Stage.AUCTION_RESPONSE, singletonList(StageExecutionOutcome.of(
                 "auction-response",
                 singletonList(
                         GroupExecutionOutcome.of(asList(
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module3", "hook1"))
                                         .executionTime(4L)
-                                        .status(ExecutionStatus.success)
+                                        .status(ExecutionStatus.SUCCESS)
                                         .message("Message 3-1")
-                                        .action(ExecutionAction.update)
+                                        .action(ExecutionAction.UPDATE)
                                         .errors(asList("error message 3-1 1", "error message 3-1 2"))
                                         .warnings(asList("warning message 3-1 1", "warning message 3-1 2"))
                                         .build(),
                                 HookExecutionOutcome.builder()
                                         .hookId(HookId.of("module3", "hook2"))
                                         .executionTime(4L)
-                                        .status(ExecutionStatus.success)
-                                        .action(ExecutionAction.no_action)
+                                        .status(ExecutionStatus.SUCCESS)
+                                        .action(ExecutionAction.NO_ACTION)
                                         .build()))))));
 
         return new EnumMap<>(stageOutcomes);

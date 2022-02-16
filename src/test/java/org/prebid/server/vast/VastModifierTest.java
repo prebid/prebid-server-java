@@ -306,7 +306,7 @@ public class VastModifierTest {
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
         assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
-        verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.BADSERVERRESPONSE);
     }
 
     @Test

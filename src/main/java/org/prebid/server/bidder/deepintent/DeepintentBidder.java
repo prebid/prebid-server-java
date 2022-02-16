@@ -153,7 +153,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
     private BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
         throw new PreBidException(String.format("Failed to find impression with id: %s", impId));

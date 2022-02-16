@@ -123,7 +123,7 @@ public class JdbcPeriodicRefreshServiceTest {
 
         // then
         verify(metrics).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
+                eq(MetricName.STORED_REQUEST), eq(MetricName.INITIALIZE), anyLong());
     }
 
     @Test
@@ -137,9 +137,9 @@ public class JdbcPeriodicRefreshServiceTest {
 
         // then
         verify(metrics).updateSettingsCacheRefreshTime(
-                eq(MetricName.stored_request), eq(MetricName.initialize), anyLong());
+                eq(MetricName.STORED_REQUEST), eq(MetricName.INITIALIZE), anyLong());
         verify(metrics).updateSettingsCacheRefreshErrorMetric(
-                eq(MetricName.stored_request), eq(MetricName.initialize));
+                eq(MetricName.STORED_REQUEST), eq(MetricName.INITIALIZE));
     }
 
     private void createAndInitService(long refresh) {
@@ -149,7 +149,7 @@ public class JdbcPeriodicRefreshServiceTest {
                 "update_query",
                 refresh,
                 2000,
-                MetricName.stored_request,
+                MetricName.STORED_REQUEST,
                 cacheNotificationListener,
                 vertx,
                 jdbcClient,

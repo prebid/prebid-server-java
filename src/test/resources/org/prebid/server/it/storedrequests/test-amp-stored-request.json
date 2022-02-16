@@ -59,7 +59,7 @@
         }
       },
       "targeting": {
-        "pricegranularity": "dense"
+        "pricegranularity": "DENSE"
       },
       "cache": {
         "bids": {}

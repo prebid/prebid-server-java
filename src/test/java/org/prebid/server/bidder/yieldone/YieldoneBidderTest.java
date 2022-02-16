@@ -121,7 +121,7 @@ public class YieldoneBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldoneBidder.makeBids(httpCall, givenBidRequest(identity()));
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_INPUT);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -141,7 +141,7 @@ public class YieldoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class YieldoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.VIDEO, "USD"));
     }
 
     @Test

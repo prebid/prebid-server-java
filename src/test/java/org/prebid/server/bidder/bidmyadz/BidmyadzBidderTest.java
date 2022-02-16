@@ -136,7 +136,7 @@ public class BidmyadzBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -151,14 +151,14 @@ public class BidmyadzBidderTest extends VertxTest {
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123")
-                                .ext(mapper.createObjectNode().put("mediaType", "banner")))));
+                                .ext(mapper.createObjectNode().put("mediaType", "BANNER")))));
 
         // when
         final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.banner);
+        assertThat(result.getValue()).extracting(BidderBid::getType).containsExactly(BidType.BANNER);
     }
 
     @Test

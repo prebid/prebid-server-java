@@ -31,8 +31,8 @@ import java.util.stream.Collectors;
 
 public class AdotBidder implements Bidder<BidRequest> {
 
-    private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
-            BidType.xNative);
+    private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.BANNER, BidType.VIDEO,
+            BidType.X_NATIVE);
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

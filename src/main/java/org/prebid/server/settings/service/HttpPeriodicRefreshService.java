@@ -106,8 +106,8 @@ public class HttpPeriodicRefreshService implements Initializable {
     }
 
     private Void save(HttpRefreshResponse refreshResponse) {
-        final Map<String, String> requests = parseStoredData(refreshResponse.getRequests(), StoredDataType.request);
-        final Map<String, String> imps = parseStoredData(refreshResponse.getImps(), StoredDataType.imp);
+        final Map<String, String> requests = parseStoredData(refreshResponse.getRequests(), StoredDataType.REQUEST);
+        final Map<String, String> imps = parseStoredData(refreshResponse.getImps(), StoredDataType.IMP);
 
         cacheNotificationListener.save(requests, imps);
 

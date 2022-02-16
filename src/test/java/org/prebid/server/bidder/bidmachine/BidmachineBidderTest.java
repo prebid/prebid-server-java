@@ -34,7 +34,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class BidmachineBidderTest extends VertxTest {
 
@@ -191,7 +191,7 @@ public class BidmachineBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -213,7 +213,7 @@ public class BidmachineBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, null));
     }
 
     @Test
@@ -232,7 +232,7 @@ public class BidmachineBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).isEqualTo(
                             "ignoring bid id=null, request doesn't contain any valid impression with id=123");
                 });

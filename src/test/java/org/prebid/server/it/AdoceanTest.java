@@ -25,7 +25,7 @@ public class AdoceanTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adocean/test-auction-adocean-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adocean/test-auction-adocean-response.json", response,

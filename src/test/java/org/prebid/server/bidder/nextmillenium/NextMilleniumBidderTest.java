@@ -103,7 +103,7 @@ public class NextMilleniumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isNotEmpty()
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value of type");
                 });
     }
@@ -121,7 +121,7 @@ public class NextMilleniumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @Test
@@ -154,7 +154,7 @@ public class NextMilleniumBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isNotEmpty()
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
                 });
 

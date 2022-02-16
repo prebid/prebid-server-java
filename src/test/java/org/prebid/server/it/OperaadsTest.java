@@ -27,7 +27,7 @@ public class OperaadsTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/operaads/test-auction-operaads-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/operaads/test-auction-operaads-response.json", response,

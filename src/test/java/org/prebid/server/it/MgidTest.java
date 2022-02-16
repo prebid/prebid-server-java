@@ -27,7 +27,7 @@ public class MgidTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/mgid/test-auction-mgid-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/mgid/test-auction-mgid-response.json", response, singletonList("mgid"));

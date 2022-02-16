@@ -49,7 +49,7 @@ public class HttpInteractionLogHandlerTest {
     public void shouldSetSpecWhenAllParametersPresent() {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
-                .add("endpoint", "auction")
+                .add("endpoint", "AUCTION")
                 .add("statusCode", "400")
                 .add("account", "123")
                 .add("bidder", "ix")
@@ -59,7 +59,7 @@ public class HttpInteractionLogHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpInteractionLogger).setSpec(HttpLogSpec.of(HttpLogSpec.Endpoint.auction, 400, "123", "ix", 2));
+        verify(httpInteractionLogger).setSpec(HttpLogSpec.of(HttpLogSpec.Endpoint.AUCTION, 400, "123", "ix", 2));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class HttpInteractionLogHandlerTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("Invalid 'endpoint' parameter value, allowed values '[auction, amp]'"));
+        verify(httpResponse).end(eq("Invalid 'endpoint' parameter value, allowed values '[AUCTION, AMP]'"));
 
         verifyNoInteractions(httpInteractionLogger);
     }

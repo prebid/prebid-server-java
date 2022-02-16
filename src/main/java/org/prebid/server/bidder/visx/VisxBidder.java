@@ -124,7 +124,7 @@ public class VisxBidder implements Bidder<BidRequest> {
                 : null;
 
         return bidTypeTextual != null && SUPPORTED_BID_TYPES_TEXTUAL.contains(bidTypeTextual)
-                ? BidType.valueOf(bidTypeTextual)
+                ? BidType.getEnum(bidTypeTextual)
                 : null;
     }
 
@@ -132,10 +132,10 @@ public class VisxBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
                 throw new PreBidException(String.format("Unknown impression type for ID: \"%s\"", impId));
             }

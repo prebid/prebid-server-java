@@ -65,10 +65,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
         final List<BidderError> processingErrors = new ArrayList<>();
         final List<BidRequest> outgoingRequests = makeRequests(bidRequest,
-                differentiatedImps.get(OpenxImpType.banner),
-                differentiatedImps.get(OpenxImpType.video), processingErrors);
+                differentiatedImps.get(OpenxImpType.BANNER),
+                differentiatedImps.get(OpenxImpType.VIDEO), processingErrors);
 
-        final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.other), processingErrors);
+        final List<BidderError> errors = errors(differentiatedImps.get(OpenxImpType.OTHER), processingErrors);
 
         return Result.of(createHttpRequests(outgoingRequests), errors);
     }
@@ -101,8 +101,8 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private static OpenxImpType resolveImpType(Imp imp) {
         return imp.getBanner() != null
-                ? OpenxImpType.banner
-                : imp.getVideo() != null ? OpenxImpType.video : OpenxImpType.other;
+                ? OpenxImpType.BANNER
+                : imp.getVideo() != null ? OpenxImpType.VIDEO : OpenxImpType.OTHER;
     }
 
     private List<BidderError> errors(List<Imp> notSupportedImps, List<BidderError> processingErrors) {
@@ -165,7 +165,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), openxImpExt.getCustomFloor()))
                 .ext(makeImpExt(openxImpExt.getCustomParams()));
 
-        if (resolveImpType(imp) == OpenxImpType.video
+        if (resolveImpType(imp) == OpenxImpType.VIDEO
                 && prebidImpExt != null
                 && Objects.equals(prebidImpExt.getIsRewardedInventory(), 1)) {
             impBuilder.video(imp.getVideo().toBuilder()
@@ -238,10 +238,10 @@ public class OpenxBidder implements Bidder<BidRequest> {
 
     private static Map<String, BidType> impIdToBidType(BidRequest bidRequest) {
         return bidRequest.getImp().stream()
-                .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.banner : BidType.video));
+                .collect(Collectors.toMap(Imp::getId, imp -> imp.getBanner() != null ? BidType.BANNER : BidType.VIDEO));
     }
 
     private static BidType getBidType(Bid bid, Map<String, BidType> impIdToBidType) {
-        return impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner);
+        return impIdToBidType.getOrDefault(bid.getImpid(), BidType.BANNER);
     }
 }

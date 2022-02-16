@@ -28,7 +28,7 @@ public class SmartadserverTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/smartadserver/test-auction-smartadserver-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/smartadserver/test-auction-smartadserver-response.json", response,

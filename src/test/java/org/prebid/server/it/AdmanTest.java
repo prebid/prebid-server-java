@@ -27,7 +27,7 @@ public class AdmanTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adman/test-auction-adman-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adman/test-auction-adman-response.json", response,

@@ -72,7 +72,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     public static final String PREBID_EXT = "prebid";
-    private static final MetricName REQUEST_TYPE_METRIC = MetricName.amp;
+    private static final MetricName REQUEST_TYPE_METRIC = MetricName.AMP;
 
     private final AmpRequestFactory ampRequestFactory;
     private final ExchangeService exchangeService;
@@ -264,7 +264,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         enrichWithCommonHeaders(response, origin);
 
         if (responseSucceeded) {
-            metricRequestStatus = MetricName.ok;
+            metricRequestStatus = MetricName.OK;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
@@ -273,7 +273,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
 
                 final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
@@ -287,7 +287,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
                 final String message = exception.getMessage();
                 conditionalLogger.info(message, 100);
 
@@ -300,7 +300,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                        ? MetricName.BLACKLISTED_ACCOUNT : MetricName.BLACKLISTED_APP;
                 final String message = String.format("Blacklisted: %s", exception.getMessage());
                 logger.debug(message);
 
@@ -310,7 +310,7 @@ public class AmpHandler implements Handler<RoutingContext> {
             } else {
                 final String message = exception.getMessage();
 
-                metricRequestStatus = MetricName.err;
+                metricRequestStatus = MetricName.ERR;
                 errorMessages = Collections.singletonList(message);
                 logger.error("Critical error while running the auction", exception);
 
@@ -347,24 +347,24 @@ public class AmpHandler implements Handler<RoutingContext> {
     private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
                              MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_amp,
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.OPENRTB2_AMP,
                 response -> response
                         .exceptionHandler(this::handleResponseException)
                         .setStatusCode(status.code())
                         .end(body));
 
         if (responseSent) {
-            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
+            metrics.updateRequestTimeMetric(MetricName.REQUEST_TIME, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.NETWORKERR);
         }
     }
 
     private void handleResponseException(Throwable exception) {
         logger.warn("Failed to send amp response: {0}", exception.getMessage());
-        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.NETWORKERR);
     }
 
     private void enrichWithCommonHeaders(HttpServerResponse response, String origin) {

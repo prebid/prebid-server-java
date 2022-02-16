@@ -31,7 +31,7 @@ public class WithinTest {
     @Before
     public void setUp() {
         // given
-        category = new TargetingCategory(TargetingCategory.Type.location);
+        category = new TargetingCategory(TargetingCategory.Type.LOCATION);
         expression = new Within(category, GeoRegion.of(50.424782f, 30.506423f, 10f));
     }
 

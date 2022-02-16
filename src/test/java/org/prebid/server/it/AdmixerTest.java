@@ -27,7 +27,7 @@ public class AdmixerTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/admixer/test-auction-admixer-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/admixer/test-auction-admixer-response.json", response,

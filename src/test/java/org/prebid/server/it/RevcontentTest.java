@@ -26,7 +26,7 @@ public class RevcontentTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/revcontent/test-revcontent-bid-response.json"))));
         // when
         final Response response = responseFor("openrtb2/revcontent/test-auction-revcontent-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/revcontent/test-auction-revcontent-response.json", response,

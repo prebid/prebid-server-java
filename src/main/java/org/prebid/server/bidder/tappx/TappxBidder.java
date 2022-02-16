@@ -189,9 +189,9 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+                return BidType.VIDEO;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

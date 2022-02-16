@@ -224,7 +224,7 @@ public class VtrackHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.vtrack,
+        HttpUtil.executeSafely(routingContext, Endpoint.VTRACK,
                 response -> response
                         .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())

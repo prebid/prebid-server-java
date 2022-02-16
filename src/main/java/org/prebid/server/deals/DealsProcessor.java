@@ -548,7 +548,7 @@ public class DealsProcessor {
 
     private static void logBidderOrImpExclusion(AuctionContext auctionContext, Imp imp,
                                                 Set<String> dealsOnlyBiddersToRemove, String messageTemplate) {
-        auctionContext.getDeepDebugLog().add(null, Category.cleanup, () ->
+        auctionContext.getDeepDebugLog().add(null, Category.CLEANUP, () ->
                 String.format(messageTemplate, String.join(", ", dealsOnlyBiddersToRemove), imp.getId()));
     }
 }

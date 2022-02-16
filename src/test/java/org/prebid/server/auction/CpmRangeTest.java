@@ -14,7 +14,7 @@ public class CpmRangeTest {
 
     @Test
     public void fromCpmShouldReturnMaxRangeIfCpmExceedsIt() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(21), PriceGranularity.createFromString("auto")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(21), PriceGranularity.createFromString("AUTO")))
                 .isEqualTo("20.00");
     }
 
@@ -35,57 +35,57 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnCpmGivenLowGranularity() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("low")))
+                CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("LOW")))
                 .isEqualTo("3.50");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenMedGranularity() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("med")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("MED")))
                 .isEqualTo("3.80");
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("medium")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("MEDIUM")))
                 .isEqualTo("3.80");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenHighGranularity() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("high")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("HIGH")))
                 .isEqualTo("3.87");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenAutoGranularityAndFirstRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("auto")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("AUTO")))
                 .isEqualTo("3.85");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenAutoGranularityAndSecondRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(5.32), PriceGranularity.createFromString("auto")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(5.32), PriceGranularity.createFromString("AUTO")))
                 .isEqualTo("5.30");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenAutoGranularityAndThirdRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(13.59), PriceGranularity.createFromString("auto")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(13.59), PriceGranularity.createFromString("AUTO")))
                 .isEqualTo("13.50");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenDenseGranularityAndFirstRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(2.87), PriceGranularity.createFromString("dense")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(2.87), PriceGranularity.createFromString("DENSE")))
                 .isEqualTo("2.87");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenDenseGranularityAndSecondRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(5.36), PriceGranularity.createFromString("dense")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(5.36), PriceGranularity.createFromString("DENSE")))
                 .isEqualTo("5.35");
     }
 
     @Test
     public void fromCpmShouldReturnCpmGivenDenseGranularityAndThirdRange() {
-        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(13.69), PriceGranularity.createFromString("dense")))
+        Assertions.assertThat(CpmRange.fromCpm(BigDecimal.valueOf(13.69), PriceGranularity.createFromString("DENSE")))
                 .isEqualTo("13.50");
     }
 

@@ -64,7 +64,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.BANNER, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 }

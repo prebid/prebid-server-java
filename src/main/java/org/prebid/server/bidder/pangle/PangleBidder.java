@@ -187,14 +187,14 @@ public class PangleBidder implements Bidder<BidRequest> {
         switch (adType) {
             case 1:
             case 2:
-                bidType = BidType.banner;
+                bidType = BidType.BANNER;
                 break;
             case 5:
-                bidType = BidType.xNative;
+                bidType = BidType.X_NATIVE;
                 break;
             case 7:
             case 8:
-                bidType = BidType.video;
+                bidType = BidType.VIDEO;
                 break;
             default:
                 errors.add(BidderError.badServerResponse("unrecognized adtype in response"));

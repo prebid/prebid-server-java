@@ -30,7 +30,7 @@ public class GetuidsHandler implements Handler<RoutingContext> {
         final Map<String, String> uids = uidsFrom(routingContext);
         final String body = mapper.encodeToString(BuyerUids.of(uids));
 
-        HttpUtil.executeSafely(routingContext, Endpoint.getuids, response -> response
+        HttpUtil.executeSafely(routingContext, Endpoint.GETUIDS, response -> response
                 .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpUtil.APPLICATION_JSON_CONTENT_TYPE)
                 .end(body));
     }

@@ -386,11 +386,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         switch (bidType) {
             case 1:
-                return BidType.video;
+                return BidType.VIDEO;
             case 2:
-                return BidType.xNative;
+                return BidType.X_NATIVE;
             default:
-                return BidType.banner;
+                return BidType.BANNER;
         }
     }
 

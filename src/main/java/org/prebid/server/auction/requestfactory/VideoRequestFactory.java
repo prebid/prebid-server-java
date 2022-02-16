@@ -46,7 +46,7 @@ public class VideoRequestFactory {
 
     private static final String DEBUG = "debug";
     private static final int DEFAULT_CACHE_LOG_TTL = 3600;
-    private static final String ENDPOINT = Endpoint.openrtb2_video.value();
+    private static final String ENDPOINT = Endpoint.OPENRTB2_VIDEO.value();
 
     private final int maxRequestSize;
     private final boolean enforceStoredRequest;
@@ -100,7 +100,7 @@ public class VideoRequestFactory {
         final List<PodError> podErrors = new ArrayList<>();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_video, MetricName.video);
+                Endpoint.OPENRTB2_VIDEO, MetricName.VIDEO);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest ->

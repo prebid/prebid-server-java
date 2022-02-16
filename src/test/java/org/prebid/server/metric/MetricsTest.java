@@ -55,14 +55,14 @@ public class MetricsTest {
     @Before
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.DETAILED);
 
-        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosity);
+        metrics = new Metrics(metricRegistry, CounterType.COUNTER, accountMetricsVerbosity);
     }
 
     @Test
     public void createShouldReturnMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(metrics -> metrics.incCounter(MetricName.bids_received));
+        verifyCreatesConfiguredCounterType(metrics -> metrics.incCounter(MetricName.BIDS_RECEIVED));
     }
 
     @Test
@@ -72,13 +72,13 @@ public class MetricsTest {
 
     @Test
     public void forAccountShouldReturnAccountMetricsConfiguredWithCounterType() {
-        verifyCreatesConfiguredCounterType(metrics -> metrics.forAccount(ACCOUNT_ID).incCounter(MetricName.requests));
+        verifyCreatesConfiguredCounterType(metrics -> metrics.forAccount(ACCOUNT_ID).incCounter(MetricName.REQUESTS));
     }
 
     @Test
     public void forAccountShouldReturnAccountMetricsConfiguredWithAccount() {
         // when
-        metrics.forAccount(ACCOUNT_ID).incCounter(MetricName.requests);
+        metrics.forAccount(ACCOUNT_ID).incCounter(MetricName.REQUESTS);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -92,13 +92,13 @@ public class MetricsTest {
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received));
+                metrics -> metrics.forAdapter(RUBICON).incCounter(MetricName.BIDS_RECEIVED));
     }
 
     @Test
     public void forAdapterShouldReturnAdapterMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).incCounter(MetricName.bids_received);
+        metrics.forAdapter(RUBICON).incCounter(MetricName.BIDS_RECEIVED);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.bids_received").getCount()).isOne();
@@ -106,22 +106,22 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAdapterRequestTypeMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAdapter(RUBICON).requestType(MetricName.amp))
-                .isSameAs(metrics.forAdapter(RUBICON).requestType(MetricName.amp));
+        assertThat(metrics.forAdapter(RUBICON).requestType(MetricName.AMP))
+                .isSameAs(metrics.forAdapter(RUBICON).requestType(MetricName.AMP));
     }
 
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAdapter(RUBICON)
-                .requestType(MetricName.openrtb2app)
-                .incCounter(MetricName.requests));
+                .requestType(MetricName.OPENRTB2_APP)
+                .incCounter(MetricName.REQUESTS));
     }
 
     @Test
     public void shouldReturnAdapterRequestTypeMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
+        metrics.forAdapter(RUBICON).requestType(MetricName.OPENRTB2_WEB).incCounter(MetricName.REQUESTS);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-web").getCount()).isOne();
@@ -138,13 +138,13 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAdapter(RUBICON)
                 .request()
-                .incCounter(MetricName.gotbids));
+                .incCounter(MetricName.GOTBIDS));
     }
 
     @Test
     public void shouldReturnAdapterRequestMetricsConfiguredWithAdapterType() {
         // when
-        metrics.forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+        metrics.forAdapter(RUBICON).request().incCounter(MetricName.GOTBIDS);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.gotbids").getCount()).isOne();
@@ -162,13 +162,13 @@ public class MetricsTest {
                 .forAccount(ACCOUNT_ID)
                 .adapter()
                 .forAdapter(RUBICON)
-                .incCounter(MetricName.bids_received));
+                .incCounter(MetricName.BIDS_RECEIVED));
     }
 
     @Test
     public void shouldReturnAccountAdapterMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).incCounter(MetricName.bids_received);
+        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).incCounter(MetricName.BIDS_RECEIVED);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.bids_received").getCount()).isOne();
@@ -187,13 +187,13 @@ public class MetricsTest {
                 .adapter()
                 .forAdapter(RUBICON)
                 .request()
-                .incCounter(MetricName.gotbids));
+                .incCounter(MetricName.GOTBIDS));
     }
 
     @Test
     public void shouldReturnAccountAdapterRequestMetricsConfiguredWithAccountAndAdapterType() {
         // when
-        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).request().incCounter(MetricName.gotbids);
+        metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON).request().incCounter(MetricName.GOTBIDS);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.adapter.rubicon.requests.gotbids").getCount())
@@ -202,22 +202,22 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAccountRequestTypeMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.amp))
-                .isSameAs(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.amp));
+        assertThat(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.AMP))
+                .isSameAs(metrics.forAccount(ACCOUNT_ID).requestType(MetricName.AMP));
     }
 
     @Test
     public void shouldReturnAccountRequestTypeMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .forAccount(ACCOUNT_ID)
-                .requestType(MetricName.openrtb2app)
-                .incCounter(MetricName.requests));
+                .requestType(MetricName.OPENRTB2_APP)
+                .incCounter(MetricName.REQUESTS));
     }
 
     @Test
     public void shouldReturnAccountRequestTypeMetricsConfiguredWithAccount() {
         // when
-        metrics.forAccount(ACCOUNT_ID).requestType(MetricName.openrtb2web).incCounter(MetricName.requests);
+        metrics.forAccount(ACCOUNT_ID).requestType(MetricName.OPENRTB2_WEB).incCounter(MetricName.REQUESTS);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests.type.openrtb2-web").getCount()).isOne();
@@ -231,13 +231,13 @@ public class MetricsTest {
     @Test
     public void userSyncShouldReturnUserSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.userSync().incCounter(MetricName.opt_outs));
+                metrics -> metrics.userSync().incCounter(MetricName.OPT_OUTS));
     }
 
     @Test
     public void userSyncShouldReturnUserSyncMetricsConfiguredWithPrefix() {
         // when
-        metrics.userSync().incCounter(MetricName.opt_outs);
+        metrics.userSync().incCounter(MetricName.OPT_OUTS);
 
         // then
         assertThat(metricRegistry.counter("usersync.opt_outs").getCount()).isOne();
@@ -253,13 +253,13 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .userSync()
                 .forBidder(RUBICON)
-                .incCounter(MetricName.sets));
+                .incCounter(MetricName.SETS));
     }
 
     @Test
     public void shouldReturnBidderUserSyncMetricsConfiguredWithBidder() {
         // when
-        metrics.userSync().forBidder(RUBICON).incCounter(MetricName.sets);
+        metrics.userSync().forBidder(RUBICON).incCounter(MetricName.SETS);
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isOne();
@@ -273,13 +273,13 @@ public class MetricsTest {
     @Test
     public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(
-                metrics -> metrics.cookieSync().incCounter(MetricName.gen));
+                metrics -> metrics.cookieSync().incCounter(MetricName.GEN));
     }
 
     @Test
     public void cookieSyncShouldReturnCookieSyncMetricsConfiguredWithPrefix() {
         // when
-        metrics.cookieSync().incCounter(MetricName.gen);
+        metrics.cookieSync().incCounter(MetricName.GEN);
 
         // then
         assertThat(metricRegistry.counter("cookie_sync.gen").getCount()).isOne();
@@ -295,13 +295,13 @@ public class MetricsTest {
         verifyCreatesConfiguredCounterType(metrics -> metrics
                 .cookieSync()
                 .forBidder(RUBICON)
-                .incCounter(MetricName.gen));
+                .incCounter(MetricName.GEN));
     }
 
     @Test
     public void shouldReturnBidderCookieSyncMetricsConfiguredWithBidder() {
         // when
-        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.gen);
+        metrics.cookieSync().forBidder(RUBICON).incCounter(MetricName.GEN);
 
         // then
         assertThat(metricRegistry.counter("cookie_sync.rubicon.gen").getCount()).isOne();
@@ -309,21 +309,21 @@ public class MetricsTest {
 
     @Test
     public void forRequestTypeShouldReturnSameRequestStatusMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forRequestType(MetricName.openrtb2web))
-                .isSameAs(metrics.forRequestType(MetricName.openrtb2web));
+        assertThat(metrics.forRequestType(MetricName.OPENRTB2_WEB))
+                .isSameAs(metrics.forRequestType(MetricName.OPENRTB2_WEB));
     }
 
     @Test
     public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithCounterType() {
         verifyCreatesConfiguredCounterType(metrics -> metrics
-                .forRequestType(MetricName.openrtb2web)
-                .incCounter(MetricName.ok));
+                .forRequestType(MetricName.OPENRTB2_WEB)
+                .incCounter(MetricName.OK));
     }
 
     @Test
     public void forRequestTypeShouldReturnRequestStatusMetricsConfiguredWithRequestType() {
         // when
-        metrics.forRequestType(MetricName.openrtb2web).incCounter(MetricName.ok);
+        metrics.forRequestType(MetricName.OPENRTB2_WEB).incCounter(MetricName.OK);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isOne();
@@ -331,13 +331,13 @@ public class MetricsTest {
 
     @Test
     public void forCircuitBreakerShouldReturnSameCircuitBreakerMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forCircuitBreakerType(MetricName.db)).isSameAs(metrics.forCircuitBreakerType(MetricName.db));
+        assertThat(metrics.forCircuitBreakerType(MetricName.DB)).isSameAs(metrics.forCircuitBreakerType(MetricName.DB));
     }
 
     @Test
     public void forCircuitBreakerShouldReturnCircuitBreakerMetricsConfiguredWithId() {
         // when
-        metrics.forCircuitBreakerType(MetricName.db).createGauge(MetricName.opened, () -> 1);
+        metrics.forCircuitBreakerType(MetricName.DB).createGauge(MetricName.OPENED, () -> 1);
 
         // then
         assertThat(metricRegistry.gauge("circuit-breaker.db.opened.count", () -> null).getValue()).isEqualTo(1L);
@@ -408,7 +408,7 @@ public class MetricsTest {
     @Test
     public void updateRequestTimeMetricShouldUpdateMetric() {
         // when
-        metrics.updateRequestTimeMetric(MetricName.request_time, 456L);
+        metrics.updateRequestTimeMetric(MetricName.REQUEST_TIME, 456L);
 
         // then
         assertThat(metricRegistry.timer("request_time").getCount()).isOne();
@@ -417,12 +417,12 @@ public class MetricsTest {
     @Test
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
-        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted_account);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blacklisted_app);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
-        metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
-        metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
+        metrics.updateRequestTypeMetric(MetricName.OPENRTB2_WEB, MetricName.OK);
+        metrics.updateRequestTypeMetric(MetricName.OPENRTB2_WEB, MetricName.BLACKLISTED_ACCOUNT);
+        metrics.updateRequestTypeMetric(MetricName.OPENRTB2_APP, MetricName.BLACKLISTED_APP);
+        metrics.updateRequestTypeMetric(MetricName.OPENRTB2_APP, MetricName.ERR);
+        metrics.updateRequestTypeMetric(MetricName.AMP, MetricName.BADINPUT);
+        metrics.updateRequestTypeMetric(MetricName.AMP, MetricName.NETWORKERR);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isOne();
@@ -445,7 +445,7 @@ public class MetricsTest {
     @Test
     public void updateAccountRequestMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.OPENRTB2_WEB);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -456,8 +456,8 @@ public class MetricsTest {
     public void updateAdapterRequestTypeAndNoCookieMetricsShouldUpdateMetricsAsExpected() {
 
         // when
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.openrtb2app, true);
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.amp, false);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.OPENRTB2_APP, true);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.AMP, false);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.type.openrtb2-app").getCount()).isEqualTo(1);
@@ -469,12 +469,12 @@ public class MetricsTest {
     public void updateAnalyticWithEventTypeShouldUpdateMetricsAsExpected() {
 
         // when
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_auction, MetricName.ok);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_amp, MetricName.timeout);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_video, MetricName.err);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_cookie_sync, MetricName.timeout);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_notification, MetricName.err);
-        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.event_setuid, MetricName.badinput);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_AUCTION, MetricName.OK);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_AMP, MetricName.TIMEOUT);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_VIDEO, MetricName.ERR);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_COOKIE_SYNC, MetricName.TIMEOUT);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_NOTIFICATION, MetricName.ERR);
+        metrics.updateAnalyticEventMetric(ANALYTIC_CODE, MetricName.EVENT_SETUID, MetricName.BADINPUT);
 
         // then
         assertThat(metricRegistry.counter("analytics.analyticCode.auction.ok").getCount()).isOne();
@@ -556,9 +556,9 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestErrorMetricShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.badinput);
-        metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
-        metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.badinput);
+        metrics.updateAdapterRequestErrorMetric(RUBICON, MetricName.BADINPUT);
+        metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.BADINPUT);
+        metrics.updateAdapterRequestErrorMetric(CONVERSANT, MetricName.BADINPUT);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.badinput").getCount()).isOne();
@@ -568,8 +568,8 @@ public class MetricsTest {
     @Test
     public void updateSizeValidationMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateSizeValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
-        metrics.updateSizeValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.err);
+        metrics.updateSizeValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.ERR);
+        metrics.updateSizeValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.ERR);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.response.validation.size.err").getCount()).isEqualTo(1);
@@ -580,8 +580,8 @@ public class MetricsTest {
     @Test
     public void updateSecureValidationMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateSecureValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.err);
-        metrics.updateSecureValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.err);
+        metrics.updateSecureValidationMetrics(RUBICON, ACCOUNT_ID, MetricName.ERR);
+        metrics.updateSecureValidationMetrics(CONVERSANT, ACCOUNT_ID, MetricName.ERR);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.response.validation.secure.err").getCount()).isEqualTo(1);
@@ -801,9 +801,9 @@ public class MetricsTest {
     @Test
     public void updateAuctionTcfMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, false, true, true, false);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, true, false, false, true);
+        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.OPENRTB2_WEB, true, true, true, true);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.OPENRTB2_WEB, false, true, true, false);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.OPENRTB2_APP, true, false, false, true);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isOne();
@@ -944,10 +944,10 @@ public class MetricsTest {
     @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.NONE);
 
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.OPENRTB2_WEB);
         metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
         metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
@@ -966,10 +966,10 @@ public class MetricsTest {
     @Test
     public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsBasic() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.BASIC);
 
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.OPENRTB2_WEB);
         metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
         metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
         metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
@@ -1132,9 +1132,9 @@ public class MetricsTest {
     @Test
     public void shouldIncrementPrebidCacheCreativeSizeHistogram() {
         // when
-        metrics.updateCacheCreativeSize("accountId", 123, MetricName.json);
-        metrics.updateCacheCreativeSize("accountId", 456, MetricName.xml);
-        metrics.updateCacheCreativeSize("accountId", 789, MetricName.unknown);
+        metrics.updateCacheCreativeSize("accountId", 123, MetricName.JSON);
+        metrics.updateCacheCreativeSize("accountId", 456, MetricName.XML);
+        metrics.updateCacheCreativeSize("accountId", 789, MetricName.UNKNOWN);
 
         // then
         assertThat(metricRegistry.histogram("prebid_cache.creative_size.json").getCount()).isEqualTo(1);
@@ -1160,7 +1160,7 @@ public class MetricsTest {
     @Test
     public void updateSettingsCacheRefreshTimeShouldUpdateTimer() {
         // when
-        metrics.updateSettingsCacheRefreshTime(MetricName.stored_request, MetricName.initialize, 123L);
+        metrics.updateSettingsCacheRefreshTime(MetricName.STORED_REQUEST, MetricName.INITIALIZE, 123L);
 
         // then
         assertThat(metricRegistry
@@ -1172,7 +1172,7 @@ public class MetricsTest {
     @Test
     public void updateSettingsCacheRefreshErrorMetricShouldIncrementMetric() {
         // when
-        metrics.updateSettingsCacheRefreshErrorMetric(MetricName.stored_request, MetricName.initialize);
+        metrics.updateSettingsCacheRefreshErrorMetric(MetricName.STORED_REQUEST, MetricName.INITIALIZE);
 
         // then
         assertThat(metricRegistry.counter("settings.cache.stored-request.refresh.initialize.err").getCount())
@@ -1182,7 +1182,7 @@ public class MetricsTest {
     @Test
     public void updateSettingsCacheEventMetricShouldIncrementMetric() {
         // when
-        metrics.updateSettingsCacheEventMetric(MetricName.account, MetricName.hit);
+        metrics.updateSettingsCacheEventMetric(MetricName.ACCOUNT, MetricName.HIT);
 
         // then
         assertThat(metricRegistry.counter("settings.cache.account.hit").getCount()).isEqualTo(1);
@@ -1192,24 +1192,24 @@ public class MetricsTest {
     public void updateHooksMetricsShouldIncrementMetrics() {
         // when
         metrics.updateHooksMetrics(
-                "module1", Stage.entrypoint, "hook1", ExecutionStatus.success, 5L, ExecutionAction.update);
+                "module1", Stage.ENTRYPOINT, "hook1", ExecutionStatus.SUCCESS, 5L, ExecutionAction.UPDATE);
         metrics.updateHooksMetrics(
-                "module1", Stage.raw_auction_request, "hook2", ExecutionStatus.success, 5L, ExecutionAction.no_action);
+                "module1", Stage.RAW_AUCTION_REQUEST, "hook2", ExecutionStatus.SUCCESS, 5L, ExecutionAction.NO_ACTION);
         metrics.updateHooksMetrics(
                 "module1",
-                Stage.processed_auction_request,
+                Stage.PROCESSED_AUCTION_REQUEST,
                 "hook3",
-                ExecutionStatus.success,
+                ExecutionStatus.SUCCESS,
                 5L,
-                ExecutionAction.reject);
+                ExecutionAction.REJECT);
         metrics.updateHooksMetrics(
-                "module2", Stage.bidder_request, "hook1", ExecutionStatus.failure, 6L, null);
+                "module2", Stage.BIDDER_REQUEST, "hook1", ExecutionStatus.FAILURE, 6L, null);
         metrics.updateHooksMetrics(
-                "module2", Stage.raw_bidder_response, "hook2", ExecutionStatus.timeout, 7L, null);
+                "module2", Stage.RAW_BIDDER_RESPONSE, "hook2", ExecutionStatus.TIMEOUT, 7L, null);
         metrics.updateHooksMetrics(
-                "module2", Stage.processed_bidder_response, "hook3", ExecutionStatus.execution_failure, 5L, null);
+                "module2", Stage.PROCESSED_BIDDER_RESPONSE, "hook3", ExecutionStatus.EXECUTION_FAILURE, 5L, null);
         metrics.updateHooksMetrics(
-                "module2", Stage.auction_response, "hook4", ExecutionStatus.invocation_failure, 5L, null);
+                "module2", Stage.AUCTION_RESPONSE, "hook4", ExecutionStatus.INVOCATION_FAILURE, 5L, null);
 
         // then
         assertThat(metricRegistry.counter("modules.module.module1.stage.entrypoint.hook.hook1.call")
@@ -1270,15 +1270,15 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.DETAILED);
 
         // when
         metrics.updateAccountHooksMetrics(
-                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+                "accountId", "module1", ExecutionStatus.SUCCESS, ExecutionAction.UPDATE);
         metrics.updateAccountHooksMetrics(
-                "accountId", "module2", ExecutionStatus.failure, null);
+                "accountId", "module2", ExecutionStatus.FAILURE, null);
         metrics.updateAccountHooksMetrics(
-                "accountId", "module3", ExecutionStatus.timeout, null);
+                "accountId", "module3", ExecutionStatus.TIMEOUT, null);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
@@ -1300,11 +1300,11 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.BASIC);
 
         // when
         metrics.updateAccountHooksMetrics(
-                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+                "accountId", "module1", ExecutionStatus.SUCCESS, ExecutionAction.UPDATE);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
@@ -1316,7 +1316,7 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.DETAILED);
 
         // when
         metrics.updateAccountModuleDurationMetric(
@@ -1334,7 +1334,7 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.BASIC);
 
         // when
         metrics.updateAccountModuleDurationMetric(
@@ -1356,9 +1356,9 @@ public class MetricsTest {
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
-        counterTypeClasses.put(CounterType.counter, Counter.class);
-        counterTypeClasses.put(CounterType.flushingCounter, ResettingCounter.class);
-        counterTypeClasses.put(CounterType.meter, Meter.class);
+        counterTypeClasses.put(CounterType.COUNTER, Counter.class);
+        counterTypeClasses.put(CounterType.FLUSHING_COUNTER, ResettingCounter.class);
+        counterTypeClasses.put(CounterType.METER, Meter.class);
 
         final SoftAssertions softly = new SoftAssertions();
 

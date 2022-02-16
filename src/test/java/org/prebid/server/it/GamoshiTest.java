@@ -27,7 +27,7 @@ public class GamoshiTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/gamoshi/test-auction-gamoshi-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/gamoshi/test-auction-gamoshi-response.json", response,

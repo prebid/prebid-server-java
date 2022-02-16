@@ -137,7 +137,7 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
     private static BidderBid mapBidToBidderBid(Bid bid, List<Imp> imps, String currency) {
         final BidType bidType = getBidType(bid.getImpid(), imps);
 
-        if (bidType == BidType.banner || bidType == BidType.video) {
+        if (bidType == BidType.BANNER || bidType == BidType.VIDEO) {
             return BidderBid.of(bid, bidType, currency);
         }
         return null;
@@ -147,19 +147,19 @@ public class SynacormediaBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
                 if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
                 if (imp.getAudio() != null) {
-                    return BidType.audio;
+                    return BidType.AUDIO;
                 }
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

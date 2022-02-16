@@ -26,7 +26,7 @@ public class IxTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/ix/test-auction-ix-request.json", Endpoint.openrtb2_auction);
+        final Response response = responseFor("openrtb2/ix/test-auction-ix-request.json", Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/ix/test-auction-ix-response.json", response, singletonList("ix"));

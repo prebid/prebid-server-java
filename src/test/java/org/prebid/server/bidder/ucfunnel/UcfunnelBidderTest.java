@@ -124,7 +124,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = ucfunnelBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_INPUT);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -144,7 +144,7 @@ public class UcfunnelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @Test
@@ -163,7 +163,7 @@ public class UcfunnelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.VIDEO, "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

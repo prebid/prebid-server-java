@@ -42,11 +42,11 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     static {
         CLASS_TO_EVENT_TYPE = new HashMap<>();
-        CLASS_TO_EVENT_TYPE.put(AuctionEvent.class.getName(), EventType.auction);
-        CLASS_TO_EVENT_TYPE.put(AmpEvent.class.getName(), EventType.amp);
-        CLASS_TO_EVENT_TYPE.put(VideoEvent.class.getName(), EventType.video);
-        CLASS_TO_EVENT_TYPE.put(SetuidEvent.class.getName(), EventType.setuid);
-        CLASS_TO_EVENT_TYPE.put(CookieSyncEvent.class.getName(), EventType.cookiesync);
+        CLASS_TO_EVENT_TYPE.put(AuctionEvent.class.getName(), EventType.AUCTION);
+        CLASS_TO_EVENT_TYPE.put(AmpEvent.class.getName(), EventType.AMP);
+        CLASS_TO_EVENT_TYPE.put(VideoEvent.class.getName(), EventType.VIDEO);
+        CLASS_TO_EVENT_TYPE.put(SetuidEvent.class.getName(), EventType.SETUID);
+        CLASS_TO_EVENT_TYPE.put(CookieSyncEvent.class.getName(), EventType.COOKIESYNC);
     }
 
     private final long configurationRefreshDelay;
@@ -91,7 +91,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     private static String buildEventEndpointUrl(String endpoint, EventType eventType) {
-        return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
+        return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType);
     }
 
     public <T> Future<Void> processEvent(T event) {
@@ -177,7 +177,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private String makeEventHandlerEndpoint(String endpoint, EventType eventType) {
         try {
-            return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + "/" + eventType.name());
+            return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + "/" + eventType);
         } catch (IllegalArgumentException e) {
             final String message = String.format("[pubstack] Failed to create event report url for endpoint: %s",
                     endpoint);

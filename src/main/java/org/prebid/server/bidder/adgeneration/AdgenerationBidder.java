@@ -214,7 +214,7 @@ public class AdgenerationBidder implements Bidder<Void> {
                         .crid(adgenerationResponse.getCreativeid())
                         .dealid(adgenerationResponse.getDealid())
                         .build();
-                final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.banner, getCurrency(bidRequest));
+                final BidderBid bidderBid = BidderBid.of(updatedBid, BidType.BANNER, getCurrency(bidRequest));
                 return Result.withValue(bidderBid);
             }
         }

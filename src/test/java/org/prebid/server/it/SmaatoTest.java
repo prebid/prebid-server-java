@@ -29,7 +29,7 @@ public class SmaatoTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/smaato/test-auction-smaato-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/smaato/test-auction-smaato-response.json", response, singletonList("smaato"));

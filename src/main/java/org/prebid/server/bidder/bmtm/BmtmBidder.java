@@ -146,13 +146,13 @@ public class BmtmBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 } else if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
             }
         }
 
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

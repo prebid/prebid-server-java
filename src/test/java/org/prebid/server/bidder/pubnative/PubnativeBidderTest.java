@@ -43,9 +43,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class PubnativeBidderTest extends VertxTest {
 
@@ -301,7 +301,7 @@ public class PubnativeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -349,7 +349,7 @@ public class PubnativeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -370,7 +370,7 @@ public class PubnativeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "USD"));
     }
 
     @Test
@@ -391,7 +391,7 @@ public class PubnativeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, "USD"));
     }
 
     @Test
@@ -411,7 +411,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), BANNER, "USD"));
     }
 
     @Test
@@ -433,7 +433,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), BANNER, "USD"));
     }
 
     @Test
@@ -455,7 +455,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -477,7 +477,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(100).h(100).build(), BANNER, "USD"));
     }
 
     @Test
@@ -499,7 +499,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(150).h(150).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").w(150).h(150).build(), BANNER, "USD"));
     }
 
     @Test
@@ -522,7 +522,7 @@ public class PubnativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     private static BidRequest givenBidRequest(

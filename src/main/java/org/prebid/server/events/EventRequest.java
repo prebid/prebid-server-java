@@ -32,16 +32,21 @@ public class EventRequest {
 
     public enum Type {
 
-        win, imp
+        WIN, IMP;
+
+        @Override
+        public String toString() {
+            return super.toString().toLowerCase();
+        }
     }
 
     public enum Format {
 
-        blank, image
+        BLANK, IMAGE
     }
 
     public enum Analytics {
 
-        enabled, disabled
+        ENABLED, DISABLED
     }
 }

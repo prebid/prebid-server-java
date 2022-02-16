@@ -312,10 +312,10 @@ public class HttpApplicationSettings implements ApplicationSettings {
         final List<String> errors = new ArrayList<>();
 
         final Map<String, String> storedIdToRequest =
-                parseStoredDataOrAddError(requestIds, response.getRequests(), StoredDataType.request, errors);
+                parseStoredDataOrAddError(requestIds, response.getRequests(), StoredDataType.REQUEST, errors);
 
         final Map<String, String> storedIdToImp =
-                parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.imp, errors);
+                parseStoredDataOrAddError(impIds, response.getImps(), StoredDataType.IMP, errors);
 
         return StoredDataResult.of(storedIdToRequest, storedIdToImp, errors);
     }

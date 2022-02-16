@@ -171,7 +171,7 @@ public class PlannerServiceTest extends VertxTest {
         verify(alertHttpService).resetAlertCount(eq("pbs-planner-empty-response-error"));
         verify(metrics).updatePlannerRequestMetric(eq(true));
         verify(metrics).updateLineItemsNumberMetric(eq(2L));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.planner_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.PLANNER_REQUEST_TIME), anyLong());
     }
 
     @SuppressWarnings("unchecked")

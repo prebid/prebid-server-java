@@ -216,7 +216,7 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
 ## Metrics
-- `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `flushingCounter` (default), `counter` or `meter`.
+- `metrics.metricType` - set the type of metric counter for [Dropwizard Metrics](http://metrics.dropwizard.io). Can be `FLUSHING_COUNTER` (default), `COUNTER` or `METER`.
 
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
@@ -250,9 +250,9 @@ For `prometheus` backend type available next options:
 
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
-- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `none, basic, detailed`. Default is `none`.
-- `metrics.accounts.basic-verbosity` - a list of accounts for which only basic metrics will be submitted.
-- `metrics.accounts.detailed-verbosity` - a list of accounts for which all metrics will be submitted. 
+- `metrics.accounts.default-verbosity` - verbosity for accounts not specified in next sections. Allowed values: `NONE, BASIC, DETAILED`. Default is `none`.
+- `metrics.accounts.BASIC-verbosity` - a list of accounts for which only basic metrics will be submitted.
+- `metrics.accounts.DETAILED-verbosity` - a list of accounts for which all metrics will be submitted. 
 
 ## Cache
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.

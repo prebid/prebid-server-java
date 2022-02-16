@@ -213,7 +213,7 @@ public class RichaudienceBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
     }

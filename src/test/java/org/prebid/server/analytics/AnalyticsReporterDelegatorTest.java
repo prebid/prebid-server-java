@@ -184,8 +184,8 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
-        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.ok);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.ok);
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.EVENT_AUCTION, MetricName.OK);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.EVENT_AUCTION, MetricName.OK);
     }
 
     @Test
@@ -198,8 +198,8 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
-        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.timeout);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.timeout);
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.EVENT_AUCTION, MetricName.TIMEOUT);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.EVENT_AUCTION, MetricName.TIMEOUT);
     }
 
     @Test
@@ -212,8 +212,8 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
-        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.err);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.err);
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.EVENT_AUCTION, MetricName.ERR);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.EVENT_AUCTION, MetricName.ERR);
     }
 
     @Test
@@ -226,8 +226,8 @@ public class AnalyticsReporterDelegatorTest {
         target.processEvent(givenAuctionEvent(identity()), TcfContext.empty());
 
         // then
-        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.event_auction, MetricName.badinput);
-        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.event_auction, MetricName.badinput);
+        verify(metrics).updateAnalyticEventMetric("logAnalytics", MetricName.EVENT_AUCTION, MetricName.BADINPUT);
+        verify(metrics).updateAnalyticEventMetric("adapter", MetricName.EVENT_AUCTION, MetricName.BADINPUT);
     }
 
     @Test

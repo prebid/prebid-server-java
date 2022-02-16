@@ -129,7 +129,7 @@ public class PlannerService implements Suspendable {
             throw new PreBidException("Failed to fetch data from planner, response can't be null");
         }
 
-        metrics.updateRequestTimeMetric(MetricName.planner_request_time, clock.millis() - startTime);
+        metrics.updateRequestTimeMetric(MetricName.PLANNER_REQUEST_TIME, clock.millis() - startTime);
 
         logger.debug("Received line item metadata and plans from Planner: {0}", body);
 

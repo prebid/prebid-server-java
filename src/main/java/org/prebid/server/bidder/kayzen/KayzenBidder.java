@@ -117,14 +117,14 @@ public class KayzenBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 } else if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

@@ -153,12 +153,12 @@ public class GamoshiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.banner),
+                .map(bid -> BidderBid.of(bid, impIdToBidType.getOrDefault(bid.getImpid(), BidType.BANNER),
                         bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
     private static BidType getBidType(Imp imp) {
-        return imp.getVideo() != null ? BidType.video : BidType.banner;
+        return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
     }
 }

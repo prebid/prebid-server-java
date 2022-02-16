@@ -27,7 +27,7 @@ public class DatablocksTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/datablocks/test-auction-datablocks-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/datablocks/test-auction-datablocks-response.json", response,

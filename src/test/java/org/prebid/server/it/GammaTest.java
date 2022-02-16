@@ -27,7 +27,7 @@ public class GammaTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/gamma/test-auction-gamma-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/gamma/test-auction-gamma-response.json", response, singletonList("gamma"));

@@ -26,10 +26,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class EvolutionBidderTest extends VertxTest {
 
@@ -76,7 +76,7 @@ public class EvolutionBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -130,10 +130,10 @@ public class EvolutionBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(
-                                givenBid("123", banner),
-                                givenBid("345", video),
-                                givenBid("456", audio),
-                                givenBid("567", xNative),
+                                givenBid("123", BANNER),
+                                givenBid("345", VIDEO),
+                                givenBid("456", AUDIO),
+                                givenBid("567", X_NATIVE),
                                 givenBid("789", "invalid_type"))));
 
         // when
@@ -143,11 +143,11 @@ public class EvolutionBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(
-                        BidderBid.of(givenBid("123", banner), banner, null),
-                        BidderBid.of(givenBid("345", video), video, null),
-                        BidderBid.of(givenBid("456", audio), audio, null),
-                        BidderBid.of(givenBid("567", xNative), xNative, null),
-                        BidderBid.of(givenBid("789", "invalid_type"), banner, null));
+                        BidderBid.of(givenBid("123", BANNER), BANNER, null),
+                        BidderBid.of(givenBid("345", VIDEO), VIDEO, null),
+                        BidderBid.of(givenBid("456", AUDIO), AUDIO, null),
+                        BidderBid.of(givenBid("567", X_NATIVE), X_NATIVE, null),
+                        BidderBid.of(givenBid("789", "invalid_type"), BANNER, null));
     }
 
     private static BidResponse givenBidResponse(Bid... bids) {

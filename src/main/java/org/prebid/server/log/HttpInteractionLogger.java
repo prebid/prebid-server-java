@@ -46,7 +46,7 @@ public class HttpInteractionLogger {
                                         int statusCode,
                                         String responseBody) {
 
-        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.auction, statusCode, auctionContext)) {
+        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.AUCTION, statusCode, auctionContext)) {
             logger.info(
                     "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
                     routingContext.request().uri(),
@@ -71,7 +71,7 @@ public class HttpInteractionLogger {
                                     int statusCode,
                                     String responseBody) {
 
-        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.amp, statusCode, auctionContext)) {
+        if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.AMP, statusCode, auctionContext)) {
             logger.info(
                     "Requested URL: \"{0}\", response status: \"{1}\", response body: \"{2}\"",
                     routingContext.request().uri(),
@@ -140,11 +140,11 @@ public class HttpInteractionLogger {
 
     private HttpLogSpec.Endpoint parseHttpLogEndpoint(MetricName requestTypeMetric) {
         if (requestTypeMetric != null) {
-            if (requestTypeMetric == MetricName.amp) {
-                return HttpLogSpec.Endpoint.amp;
+            if (requestTypeMetric == MetricName.AMP) {
+                return HttpLogSpec.Endpoint.AMP;
             }
-            if (requestTypeMetric == MetricName.openrtb2app || requestTypeMetric == MetricName.openrtb2web) {
-                return HttpLogSpec.Endpoint.auction;
+            if (requestTypeMetric == MetricName.OPENRTB2_APP || requestTypeMetric == MetricName.OPENRTB2_WEB) {
+                return HttpLogSpec.Endpoint.AUCTION;
             }
         }
         return null;

@@ -27,7 +27,7 @@ public class DeepintentTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/deepintent/test-auction-deepintent-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/deepintent/test-auction-deepintent-response.json", response,

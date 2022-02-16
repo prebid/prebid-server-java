@@ -28,7 +28,7 @@ public class SomoaudienceTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/somoaudience/test-auction-somoaudience-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/somoaudience/test-auction-somoaudience-response.json", response,

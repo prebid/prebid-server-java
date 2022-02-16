@@ -29,7 +29,7 @@ public class StatusHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         if (CollectionUtils.isEmpty(healthCheckers)) {
-            HttpUtil.executeSafely(routingContext, Endpoint.status,
+            HttpUtil.executeSafely(routingContext, Endpoint.STATUS,
                     response -> response
                             .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
                             .end());
@@ -37,7 +37,7 @@ public class StatusHandler implements Handler<RoutingContext> {
             final TreeMap<String, StatusResponse> nameToStatus = new TreeMap<>(healthCheckers.stream()
                     .collect(Collectors.toMap(HealthChecker::name, HealthChecker::status)));
 
-            HttpUtil.executeSafely(routingContext, Endpoint.status,
+            HttpUtil.executeSafely(routingContext, Endpoint.STATUS,
                     response -> response
                             .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                             .end(mapper.encodeToString(nameToStatus)));

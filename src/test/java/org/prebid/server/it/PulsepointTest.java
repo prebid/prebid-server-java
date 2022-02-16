@@ -27,7 +27,7 @@ public class PulsepointTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/pulsepoint/test-auction-pulsepoint-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/pulsepoint/test-auction-pulsepoint-response.json", response,

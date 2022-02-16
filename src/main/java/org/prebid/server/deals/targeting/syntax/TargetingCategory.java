@@ -14,12 +14,12 @@ public class TargetingCategory {
     private static final String BIDDER_PARAM_PATH_PATTERN = "\\w+(\\.\\w+)+";
 
     private static final EnumSet<Type> DYNAMIC_TYPES = EnumSet.of(
-            Type.deviceGeoExt,
-            Type.deviceExt,
-            Type.bidderParam,
-            Type.userSegment,
-            Type.userFirstPartyData,
-            Type.siteFirstPartyData);
+            Type.DEVICE_GEO_EXT,
+            Type.DEVICE_EXT,
+            Type.BIDDER_PARAM,
+            Type.USER_SEGMENT,
+            Type.USER_FIRST_PARTY_DATA,
+            Type.SITE_FIRST_PARTY_DATA);
 
     private static final EnumSet<Type> STATIC_TYPES = EnumSet.complementOf(DYNAMIC_TYPES);
 
@@ -58,13 +58,13 @@ public class TargetingCategory {
 
     private static TargetingCategory parseDynamicCategory(String candidate, Type type) {
         switch (type) {
-            case deviceGeoExt:
-            case deviceExt:
-            case userSegment:
-            case userFirstPartyData:
-            case siteFirstPartyData:
+            case DEVICE_GEO_EXT:
+            case DEVICE_EXT:
+            case USER_SEGMENT:
+            case USER_FIRST_PARTY_DATA:
+            case SITE_FIRST_PARTY_DATA:
                 return parseByTypeAttribute(candidate, type);
-            case bidderParam:
+            case BIDDER_PARAM:
                 return parseBidderParam(candidate, type);
             default:
                 throw new IllegalStateException(
@@ -96,23 +96,23 @@ public class TargetingCategory {
     }
 
     public enum Type {
-        size("adunit.size"),
-        mediaType("adunit.mediatype"),
-        adslot("adunit.adslot"),
-        domain("site.domain"),
-        publisherDomain("site.publisher.domain"),
-        referrer("site.referrer"),
-        appBundle("app.bundle"),
-        deviceGeoExt("device.geo.ext."),
-        deviceExt("device.ext."),
-        pagePosition("pos"),
-        location("geo.distance"),
-        bidderParam("bidp."),
-        userSegment("segment."),
-        userFirstPartyData("ufpd."),
-        siteFirstPartyData("sfpd."),
-        dow("user.ext.time.userdow"),
-        hour("user.ext.time.userhour");
+        SIZE("adunit.size"),
+        MEDIA_TYPE("adunit.mediatype"),
+        ADSLOT("adunit.adslot"),
+        DOMAIN("site.domain"),
+        PUBLISHER_DOMAIN("site.publisher.domain"),
+        REFERRER("site.referrer"),
+        APP_BUNDLE("app.bundle"),
+        DEVICE_GEO_EXT("device.geo.ext."),
+        DEVICE_EXT("device.ext."),
+        PAGE_POSITION("pos"),
+        LOCATION("geo.distance"),
+        BIDDER_PARAM("bidp."),
+        USER_SEGMENT("segment."),
+        USER_FIRST_PARTY_DATA("ufpd."),
+        SITE_FIRST_PARTY_DATA("sfpd."),
+        DOW("user.ext.time.userdow"),
+        HOUR("user.ext.time.userhour");
 
         private final String attribute;
 

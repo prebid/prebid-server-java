@@ -27,7 +27,7 @@ public class MobfoxpbTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/mobfoxpb/test-auction-mobfoxpb-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/mobfoxpb/test-auction-mobfoxpb-response.json", response,

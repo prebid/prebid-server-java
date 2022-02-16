@@ -40,7 +40,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.bidder.model.BidderError.Type.bad_server_response;
+import static org.prebid.server.bidder.model.BidderError.Type.BAD_SERVER_RESPONSE;
 
 public class AdoceanBidderTest extends VertxTest {
 
@@ -99,7 +99,7 @@ public class AdoceanBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Invalid url: https://invalid domain/");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -320,7 +320,7 @@ public class AdoceanBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage())
                             .startsWith("Failed to decode: No content to map due to end-of-input");
                 });
@@ -361,7 +361,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .w(300)
                         .h(250)
                         .build(),
-                BidType.banner, "EUR");
+                BidType.BANNER, "EUR");
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);

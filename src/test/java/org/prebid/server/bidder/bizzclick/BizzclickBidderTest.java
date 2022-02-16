@@ -349,7 +349,7 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+                .containsExactly(BidType.BANNER);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -367,7 +367,7 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
+                .containsExactly(BidType.VIDEO);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -387,7 +387,7 @@ public class BizzclickBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.xNative);
+                .containsExactly(BidType.X_NATIVE);
         assertThat(result.getErrors()).isEmpty();
     }
 

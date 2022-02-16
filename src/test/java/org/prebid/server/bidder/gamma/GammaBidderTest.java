@@ -37,8 +37,8 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.groups.Tuple.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class GammaBidderTest extends VertxTest {
 
@@ -227,7 +227,7 @@ public class GammaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("bad server response: body is empty");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -256,7 +256,7 @@ public class GammaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         final Bid expectedBid = Bid.builder().id("impId").adm(adm).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, VIDEO, "USD"));
     }
 
     @Test
@@ -285,7 +285,7 @@ public class GammaBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         final Bid expectedBid = Bid.builder().id("impId").adm(adm).nurl(nurl).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, VIDEO, "USD"));
     }
 
     @Test
@@ -354,7 +354,7 @@ public class GammaBidderTest extends VertxTest {
 
         final Bid expectedBid = Bid.builder().adm("ADM").build();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+                .containsOnly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     private static BidRequest givenBidRequest(

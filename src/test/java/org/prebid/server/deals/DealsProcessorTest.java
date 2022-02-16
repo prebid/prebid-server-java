@@ -748,7 +748,7 @@ public class DealsProcessorTest extends VertxTest {
 
         // then
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.cleanup,
+                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.CLEANUP,
                         "No Line Items from bidders rubicon matching imp with id impId and ready to serve."
                                 + " Removing impression from request to these bidders because dealsonly flag"
                                 + " is on for them."));
@@ -775,7 +775,7 @@ public class DealsProcessorTest extends VertxTest {
 
         // then
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.cleanup,
+                ExtTraceDeal.of(null, ZonedDateTime.now(CLOCK), ExtTraceDeal.Category.CLEANUP,
                         "No Line Items from bidders rubicon matching imp with id impId1 and ready to serve. "
                                 + "Removing imp from requests to all bidders because dealsonly flag is on for"
                                 + " these bidders and no other valid bidders in imp."));

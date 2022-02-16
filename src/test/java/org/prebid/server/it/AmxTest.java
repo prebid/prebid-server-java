@@ -28,7 +28,7 @@ public class AmxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/amx/test-auction-amx-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/amx/test-auction-amx-response.json", response, singletonList("amx"));

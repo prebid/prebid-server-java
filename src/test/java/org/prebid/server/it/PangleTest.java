@@ -27,7 +27,7 @@ public class PangleTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/pangle/test-auction-pangle-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/pangle/test-auction-pangle-response.json", response,

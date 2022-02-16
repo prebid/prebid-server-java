@@ -68,7 +68,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private static final List<String> BLACKLISTED_APPS = singletonList("bad_app");
 
-    private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
+    private static final String ENDPOINT = Endpoint.OPENRTB2_AMP.value();
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -115,7 +115,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     @Test
     public void shouldSetFieldsFromHeadersIfBodyFieldsEmptyForIpv4() {
         // given
-        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
+        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.V4, "UnitTest");
 
         // when
         final BidRequest result = target.resolve(defaultBidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -140,7 +140,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         given(ipAddressHelper.toIpAddress(eq("127.0.0.1"))).willReturn(null);
 
-        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.v4, "UnitTest");
+        givenImplicitParams("http://example.com", "example.com", "192.168.244.1", IpAddress.IP.V4, "UnitTest");
 
         // when
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -163,7 +163,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://example.com",
                 "example.com",
                 "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-                IpAddress.IP.v6,
+                IpAddress.IP.V6,
                 "UnitTest");
 
         // when
@@ -193,7 +193,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 "http://example.com",
                 "example.com",
                 "2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-                IpAddress.IP.v6,
+                IpAddress.IP.V6,
                 "UnitTest");
 
         // when
@@ -218,13 +218,13 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(ipAddressHelper.toIpAddress(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
-                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
+                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.V6));
 
         givenImplicitParams(
                 "http://example.com",
                 "example.com",
                 "1111:2222:3333:4444:5555:6666:7777:8888",
-                IpAddress.IP.v6,
+                IpAddress.IP.V6,
                 "UnitTest");
 
         // when
@@ -249,7 +249,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(ipAddressHelper.toIpAddress(eq("2001:0db8:85a3:0000:0000:8a2e:0370:7334")))
-                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.v6));
+                .willReturn(IpAddress.of("2001:0db8:85a3:0000::", IpAddress.IP.V6));
 
         // when
         target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -1076,10 +1076,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .build();
 
         given(ipAddressHelper.toIpAddress(eq("56.76.12.3")))
-                .willReturn(IpAddress.of("56.76.12.3", IpAddress.IP.v4));
+                .willReturn(IpAddress.of("56.76.12.3", IpAddress.IP.V4));
 
         givenImplicitParams(
-                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.V4, "UnitTest2");
 
         // when
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -1159,7 +1159,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .build())
                 .build();
         givenImplicitParams(
-                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.V4, "UnitTest2");
 
         // when
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -1186,7 +1186,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                         .build())
                 .build();
         givenImplicitParams(
-                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.v4, "UnitTest2");
+                "http://anotherexample.com", "anotherexample.com", "192.168.244.2", IpAddress.IP.V4, "UnitTest2");
 
         // when
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
@@ -1285,7 +1285,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("low")).build())
+                        .targeting(ExtRequestTargeting.builder().pricegranularity(new TextNode("LOW")).build())
                         .build()))
                 .build();
 
@@ -1839,12 +1839,12 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, timeoutResolver, Endpoint.OPENRTB2_AUCTION.value());
 
         // then
         final ExtRequest expectedExtBidRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
-                .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
+                .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_AUCTION.value()))
                 .build());
         assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
     }
@@ -1860,7 +1860,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, timeoutResolver, Endpoint.OPENRTB2_AUCTION.value());
 
         // then
         assertThat(singletonList(result))
@@ -1881,7 +1881,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, timeoutResolver, Endpoint.OPENRTB2_AUCTION.value());
 
         // then
         assertThat(singletonList(result))
@@ -1936,7 +1936,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest result = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, timeoutResolver, Endpoint.OPENRTB2_AUCTION.value());
 
         // then
         assertThat(singletonList(result))
@@ -1980,7 +1980,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         // when
         final BidRequest request = target.resolve(
-                bidRequest, httpRequest, timeoutResolver, Endpoint.openrtb2_auction.value());
+                bidRequest, httpRequest, timeoutResolver, Endpoint.OPENRTB2_AUCTION.value());
 
         // then
         assertThat(singletonList(request))

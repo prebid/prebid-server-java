@@ -27,7 +27,7 @@ public class BmtmTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/bmtm/test-auction-bmtm-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/bmtm/test-auction-bmtm-response.json", response, singletonList("bmtm"));

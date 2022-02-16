@@ -317,15 +317,15 @@ public class StoredResponseProcessor {
     }
 
     private BidType resolveBidType(Imp imp) {
-        BidType bidType = BidType.banner;
+        BidType bidType = BidType.BANNER;
         if (imp.getBanner() != null) {
             return bidType;
         } else if (imp.getVideo() != null) {
-            bidType = BidType.video;
+            bidType = BidType.VIDEO;
         } else if (imp.getXNative() != null) {
-            bidType = BidType.xNative;
+            bidType = BidType.X_NATIVE;
         } else if (imp.getAudio() != null) {
-            bidType = BidType.audio;
+            bidType = BidType.AUDIO;
         }
         return bidType;
     }

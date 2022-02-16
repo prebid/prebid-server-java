@@ -27,7 +27,7 @@ public class AdyoulikeTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adyoulike/test-auction-adyoulike-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adyoulike/test-auction-adyoulike-response.json", response,

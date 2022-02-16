@@ -5,5 +5,5 @@ package org.prebid.server.identity;
  */
 public enum IdGeneratorType {
 
-    none, uuid
+    NONE, UUID
 }

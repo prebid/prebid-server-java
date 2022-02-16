@@ -8,15 +8,15 @@ public class AccountMetricsVerbosityLevelTest {
 
     @Test
     public void isAtLeastShouldReturnFalse() {
-        assertThat(AccountMetricsVerbosityLevel.none.isAtLeast(AccountMetricsVerbosityLevel.basic)).isFalse();
-        assertThat(AccountMetricsVerbosityLevel.none.isAtLeast(AccountMetricsVerbosityLevel.detailed)).isFalse();
-        assertThat(AccountMetricsVerbosityLevel.basic.isAtLeast(AccountMetricsVerbosityLevel.detailed)).isFalse();
+        assertThat(AccountMetricsVerbosityLevel.NONE.isAtLeast(AccountMetricsVerbosityLevel.BASIC)).isFalse();
+        assertThat(AccountMetricsVerbosityLevel.NONE.isAtLeast(AccountMetricsVerbosityLevel.DETAILED)).isFalse();
+        assertThat(AccountMetricsVerbosityLevel.BASIC.isAtLeast(AccountMetricsVerbosityLevel.DETAILED)).isFalse();
     }
 
     @Test
     public void isAtLeastShouldReturnTrue() {
-        assertThat(AccountMetricsVerbosityLevel.basic.isAtLeast(AccountMetricsVerbosityLevel.basic)).isTrue();
-        assertThat(AccountMetricsVerbosityLevel.detailed.isAtLeast(AccountMetricsVerbosityLevel.basic)).isTrue();
-        assertThat(AccountMetricsVerbosityLevel.detailed.isAtLeast(AccountMetricsVerbosityLevel.detailed)).isTrue();
+        assertThat(AccountMetricsVerbosityLevel.BASIC.isAtLeast(AccountMetricsVerbosityLevel.BASIC)).isTrue();
+        assertThat(AccountMetricsVerbosityLevel.DETAILED.isAtLeast(AccountMetricsVerbosityLevel.BASIC)).isTrue();
+        assertThat(AccountMetricsVerbosityLevel.DETAILED.isAtLeast(AccountMetricsVerbosityLevel.DETAILED)).isTrue();
     }
 }

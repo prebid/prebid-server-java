@@ -27,7 +27,7 @@ public class BidmyadzTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/bidmyadz/test-auction-bidmyadz-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/bidmyadz/test-auction-bidmyadz-response.json", response,

@@ -27,7 +27,7 @@ public class AdviewTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adview/test-auction-adview-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adview/test-auction-adview-response.json", response, singletonList("adview"));

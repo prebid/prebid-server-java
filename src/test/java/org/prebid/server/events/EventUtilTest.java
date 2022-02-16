@@ -224,13 +224,13 @@ public class EventUtilTest {
 
         // then
         assertThat(result).isEqualTo(EventRequest.builder()
-                .type(EventRequest.Type.win)
+                .type(EventRequest.Type.WIN)
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
                 .timestamp(1000L)
-                .format(EventRequest.Format.image)
-                .analytics(EventRequest.Analytics.disabled)
+                .format(EventRequest.Format.IMAGE)
+                .analytics(EventRequest.Analytics.DISABLED)
                 .lineItemId("lineItemId")
                 .build());
     }
@@ -250,12 +250,12 @@ public class EventUtilTest {
 
         // then
         assertThat(result).isEqualTo(EventRequest.builder()
-                .type(EventRequest.Type.win)
+                .type(EventRequest.Type.WIN)
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
-                .format(EventRequest.Format.blank)
-                .analytics(EventRequest.Analytics.enabled)
+                .format(EventRequest.Format.BLANK)
+                .analytics(EventRequest.Analytics.ENABLED)
                 .timestamp(1000L)
                 .build());
     }
@@ -264,14 +264,14 @@ public class EventUtilTest {
     public void toUrlShouldReturnExpectedUrl() {
         // given
         final EventRequest eventRequest = EventRequest.builder()
-                .type(EventRequest.Type.win)
+                .type(EventRequest.Type.WIN)
                 .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
                 .bidId("bidId")
-                .format(EventRequest.Format.blank)
+                .format(EventRequest.Format.BLANK)
                 .integration("pbjs")
-                .analytics(EventRequest.Analytics.enabled)
+                .analytics(EventRequest.Analytics.ENABLED)
                 .timestamp(1000L)
                 .lineItemId("lineItemId")
                 .build();
@@ -290,7 +290,7 @@ public class EventUtilTest {
     public void toUrlShouldReturnExpectedUrlWithoutFormatAndAnalyticsAndLineItemId() {
         // given
         final EventRequest eventRequest = EventRequest.builder()
-                .type(EventRequest.Type.win)
+                .type(EventRequest.Type.WIN)
                 .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")
@@ -310,7 +310,7 @@ public class EventUtilTest {
     public void toUrlShouldReturnExpectedUrlWithoutTimestamp() {
         // given
         final EventRequest eventRequest = EventRequest.builder()
-                .type(EventRequest.Type.win)
+                .type(EventRequest.Type.WIN)
                 .auctionId("auctionId")
                 .accountId("accountId")
                 .bidder("bidder")

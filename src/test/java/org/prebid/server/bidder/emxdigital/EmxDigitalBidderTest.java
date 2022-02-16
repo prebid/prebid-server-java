@@ -37,8 +37,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class EmxDigitalBidderTest extends VertxTest {
 
@@ -509,7 +509,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
         assertThat(result.getErrors().get(0).getType())
-                .isEqualTo(BidderError.Type.bad_server_response);
+                .isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -559,7 +559,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().id("321").impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().id("321").impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -579,7 +579,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().id("321").adm("<vast data=test").impid("123").build(),
-                        video, "USD"));
+                        VIDEO, "USD"));
     }
 
     @Test
@@ -599,7 +599,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().id("321").adm("<?xml data=test").impid("123").build(),
-                        video, "USD"));
+                        VIDEO, "USD"));
     }
 
     private static BidResponse givenBidResponse(

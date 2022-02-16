@@ -20,29 +20,29 @@ import java.util.Objects;
 public class PriceGranularity {
 
     enum PriceGranularityType {
-        low, medium, med, high, auto, dense
+        LOW, MEDIUM, MED, HIGH, AUTO, DENSE
     }
 
     private static final EnumMap<PriceGranularityType, PriceGranularity> STRING_TO_CUSTOM_PRICE_GRANULARITY =
             new EnumMap<>(PriceGranularityType.class);
 
     static {
-        putStringPriceGranularity(PriceGranularityType.low, 2, range(5, 0.5));
+        putStringPriceGranularity(PriceGranularityType.LOW, 2, range(5, 0.5));
         final ExtGranularityRange medRange = range(20, 0.1);
-        putStringPriceGranularity(PriceGranularityType.medium, 2, medRange);
-        putStringPriceGranularity(PriceGranularityType.med, 2, medRange);
-        putStringPriceGranularity(PriceGranularityType.high, 2, range(20, 0.01));
-        putStringPriceGranularity(PriceGranularityType.auto, 2,
+        putStringPriceGranularity(PriceGranularityType.MEDIUM, 2, medRange);
+        putStringPriceGranularity(PriceGranularityType.MED, 2, medRange);
+        putStringPriceGranularity(PriceGranularityType.HIGH, 2, range(20, 0.01));
+        putStringPriceGranularity(PriceGranularityType.AUTO, 2,
                 range(5, 0.05),
                 range(10, 0.1),
                 range(20, 0.5));
-        putStringPriceGranularity(PriceGranularityType.dense, 2,
+        putStringPriceGranularity(PriceGranularityType.DENSE, 2,
                 range(3, 0.01),
                 range(8, 0.05),
                 range(20, 0.5));
     }
 
-    public static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.med);
+    public static final PriceGranularity DEFAULT = STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.MED);
 
     private List<ExtGranularityRange> ranges;
     private BigDecimal rangesMax;

@@ -215,7 +215,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(403));
         verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.BLACKLISTED_ACCOUNT));
     }
 
     @Test
@@ -231,7 +231,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(403));
         verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.BLACKLISTED_APP));
     }
 
     @Test
@@ -247,7 +247,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Request is invalid"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.BADINPUT));
     }
 
     @Test
@@ -281,7 +281,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(500));
         verify(httpResponse).end(eq("Critical error while running the auction: Unexpected exception"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.ERR));
     }
 
     @Test
@@ -376,14 +376,14 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.OK));
     }
 
     @Test
     public void shouldIncrementOkOpenrtb2AppRequestMetrics() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(Future.succeededFuture(
-                givenAuctionContext(identity(), builder -> builder.requestTypeMetric(MetricName.openrtb2app))));
+                givenAuctionContext(identity(), builder -> builder.requestTypeMetric(MetricName.OPENRTB2_APP))));
 
         givenHoldAuction(BidResponse.builder().build());
 
@@ -391,7 +391,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2app), eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_APP), eq(MetricName.OK));
     }
 
     @Test
@@ -472,7 +472,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.badinput));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.BADINPUT));
     }
 
     @Test
@@ -485,7 +485,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.err));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.ERR));
     }
 
     @SuppressWarnings("unchecked")
@@ -511,7 +511,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.REQUEST_TIME), eq(500L));
     }
 
     @Test
@@ -546,7 +546,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -561,7 +561,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
+        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -578,7 +578,7 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.networkerr));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -628,7 +628,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .build();
 
         assertThat(auctionEvent).isEqualTo(AuctionEvent.builder()
@@ -654,7 +654,7 @@ public class AuctionHandlerTest extends VertxTest {
         // then
         final AuctionEvent auctionEvent = captureAuctionEvent();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .bidResponse(BidResponse.builder().build())
                 .build();
 
@@ -745,7 +745,7 @@ public class AuctionHandlerTest extends VertxTest {
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .timeout(this.timeout);
 
         return auctionContextCustomizer.apply(auctionContextBuilder)

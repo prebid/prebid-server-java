@@ -61,7 +61,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         null,
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -80,7 +80,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add("anotherbidder"),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -98,7 +98,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add(BIDDER),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -117,7 +117,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -136,7 +136,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new IntNode(1),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -154,7 +154,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add(1),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -172,7 +172,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         null,
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -190,7 +190,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add("anotherbidder"),
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -209,7 +209,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add(BIDDER),
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -227,7 +227,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);
@@ -245,7 +245,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new IntNode(1),
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -264,7 +264,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         mapper.createArrayNode().add(1),
-                        CookieSyncRequest.FilterType.include),
+                        CookieSyncRequest.FilterType.INCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
@@ -283,10 +283,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.include));
+                        CookieSyncRequest.FilterType.INCLUDE));
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
@@ -304,10 +304,10 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.exclude));
+                        CookieSyncRequest.FilterType.EXCLUDE));
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer.UsersyncMethod secondaryMethod = createMethod("redirect", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod, secondaryMethod);
@@ -339,7 +339,7 @@ public class UsersyncMethodChooserTest extends VertxTest {
         final CookieSyncRequest.FilterSettings filter = CookieSyncRequest.FilterSettings.of(
                 CookieSyncRequest.MethodFilter.of(
                         new TextNode("*"),
-                        CookieSyncRequest.FilterType.exclude),
+                        CookieSyncRequest.FilterType.EXCLUDE),
                 null);
         final Usersyncer.UsersyncMethod primaryMethod = createMethod("iframe", "url");
         final Usersyncer usersyncer = createUsersyncer(primaryMethod);

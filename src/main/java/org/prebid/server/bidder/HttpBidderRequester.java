@@ -217,8 +217,8 @@ public class HttpBidderRequester {
 
         final BidderError.Type errorType =
                 exception instanceof TimeoutException || exception instanceof ConnectTimeoutException
-                        ? BidderError.Type.timeout
-                        : BidderError.Type.generic;
+                        ? BidderError.Type.TIMEOUT
+                        : BidderError.Type.GENERIC;
 
         return Future.succeededFuture(
                 HttpCall.failure(httpRequest, BidderError.create(exception.getMessage(), errorType)));
@@ -242,8 +242,8 @@ public class HttpBidderRequester {
             return BidderError.create(String.format(
                             "Unexpected status code: %d. Run with request.test = 1 for more info", statusCode),
                     statusCode == HttpResponseStatus.BAD_REQUEST.code()
-                            ? BidderError.Type.bad_input
-                            : BidderError.Type.bad_server_response);
+                            ? BidderError.Type.BAD_INPUT
+                            : BidderError.Type.BAD_SERVER_RESPONSE);
         }
         return null;
     }

@@ -27,7 +27,7 @@ public class JixieTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/jixie/test-auction-jixie-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/jixie/test-auction-jixie-response.json", response, singletonList("jixie"));

@@ -366,7 +366,7 @@ public class Ortb2RequestFactory {
     private Future<Account> ensureAccountActive(Account account) {
         final String accountId = account.getId();
 
-        return account.getStatus() == AccountStatus.inactive
+        return account.getStatus() == AccountStatus.INACTIVE
                 ? Future.failedFuture(new UnauthorizedAccountException(
                 String.format("Account %s is inactive", accountId), accountId))
                 : Future.succeededFuture(account);
@@ -399,11 +399,11 @@ public class Ortb2RequestFactory {
         final IpAddress ip = ipAddressHelper.toIpAddress(ipAddress);
 
         final String ipV4InRequest = ObjectUtil.getIfNotNull(device, Device::getIp);
-        final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.v4 ? ipAddress : null;
+        final String ipV4 = ip != null && ip.getVersion() == IpAddress.IP.V4 ? ipAddress : null;
         final boolean shouldUpdateIpV4 = ipV4 != null && !Objects.equals(ipV4InRequest, ipV4);
 
         final String ipV6InRequest = ObjectUtil.getIfNotNull(device, Device::getIpv6);
-        final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.v6 ? ipAddress : null;
+        final String ipV6 = ip != null && ip.getVersion() == IpAddress.IP.V6 ? ipAddress : null;
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
@@ -464,7 +464,7 @@ public class Ortb2RequestFactory {
      */
     private static boolean isDeepDebugEnabled(ExtRequest extRequest) {
         final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.verbose;
+        return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.VERBOSE;
     }
 
     static class RejectedRequestException extends RuntimeException {

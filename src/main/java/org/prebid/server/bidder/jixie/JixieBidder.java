@@ -92,7 +92,7 @@ public class JixieBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(String adm) {
         return StringUtils.containsAny(adm, "<?xml", "<vast")
-                ? BidType.video
-                : BidType.banner;
+                ? BidType.VIDEO
+                : BidType.BANNER;
     }
 }

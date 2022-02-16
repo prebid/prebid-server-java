@@ -58,8 +58,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class SmaatoBidderTest extends VertxTest {
 
@@ -192,7 +192,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
@@ -364,7 +364,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
@@ -536,7 +536,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith("Failed to decode:");
                 });
     }
@@ -680,7 +680,7 @@ public class SmaatoBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot decode bid.adm:");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_INPUT);
     }
 
     @Test
@@ -716,7 +716,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     @Test
@@ -753,7 +753,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     @Test
@@ -795,7 +795,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, VIDEO, "USD"));
     }
 
     @Test
@@ -835,7 +835,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     @Test
@@ -875,7 +875,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, BANNER, "USD"));
     }
 
     @Test
@@ -905,7 +905,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, video, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, VIDEO, "USD"));
     }
 
     @Test
@@ -936,7 +936,7 @@ public class SmaatoBidderTest extends VertxTest {
                                 .map(SmaatoBidderTest::givenVideoImp)
                                 .collect(Collectors.toList())))
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
     }

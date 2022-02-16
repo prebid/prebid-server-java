@@ -29,7 +29,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class InteractiveOffersBidderTest extends VertxTest {
 
@@ -144,7 +144,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -165,7 +165,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -185,7 +185,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsExactly(banner);
+                .containsExactly(BANNER);
     }
 
     private static BidRequest givenBidRequest(

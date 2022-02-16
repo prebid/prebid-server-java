@@ -29,7 +29,7 @@ public class YahooSSPTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/yahoossp/test-auction-yahoossp-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/yahoossp/test-auction-yahoossp-response.json", response,

@@ -223,7 +223,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 final HttpResponseStatus status = new HttpResponseStatus(UNAVAILABLE_FOR_LEGAL_REASONS,
                         "Unavailable for legal reasons");
 
-                HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+                HttpUtil.executeSafely(routingContext, Endpoint.SETUID,
                         response -> response
                                 .setStatusCode(status.code())
                                 .setStatusMessage(status.reasonPhrase())
@@ -251,7 +251,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         addCookie(routingContext, updatedUidsCookie);
 
         final int statusCode = HttpResponseStatus.OK.code();
-        HttpUtil.executeSafely(routingContext, Endpoint.setuid, buildCookieResponseConsumer(setuidContext, statusCode));
+        HttpUtil.executeSafely(routingContext, Endpoint.SETUID, buildCookieResponseConsumer(setuidContext, statusCode));
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
         final SetuidEvent setuidEvent = SetuidEvent.builder()
@@ -314,7 +314,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
             logger.warn(body, error);
         }
 
-        HttpUtil.executeSafely(routingContext, Endpoint.setuid,
+        HttpUtil.executeSafely(routingContext, Endpoint.SETUID,
                 response -> response
                         .setStatusCode(status.code())
                         .end(body));

@@ -47,7 +47,7 @@ public class OrbidderBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 

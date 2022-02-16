@@ -27,7 +27,7 @@ public class UcfunnelTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/ucfunnel/test-auction-ucfunnel-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/ucfunnel/test-auction-ucfunnel-response.json", response, singletonList("ucfunnel"));

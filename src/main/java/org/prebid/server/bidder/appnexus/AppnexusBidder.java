@@ -297,8 +297,8 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                             Boolean generateAdPodId) {
 
         final String requestEndpointName = extractEndpointName(bidRequest);
-        final boolean isVideoRequest = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_video.value());
-        final boolean isAmpRequest = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
+        final boolean isVideoRequest = StringUtils.equals(requestEndpointName, Endpoint.OPENRTB2_VIDEO.value());
+        final boolean isAmpRequest = StringUtils.equals(requestEndpointName, Endpoint.OPENRTB2_AMP.value());
 
         return isVideoRequest && BooleanUtils.isTrue(generateAdPodId)
                 ? constructPodRequests(bidRequest, imps, url)
@@ -482,13 +482,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         switch (bidAdType) {
             case 0:
-                return BidType.banner;
+                return BidType.BANNER;
             case 1:
-                return BidType.video;
+                return BidType.VIDEO;
             case 2:
-                return BidType.audio;
+                return BidType.AUDIO;
             case 3:
-                return BidType.xNative;
+                return BidType.X_NATIVE;
             default:
                 throw new PreBidException(
                         String.format("Unrecognized bid_ad_type in response from appnexus: %s", bidAdType));

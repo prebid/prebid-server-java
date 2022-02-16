@@ -288,7 +288,7 @@ public class DmxBidder implements Bidder<BidRequest> {
             for (Bid bid : seatBid.getBid()) {
                 try {
                     final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-                    final Bid updatedBid = bidType == BidType.video
+                    final Bid updatedBid = bidType == BidType.VIDEO
                             ? bid.toBuilder().adm(getAdm(bid)).build()
                             : bid;
                     final BidderBid bidderBid = BidderBid.of(updatedBid, bidType, bidResponse.getCur());
@@ -312,7 +312,7 @@ public class DmxBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impId, List<Imp> imps) {
         return imps.stream()
                 .filter(imp -> Objects.equals(imp.getId(), impId))
-                .map(imp -> imp.getVideo() != null ? BidType.video : BidType.banner)
+                .map(imp -> imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER)
                 .findFirst()
                 .orElseThrow(() -> new PreBidException(String.format("Failed to find impression %s", impId)));
     }

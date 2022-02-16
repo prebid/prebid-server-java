@@ -69,7 +69,7 @@ public class TargetingKeywordsResolver {
     private static List<ExtRequestPrebidAdservertargetingRule> impRequestRules(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
+        return rulesBySource.getOrDefault(Source.BIDREQUEST, Collections.emptyList()).stream()
                 .filter(TargetingKeywordsResolver::hasImpPath)
                 .collect(Collectors.toList());
     }
@@ -77,7 +77,7 @@ public class TargetingKeywordsResolver {
     private static List<ExtRequestPrebidAdservertargetingRule> responseRules(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        return rulesBySource.getOrDefault(Source.bidresponse, Collections.emptyList()).stream()
+        return rulesBySource.getOrDefault(Source.BIDRESPONSE, Collections.emptyList()).stream()
                 .filter(TargetingKeywordsResolver::hasSeatbidBidPath)
                 .collect(Collectors.toList());
     }
@@ -94,7 +94,7 @@ public class TargetingKeywordsResolver {
     private static Map<String, String> resolveStaticKeywords(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        return rulesBySource.getOrDefault(Source.xStatic, Collections.emptyList()).stream()
+        return rulesBySource.getOrDefault(Source.X_STATIC, Collections.emptyList()).stream()
                 .collect(Collectors.toMap(
                         ExtRequestPrebidAdservertargetingRule::getKey,
                         ExtRequestPrebidAdservertargetingRule::getValue,
@@ -120,7 +120,7 @@ public class TargetingKeywordsResolver {
     private static List<ExtRequestPrebidAdservertargetingRule> requestRules(
             Map<Source, List<ExtRequestPrebidAdservertargetingRule>> rulesBySource) {
 
-        return rulesBySource.getOrDefault(Source.bidrequest, Collections.emptyList()).stream()
+        return rulesBySource.getOrDefault(Source.BIDREQUEST, Collections.emptyList()).stream()
                 .filter(rule -> !hasImpPath(rule))
                 .collect(Collectors.toList());
     }

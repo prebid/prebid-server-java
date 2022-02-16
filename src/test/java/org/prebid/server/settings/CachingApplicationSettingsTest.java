@@ -167,8 +167,8 @@ public class CachingApplicationSettingsTest {
         cachingApplicationSettings.getAccountById("accountId", timeout);
 
         // then
-        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.miss));
-        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.hit));
+        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.ACCOUNT), eq(MetricName.MISS));
+        verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.ACCOUNT), eq(MetricName.HIT));
     }
 
     @Test

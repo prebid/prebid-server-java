@@ -162,11 +162,11 @@ public class MgidBidder implements Bidder<BidRequest> {
     private BidType getBidType(Bid bid) {
         final ExtBidMgid bidExt = getBidExt(bid);
         if (bidExt == null) {
-            return BidType.banner;
+            return BidType.BANNER;
         }
 
         final BidType crtype = bidExt.getCrtype();
-        return crtype == null ? BidType.banner : crtype;
+        return crtype == null ? BidType.BANNER : crtype;
     }
 
     private ExtBidMgid getBidExt(Bid bid) {

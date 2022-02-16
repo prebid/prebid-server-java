@@ -34,9 +34,9 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class SilvermobBidderTest extends VertxTest {
 
@@ -66,7 +66,7 @@ public class SilvermobBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error ->
                         error.getMessage().startsWith("error unmarshalling imp.ext.bidder: Cannot deserialize value")
-                                && error.getType() == BidderError.Type.bad_input);
+                                && error.getType() == BidderError.Type.BAD_INPUT);
     }
 
     @Test
@@ -152,7 +152,7 @@ public class SilvermobBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allMatch(error -> error.getMessage().startsWith("Error unmarshalling server "
                         + "Response: Failed to decode: Unrecognized token")
-                        && error.getType() == BidderError.Type.bad_server_response);
+                        && error.getType() == BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -199,7 +199,7 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -217,7 +217,7 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "USD"));
     }
 
     @Test
@@ -261,7 +261,7 @@ public class SilvermobBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, "USD"));
     }
 
     private static BidRequest givenBidRequest(

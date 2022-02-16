@@ -27,7 +27,7 @@ public class IqzoneTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/iqzone/test-auction-iqzone-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/iqzone/test-auction-iqzone-response.json", response, singletonList("iqzone"));

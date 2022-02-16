@@ -106,7 +106,7 @@ public class AdtargetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while "
                             + "decoding impExt, err: Cannot deserialize value");
                 });
@@ -259,7 +259,7 @@ public class AdtargetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -342,7 +342,7 @@ public class AdtargetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+                .containsExactly(BidType.BANNER);
     }
 
     @Test
@@ -359,7 +359,7 @@ public class AdtargetBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
+                .containsExactly(BidType.VIDEO);
     }
 
     @Test
@@ -388,7 +388,7 @@ public class AdtargetBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unexpected end-of-input:");
                 });
     }

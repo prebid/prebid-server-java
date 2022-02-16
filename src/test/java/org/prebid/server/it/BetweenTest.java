@@ -27,7 +27,7 @@ public class BetweenTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/between/test-auction-between-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/between/test-auction-between-response.json", response, singletonList("between"));

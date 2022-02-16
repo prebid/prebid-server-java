@@ -111,7 +111,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
                 Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
                         .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+                        .build(), BidType.BANNER, "USD")), Collections.emptyList(), Collections.emptyList()));
     }
 
     @Test
@@ -141,7 +141,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
                 Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
                         .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+                        .build(), BidType.BANNER, "USD")), Collections.emptyList(), Collections.emptyList()));
     }
 
     @Test
@@ -171,7 +171,7 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
                 Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
                         .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(0).h(0)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+                        .build(), BidType.BANNER, "USD")), Collections.emptyList(), Collections.emptyList()));
     }
 
     @Test

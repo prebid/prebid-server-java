@@ -6,7 +6,7 @@ There are two ways to configure application settings: database and file. This do
 
 - `id` - identifies publisher account.
 - `status` - allows to mark account as `active` or `inactive`.
-- `auction.price-granularity` - defines price granularity types: 'low','med','high','auto','dense','unknown'.
+- `auction.price-granularity` - defines price granularity types: 'LOW','MED','HIGH','AUTO','DENSE','UNKNOWN'.
 - `auction.banner-cache-ttl` - how long (in seconds) banner will be available via the external Cache Service.
 - `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
@@ -415,7 +415,7 @@ Let's assume following table schema for example:
 'CREATE TABLE `accounts_account` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) NOT NULL,
-    `price_granularity` enum('low','med','high','auto','dense','unknown') NOT NULL DEFAULT 'unknown',
+    `price_granularity` enum('LOW','MED','HIGH','AUTO','DENSE','UNKNOWN') NOT NULL DEFAULT 'UNKNOWN',
     `banner_cache_ttl` int(11) DEFAULT NULL,
     `video_cache_ttl` int(11) DEFAULT NULL,
     `events_enabled` bit(1) DEFAULT NULL,

@@ -33,7 +33,7 @@ public class ConnectAdTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/connectad/test-auction-connectad-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/connectad/test-auction-connectad-response.json", response,

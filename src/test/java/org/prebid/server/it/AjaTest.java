@@ -27,7 +27,7 @@ public class AjaTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/aja/test-auction-aja-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/aja/test-auction-aja-response.json", response, singletonList("aja"));

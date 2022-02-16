@@ -179,7 +179,7 @@ public class UserServiceTest extends VertxTest {
         assertThat(capturedRequest.getIds()).hasSize(1)
                 .containsOnly(UserId.of("khaos", "uid"));
         verify(metrics).updateUserDetailsRequestMetric(eq(false));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
     }
 
     @Test
@@ -201,7 +201,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestMetric(eq(false));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
         verify(httpClient).post(anyString(), anyString(), eq(500L));
     }
 
@@ -215,7 +215,7 @@ public class UserServiceTest extends VertxTest {
         final Future<UserDetails> result = userService.getUserDetails(auctionContext, timeout);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
         verify(metrics).updateUserDetailsRequestMetric(eq(false));
         verify(httpClient).post(eq(USER_DETAILS_ENDPOINT), anyString(), eq(CONFIG_TIMEOUT));
 
@@ -236,7 +236,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestMetric(eq(false));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
         verify(httpClient).post(eq(USER_DETAILS_ENDPOINT), anyString(), eq(CONFIG_TIMEOUT));
 
         assertTrue(result.failed());
@@ -256,7 +256,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestMetric(eq(false));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
         verify(httpClient).post(eq(USER_DETAILS_ENDPOINT), anyString(), eq(CONFIG_TIMEOUT));
 
         assertTrue(result.failed());
@@ -282,7 +282,7 @@ public class UserServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateUserDetailsRequestMetric(eq(true));
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.user_details_request_time), anyLong());
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.USER_DETAILS_REQUEST_TIME), anyLong());
         verify(httpClient).post(eq(USER_DETAILS_ENDPOINT), anyString(), eq(CONFIG_TIMEOUT));
 
         final UserDetails expectedDetails = UserDetails.of(

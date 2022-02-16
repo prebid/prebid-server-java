@@ -24,22 +24,22 @@ public class EventsService {
                               EventsContext eventsContext) {
         return Events.of(
                 eventUrl(
-                        EventRequest.Type.win,
+                        EventRequest.Type.WIN,
                         bidId,
                         bidder,
                         accountId,
                         lineItemId,
                         analytics(analyticsEnabled),
-                        EventRequest.Format.image,
+                        EventRequest.Format.IMAGE,
                         eventsContext),
                 eventUrl(
-                        EventRequest.Type.imp,
+                        EventRequest.Type.IMP,
                         bidId,
                         bidder,
                         accountId,
                         lineItemId,
                         analytics(analyticsEnabled),
-                        EventRequest.Format.image,
+                        EventRequest.Format.IMAGE,
                         eventsContext));
     }
 
@@ -49,13 +49,13 @@ public class EventsService {
     public String winUrl(String bidId, String bidder, String accountId, String lineItemId,
                          boolean analyticsEnabled, EventsContext eventsContext) {
         return eventUrl(
-                EventRequest.Type.win,
+                EventRequest.Type.WIN,
                 bidId,
                 bidder,
                 accountId,
                 lineItemId,
                 analytics(analyticsEnabled),
-                EventRequest.Format.image,
+                EventRequest.Format.IMAGE,
                 eventsContext);
     }
 
@@ -67,13 +67,13 @@ public class EventsService {
                                   String accountId,
                                   String lineItemId,
                                   EventsContext eventsContext) {
-        return eventUrl(EventRequest.Type.imp,
+        return eventUrl(EventRequest.Type.IMP,
                 bidId,
                 bidder,
                 accountId,
                 lineItemId,
                 null,
-                EventRequest.Format.blank,
+                EventRequest.Format.BLANK,
                 eventsContext);
     }
 
@@ -103,6 +103,6 @@ public class EventsService {
     }
 
     private static EventRequest.Analytics analytics(boolean analyticsEnabled) {
-        return analyticsEnabled ? null : EventRequest.Analytics.disabled;
+        return analyticsEnabled ? null : EventRequest.Analytics.DISABLED;
     }
 }

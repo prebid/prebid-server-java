@@ -30,9 +30,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class ImprovedigitalBidderTest extends VertxTest {
 
@@ -93,7 +93,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value");
                 });
     }
@@ -139,7 +139,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -229,7 +229,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -256,7 +256,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        banner,
+                        BANNER,
                         "USD"));
     }
 
@@ -276,7 +276,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "USD"));
     }
 
     @Test
@@ -295,7 +295,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, "USD"));
     }
 
     @Test
@@ -345,7 +345,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        video,
+                        VIDEO,
                         "USD"));
     }
 
@@ -379,7 +379,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                                 .impid("123")
                                 .dealid("2222222")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        video,
+                        VIDEO,
                         "USD"));
     }
 
@@ -413,7 +413,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                                 .impid("123")
                                 .dealid("2222222")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        video,
+                        VIDEO,
                         "USD"));
     }
 
@@ -446,7 +446,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        video,
+                        VIDEO,
                         "USD"));
     }
 

@@ -75,25 +75,25 @@ public class TargetingCategoryTest {
         // when
         final TargetingCategory bidderParamCategory = TargetingCategory.fromString("bidp.rubicon.siteId");
         // then
-        assertThat(bidderParamCategory.type()).isEqualTo(TargetingCategory.Type.bidderParam);
+        assertThat(bidderParamCategory.type()).isEqualTo(TargetingCategory.Type.BIDDER_PARAM);
         assertThat(bidderParamCategory.path()).isEqualTo("rubicon.siteId");
 
         // when
         final TargetingCategory userSegmentCategory = TargetingCategory.fromString("segment.bluekai");
         // then
-        assertThat(userSegmentCategory.type()).isEqualTo(TargetingCategory.Type.userSegment);
+        assertThat(userSegmentCategory.type()).isEqualTo(TargetingCategory.Type.USER_SEGMENT);
         assertThat(userSegmentCategory.path()).isEqualTo("bluekai");
 
         // when
         final TargetingCategory userFirstPartyDataCategory = TargetingCategory.fromString("ufpd.sport");
         // then
-        assertThat(userFirstPartyDataCategory.type()).isEqualTo(TargetingCategory.Type.userFirstPartyData);
+        assertThat(userFirstPartyDataCategory.type()).isEqualTo(TargetingCategory.Type.USER_FIRST_PARTY_DATA);
         assertThat(userFirstPartyDataCategory.path()).isEqualTo("sport");
 
         // when
         final TargetingCategory siteFirstPartyDataCategory = TargetingCategory.fromString("sfpd.sport");
         // then
-        assertThat(siteFirstPartyDataCategory.type()).isEqualTo(TargetingCategory.Type.siteFirstPartyData);
+        assertThat(siteFirstPartyDataCategory.type()).isEqualTo(TargetingCategory.Type.SITE_FIRST_PARTY_DATA);
         assertThat(siteFirstPartyDataCategory.path()).isEqualTo("sport");
     }
 

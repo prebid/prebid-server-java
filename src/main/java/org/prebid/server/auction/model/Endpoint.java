@@ -2,9 +2,9 @@ package org.prebid.server.auction.model;
 
 public enum Endpoint {
 
-    openrtb2_auction("/openrtb2/auction"),
-    openrtb2_amp("/openrtb2/amp"),
-    openrtb2_video("/openrtb2/video");
+    OPENRTB2_AUCTION("/openrtb2/auction"),
+    OPENRTB2_AMP("/openrtb2/amp"),
+    OPENRTB2_VIDEO("/openrtb2/video");
 
     private final String value;
 

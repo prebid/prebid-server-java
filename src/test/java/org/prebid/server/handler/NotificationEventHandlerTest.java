@@ -304,7 +304,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .build();
 
         assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
-                .type(NotificationEvent.Type.win)
+                .type(NotificationEvent.Type.WIN)
                 .bidId("bidId")
                 .account(account)
                 .httpContext(expectedHttpContext)
@@ -552,7 +552,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .build();
 
         assertThat(captureAnalyticEvent()).isEqualTo(NotificationEvent.builder()
-                .type(NotificationEvent.Type.win)
+                .type(NotificationEvent.Type.WIN)
                 .bidId("bidId")
                 .account(account)
                 .bidder("bidder")
@@ -597,7 +597,7 @@ public class NotificationEventHandlerTest extends VertxTest {
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build();
         final NotificationEvent expectedEvent = NotificationEvent.builder()
-                .type(NotificationEvent.Type.win)
+                .type(NotificationEvent.Type.WIN)
                 .bidId("bidId")
                 .account(Account.builder()
                         .id("accountId")

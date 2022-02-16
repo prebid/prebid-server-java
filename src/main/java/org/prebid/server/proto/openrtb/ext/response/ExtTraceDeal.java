@@ -35,6 +35,13 @@ public class ExtTraceDeal {
     String message;
 
     public enum Category {
-        targeting, pacing, cleanup, post_processing
+        @JsonProperty("targeting")
+        TARGETING,
+        @JsonProperty("pacing")
+        PACING,
+        @JsonProperty("cleanup")
+        CLEANUP,
+        @JsonProperty("post_processing")
+        POST_PROCESSING
     }
 }

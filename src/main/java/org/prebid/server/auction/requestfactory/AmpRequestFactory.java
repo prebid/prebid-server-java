@@ -87,7 +87,7 @@ public class AmpRequestFactory {
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
-    private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
+    private static final String ENDPOINT = Endpoint.OPENRTB2_AMP.value();
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -130,7 +130,7 @@ public class AmpRequestFactory {
         final String body = routingContext.getBodyAsString();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_amp, MetricName.amp);
+                Endpoint.OPENRTB2_AMP, MetricName.AMP);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext)
@@ -195,24 +195,24 @@ public class AmpRequestFactory {
             return;
         }
 
-        if (consentType == ConsentType.unknown) {
+        if (consentType == ConsentType.UNKNOWN) {
             errors.add("Invalid consent_type param passed");
             return;
         }
 
-        if (consentType == ConsentType.tcfV1) {
-            errors.add("Consent type tcfV1 is no longer supported");
+        if (consentType == ConsentType.TCF_V_1) {
+            errors.add("Consent type TCF_V_1 is no longer supported");
             return;
         }
 
         final boolean isValidTcfv2 = BooleanUtils.isTrue(consentParam.getTcfV2());
-        if (consentType == ConsentType.tcfV2 && !isValidTcfv2) {
+        if (consentType == ConsentType.TCF_V_2 && !isValidTcfv2) {
             errors.add(constructMessageForInvalidParam(consentParam, consentType));
             return;
         }
 
         final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
-        if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
+        if (consentType == ConsentType.US_PRIVACY && !isValidCcpa) {
             errors.add(constructMessageForInvalidParam(consentParam, consentType));
             return;
         }
@@ -253,7 +253,7 @@ public class AmpRequestFactory {
 
     private static User createUser(ConsentType consentType, ConsentParam consentParam, String addtlConsent) {
         final boolean shouldSetUserConsent = consentParam != null && BooleanUtils.isTrue(consentParam.getTcfV2())
-                && (consentType == null || consentType == ConsentType.tcfV2);
+                && (consentType == null || consentType == ConsentType.TCF_V_2);
 
         if (StringUtils.isNotBlank(addtlConsent) || shouldSetUserConsent) {
             final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
@@ -271,7 +271,7 @@ public class AmpRequestFactory {
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
         final boolean shouldSetUsPrivacy = consentParam != null && BooleanUtils.isTrue(consentParam.getCcpa())
-                && (consentType == null || consentType == ConsentType.usPrivacy);
+                && (consentType == null || consentType == ConsentType.US_PRIVACY);
         if (shouldSetUsPrivacy || gdpr != null) {
             return Regs.of(null, ExtRegs.of(gdpr, shouldSetUsPrivacy ? consentParam.getConsentString() : null));
         }
@@ -310,13 +310,13 @@ public class AmpRequestFactory {
         }
         switch (consentTypeParam) {
             case "1":
-                return ConsentType.tcfV1;
+                return ConsentType.TCF_V_1;
             case "2":
-                return ConsentType.tcfV2;
+                return ConsentType.TCF_V_2;
             case "3":
-                return ConsentType.usPrivacy;
+                return ConsentType.US_PRIVACY;
             default:
-                return ConsentType.unknown;
+                return ConsentType.UNKNOWN;
         }
     }
 

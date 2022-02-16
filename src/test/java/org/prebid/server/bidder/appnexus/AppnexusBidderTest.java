@@ -210,7 +210,7 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -650,7 +650,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -680,7 +680,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -712,7 +712,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -744,7 +744,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -776,7 +776,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -807,7 +807,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .targeting(ExtRequestTargeting.builder()
                                 .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
                                 .build())
-                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_video.value()))
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.OPENRTB2_VIDEO.value()))
                         .build()))
                 .build();
 
@@ -836,7 +836,7 @@ public class AppnexusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                .allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -856,7 +856,7 @@ public class AppnexusBidderTest extends VertxTest {
                 AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.banner, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.BANNER, null));
     }
 
     @Test
@@ -876,7 +876,7 @@ public class AppnexusBidderTest extends VertxTest {
                 AppnexusBidExtAppnexus.builder().bidAdType(VIDEO_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.video, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.VIDEO, null));
     }
 
     @Test
@@ -895,7 +895,7 @@ public class AppnexusBidderTest extends VertxTest {
                 AppnexusBidExtAppnexus.builder().bidAdType(AUDIO_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.audio, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.AUDIO, null));
     }
 
     @Test
@@ -914,7 +914,7 @@ public class AppnexusBidderTest extends VertxTest {
                 AppnexusBidExtAppnexus.builder().bidAdType(NATIVE_TYPE).build();
         assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
                 .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.xNative, null));
+                        expectedExtAppnexus))).impid("impId").build(), BidType.X_NATIVE, null));
     }
 
     @Test

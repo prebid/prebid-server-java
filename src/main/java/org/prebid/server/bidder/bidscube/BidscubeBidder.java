@@ -126,7 +126,7 @@ public class BidscubeBidder implements Bidder<BidRequest> {
 
     private BidType resolveBidType(JsonNode bidType) {
         return !POSSIBLE_BID_TYPES.contains(bidType.asText())
-                ? BidType.banner
+                ? BidType.BANNER
                 : mapper.mapper().convertValue(bidType, BidType.class);
     }
 }

@@ -25,7 +25,7 @@ public class AcuityadsTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/acuityads/test-auction-acuityads-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/acuityads/test-auction-acuityads-response.json", response,

@@ -75,9 +75,9 @@ public class EvolutionBidder implements Bidder<BidRequest> {
         final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
         try {
             return ObjectUtils.defaultIfNull(mapper.mapper()
-                    .convertValue(mediaTypeNode, BidType.class), BidType.banner);
+                    .convertValue(mediaTypeNode, BidType.class), BidType.BANNER);
         } catch (IllegalArgumentException e) {
-            return BidType.banner;
+            return BidType.BANNER;
         }
     }
 }

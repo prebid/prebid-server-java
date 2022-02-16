@@ -27,7 +27,7 @@ public class KidozTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/kidoz/test-auction-kidoz-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/kidoz/test-auction-kidoz-response.json", response, singletonList("kidoz"));

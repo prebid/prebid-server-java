@@ -149,7 +149,7 @@ public class TripleliftBidder implements Bidder<BidRequest> {
                 : null;
 
         return tripleliftInnerExt != null && Objects.equals(tripleliftInnerExt.getFormat(), 11)
-                ? BidType.video
-                : BidType.banner;
+                ? BidType.VIDEO
+                : BidType.BANNER;
     }
 }

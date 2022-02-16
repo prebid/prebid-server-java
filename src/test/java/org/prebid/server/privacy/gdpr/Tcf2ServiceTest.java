@@ -119,10 +119,10 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     private void initPurposes() {
-        purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
-        purpose2 = Purpose.of(EnforcePurpose.no, true, emptyList());
-        purpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        purpose7 = Purpose.of(EnforcePurpose.full, false, emptyList());
+        purpose1 = Purpose.of(EnforcePurpose.BASIC, true, emptyList());
+        purpose2 = Purpose.of(EnforcePurpose.NO, true, emptyList());
+        purpose4 = Purpose.of(EnforcePurpose.NO, false, emptyList());
+        purpose7 = Purpose.of(EnforcePurpose.FULL, false, emptyList());
         purposes = Purposes.builder()
                 .p1(purpose1)
                 .p2(purpose2)
@@ -130,10 +130,10 @@ public class Tcf2ServiceTest extends VertxTest {
                 .p7(purpose7)
                 .build();
 
-        weakPurpose1 = Purpose.of(EnforcePurpose.basic, false, emptyList());
-        weakPurpose2 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        weakPurpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        weakPurpose7 = Purpose.of(EnforcePurpose.basic, false, emptyList());
+        weakPurpose1 = Purpose.of(EnforcePurpose.BASIC, false, emptyList());
+        weakPurpose2 = Purpose.of(EnforcePurpose.NO, false, emptyList());
+        weakPurpose4 = Purpose.of(EnforcePurpose.NO, false, emptyList());
+        weakPurpose7 = Purpose.of(EnforcePurpose.BASIC, false, emptyList());
     }
 
     private void initSpecialFeatures() {
@@ -149,7 +149,7 @@ public class Tcf2ServiceTest extends VertxTest {
                 .enabled(true)
                 .purposes(purposes)
                 .specialFeatures(specialFeatures)
-                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ignore)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.IGNORE)
                 .build();
     }
 
@@ -198,7 +198,7 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, true);
         verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls, true);
 
-        final Purpose expectedDowngradedPurpose = Purpose.of(EnforcePurpose.basic, purpose7.getEnforceVendors(),
+        final Purpose expectedDowngradedPurpose = Purpose.of(EnforcePurpose.BASIC, purpose7.getEnforceVendors(),
                 purpose1.getVendorExceptions());
         verify(purposeStrategySeven).processTypePurposeStrategy(tcString, expectedDowngradedPurpose,
                 vendorPermissionWithGvls, true);
@@ -212,7 +212,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldMergeAccountPurposes() {
         // given
-        final Purpose accountPurposeOne = Purpose.of(EnforcePurpose.full, false, singletonList("test"));
+        final Purpose accountPurposeOne = Purpose.of(EnforcePurpose.FULL, false, singletonList("test"));
         final Purposes accountPurposes = Purposes.builder()
                 .p1(accountPurposeOne)
                 .build();
@@ -371,7 +371,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .purposes(purposes)
-                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.noAccessAllowed)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.NO_ACCESS_ALLOWED)
                 .build();
         target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);
@@ -410,7 +410,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .purposes(purposes)
-                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ACCESS_ALLOWED)
                 .build();
         target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);
@@ -447,7 +447,7 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .purposes(purposes)
-                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
+                .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.ACCESS_ALLOWED)
                 .build();
         target = new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListService,
                 bidderCatalog);

@@ -117,7 +117,7 @@ public class KubientBidder implements Bidder<BidRequest> {
     private BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
+                return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));

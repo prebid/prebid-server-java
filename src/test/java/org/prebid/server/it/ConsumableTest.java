@@ -39,7 +39,7 @@ public class ConsumableTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/consumable/test-auction-consumable-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/consumable/test-auction-consumable-response.json", response,

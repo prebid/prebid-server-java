@@ -27,7 +27,7 @@ public class InvibesTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/invibes/test-auction-invibes-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/invibes/test-auction-invibes-response.json", response, singletonList("invibes"));

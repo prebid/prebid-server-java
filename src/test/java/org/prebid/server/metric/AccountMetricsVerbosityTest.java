@@ -13,22 +13,22 @@ public class AccountMetricsVerbosityTest {
 
     @Before
     public void setUp() {
-        verbosity = new AccountMetricsVerbosity(AccountMetricsVerbosityLevel.none, singletonList("1"),
+        verbosity = new AccountMetricsVerbosity(AccountMetricsVerbosityLevel.NONE, singletonList("1"),
                 singletonList("2"));
     }
 
     @Test
     public void forAccountShouldReturnBasicLevel() {
-        assertThat(verbosity.forAccount("1")).isEqualTo(AccountMetricsVerbosityLevel.basic);
+        assertThat(verbosity.forAccount("1")).isEqualTo(AccountMetricsVerbosityLevel.BASIC);
     }
 
     @Test
     public void forAccountShouldReturnDetailedLevel() {
-        assertThat(verbosity.forAccount("2")).isEqualTo(AccountMetricsVerbosityLevel.detailed);
+        assertThat(verbosity.forAccount("2")).isEqualTo(AccountMetricsVerbosityLevel.DETAILED);
     }
 
     @Test
     public void forAccountShouldReturnDefaultLevel() {
-        assertThat(verbosity.forAccount("3")).isEqualTo(AccountMetricsVerbosityLevel.none);
+        assertThat(verbosity.forAccount("3")).isEqualTo(AccountMetricsVerbosityLevel.NONE);
     }
 }

@@ -133,10 +133,10 @@ public class SmartrtbBidder implements Bidder<BidRequest> {
                 final BidType bidType;
                 switch (smartrtbResponseExt.getFormat()) {
                     case CREATIVE_TYPE_BANNER:
-                        bidType = BidType.banner;
+                        bidType = BidType.BANNER;
                         break;
                     case CREATIVE_TYPE_VIDEO:
-                        bidType = BidType.video;
+                        bidType = BidType.VIDEO;
                         break;
                     default:
                         return Result.withError(BidderError.badServerResponse(String.format(

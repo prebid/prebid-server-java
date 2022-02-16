@@ -118,12 +118,12 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else if (imp.getBanner() == null && imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

@@ -194,15 +194,15 @@ public class TtxBidder implements Bidder<BidRequest> {
                                        bid) {
         try {
             final TtxBidExt ttxBidExt = mapper.mapper().convertValue(bid.getExt(), TtxBidExt.class);
-            return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.banner;
+            return ttxBidExt != null ? getBidTypeByTtx(ttxBidExt.getTtx()) : BidType.BANNER;
         } catch (IllegalArgumentException e) {
-            return BidType.banner;
+            return BidType.BANNER;
         }
     }
 
     private static BidType getBidTypeByTtx(TtxBidExtTtx bidExt) {
         return bidExt != null && Objects.equals(bidExt.getMediaType(), "video")
-                ? BidType.video
-                : BidType.banner;
+                ? BidType.VIDEO
+                : BidType.BANNER;
     }
 }

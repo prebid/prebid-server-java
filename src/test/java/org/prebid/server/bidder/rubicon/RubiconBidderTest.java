@@ -114,16 +114,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class RubiconBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
-    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("activeview", "comscore",
-            "doubleverify", "integralads", "moat", "sizmek", "whiteops");
+    private static final List<String> SUPPORTED_VENDORS = Arrays.asList("ACTIVEVIEW", "COMSCORE",
+            "DOUBLEVERIFY", "INTEGRALADS", "MOAT", "SIZEMEK", "WHITEOPS");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -182,10 +182,10 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(2)
                 .containsOnly(
-                        BidderError.of("Impression with id 2 rejected with invalid type `xNative`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
-                        BidderError.of("Impression with id 3 rejected with invalid type `audio`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input));
+                        BidderError.of("Impression with id 2 rejected with invalid type `X_NATIVE`."
+                                + " Allowed types are banner and video.", BidderError.Type.BAD_INPUT),
+                        BidderError.of("Impression with id 3 rejected with invalid type `AUDIO`."
+                                + " Allowed types are banner and video.", BidderError.Type.BAD_INPUT));
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -202,12 +202,12 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(3)
                 .containsOnly(
-                        BidderError.of("Impression with id 1 rejected with invalid type `xNative`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
-                        BidderError.of("Impression with id 2 rejected with invalid type `audio`."
-                                + " Allowed types are banner and video.", BidderError.Type.bad_input),
+                        BidderError.of("Impression with id 1 rejected with invalid type `X_NATIVE`."
+                                + " Allowed types are banner and video.", BidderError.Type.BAD_INPUT),
+                        BidderError.of("Impression with id 2 rejected with invalid type `AUDIO`."
+                                + " Allowed types are banner and video.", BidderError.Type.BAD_INPUT),
                         BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
-                                BidderError.Type.bad_input));
+                                BidderError.Type.BAD_INPUT));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -540,7 +540,7 @@ public class RubiconBidderTest extends VertxTest {
         verifyNoInteractions(currencyConversionService);
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.of("Imp `impId` floor provided with no currency, assuming USD",
-                        BidderError.Type.bad_input));
+                        BidderError.Type.BAD_INPUT));
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
@@ -568,7 +568,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.of("Unable to convert provided bid floor currency from EUR to USD"
-                        + " for imp `impId` with a reason: failed", BidderError.Type.bad_input));
+                        + " for imp `impId` with a reason: failed", BidderError.Type.BAD_INPUT));
     }
 
     @Test
@@ -2423,9 +2423,9 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.video(Video.builder().build())
                         .metric(asList(Metric.builder().vendor("somebody").type("viewability").value(0.9f).build(),
-                                Metric.builder().vendor("moat").type("viewability").value(0.3f).build(),
-                                Metric.builder().vendor("comscore").type("unsupported").value(0.5f).build(),
-                                Metric.builder().vendor("activeview").type("viewability").value(0.6f).build(),
+                                Metric.builder().vendor("MOAT").type("viewability").value(0.3f).build(),
+                                Metric.builder().vendor("COMSCORE").type("unsupported").value(0.5f).build(),
+                                Metric.builder().vendor("ACTIVEVIEW").type("viewability").value(0.6f).build(),
                                 Metric.builder().vendor("somebody").type("unsupported").value(0.7f).build())));
 
         // when
@@ -2439,7 +2439,7 @@ public class RubiconBidderTest extends VertxTest {
                 .flatExtracting(Imp::getMetric).doesNotContainNull()
                 .containsOnly(Metric.builder().type("viewability").value(0.9f).vendor("somebody").build(),
                         Metric.builder().type("viewability").value(0.3f).vendor("seller-declared").build(),
-                        Metric.builder().type("unsupported").value(0.5f).vendor("comscore").build(),
+                        Metric.builder().type("unsupported").value(0.5f).vendor("COMSCORE").build(),
                         Metric.builder().type("viewability").value(0.6f).vendor("seller-declared").build(),
                         Metric.builder().type("unsupported").value(0.7f).vendor("somebody").build());
 
@@ -2705,7 +2705,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -2720,7 +2720,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), BANNER, "USD"));
     }
 
     @Test
@@ -2739,7 +2739,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), BANNER, "USD"));
     }
 
     @Test
@@ -2759,7 +2759,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), VIDEO, "USD"));
     }
 
     @Test
@@ -2775,7 +2775,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().price(ONE).build(), VIDEO, "USD"));
     }
 
     @Test
@@ -2892,7 +2892,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().id("bidid1").price(ONE).build(), BANNER, null));
     }
 
     @Test
@@ -2912,7 +2912,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().id("non-zero").price(ONE).build(), BANNER, null));
     }
 
     @Test

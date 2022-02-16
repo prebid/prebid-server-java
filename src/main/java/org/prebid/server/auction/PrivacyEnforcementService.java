@@ -157,10 +157,10 @@ public class PrivacyEnforcementService {
         final String ipAddress = resolveIpFromRequest(httpRequest);
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
         final String accountId = account.getId();
-        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.SETUID, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                        privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.SETUID, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -173,10 +173,10 @@ public class PrivacyEnforcementService {
         final String ipAddress = resolveIpFromRequest(httpRequest);
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
         final String accountId = account.getId();
-        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.COOKIESYNC, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                        privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
+                        privacy, ipAddress, accountGdpr, MetricName.COOKIESYNC, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -193,7 +193,7 @@ public class PrivacyEnforcementService {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        if (Objects.equals(requestType, MetricName.openrtb2web)) {
+        if (Objects.equals(requestType, MetricName.OPENRTB2_WEB)) {
             final Site site = bidRequest != null ? bidRequest.getSite() : null;
             final String refUrl = site != null ? site.getRef() : null;
             return RequestLogInfo.of(requestType, refUrl, accountId);

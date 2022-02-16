@@ -41,9 +41,9 @@ import static org.assertj.core.api.AssertionsForClassTypes.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class AdviewBidderTest extends VertxTest {
 
@@ -158,7 +158,7 @@ public class AdviewBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
             assertThat(bidderError.getType())
-                    .isEqualTo(BidderError.Type.bad_input);
+                    .isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(bidderError.getMessage())
                     .isEqualTo("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
         });
@@ -246,7 +246,7 @@ public class AdviewBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
     }
@@ -278,7 +278,7 @@ public class AdviewBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, null));
     }
 
     @Test
@@ -295,7 +295,7 @@ public class AdviewBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, null));
     }
 
     @Test
@@ -311,7 +311,7 @@ public class AdviewBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, null));
     }
 
     @Test
@@ -327,7 +327,7 @@ public class AdviewBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, null));
     }
 
     private static BidRequest givenBidRequest(

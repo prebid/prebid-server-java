@@ -26,7 +26,7 @@ public class ImpactifyTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/impactify/test-impactify-bid-response.json"))));
         // when
         final Response response = responseFor("openrtb2/impactify/test-auction-impactify-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
         // then
         assertJsonEquals("openrtb2/impactify/test-auction-impactify-response.json",
                 response, singletonList("impactify"));

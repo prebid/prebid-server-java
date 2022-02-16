@@ -27,7 +27,7 @@ public class GumgumTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/gumgum/test-auction-gumgum-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/gumgum/test-auction-gumgum-response.json", response, singletonList("gumgum"));

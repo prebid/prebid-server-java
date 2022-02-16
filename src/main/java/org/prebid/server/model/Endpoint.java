@@ -12,19 +12,19 @@ import java.util.Arrays;
  */
 public enum Endpoint {
 
-    openrtb2_auction("/openrtb2/auction"),
-    openrtb2_amp("/openrtb2/amp"),
-    openrtb2_video("/openrtb2/video"),
-    cookie_sync("/cookie_sync"),
-    setuid("/setuid"),
+    OPENRTB2_AUCTION("/openrtb2/auction"),
+    OPENRTB2_AMP("/openrtb2/amp"),
+    OPENRTB2_VIDEO("/openrtb2/video"),
+    COOKIE_SYNC("/cookie_sync"),
+    SETUID("/setuid"),
 
-    bidder_params("/bidders/params"),
-    event("/event"),
-    getuids("/getuids"),
-    info_bidders("/info/bidders"),
-    optout("/optout"),
-    status("/status"),
-    vtrack("/vtrack");
+    BIDDER_PARAMS("/bidders/params"),
+    EVENT("/event"),
+    GETUIDS("/getuids"),
+    INFO_BIDDERS("/info/bidders"),
+    OPTOUT("/optout"),
+    STATUS("/status"),
+    VTRACK("/vtrack");
 
     @JsonValue
     private final String value;

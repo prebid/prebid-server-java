@@ -196,7 +196,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> bid.toBuilder().impid(bid.getId()).build())
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.BANNER, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 }

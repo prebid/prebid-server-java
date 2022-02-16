@@ -245,10 +245,10 @@ public class GridBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
                 throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
             }

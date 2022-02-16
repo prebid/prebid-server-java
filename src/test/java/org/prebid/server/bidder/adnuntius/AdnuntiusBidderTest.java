@@ -241,7 +241,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
     }
@@ -377,7 +377,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 assertThat(bid).extracting(Bid::getAdomain).asList()
                         .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
             });
-            assertThat(bidderBid).extracting(BidderBid::getType).isEqualTo(BidType.banner);
+            assertThat(bidderBid).extracting(BidderBid::getType).isEqualTo(BidType.BANNER);
             assertThat(bidderBid).extracting(BidderBid::getBidCurrency).isEqualTo("CUR");
         });
         assertThat(result.getErrors()).isEmpty();

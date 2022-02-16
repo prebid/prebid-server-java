@@ -29,7 +29,7 @@ public class GenericTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/generic/test-auction-generic-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/generic/test-auction-generic-response.json", response,

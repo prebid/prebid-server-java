@@ -140,13 +140,13 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
                 if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

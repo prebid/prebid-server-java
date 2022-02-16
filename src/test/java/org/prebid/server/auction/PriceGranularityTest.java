@@ -29,7 +29,7 @@ public class PriceGranularityTest {
     @Test
     public void createCustomPriceGranularityByStringLow() {
         // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromString("low");
+        final PriceGranularity priceGranularity = PriceGranularity.createFromString("LOW");
 
         // then
         assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(5));
@@ -41,8 +41,8 @@ public class PriceGranularityTest {
     @Test
     public void createCustomPriceGranularityByStringMedAndMedium() {
         // given and when
-        final PriceGranularity priceGranularityMed = PriceGranularity.createFromString("med");
-        final PriceGranularity priceGranularityMedium = PriceGranularity.createFromString("medium");
+        final PriceGranularity priceGranularityMed = PriceGranularity.createFromString("MED");
+        final PriceGranularity priceGranularityMedium = PriceGranularity.createFromString("MEDIUM");
 
         // then
         assertThat(priceGranularityMed.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
@@ -58,7 +58,7 @@ public class PriceGranularityTest {
     @Test
     public void createCustomPriceGranularityByStringHigh() {
         // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromString("high");
+        final PriceGranularity priceGranularity = PriceGranularity.createFromString("HIGH");
 
         // then
         assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
@@ -70,7 +70,7 @@ public class PriceGranularityTest {
     @Test
     public void createCustomPriceGranularityByStringAuto() {
         // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromString("auto");
+        final PriceGranularity priceGranularity = PriceGranularity.createFromString("AUTO");
 
         // then
         assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));
@@ -85,7 +85,7 @@ public class PriceGranularityTest {
     @Test
     public void createCustomPriceGranularityByStringDense() {
         // given and when
-        final PriceGranularity priceGranularity = PriceGranularity.createFromString("dense");
+        final PriceGranularity priceGranularity = PriceGranularity.createFromString("DENSE");
 
         // then
         assertThat(priceGranularity.getRangesMax()).isEqualByComparingTo(BigDecimal.valueOf(20));

@@ -24,14 +24,14 @@ class UpdatableMetrics {
         metricNames = new EnumMap<>(MetricName.class);
 
         switch (counterType) {
-            case flushingCounter:
+            case FLUSHING_COUNTER:
                 incrementer = (registry, metricName, value) ->
                         registry.counter(metricName, ResettingCounter::new).inc(value);
                 break;
-            case counter:
+            case COUNTER:
                 incrementer = (registry, metricName, value) -> registry.counter(metricName).inc(value);
                 break;
-            case meter:
+            case METER:
                 incrementer = (registry, metricName, value) -> registry.meter(metricName).mark(value);
                 break;
             default:

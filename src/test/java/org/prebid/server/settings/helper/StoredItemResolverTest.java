@@ -18,7 +18,7 @@ public class StoredItemResolverTest {
     public void resolveShouldFailWhenNoStoredData() {
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.imp, null, "id", emptySet()))
+                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.IMP, null, "id", emptySet()))
                 .withMessage("No stored imp found for id: id");
     }
 
@@ -29,7 +29,7 @@ public class StoredItemResolverTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.imp, null, "id", storedItems))
+                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.IMP, null, "id", storedItems))
                 .withMessage("Multiple stored imps found for id: id but no account was specified");
     }
 
@@ -40,7 +40,7 @@ public class StoredItemResolverTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.imp, "1003", "id", storedItems))
+                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.IMP, "1003", "id", storedItems))
                 .withMessage("No stored imp found among multiple id: id for account: 1003");
     }
 
@@ -50,7 +50,7 @@ public class StoredItemResolverTest {
         final Set<StoredItem> storedItems = givenMultipleStoredData();
 
         // when
-        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, "1002", "id", storedItems);
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.IMP, "1002", "id", storedItems);
 
         // then
         assertThat(storedItem).isEqualTo(StoredItem.of("1002", "data2"));
@@ -63,7 +63,7 @@ public class StoredItemResolverTest {
         storedItems.add(StoredItem.of("1001", "data1"));
 
         // when
-        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, "1001", "", storedItems);
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.IMP, "1001", "", storedItems);
 
         // then
         assertThat(storedItem).isEqualTo(StoredItem.of("1001", "data1"));
@@ -76,7 +76,7 @@ public class StoredItemResolverTest {
         storedItems.add(StoredItem.of(null, "data1"));
 
         // when
-        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, "1001", "id", storedItems);
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.IMP, "1001", "id", storedItems);
 
         // then
         assertThat(storedItem).isEqualTo(StoredItem.of(null, "data1"));
@@ -89,7 +89,7 @@ public class StoredItemResolverTest {
         storedItems.add(StoredItem.of(null, "data1"));
 
         // when
-        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, null, "id", storedItems);
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.IMP, null, "id", storedItems);
 
         // then
         assertThat(storedItem).isEqualTo(StoredItem.of(null, "data1"));
@@ -101,7 +101,7 @@ public class StoredItemResolverTest {
         final Set<StoredItem> storedItems = givenSingleStoredData();
 
         // when
-        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.imp, "1001", "id", storedItems);
+        final StoredItem storedItem = StoredItemResolver.resolve(StoredDataType.IMP, "1001", "id", storedItems);
 
         // then
         assertThat(storedItem).isEqualTo(StoredItem.of("1001", "data1"));
@@ -114,7 +114,7 @@ public class StoredItemResolverTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.imp, "1002", "id", storedItems))
+                .isThrownBy(() -> StoredItemResolver.resolve(StoredDataType.IMP, "1002", "id", storedItems))
                 .withMessage("No stored imp found for id: id for account: 1002");
     }
 

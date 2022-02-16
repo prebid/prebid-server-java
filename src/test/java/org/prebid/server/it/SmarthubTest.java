@@ -27,7 +27,7 @@ public class SmarthubTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/smarthub/test-auction-smarthub-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/smarthub/test-auction-smarthub-response.json", response, singletonList("smarthub"));

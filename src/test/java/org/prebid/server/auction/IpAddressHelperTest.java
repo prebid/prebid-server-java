@@ -130,12 +130,12 @@ public class IpAddressHelperTest {
 
     @Test
     public void toIpAddressShouldReturnIpV4Address() {
-        assertThat(ipAddressHelper.toIpAddress("12.34.56.78")).isEqualTo(IpAddress.of("12.34.56.78", IpAddress.IP.v4));
+        assertThat(ipAddressHelper.toIpAddress("12.34.56.78")).isEqualTo(IpAddress.of("12.34.56.78", IpAddress.IP.V4));
     }
 
     @Test
     public void toIpAddressShouldReturnIpV6AddressMasked() {
         assertThat(ipAddressHelper.toIpAddress("2001:1db8:85a3:a5b7:0000:8a2e:0370:7334"))
-                .isEqualTo(IpAddress.of("2001:1db8:85a3:a5b7::", IpAddress.IP.v6));
+                .isEqualTo(IpAddress.of("2001:1db8:85a3:a5b7::", IpAddress.IP.V6));
     }
 }

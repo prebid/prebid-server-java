@@ -27,7 +27,7 @@ public class RtbhouseTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/rtbhouse/test-auction-rtbhouse-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/rtbhouse/test-auction-rtbhouse-response.json", response,

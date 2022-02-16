@@ -133,7 +133,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build();
-        hookExecutionContext = HookExecutionContext.of(Endpoint.openrtb2_auction);
+        hookExecutionContext = HookExecutionContext.of(Endpoint.OPENRTB2_AUCTION);
 
         given(timeoutResolver.resolve(any())).willReturn(2000L);
         given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
@@ -267,7 +267,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(Account.builder()
                         .id(accountId)
-                        .status(AccountStatus.inactive)
+                        .status(AccountStatus.INACTIVE)
                         .build()));
 
         // when
@@ -506,7 +506,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(storedRequestProcessor.processStoredRequests(any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
 
-        final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
+        final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.ACTIVE).build();
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(fetchedAccount));
 
@@ -629,11 +629,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void createAuctionContextShouldReturnExpectedAuctionContext() {
         // when
-        final AuctionContext result = target.createAuctionContext(Endpoint.openrtb2_auction, MetricName.openrtb2app);
+        final AuctionContext result = target.createAuctionContext(Endpoint.OPENRTB2_AUCTION, MetricName.OPENRTB2_APP);
 
         // then
         assertThat(result).isEqualTo(AuctionContext.builder()
-                .requestTypeMetric(MetricName.openrtb2app)
+                .requestTypeMetric(MetricName.OPENRTB2_APP)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
@@ -651,7 +651,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .tmax(1000L)
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .debug(1)
-                        .trace(TraceLevel.basic)
+                        .trace(TraceLevel.BASIC)
                         .build()))
                 .build();
 
@@ -667,7 +667,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // when
         final AuctionContext result = target.enrichAuctionContext(
                 AuctionContext.builder()
-                        .requestTypeMetric(MetricName.openrtb2app)
+                        .requestTypeMetric(MetricName.OPENRTB2_APP)
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
@@ -689,7 +689,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .requestTypeMetric(MetricName.openrtb2app)
+                .requestTypeMetric(MetricName.OPENRTB2_APP)
                 .timeout(timeout)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
@@ -733,7 +733,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(
-                        ExtRequestPrebid.builder().trace(TraceLevel.verbose).build()))
+                        ExtRequestPrebid.builder().trace(TraceLevel.VERBOSE).build()))
                 .build();
 
         // when
@@ -857,7 +857,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldAddIpAddressV4FromPrivacy() {
         // given
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ignored", IpAddress.IP.v4));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ignored", IpAddress.IP.V4));
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(
@@ -885,7 +885,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldAddIpAddressV6FromPrivacy() {
         // given
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ignored", IpAddress.IP.v6));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ignored", IpAddress.IP.V6));
 
         final BidRequest bidRequest = givenBidRequest(identity());
         final PrivacyContext privacyContext = PrivacyContext.of(

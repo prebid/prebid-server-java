@@ -63,7 +63,7 @@ public class OptoutHandler implements Handler<RoutingContext> {
     }
 
     private void respondWithRedirect(RoutingContext routingContext) {
-        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+        HttpUtil.executeSafely(routingContext, Endpoint.OPTOUT,
                 response -> response
                         .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                         .putHeader(HttpUtil.LOCATION_HEADER, optoutRedirectUrl)
@@ -72,14 +72,14 @@ public class OptoutHandler implements Handler<RoutingContext> {
 
     private void respondWithUnauthorized(RoutingContext routingContext, Throwable exception) {
         logger.warn("Opt Out failed optout", exception);
-        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+        HttpUtil.executeSafely(routingContext, Endpoint.OPTOUT,
                 response -> response
                         .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
                         .end());
     }
 
     private void respondWithRedirectAndCookie(RoutingContext routingContext, Cookie cookie, String url) {
-        HttpUtil.executeSafely(routingContext, Endpoint.optout,
+        HttpUtil.executeSafely(routingContext, Endpoint.OPTOUT,
                 response -> response
                         .setStatusCode(HttpResponseStatus.MOVED_PERMANENTLY.code())
                         .putHeader(HttpUtil.LOCATION_HEADER, url)

@@ -49,7 +49,7 @@ class GroupResult<T> {
                                                 HookId hookId,
                                                 long executionTime) {
 
-        if (invocationResult.status() == InvocationStatus.success && invocationResult.action() != null) {
+        if (invocationResult.status() == InvocationStatus.SUCCESS && invocationResult.action() != null) {
             try {
                 applyAction(hookId, invocationResult.action(), invocationResult.payloadUpdate());
             } catch (Exception e) {
@@ -76,13 +76,13 @@ class GroupResult<T> {
 
     private void applyAction(HookId hookId, InvocationAction action, PayloadUpdate<T> payloadUpdate) {
         switch (action) {
-            case reject:
+            case REJECT:
                 applyReject(hookId);
                 break;
-            case update:
+            case ACTION:
                 applyPayloadUpdate(hookId, payloadUpdate);
                 break;
-            case no_action:
+            case NO_ACTION:
                 break;
             default:
                 throw new IllegalStateException(
@@ -160,12 +160,12 @@ class GroupResult<T> {
 
     private static ExecutionStatus toFailureType(Throwable throwable) {
         if (throwable instanceof TimeoutException) {
-            return ExecutionStatus.timeout;
+            return ExecutionStatus.TIMEOUT;
         } else if (throwable instanceof FailedException) {
-            return ExecutionStatus.invocation_failure;
+            return ExecutionStatus.INVOCATION_FAILURE;
         }
 
-        return ExecutionStatus.execution_failure;
+        return ExecutionStatus.EXECUTION_FAILURE;
     }
 
     private static ExecutionStatus toExecutionStatus(InvocationStatus status) {
@@ -174,10 +174,10 @@ class GroupResult<T> {
         }
 
         switch (status) {
-            case success:
-                return ExecutionStatus.success;
-            case failure:
-                return ExecutionStatus.failure;
+            case SUCCESS:
+                return ExecutionStatus.SUCCESS;
+            case FAILURE:
+                return ExecutionStatus.FAILURE;
             default:
                 throw new IllegalStateException(String.format("Unknown invocation status %s", status));
         }
@@ -189,12 +189,12 @@ class GroupResult<T> {
         }
 
         switch (action) {
-            case reject:
-                return ExecutionAction.reject;
-            case update:
-                return ExecutionAction.update;
-            case no_action:
-                return ExecutionAction.no_action;
+            case REJECT:
+                return ExecutionAction.REJECT;
+            case ACTION:
+                return ExecutionAction.UPDATE;
+            case NO_ACTION:
+                return ExecutionAction.NO_ACTION;
             default:
                 throw new IllegalStateException(String.format("Unknown invocation action %s", action));
         }

@@ -28,7 +28,7 @@ public class NobidTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/nobid/test-auction-nobid-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/nobid/test-auction-nobid-response.json", response, singletonList("nobid"));

@@ -28,7 +28,7 @@ public class EmxdigitalTest extends IntegrationTest {
 
         // when
         final Response response =
-                responseFor("openrtb2/emxdigital/test-auction-emxdigital-request.json", Endpoint.openrtb2_auction);
+                responseFor("openrtb2/emxdigital/test-auction-emxdigital-request.json", Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",

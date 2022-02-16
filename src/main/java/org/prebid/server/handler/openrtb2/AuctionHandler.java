@@ -128,7 +128,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
         final MetricName requestType = responseSucceeded
                 ? auctionContext.getRequestTypeMetric()
-                : MetricName.openrtb2web;
+                : MetricName.OPENRTB2_WEB;
 
         final MetricName metricRequestStatus;
         final List<String> errorMessages;
@@ -139,7 +139,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         enrichWithCommonHeaders(response);
 
         if (responseSucceeded) {
-            metricRequestStatus = MetricName.ok;
+            metricRequestStatus = MetricName.OK;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
@@ -148,7 +148,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
 
                 final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
@@ -161,7 +161,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else if (exception instanceof UnauthorizedAccountException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
                 final String message = exception.getMessage();
                 conditionalLogger.info(message, 0.01);
                 errorMessages = Collections.singletonList(message);
@@ -173,7 +173,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                        ? MetricName.BLACKLISTED_ACCOUNT : MetricName.BLACKLISTED_APP;
                 final String message = String.format("Blacklisted: %s", exception.getMessage());
                 logger.debug(message);
 
@@ -181,7 +181,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.FORBIDDEN;
                 body = message;
             } else {
-                metricRequestStatus = MetricName.err;
+                metricRequestStatus = MetricName.ERR;
                 logger.error("Critical error while running the auction", exception);
 
                 final String message = exception.getMessage();
@@ -205,24 +205,24 @@ public class AuctionHandler implements Handler<RoutingContext> {
                              MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.OPENRTB2_AUCTION,
                 response -> response
                         .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
                         .setStatusCode(status.code())
                         .end(body));
 
         if (responseSent) {
-            metrics.updateRequestTimeMetric(MetricName.request_time, clock.millis() - startTime);
+            metrics.updateRequestTimeMetric(MetricName.REQUEST_TIME, clock.millis() - startTime);
             metrics.updateRequestTypeMetric(requestType, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {
-            metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+            metrics.updateRequestTypeMetric(requestType, MetricName.NETWORKERR);
         }
     }
 
     private void handleResponseException(Throwable throwable, MetricName requestType) {
         logger.warn("Failed to send auction response: {0}", throwable.getMessage());
-        metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
+        metrics.updateRequestTypeMetric(requestType, MetricName.NETWORKERR);
     }
 
     private void enrichWithCommonHeaders(HttpServerResponse response) {

@@ -452,7 +452,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         final CookieSyncResponse cookieSyncResponse = CookieSyncResponse.of(cookieSyncStatus, updatedBidderStatuses);
         final String body = mapper.encodeToString(cookieSyncResponse);
 
-        HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
+        HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.COOKIE_SYNC,
                 response -> response
                         .setStatusCode(status.code())
                         .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
@@ -661,7 +661,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             logger.warn(body, error);
         }
 
-        HttpUtil.executeSafely(routingContext, Endpoint.cookie_sync,
+        HttpUtil.executeSafely(routingContext, Endpoint.COOKIE_SYNC,
                 response -> response
                         .setStatusCode(status.code())
                         .end(body));

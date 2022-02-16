@@ -27,7 +27,7 @@ public class RhythmoneTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/rhythmone/test-auction-rhythmone-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/rhythmone/test-auction-rhythmone-response.json", response,

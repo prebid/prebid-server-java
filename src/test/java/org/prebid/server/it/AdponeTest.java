@@ -27,7 +27,7 @@ public class AdponeTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adpone/test-auction-adpone-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adpone/test-auction-adpone-response.json", response,

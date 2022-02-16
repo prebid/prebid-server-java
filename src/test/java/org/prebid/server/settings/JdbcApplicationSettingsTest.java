@@ -223,7 +223,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         future.onComplete(context.asyncAssertSuccess(account -> {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
-                    .status(AccountStatus.active)
+                    .status(AccountStatus.ACTIVE)
                     .auction(AccountAuctionConfig.builder()
                             .priceGranularity("med")
                             .bannerCacheTtl(100)
@@ -231,7 +231,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                             .truncateTargetAttr(0)
                             .defaultIntegration("web")
                             .debugAllow(true)
-                            .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
+                            .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.ENFORCE))
                             .events(AccountEventsConfig.of(true))
                             .build())
                     .privacy(AccountPrivacyConfig.of(

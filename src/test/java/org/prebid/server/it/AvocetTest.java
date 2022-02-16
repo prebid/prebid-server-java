@@ -27,7 +27,7 @@ public class AvocetTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/avocet/test-auction-avocet-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/avocet/test-auction-avocet-response.json", response, singletonList("avocet"));

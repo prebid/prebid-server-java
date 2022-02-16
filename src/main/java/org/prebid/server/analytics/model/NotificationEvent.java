@@ -29,6 +29,6 @@ public class NotificationEvent {
     HttpRequestContext httpContext;
 
     public enum Type {
-        win, imp
+        WIN, IMP
     }
 }

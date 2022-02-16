@@ -13,19 +13,19 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationContext>> {
 
     StageWithHookType<EntrypointHook> ENTRYPOINT =
-            new StageWithHookTypeImpl<>(Stage.entrypoint, EntrypointHook.class);
+            new StageWithHookTypeImpl<>(Stage.ENTRYPOINT, EntrypointHook.class);
     StageWithHookType<RawAuctionRequestHook> RAW_AUCTION_REQUEST =
-            new StageWithHookTypeImpl<>(Stage.raw_auction_request, RawAuctionRequestHook.class);
+            new StageWithHookTypeImpl<>(Stage.RAW_AUCTION_REQUEST, RawAuctionRequestHook.class);
     StageWithHookType<ProcessedAuctionRequestHook> PROCESSED_AUCTION_REQUEST =
-            new StageWithHookTypeImpl<>(Stage.processed_auction_request, ProcessedAuctionRequestHook.class);
+            new StageWithHookTypeImpl<>(Stage.PROCESSED_AUCTION_REQUEST, ProcessedAuctionRequestHook.class);
     StageWithHookType<BidderRequestHook> BIDDER_REQUEST =
-            new StageWithHookTypeImpl<>(Stage.bidder_request, BidderRequestHook.class);
+            new StageWithHookTypeImpl<>(Stage.BIDDER_REQUEST, BidderRequestHook.class);
     StageWithHookType<RawBidderResponseHook> RAW_BIDDER_RESPONSE =
-            new StageWithHookTypeImpl<>(Stage.raw_bidder_response, RawBidderResponseHook.class);
+            new StageWithHookTypeImpl<>(Stage.RAW_BIDDER_RESPONSE, RawBidderResponseHook.class);
     StageWithHookType<ProcessedBidderResponseHook> PROCESSED_BIDDER_RESPONSE =
-            new StageWithHookTypeImpl<>(Stage.processed_bidder_response, ProcessedBidderResponseHook.class);
+            new StageWithHookTypeImpl<>(Stage.PROCESSED_BIDDER_RESPONSE, ProcessedBidderResponseHook.class);
     StageWithHookType<AuctionResponseHook> AUCTION_RESPONSE =
-            new StageWithHookTypeImpl<>(Stage.auction_response, AuctionResponseHook.class);
+            new StageWithHookTypeImpl<>(Stage.AUCTION_RESPONSE, AuctionResponseHook.class);
 
     Stage stage();
 
@@ -33,19 +33,19 @@ public interface StageWithHookType<TYPE extends Hook<?, ? extends InvocationCont
 
     static StageWithHookType<? extends Hook<?, ? extends InvocationContext>> forStage(Stage stage) {
         switch (stage) {
-            case entrypoint:
+            case ENTRYPOINT:
                 return ENTRYPOINT;
-            case raw_auction_request:
+            case RAW_AUCTION_REQUEST:
                 return RAW_AUCTION_REQUEST;
-            case processed_auction_request:
+            case PROCESSED_AUCTION_REQUEST:
                 return PROCESSED_AUCTION_REQUEST;
-            case bidder_request:
+            case BIDDER_REQUEST:
                 return BIDDER_REQUEST;
-            case raw_bidder_response:
+            case RAW_BIDDER_RESPONSE:
                 return RAW_BIDDER_RESPONSE;
-            case processed_bidder_response:
+            case PROCESSED_BIDDER_RESPONSE:
                 return PROCESSED_BIDDER_RESPONSE;
-            case auction_response:
+            case AUCTION_RESPONSE:
                 return AUCTION_RESPONSE;
             default:
                 throw new IllegalStateException(String.format("Unknown stage %s", stage));

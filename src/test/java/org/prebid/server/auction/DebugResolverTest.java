@@ -111,14 +111,14 @@ public class DebugResolverTest {
     public void debugContextFromShouldPassTraceLevelThrough() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder
-                .bidRequest(givenBidRequest(extPrebid -> extPrebid.trace(TraceLevel.basic)))
+                .bidRequest(givenBidRequest(extPrebid -> extPrebid.trace(TraceLevel.BASIC)))
                 .account(givenAccount(true)));
 
         // when
         final DebugContext result = debugResolver.debugContextFrom(auctionContext);
 
         // then
-        assertThat(result).isEqualTo(DebugContext.of(false, TraceLevel.basic));
+        assertThat(result).isEqualTo(DebugContext.of(false, TraceLevel.BASIC));
     }
 
     @Test

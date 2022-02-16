@@ -31,7 +31,7 @@ public class ConversantTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/conversant/test-auction-conversant-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/conversant/test-auction-conversant-response.json", response,
@@ -48,7 +48,7 @@ public class ConversantTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/conversant/alias/test-auction-conversant-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/conversant/alias/test-auction-conversant-response.json", response,

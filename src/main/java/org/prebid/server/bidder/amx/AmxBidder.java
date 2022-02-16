@@ -181,7 +181,7 @@ public class AmxBidder implements Bidder<BidRequest> {
 
         final Bid updatedBid;
         try {
-            updatedBid = bidType == BidType.video ? updateVideoBid(bid, amxBidExt) : bid;
+            updatedBid = bidType == BidType.VIDEO ? updateVideoBid(bid, amxBidExt) : bid;
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
@@ -204,8 +204,8 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     private static BidType getMediaType(AmxBidExt bidExt) {
         return StringUtils.isNotBlank(bidExt.getStartDelay())
-                ? BidType.video
-                : BidType.banner;
+                ? BidType.VIDEO
+                : BidType.BANNER;
     }
 
     private static Bid updateVideoBid(Bid bid, AmxBidExt bidExt) {

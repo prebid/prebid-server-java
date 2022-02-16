@@ -193,14 +193,14 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }
 

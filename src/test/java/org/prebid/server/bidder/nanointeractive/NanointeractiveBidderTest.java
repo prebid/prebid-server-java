@@ -145,7 +145,7 @@ public class NanointeractiveBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -172,7 +172,7 @@ public class NanointeractiveBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .containsExactly(BidderBid.of(Bid.builder().impid("impId1").price(BigDecimal.valueOf(5.67)).build(),
-                        BidType.banner, "USD"));
+                        BidType.BANNER, "USD"));
     }
 
     @Test

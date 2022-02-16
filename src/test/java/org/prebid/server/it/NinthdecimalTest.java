@@ -28,7 +28,7 @@ public class NinthdecimalTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/ninthdecimal/test-auction-ninthdecimal-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/ninthdecimal/test-auction-ninthdecimal-response.json", response,

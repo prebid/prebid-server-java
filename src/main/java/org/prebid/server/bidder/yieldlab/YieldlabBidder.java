@@ -284,11 +284,11 @@ public class YieldlabBidder implements Bidder<Void> {
 
         BidType bidType;
         if (currentImp.getVideo() != null) {
-            bidType = BidType.video;
+            bidType = BidType.VIDEO;
             updatedBid.nurl(makeNurl(bidRequest, matchedExtImp, yieldlabResponse));
             updatedBid.adm(resolveAdm(bidRequest, matchedExtImp, yieldlabResponse));
         } else if (currentImp.getBanner() != null) {
-            bidType = BidType.banner;
+            bidType = BidType.BANNER;
             updatedBid.adm(makeAdm(bidRequest, matchedExtImp, yieldlabResponse));
         } else {
             return null;

@@ -2,15 +2,57 @@ package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Arrays;
+
 public enum BidType {
 
-    banner,
-    video,
-    audio,
+    @JsonProperty("banner")
+    BANNER("banner"),
+
+    @JsonProperty("video")
+    VIDEO("video"),
+
+    @JsonProperty("audio")
+    AUDIO("audio"),
+
     @JsonProperty("native")
-    xNative;
+    X_NATIVE("native");
+
+    private final String value;
+
+    BidType(String value) {
+        this.value = value;
+    }
+
+    public String getValue() {
+        return value;
+    }
 
     public String getName() {
-        return this == xNative ? "native" : this.name();
+        switch (this) {
+            case BANNER:
+                return "banner";
+            case VIDEO:
+                return "video";
+            case AUDIO:
+                return "audio";
+            case X_NATIVE:
+                return "native";
+            default:
+                return this.name();
+        }
+    }
+
+    public static BidType getEnum(String value) {
+        return Arrays.stream(values())
+                .filter(type -> type.getValue().equalsIgnoreCase(value))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(String.format("No enum constant "
+                        + "org.prebid.server.proto.openrtb.ext.response.BidType.%s", value)));
+    }
+
+    @Override
+    public String toString() {
+        return this.getValue();
     }
 }

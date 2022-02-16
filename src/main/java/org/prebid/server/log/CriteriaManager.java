@@ -51,23 +51,23 @@ public class CriteriaManager {
     private BiConsumer<Logger, Object> resolveLogLevel(String rawLogLevel) {
         final LogLevel logLevel;
         try {
-            logLevel = LogLevel.valueOf(rawLogLevel.toLowerCase());
+            logLevel = LogLevel.valueOf(rawLogLevel);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(String.format("Invalid LoggingLevel: %s", rawLogLevel));
         }
 
         switch (logLevel) {
-            case info:
+            case INFO:
                 return Logger::info;
-            case warn:
+            case WARN:
                 return Logger::warn;
-            case trace:
+            case TRACE:
                 return Logger::trace;
-            case error:
+            case ERROR:
                 return Logger::error;
-            case fatal:
+            case FATAL:
                 return Logger::fatal;
-            case debug:
+            case DEBUG:
                 return Logger::debug;
             default:
                 throw new IllegalArgumentException(String.format("Unknown LoggingLevel: %s", logLevel));
@@ -75,6 +75,6 @@ public class CriteriaManager {
     }
 
     private enum LogLevel {
-        info, warn, trace, error, fatal, debug
+        INFO, WARN, TRACE, ERROR, FATAL, DEBUG
     }
 }

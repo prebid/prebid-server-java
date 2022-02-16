@@ -422,7 +422,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, null));
     }
 
     @Test
@@ -444,7 +444,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId2").build(), BidType.BANNER, null));
     }
 
     @Test
@@ -467,7 +467,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.VIDEO, null));
     }
 
     @Test
@@ -491,7 +491,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.BANNER, null));
     }
 
     @Test
@@ -517,8 +517,8 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(2)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, "EUR"),
-                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.BANNER, "EUR"),
+                        BidderBid.of(Bid.builder().impid("impId2").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -541,7 +541,7 @@ public class BrightrollBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId1").build(), BidType.BANNER, null));
     }
 
     @Test

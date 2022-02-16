@@ -32,8 +32,8 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class AmxBidderTest extends VertxTest {
 
@@ -61,7 +61,7 @@ public class AmxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.BAD_INPUT
                 && error.getMessage().startsWith("Cannot deserialize value"));
     }
 
@@ -116,7 +116,7 @@ public class AmxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                 && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -161,7 +161,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().build(), BANNER, "USD"));
     }
 
     @Test
@@ -191,7 +191,7 @@ public class AmxBidderTest extends VertxTest {
                         .nurl("")
                         .ext(bidExt)
                         .adm(expectedAdm)
-                        .build(), video, "USD"));
+                        .build(), VIDEO, "USD"));
     }
 
     @Test
@@ -233,7 +233,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .satisfies(error -> {
-                    assertThat(error).extracting(BidderError::getType).containsExactly(BidderError.Type.bad_input);
+                    assertThat(error).extracting(BidderError::getType).containsExactly(BidderError.Type.BAD_INPUT);
                     assertThat(error).extracting(BidderError::getMessage)
                             .element(0).asString().startsWith("Cannot deserialize value");
                 });

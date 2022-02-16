@@ -27,7 +27,7 @@ public class PubnativeTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/pubnative/test-auction-pubnative-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/pubnative/test-auction-pubnative-response.json", response,

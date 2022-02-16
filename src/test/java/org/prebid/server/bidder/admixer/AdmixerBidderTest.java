@@ -35,10 +35,10 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class AdmixerBidderTest extends VertxTest {
 
@@ -91,7 +91,7 @@ public class AdmixerBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_input
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.BAD_INPUT
                 && error.getMessage().startsWith("Wrong Admixer bidder ext in imp with id : 123"));
     }
 
@@ -121,7 +121,7 @@ public class AdmixerBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                 && error.getMessage().startsWith("Failed to decode:"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -188,7 +188,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -207,7 +207,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "USD"));
     }
 
     @Test
@@ -226,7 +226,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "USD"));
     }
 
     @Test
@@ -245,7 +245,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, "USD"));
     }
 
     @Test
@@ -264,7 +264,7 @@ public class AdmixerBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), audio, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), AUDIO, "USD"));
     }
 
     @Test

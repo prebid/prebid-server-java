@@ -119,14 +119,14 @@ public class EventUtil {
         final MultiMap queryParams = routingContext.request().params();
 
         final String typeAsString = queryParams.get(TYPE_PARAMETER);
-        final EventRequest.Type type = typeAsString.equals(WIN_TYPE) ? EventRequest.Type.win : EventRequest.Type.imp;
+        final EventRequest.Type type = typeAsString.equals(WIN_TYPE) ? EventRequest.Type.WIN : EventRequest.Type.IMP;
 
         final EventRequest.Format format = Objects.equals(queryParams.get(FORMAT_PARAMETER), IMAGE_FORMAT)
-                ? EventRequest.Format.image : EventRequest.Format.blank;
+                ? EventRequest.Format.IMAGE : EventRequest.Format.BLANK;
 
         final EventRequest.Analytics analytics = Objects.equals(DISABLED_ANALYTICS,
                 queryParams.get(ANALYTICS_PARAMETER))
-                ? EventRequest.Analytics.disabled : EventRequest.Analytics.enabled;
+                ? EventRequest.Analytics.DISABLED : EventRequest.Analytics.ENABLED;
 
         final String timestampAsString = StringUtils.stripToNull(queryParams.get(TIMESTAMP_PARAMETER));
         final Long timestamp = timestampAsString != null ? Long.valueOf(timestampAsString) : null;
@@ -177,9 +177,9 @@ public class EventUtil {
         }
 
         // format
-        if (eventRequest.getFormat() == EventRequest.Format.blank) {
+        if (eventRequest.getFormat() == EventRequest.Format.BLANK) {
             result.append(nameValueAsQueryString(FORMAT_PARAMETER, BLANK_FORMAT));
-        } else if (eventRequest.getFormat() == EventRequest.Format.image) {
+        } else if (eventRequest.getFormat() == EventRequest.Format.IMAGE) {
             result.append(nameValueAsQueryString(FORMAT_PARAMETER, IMAGE_FORMAT));
         }
 
@@ -188,9 +188,9 @@ public class EventUtil {
                 INTEGRATION_PARAMETER, StringUtils.stripToEmpty(eventRequest.getIntegration())));
 
         // analytics
-        if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
+        if (eventRequest.getAnalytics() == EventRequest.Analytics.ENABLED) {
             result.append(nameValueAsQueryString(ANALYTICS_PARAMETER, ENABLED_ANALYTICS));
-        } else if (eventRequest.getAnalytics() == EventRequest.Analytics.disabled) {
+        } else if (eventRequest.getAnalytics() == EventRequest.Analytics.DISABLED) {
             result.append(nameValueAsQueryString(ANALYTICS_PARAMETER, DISABLED_ANALYTICS));
         }
 

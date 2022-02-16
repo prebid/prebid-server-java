@@ -295,7 +295,7 @@ public class CacheService {
                                              CacheTtl accountCacheTtl) {
 
         return bidInfos.stream()
-                .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
+                .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.VIDEO))
                 .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, true))
                 .collect(Collectors.toList());
     }
@@ -677,14 +677,14 @@ public class CacheService {
         final String typeValue = ObjectUtil.getIfNotNull(putObject, PutObject::getType);
 
         if (Objects.equals(typeValue, XML_CREATIVE_TYPE)) {
-            return MetricName.xml;
+            return MetricName.XML;
         }
 
         if (Objects.equals(typeValue, JSON_CREATIVE_TYPE)) {
-            return MetricName.json;
+            return MetricName.JSON;
         }
 
-        return MetricName.unknown;
+        return MetricName.UNKNOWN;
     }
 
     private static int creativeSizeFromAdm(String adm) {

@@ -29,10 +29,10 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class GenericBidderTest extends VertxTest {
 
@@ -76,7 +76,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -122,7 +122,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), BANNER, null));
     }
 
     @Test
@@ -138,7 +138,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), video, null));
+                .containsExactly(BidderBid.of(givenBid(), VIDEO, null));
     }
 
     @Test
@@ -154,7 +154,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), xNative, null));
+                .containsExactly(BidderBid.of(givenBid(), X_NATIVE, null));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), audio, null));
+                .containsExactly(BidderBid.of(givenBid(), AUDIO, null));
     }
 
     @Test
@@ -187,7 +187,7 @@ public class GenericBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(), banner, null));
+                .containsExactly(BidderBid.of(givenBid(), BANNER, null));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

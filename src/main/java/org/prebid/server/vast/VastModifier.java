@@ -56,7 +56,7 @@ public class VastModifier {
             try {
                 return new TextNode(appendTrackingUrlToVastXml(value.asText(), vastUrlTracking, bidder));
             } catch (PreBidException e) {
-                metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
+                metrics.updateAdapterRequestErrorMetric(bidder, MetricName.BADSERVERRESPONSE);
             }
         }
 
@@ -86,7 +86,7 @@ public class VastModifier {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {
             debugWarnings.add(e.getMessage());
-            metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
+            metrics.updateAdapterRequestErrorMetric(bidder, MetricName.BADSERVERRESPONSE);
         }
         return vastXml;
     }

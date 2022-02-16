@@ -239,14 +239,14 @@ public class GammaBidder implements Bidder<Void> {
     private static BidType getMediaTypes(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+                return BidType.VIDEO;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 
     private static Bid convertBid(GammaBid gammaBid, BidType bidType) {
-        final boolean isVideo = BidType.video.equals(bidType);
+        final boolean isVideo = BidType.VIDEO.equals(bidType);
         if (!isVideo && StringUtils.isBlank(gammaBid.getBid().getAdm())) {
             throw new PreBidException("Missing Ad Markup. Run with request.debug = 1 for more info");
         }

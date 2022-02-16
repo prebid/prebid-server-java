@@ -34,10 +34,10 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class BidscubeBidderTest extends VertxTest {
 
@@ -122,7 +122,7 @@ public class BidscubeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -161,10 +161,10 @@ public class BidscubeBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
-                                givenBid("123", banner),
-                                givenBid("456", video),
-                                givenBid("789", audio),
-                                givenBid("44454", xNative)))
+                                givenBid("123", BANNER),
+                                givenBid("456", VIDEO),
+                                givenBid("789", AUDIO),
+                                givenBid("44454", X_NATIVE)))
                         .build());
 
         // when
@@ -174,10 +174,10 @@ public class BidscubeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactlyInAnyOrder(
-                        BidderBid.of(givenBid("123", banner), banner, null),
-                        BidderBid.of(givenBid("456", video), video, null),
-                        BidderBid.of(givenBid("789", audio), banner, null),
-                        BidderBid.of(givenBid("44454", xNative), xNative, null));
+                        BidderBid.of(givenBid("123", BANNER), BANNER, null),
+                        BidderBid.of(givenBid("456", VIDEO), VIDEO, null),
+                        BidderBid.of(givenBid("789", AUDIO), BANNER, null),
+                        BidderBid.of(givenBid("44454", X_NATIVE), X_NATIVE, null));
     }
 
     @Test
@@ -197,8 +197,8 @@ public class BidscubeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid("123", video, bidBuilder -> bidBuilder.ext(givenExt)),
-                        banner, null));
+                .containsExactly(BidderBid.of(givenBid("123", VIDEO, bidBuilder -> bidBuilder.ext(givenExt)),
+                        BANNER, null));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -208,8 +208,8 @@ public class BidscubeBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
-                                givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
-                                givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
+                                givenBid("123", BANNER, bidBuilder -> bidBuilder.ext(null)),
+                                givenBid("456", BANNER, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
                                         ExtPrebid.of(null, null)))),
                                 givenBid("213", null)
                                 )
@@ -230,7 +230,7 @@ public class BidscubeBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorOnInvalidBidExt() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder()
-                .seatbid(givenSeatBid(givenBid("123", banner, bidBuilder ->
+                .seatbid(givenSeatBid(givenBid("123", BANNER, bidBuilder ->
                         bidBuilder.ext(mapper.valueToTree(ExtPrebid.of("invalid", null)))))).build());
 
         // when

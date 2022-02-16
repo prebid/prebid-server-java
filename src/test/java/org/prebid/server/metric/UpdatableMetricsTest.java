@@ -27,17 +27,17 @@ public class UpdatableMetricsTest {
     @Before
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        updatableMetrics = givenUpdatableMetricsWith(CounterType.counter);
+        updatableMetrics = givenUpdatableMetricsWith(CounterType.COUNTER);
     }
 
     @Test
     public void incCounterShouldCreateMetricNameUsingProvidedCreator() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER,
                 metricName -> "someprefix." + metricName.toString());
 
         // when
-        updatableMetrics.incCounter(MetricName.requests, 5);
+        updatableMetrics.incCounter(MetricName.REQUESTS, 5);
 
         // then
         assertThat(metricRegistry.counter("someprefix.requests").getCount()).isEqualTo(5);
@@ -50,23 +50,23 @@ public class UpdatableMetricsTest {
         final Function<MetricName, String> nameCreator = mock(Function.class);
         given(nameCreator.apply(any())).willReturn("");
 
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, nameCreator);
 
         // when
-        updatableMetrics.incCounter(MetricName.requests, 5);
-        updatableMetrics.incCounter(MetricName.requests, 6);
+        updatableMetrics.incCounter(MetricName.REQUESTS, 5);
+        updatableMetrics.incCounter(MetricName.REQUESTS, 6);
 
         // then
-        verify(nameCreator).apply(eq(MetricName.requests));
+        verify(nameCreator).apply(eq(MetricName.REQUESTS));
     }
 
     @Test
     public void incCounterShouldIncrementByOne() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, MetricName::toString);
 
         // when
-        updatableMetrics.incCounter(MetricName.requests);
+        updatableMetrics.incCounter(MetricName.REQUESTS);
 
         // then
         assertThat(metricRegistry.counter("requests").getCount()).isEqualTo(1);
@@ -75,11 +75,11 @@ public class UpdatableMetricsTest {
     @Test
     public void updateTimerShouldCreateMetricNameUsingProvidedCreator() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER,
                 metricName -> "someprefix." + metricName.toString());
 
         // when
-        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.REQUEST_TIME, 1000L);
 
         // then
         assertThat(metricRegistry.timer("someprefix.request_time").getCount()).isEqualTo(1);
@@ -92,23 +92,23 @@ public class UpdatableMetricsTest {
         final Function<MetricName, String> nameCreator = mock(Function.class);
         given(nameCreator.apply(any())).willReturn("");
 
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, nameCreator);
 
         // when
-        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
-        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.REQUEST_TIME, 1000L);
+        updatableMetrics.updateTimer(MetricName.REQUEST_TIME, 1000L);
 
         // then
-        verify(nameCreator).apply(eq(MetricName.request_time));
+        verify(nameCreator).apply(eq(MetricName.REQUEST_TIME));
     }
 
     @Test
     public void updateTimerShouldConvertToNanos() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, MetricName::toString);
 
         // when
-        updatableMetrics.updateTimer(MetricName.request_time, 1000L);
+        updatableMetrics.updateTimer(MetricName.REQUEST_TIME, 1000L);
 
         // then
         assertThat(metricRegistry.timer("request_time").getSnapshot().getValues()).containsOnly(1_000_000_000L);
@@ -117,11 +117,11 @@ public class UpdatableMetricsTest {
     @Test
     public void updateHistogramShouldCreateMetricNameUsingProvidedCreator() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER,
                 metricName -> "someprefix." + metricName.toString());
 
         // when
-        updatableMetrics.updateHistogram(MetricName.prices, 1000L);
+        updatableMetrics.updateHistogram(MetricName.PRICES, 1000L);
 
         // then
         assertThat(metricRegistry.histogram("someprefix.prices").getCount()).isEqualTo(1);
@@ -134,24 +134,24 @@ public class UpdatableMetricsTest {
         final Function<MetricName, String> nameCreator = mock(Function.class);
         given(nameCreator.apply(any())).willReturn("");
 
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, nameCreator);
 
         // when
-        updatableMetrics.updateHistogram(MetricName.prices, 1000L);
-        updatableMetrics.updateHistogram(MetricName.prices, 1000L);
+        updatableMetrics.updateHistogram(MetricName.PRICES, 1000L);
+        updatableMetrics.updateHistogram(MetricName.PRICES, 1000L);
 
         // then
-        verify(nameCreator).apply(eq(MetricName.prices));
+        verify(nameCreator).apply(eq(MetricName.PRICES));
     }
 
     @Test
     public void createGaugeShouldCreateMetricNameUsingProvidedCreator() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter,
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER,
                 metricName -> "someprefix." + metricName.toString());
 
         // when
-        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+        updatableMetrics.createGauge(MetricName.OPENED, () -> 1);
 
         // then
         assertThat(metricRegistry.gauge("someprefix.opened", () -> null).getValue()).isEqualTo(1L);
@@ -164,24 +164,24 @@ public class UpdatableMetricsTest {
         final Function<MetricName, String> nameCreator = mock(Function.class);
         given(nameCreator.apply(any())).willReturn("");
 
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, nameCreator);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, nameCreator);
 
         // when
-        updatableMetrics.createGauge(MetricName.opened, () -> 1);
-        updatableMetrics.createGauge(MetricName.opened, () -> 1);
+        updatableMetrics.createGauge(MetricName.OPENED, () -> 1);
+        updatableMetrics.createGauge(MetricName.OPENED, () -> 1);
 
         // then
-        verify(nameCreator).apply(eq(MetricName.opened));
+        verify(nameCreator).apply(eq(MetricName.OPENED));
     }
 
     @Test
     public void removeMetricShouldRemoveExistingMetric() {
         // given
-        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.counter, MetricName::toString);
+        updatableMetrics = new UpdatableMetrics(metricRegistry, CounterType.COUNTER, MetricName::toString);
 
         // when
-        updatableMetrics.createGauge(MetricName.opened, () -> 1);
-        updatableMetrics.removeMetric(MetricName.opened);
+        updatableMetrics.createGauge(MetricName.OPENED, () -> 1);
+        updatableMetrics.removeMetric(MetricName.OPENED);
 
         // then
         assertThat(metricRegistry.getGauges()).doesNotContainKey("opened");

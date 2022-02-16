@@ -185,16 +185,16 @@ public class SomoaudienceBidder implements Bidder<BidRequest> {
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findAny()
                 .map(SomoaudienceBidder::bidTypeFromImp)
-                .orElse(BidType.banner);
+                .orElse(BidType.BANNER);
     }
 
     private static BidType bidTypeFromImp(Imp imp) {
-        BidType bidType = BidType.banner;
+        BidType bidType = BidType.BANNER;
         if (imp.getBanner() == null) {
             if (imp.getVideo() != null) {
-                bidType = BidType.video;
+                bidType = BidType.VIDEO;
             } else if (imp.getXNative() != null) {
-                bidType = BidType.xNative;
+                bidType = BidType.X_NATIVE;
             }
         }
         return bidType;

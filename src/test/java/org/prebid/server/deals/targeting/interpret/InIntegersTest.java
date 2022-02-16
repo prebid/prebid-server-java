@@ -30,7 +30,7 @@ public class InIntegersTest {
     @Before
     public void setUp() {
         // given
-        category = new TargetingCategory(TargetingCategory.Type.pagePosition);
+        category = new TargetingCategory(TargetingCategory.Type.PAGE_POSITION);
         expression = new InIntegers(category, asList(1, 2, 3));
     }
 

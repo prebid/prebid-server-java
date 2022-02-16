@@ -30,8 +30,8 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class RevcontentBidderTest extends VertxTest {
 
@@ -131,7 +131,7 @@ public class RevcontentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -179,7 +179,7 @@ public class RevcontentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm("<html>").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm("<html>").build(), BANNER, "USD"));
     }
 
     @Test
@@ -198,7 +198,7 @@ public class RevcontentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm("notHtml").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").adm("notHtml").build(), X_NATIVE, "USD"));
     }
 
     @Test
@@ -217,7 +217,7 @@ public class RevcontentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), X_NATIVE, "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

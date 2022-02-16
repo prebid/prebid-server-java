@@ -834,11 +834,11 @@ public class LineItemServiceTest extends VertxTest {
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
 
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id1 targeting did not match imp with id imp1"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id2 targeting matched imp with id imp1"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id2 for bidder appnexus ready to serve. relPriority null"));
     }
 
@@ -890,11 +890,11 @@ public class LineItemServiceTest extends VertxTest {
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
 
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id1 targeting was not defined or has incorrect format"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id2 targeting matched imp with id imp1"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id2 for bidder appnexus ready to serve. relPriority null"));
     }
 
@@ -1033,7 +1033,7 @@ public class LineItemServiceTest extends VertxTest {
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
         assertThat(auctionContext.getTxnLog().lineItemsMatchedTargetingFcapped()).containsOnly("id1");
         assertThat(auctionContext.getDeepDebugLog().entries()).contains(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id1 for bidder rubicon is frequency capped by fcap id fcap2."));
     }
 
@@ -1327,7 +1327,7 @@ public class LineItemServiceTest extends VertxTest {
         assertThat(auctionContext.getTxnLog().lineItemsPacingDeferred()).contains("id1");
         assertThat(result.getLineItems()).extracting(LineItem::getLineItemId).containsOnly("id2");
         assertThat(auctionContext.getDeepDebugLog().entries()).contains(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id1 for bidder rubicon does not have unspent tokens to be served"));
     }
 
@@ -1683,7 +1683,7 @@ public class LineItemServiceTest extends VertxTest {
         // then
         assertThat(auctionContext.getTxnLog().lineItemsMatchedTargetingFcapLookupFailed()).containsOnly("id2");
         assertThat(auctionContext.getDeepDebugLog().entries()).contains(
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.PACING,
                         "Failed to match fcap for Line Item id2 bidder rubicon in a reason of bad response"
                                 + " from user data service"));
     }
@@ -1775,13 +1775,13 @@ public class LineItemServiceTest extends VertxTest {
 
         // then
         assertThat(auctionContext.getDeepDebugLog().entries()).containsOnly(
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id1 targeting matched imp with id imp1"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.targeting,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.TARGETING,
                         "Line Item id2 targeting matched imp with id imp1"),
-                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id1", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id1 for bidder rubicon ready to serve. relPriority 2"),
-                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.pacing,
+                ExtTraceDeal.of("id2", ZonedDateTime.now(clock), Category.PACING,
                         "Matched Line Item id2 for bidder appnexus not ready to serve. Will be ready"
                                 + " at 2019-07-26T21:59:30.000Z, current time is 2019-07-26T10:01:00.000Z"));
     }

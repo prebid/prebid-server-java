@@ -19,9 +19,9 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
-import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.bidrequest;
-import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.bidresponse;
-import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.xStatic;
+import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.BIDREQUEST;
+import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.BIDRESPONSE;
+import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertargetingRule.Source.X_STATIC;
 
 public class TargetingKeywordsResolverTest extends VertxTest {
 
@@ -31,7 +31,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword1", xStatic, "value1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword1", X_STATIC, "value1")))
                         .build()))
                 .build();
 
@@ -49,8 +49,8 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(asList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword1", xStatic, "value1duplicate"),
-                                ExtRequestPrebidAdservertargetingRule.of("keyword1", xStatic, "value1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword1", X_STATIC, "value1duplicate"),
+                                ExtRequestPrebidAdservertargetingRule.of("keyword1", X_STATIC, "value1")))
                         .build()))
                 .build();
 
@@ -69,7 +69,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword2", bidrequest, "ext.prebid.amp.data.attr1")))
+                                        "keyword2", BIDREQUEST, "ext.prebid.amp.data.attr1")))
                         .amp(ExtRequestPrebidAmp.of(singletonMap("attr1", "value2")))
                         .build()))
                 .build();
@@ -93,9 +93,9 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(asList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword2", bidrequest, "ext.prebid.amp.data.attr1"),
+                                        "keyword2", BIDREQUEST, "ext.prebid.amp.data.attr1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword2", bidrequest, "ext.prebid.amp.data.attr2")))
+                                        "keyword2", BIDREQUEST, "ext.prebid.amp.data.attr2")))
                         .amp(ExtRequestPrebidAmp.of(ampData))
                         .build()))
                 .build();
@@ -114,7 +114,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword2", bidrequest, "ext.prebid.debug")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword2", BIDREQUEST, "ext.prebid.debug")))
                         .debug(1)
                         .build()))
                 .build();
@@ -133,7 +133,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword2", bidrequest, "ext.prebid.schains")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword2", BIDREQUEST, "ext.prebid.schains")))
                         .schains(singletonList(ExtRequestPrebidSchain.of(null, null)))
                         .build()))
                 .build();
@@ -152,7 +152,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr1")))
                         .build()))
                 .imp(singletonList(Imp.builder()
                         .id("impId")
@@ -178,8 +178,8 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(asList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1"),
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr2")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr1"),
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr2")))
                         .build()))
                 .imp(singletonList(Imp.builder()
                         .id("impId")
@@ -201,7 +201,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr1")))
                         .build()))
                 .imp(singletonList(Imp.builder()
                         .id("impId")
@@ -223,7 +223,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr1")))
                         .build()))
                 .imp(singletonList(Imp.builder()
                         .id("impId")
@@ -245,7 +245,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword3", bidrequest, "imp.ext.attr1")))
+                                ExtRequestPrebidAdservertargetingRule.of("keyword3", BIDREQUEST, "imp.ext.attr1")))
                         .build()))
                 .imp(singletonList(Imp.builder().id("impId1").build()))
                 .build();
@@ -265,7 +265,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr1")))
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr1")))
                         .build()))
                 .build();
 
@@ -292,9 +292,9 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(asList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr1"),
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr2")))
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr2")))
                         .build()))
                 .build();
 
@@ -317,7 +317,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr1")))
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr1")))
                         .build()))
                 .build();
 
@@ -340,7 +340,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr1")))
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr1")))
                         .build()))
                 .build();
 
@@ -363,7 +363,7 @@ public class TargetingKeywordsResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(singletonList(
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "{{BIDDER}}_keyword5", bidresponse, "seatbid.bid.ext.attr1")))
+                                        "{{BIDDER}}_keyword5", BIDRESPONSE, "seatbid.bid.ext.attr1")))
                         .build()))
                 .build();
 
@@ -389,15 +389,15 @@ public class TargetingKeywordsResolverTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .adservertargeting(asList(
-                                ExtRequestPrebidAdservertargetingRule.of("keyword1", xStatic, "value1"),
+                                ExtRequestPrebidAdservertargetingRule.of("keyword1", X_STATIC, "value1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword2", bidrequest, "ext.prebid.amp.data.attr1"),
+                                        "keyword2", BIDREQUEST, "ext.prebid.amp.data.attr1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword3", bidrequest, "imp.ext.attr1"),
+                                        "keyword3", BIDREQUEST, "imp.ext.attr1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "keyword4", bidresponse, "seatbid.bid.ext.attr1"),
+                                        "keyword4", BIDRESPONSE, "seatbid.bid.ext.attr1"),
                                 ExtRequestPrebidAdservertargetingRule.of(
-                                        "{{BIDDER}}_keyword5", bidresponse, "seatbid.bid.ext.attr2")))
+                                        "{{BIDDER}}_keyword5", BIDRESPONSE, "seatbid.bid.ext.attr2")))
                         .amp(ExtRequestPrebidAmp.of(singletonMap("attr1", "value2")))
                         .build()))
                 .imp(singletonList(Imp.builder()

@@ -90,7 +90,7 @@ public class AvocetBidder implements Bidder<BidRequest> {
     private BidType getBidType(Bid bid) {
         final Integer api = bid.getApi();
         if (api != null && (api == API_FRAMEWORK_VPAID_1_0 || api == API_FRAMEWORK_VPAID_2_0)) {
-            return BidType.video;
+            return BidType.VIDEO;
         }
 
         final ObjectNode ext = bid.getExt();
@@ -99,11 +99,11 @@ public class AvocetBidder implements Bidder<BidRequest> {
             final AvocetBidExtension avocetExt = responseExt.getAvocet();
             final Integer duration = avocetExt != null ? avocetExt.getDuration() : null;
             if (duration != null && duration != 0) {
-                return BidType.video;
+                return BidType.VIDEO;
             }
         }
 
-        return BidType.banner;
+        return BidType.BANNER;
     }
 
     private AvocetResponseExt parseResponseExt(ObjectNode ext) {

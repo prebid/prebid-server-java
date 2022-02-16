@@ -212,7 +212,7 @@ public class AdtelligentBidder implements Bidder<BidRequest> {
 
         if (idToImps.containsKey(bidImpId)) {
             final Video video = idToImps.get(bidImpId).getVideo();
-            bidderBids.add(BidderBid.of(bid, video != null ? BidType.video : BidType.banner, currency));
+            bidderBids.add(BidderBid.of(bid, video != null ? BidType.VIDEO : BidType.BANNER, currency));
         } else {
             errors.add(BidderError.badServerResponse(String.format(
                     "ignoring bid id=%s, request doesn't contain any impression with id=%s", bid.getId(), bidImpId)));

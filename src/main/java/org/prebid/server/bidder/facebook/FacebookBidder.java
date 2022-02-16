@@ -166,20 +166,20 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
 
         final boolean impInstlEqOne = Objects.equals(imp.getInstl(), 1);
-        if (impInstlEqOne && impType != BidType.banner) {
+        if (impInstlEqOne && impType != BidType.BANNER) {
             throw new PreBidException(String.format("imp #%s: interstitial imps are only supported for banner",
                     imp.getId()));
         }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
         switch (impType) {
-            case banner:
+            case BANNER:
                 impBuilder.banner(modifyBanner(imp, impInstlEqOne));
                 break;
-            case video:
+            case VIDEO:
                 impBuilder.video(imp.getVideo().toBuilder().w(0).h(0).build());
                 break;
-            case xNative:
+            case X_NATIVE:
                 impBuilder.xNative(modifyNative(imp.getXNative()));
                 break;
             default:
@@ -194,16 +194,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
 
     private static BidType resolveImpType(Imp imp) {
         if (imp.getBanner() != null) {
-            return BidType.banner;
+            return BidType.BANNER;
         }
         if (imp.getVideo() != null) {
-            return BidType.video;
+            return BidType.VIDEO;
         }
         if (imp.getAudio() != null) {
-            return BidType.audio;
+            return BidType.AUDIO;
         }
         if (imp.getXNative() != null) {
-            return BidType.xNative;
+            return BidType.X_NATIVE;
         }
         return null;
     }

@@ -191,7 +191,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
         final ExtRequestPrebid ext = ExtRequestPrebid.builder()
                 .cache(ExtRequestPrebidCache.of(null, ExtRequestPrebidCacheVastxml.of(null, null), null))
                 .targeting(ExtRequestTargeting.builder()
-                        .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("med")))
+                        .pricegranularity(mapper.valueToTree(PriceGranularity.createFromString("MED")))
                         .includebidderkeys(true)
                         .includebrandcategory(ExtIncludeBrandCategory.of(null, null, false, null))
                         .appendbiddernames(true)

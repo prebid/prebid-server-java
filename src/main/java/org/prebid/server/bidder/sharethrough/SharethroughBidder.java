@@ -43,7 +43,7 @@ public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
     private static final String VERSION = "8";
     private static final String SUPPLY_ID = "FGMrCMMc";
     private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final BidType DEFAULT_BID_TYPE = BidType.banner;
+    private static final BidType DEFAULT_BID_TYPE = BidType.BANNER;
     private static final Date TEST_TIME = new Date(1604455678999L);
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 

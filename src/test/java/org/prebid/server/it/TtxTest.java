@@ -27,7 +27,7 @@ public class TtxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/ttx/test-auction-ttx-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/ttx/test-auction-ttx-response.json", response, singletonList("ttx"));

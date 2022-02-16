@@ -102,7 +102,7 @@ public class ResponseBidValidator {
             validateCurrency(bidderBid.getBidCurrency());
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
-            if (bidderBid.getType() == BidType.banner) {
+            if (bidderBid.getType() == BidType.BANNER) {
                 warnings.addAll(validateBannerFields(bid, bidder, bidRequest, account, correspondingImp, aliases));
             }
 
@@ -140,8 +140,8 @@ public class ResponseBidValidator {
         final Bid bid = bidderBid.getBid();
         final boolean isVastSpecificAbsent = bid.getAdm() == null && bid.getNurl() == null;
 
-        if (Objects.equals(bidderBid.getType(), BidType.video) && isVastSpecificAbsent) {
-            metrics.updateAdapterRequestErrorMetric(bidder, MetricName.badserverresponse);
+        if (Objects.equals(bidderBid.getType(), BidType.VIDEO) && isVastSpecificAbsent) {
+            metrics.updateAdapterRequestErrorMetric(bidder, MetricName.BADSERVERRESPONSE);
             throw new ValidationException("Bid \"%s\" with video type missing adm and nurl", bid.getId());
         }
     }
@@ -177,7 +177,7 @@ public class ResponseBidValidator {
                                               BidderAliases aliases) throws ValidationException {
 
         final BidValidationEnforcement bannerMaxSizeEnforcement = effectiveBannerMaxSizeEnforcement(account);
-        if (bannerMaxSizeEnforcement != BidValidationEnforcement.skip) {
+        if (bannerMaxSizeEnforcement != BidValidationEnforcement.SKIP) {
             final Format maxSize = maxSizeForBanner(correspondingImp);
 
             if (bannerSizeIsNotValid(bid, maxSize)) {
@@ -238,7 +238,7 @@ public class ResponseBidValidator {
                                               Imp correspondingImp,
                                               BidderAliases aliases) throws ValidationException {
 
-        if (secureMarkupEnforcement == BidValidationEnforcement.skip) {
+        if (secureMarkupEnforcement == BidValidationEnforcement.SKIP) {
             return Collections.emptyList();
         }
 
@@ -274,12 +274,12 @@ public class ResponseBidValidator {
                                                                    ConditionalLogger conditionalLogger,
                                                                    String message) throws ValidationException {
         switch (enforcement) {
-            case enforce:
-                metricsRecorder.accept(MetricName.err);
+            case ENFORCE:
+                metricsRecorder.accept(MetricName.ERR);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 throw new ValidationException(message);
-            case warn:
-                metricsRecorder.accept(MetricName.warn);
+            case WARN:
+                metricsRecorder.accept(MetricName.WARN);
                 conditionalLogger.warn(message, LOG_SAMPLING_RATE);
                 return Collections.singletonList(message);
             default:
@@ -319,7 +319,7 @@ public class ResponseBidValidator {
                                 + " request. 'dealid' in bid: '%s', deal Ids in imp: '%s'",
                         bidId, dealId, String.join(",", dealIdsFromImp)));
             }
-            if (bidderBid.getType() == BidType.banner) {
+            if (bidderBid.getType() == BidType.BANNER) {
                 if (imp.getBanner() == null) {
                     throw new ValidationException("Bid \"%s\" has banner media type but corresponding imp in request "
                             + "is missing 'banner' object", bidId);

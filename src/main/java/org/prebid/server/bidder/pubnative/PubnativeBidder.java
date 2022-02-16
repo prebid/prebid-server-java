@@ -219,13 +219,13 @@ public class PubnativeBidder implements Bidder<BidRequest> {
 
     private static BidType resolveBidType(Imp imp) {
         if (imp == null) {
-            return BidType.banner;
+            return BidType.BANNER;
         } else if (imp.getVideo() != null) {
-            return BidType.video;
+            return BidType.VIDEO;
         } else if (imp.getXNative() != null) {
-            return BidType.xNative;
+            return BidType.X_NATIVE;
         } else {
-            return BidType.banner;
+            return BidType.BANNER;
         }
     }
 

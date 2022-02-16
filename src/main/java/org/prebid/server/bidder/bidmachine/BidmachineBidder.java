@@ -209,9 +209,9 @@ public class BidmachineBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getBanner() == null && imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
             }
         }

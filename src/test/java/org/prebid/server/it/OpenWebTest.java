@@ -27,7 +27,7 @@ public class OpenWebTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/openweb/test-auction-openweb-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/openweb/test-auction-openweb-response.json", response, singletonList("openweb"));

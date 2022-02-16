@@ -75,8 +75,8 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
                 .build();
 
         final Map<EventType, PubstackEventHandler> handlers = new HashMap<>();
-        handlers.put(EventType.auction, auctionHandler);
-        handlers.put(EventType.setuid, setuidHandler);
+        handlers.put(EventType.AUCTION, auctionHandler);
+        handlers.put(EventType.SETUID, setuidHandler);
 
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper,
                 vertx);
@@ -88,7 +88,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void initializeShouldFetchConfigAndSetPeriodicTimerForConfigUpdate() throws JsonProcessingException {
         // given
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "http://newendpoint",
-                Collections.singletonMap(EventType.auction, true));
+                Collections.singletonMap(EventType.AUCTION, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
@@ -109,7 +109,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
             throws JsonProcessingException {
         // given
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "invalid",
-                Collections.singletonMap(EventType.auction, true));
+                Collections.singletonMap(EventType.AUCTION, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
@@ -128,7 +128,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
     public void initializeShouldNotUpdateEventsIfFetchedConfigIsSameAsPrevious() throws JsonProcessingException {
         // given
         final PubstackConfig pubstackConfig = PubstackConfig.of("newScopeId", "http://newendpoint",
-                Collections.singletonMap(EventType.auction, true));
+                Collections.singletonMap(EventType.AUCTION, true));
         given(httpClient.get(anyString(), anyLong())).willReturn(
                 Future.succeededFuture(HttpClientResponse.of(200, null, mapper.writeValueAsString(pubstackConfig))));
 
@@ -193,7 +193,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
         // inject mocked handler to private fields without accessor method
         ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
-                Collections.singletonMap(EventType.auction, auctionHandler));
+                Collections.singletonMap(EventType.AUCTION, auctionHandler));
         final AuctionEvent auctionEvent = AuctionEvent.builder().build();
 
         // when
@@ -209,7 +209,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
         // inject mocked handler to private fields without accessor method
         ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
-                Collections.singletonMap(EventType.setuid, setuidHandler));
+                Collections.singletonMap(EventType.SETUID, setuidHandler));
         final SetuidEvent setuidEvent = SetuidEvent.builder().build();
 
         // when
@@ -226,7 +226,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
         // inject mocked handler to private fields without accessor method
         ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
-                Collections.singletonMap(EventType.cookiesync, cookieSyncHandler));
+                Collections.singletonMap(EventType.COOKIESYNC, cookieSyncHandler));
         final CookieSyncEvent cookieSyncEvent = CookieSyncEvent.builder().build();
 
         // when
@@ -243,7 +243,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
         // inject mocked handler to private fields without accessor method
         ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
-                Collections.singletonMap(EventType.amp, ampHandler));
+                Collections.singletonMap(EventType.AMP, ampHandler));
         final AmpEvent ampEvent = AmpEvent.builder().build();
 
         // when
@@ -260,7 +260,7 @@ public class PubstackAnalyticsReporterTest extends VertxTest {
         pubstackAnalyticsReporter = new PubstackAnalyticsReporter(properties, httpClient, jacksonMapper, vertx);
         // inject mocked handler to private fields without accessor method
         ReflectionTestUtils.setField(pubstackAnalyticsReporter, "eventHandlers",
-                Collections.singletonMap(EventType.video, videoHandler));
+                Collections.singletonMap(EventType.VIDEO, videoHandler));
 
         final VideoEvent videoEvent = VideoEvent.builder().build();
 

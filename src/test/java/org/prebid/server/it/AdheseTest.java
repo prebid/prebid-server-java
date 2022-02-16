@@ -25,7 +25,7 @@ public class AdheseTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adhese/test-auction-adhese-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adhese/test-auction-adhese-response.json", response,

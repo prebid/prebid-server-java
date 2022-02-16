@@ -108,7 +108,7 @@ public class CriteoBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value of");
                 });
     }
@@ -304,7 +304,7 @@ public class CriteoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -329,7 +329,7 @@ public class CriteoBidderTest extends VertxTest {
                                 .adm("creative")
                                 .w(300)
                                 .h(300)
-                                .crid("creative-id").build(), BidType.banner, "USD"));
+                                .crid("creative-id").build(), BidType.BANNER, "USD"));
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

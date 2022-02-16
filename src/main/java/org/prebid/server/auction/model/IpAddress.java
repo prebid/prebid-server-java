@@ -10,6 +10,6 @@ public class IpAddress {
     IP version;
 
     public enum IP {
-        v4, v6
+        V4, V6
     }
 }

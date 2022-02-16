@@ -27,7 +27,7 @@ public class GridTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/grid/test-auction-grid-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/grid/test-auction-grid-response.json", response, singletonList("grid"));

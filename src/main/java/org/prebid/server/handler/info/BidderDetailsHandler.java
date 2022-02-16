@@ -65,7 +65,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
-        final String endpoint = String.format("%s/%s", Endpoint.info_bidders.value(), bidderName);
+        final String endpoint = String.format("%s/%s", Endpoint.INFO_BIDDERS.value(), bidderName);
 
         if (bidderInfos.containsKey(bidderName)) {
             HttpUtil.executeSafely(routingContext, endpoint,

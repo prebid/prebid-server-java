@@ -662,7 +662,7 @@ public class ApplicationTest extends IntegrationTest {
     public void traceHandlerShouldReturn200Ok() {
         given(ADMIN_SPEC)
                 .when()
-                .param("level", "error")
+                .param("level", "ERROR")
                 .param("duration", "1000")
                 .param("account", "1001")
                 .param("bidderCode", "rubicon")

@@ -29,7 +29,7 @@ public class ZeroclickfraudTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/zeroclickfraud/test-auction-zeroclickfraud-response.json", response,

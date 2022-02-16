@@ -28,7 +28,7 @@ public class DeepDebugLogTest {
         final Supplier<String> messageSupplier = (Supplier<String>) mock(Supplier.class);
 
         // when
-        deepDebugLog.add(null, Category.pacing, messageSupplier);
+        deepDebugLog.add(null, Category.PACING, messageSupplier);
 
         // then
         verify(messageSupplier, never()).get();
@@ -42,10 +42,10 @@ public class DeepDebugLogTest {
         final DeepDebugLog deepDebugLog = DeepDebugLog.create(true, clock);
 
         // when
-        deepDebugLog.add(null, Category.pacing, () -> "debug message 1");
+        deepDebugLog.add(null, Category.PACING, () -> "debug message 1");
 
         // then
         assertThat(deepDebugLog.entries()).containsOnly(
-                ExtTraceDeal.of(null, ZonedDateTime.now(clock), Category.pacing, "debug message 1"));
+                ExtTraceDeal.of(null, ZonedDateTime.now(clock), Category.PACING, "debug message 1"));
     }
 }

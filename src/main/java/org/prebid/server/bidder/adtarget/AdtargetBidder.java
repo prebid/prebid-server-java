@@ -163,7 +163,7 @@ public class AdtargetBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String bidImpId, String bidId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(bidImpId)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
+                return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
             }
         }
         throw new PreBidException(String.format(

@@ -27,7 +27,7 @@ public class LogicadTest extends IntegrationTest {
                         jsonFrom("openrtb2/logicad/test-logicad-bid-response.json"))));
         // when
         final Response response = responseFor("openrtb2/logicad/test-auction-logicad-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/logicad/test-auction-logicad-response.json", response, singletonList("logicad"));

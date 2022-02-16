@@ -250,7 +250,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "EUR"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "EUR"));
     }
 
     @Test
@@ -353,7 +353,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(BidderBid::getType).containsExactly(BidType.banner);
+                .extracting(BidderBid::getType).containsExactly(BidType.BANNER);
     }
 
     @Test
@@ -378,7 +378,7 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(BidderBid::getType).containsExactly(BidType.video);
+                .extracting(BidderBid::getType).containsExactly(BidType.VIDEO);
     }
 
     @Test

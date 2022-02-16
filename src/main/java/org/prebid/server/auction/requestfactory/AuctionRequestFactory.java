@@ -41,7 +41,7 @@ public class AuctionRequestFactory {
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
 
-    private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
+    private static final String ENDPOINT = Endpoint.OPENRTB2_AUCTION.value();
 
     public AuctionRequestFactory(long maxRequestSize,
                                  Ortb2RequestFactory ortb2RequestFactory,
@@ -80,7 +80,7 @@ public class AuctionRequestFactory {
         }
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_auction, MetricName.openrtb2web);
+                Endpoint.OPENRTB2_AUCTION, MetricName.OPENRTB2_WEB);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
@@ -176,6 +176,6 @@ public class AuctionRequestFactory {
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
-        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+        return bidRequest.getApp() != null ? MetricName.OPENRTB2_APP : MetricName.OPENRTB2_WEB;
     }
 }

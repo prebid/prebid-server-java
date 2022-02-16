@@ -78,7 +78,7 @@ public class YieldlabBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Invalid url: https://test.endpoint.com/invalid path");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -195,7 +195,7 @@ public class YieldlabBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+        assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                 && error.getMessage().startsWith("Unrecognized token 'invalid"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -246,7 +246,7 @@ public class YieldlabBidderTest extends VertxTest {
                         .h(90)
                         .adm(adm)
                         .build(),
-                BidType.banner, "EUR");
+                BidType.BANNER, "EUR");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);

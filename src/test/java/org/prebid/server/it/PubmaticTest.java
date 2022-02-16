@@ -27,7 +27,7 @@ public class PubmaticTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/pubmatic/test-auction-pubmatic-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/pubmatic/test-auction-pubmatic-response.json", response,

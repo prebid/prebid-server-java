@@ -1228,7 +1228,7 @@ public class ExchangeService {
         for (BidderBid bidderBid : bidderBids) {
             final Bid bid = bidderBid.getBid();
             if (isZeroNonDealBids(bid.getPrice(), bid.getDealid())) {
-                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.unknown_error);
+                metrics.updateAdapterRequestErrorMetric(bidderResponse.getBidder(), MetricName.UNKNOWN_ERROR);
                 debugWarnings.add(String.format(
                         "Dropped bid '%s'. Does not contain a positive (or zero if there is a deal) 'price'",
                         bid.getId()));
@@ -1410,13 +1410,13 @@ public class ExchangeService {
                                                                         BidType bidType) {
 
         switch (bidType) {
-            case banner:
-                return BidAdjustmentMediaType.banner;
-            case xNative:
-                return BidAdjustmentMediaType.xNative;
-            case audio:
-                return BidAdjustmentMediaType.audio;
-            case video:
+            case BANNER:
+                return BidAdjustmentMediaType.BANNER;
+            case X_NATIVE:
+                return BidAdjustmentMediaType.X_NATIVE;
+            case AUDIO:
+                return BidAdjustmentMediaType.AUDIO;
+            case VIDEO:
                 return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
             default:
                 throw new PreBidException("BidType not present for bidderBid");
@@ -1437,8 +1437,8 @@ public class ExchangeService {
 
         final Integer placement = bidImpVideo.getPlacement();
         return placement == null || Objects.equals(placement, 1)
-                ? BidAdjustmentMediaType.video
-                : BidAdjustmentMediaType.video_outstream;
+                ? BidAdjustmentMediaType.VIDEO
+                : BidAdjustmentMediaType.VIDEO_OUTSTREAM;
     }
 
     private static BigDecimal bidAdjustmentForBidder(String bidder,
@@ -1574,21 +1574,21 @@ public class ExchangeService {
     private static MetricName bidderErrorTypeToMetric(BidderError.Type errorType) {
         final MetricName errorMetric;
         switch (errorType) {
-            case bad_input:
-                errorMetric = MetricName.badinput;
+            case BAD_INPUT:
+                errorMetric = MetricName.BADINPUT;
                 break;
-            case bad_server_response:
-                errorMetric = MetricName.badserverresponse;
+            case BAD_SERVER_RESPONSE:
+                errorMetric = MetricName.BADSERVERRESPONSE;
                 break;
-            case failed_to_request_bids:
-                errorMetric = MetricName.failedtorequestbids;
+            case FAILED_TO_REQUEST_BIDS:
+                errorMetric = MetricName.FAILEDTOREQUESTBIDS;
                 break;
-            case timeout:
-                errorMetric = MetricName.timeout;
+            case TIMEOUT:
+                errorMetric = MetricName.TIMEOUT;
                 break;
-            case generic:
+            case GENERIC:
             default:
-                errorMetric = MetricName.unknown_error;
+                errorMetric = MetricName.UNKNOWN_ERROR;
         }
         return errorMetric;
     }
@@ -1741,8 +1741,8 @@ public class ExchangeService {
                 .status(hook.getStatus())
                 .message(hook.getMessage())
                 .action(hook.getAction())
-                .debugMessages(level == TraceLevel.verbose ? hook.getDebugMessages() : null)
-                .analyticsTags(level == TraceLevel.verbose ? toTraceAnalyticsTags(hook.getAnalyticsTags()) : null)
+                .debugMessages(level == TraceLevel.VERBOSE ? hook.getDebugMessages() : null)
+                .analyticsTags(level == TraceLevel.VERBOSE ? toTraceAnalyticsTags(hook.getAnalyticsTags()) : null)
                 .build();
     }
 

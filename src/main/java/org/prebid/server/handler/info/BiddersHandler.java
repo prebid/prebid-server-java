@@ -59,7 +59,7 @@ public class BiddersHandler implements Handler<RoutingContext> {
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.info_bidders,
+        HttpUtil.executeSafely(routingContext, Endpoint.INFO_BIDDERS,
                 response -> response
                         .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                         .setStatusCode(status.code())

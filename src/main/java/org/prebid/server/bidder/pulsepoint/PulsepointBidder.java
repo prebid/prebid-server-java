@@ -162,13 +162,13 @@ public class PulsepointBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 } else if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else if (imp.getAudio() != null) {
-                    return BidType.audio;
+                    return BidType.AUDIO;
                 } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 }
                 break;
             }

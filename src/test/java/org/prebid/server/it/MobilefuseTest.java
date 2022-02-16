@@ -27,7 +27,7 @@ public class MobilefuseTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/mobilefuse/test-auction-mobilefuse-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/mobilefuse/test-auction-mobilefuse-response.json", response,

@@ -29,7 +29,7 @@ public class ValueImpressionTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/valueimpression/test-auction-valueimpression-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/valueimpression/test-auction-valueimpression-response.json", response,

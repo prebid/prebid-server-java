@@ -105,7 +105,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -122,7 +122,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -140,7 +140,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -153,14 +153,14 @@ public class SmarthubBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(
                         builder -> builder
                                 .ext(mapper.createObjectNode()
-                                        .set("mediaType", TextNode.valueOf(BidType.video.toString()))))));
+                                        .set("mediaType", TextNode.valueOf(BidType.VIDEO.toString()))))));
 
         // when
         final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.video));
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.VIDEO));
     }
 
     @Test
@@ -175,7 +175,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("missing bid ext");
                 });
     }
@@ -193,7 +193,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("missing bid ext");
                 });
     }
@@ -212,7 +212,7 @@ public class SmarthubBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("SeatBid[0].Bid[0] cannot be empty");
                 });
     }

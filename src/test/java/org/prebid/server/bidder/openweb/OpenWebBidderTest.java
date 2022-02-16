@@ -38,8 +38,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.codehaus.groovy.runtime.InvokerHelper.asList;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class OpenWebBidderTest extends VertxTest {
 
@@ -171,7 +171,7 @@ public class OpenWebBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(bidderError.getMessage()).startsWith(
                             "ignoring imp id=123, error while encoding impExt, err: Cannot deserialize value");
                 });
@@ -208,7 +208,7 @@ public class OpenWebBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode");
                 });
     }
@@ -240,7 +240,7 @@ public class OpenWebBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().id("123").impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().id("123").impid("123").build(), VIDEO, null));
     }
 
     @Test
@@ -257,7 +257,7 @@ public class OpenWebBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().id("123").impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().id("123").impid("123").build(), BANNER, null));
     }
 
     @Test
@@ -297,7 +297,7 @@ public class OpenWebBidderTest extends VertxTest {
                 .containsExactly(BidderError.badServerResponse(expectedErrorMessage));
 
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().id("1").impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().id("1").impid("123").build(), BANNER, null));
     }
 
     private static BidRequest givenBidRequest(

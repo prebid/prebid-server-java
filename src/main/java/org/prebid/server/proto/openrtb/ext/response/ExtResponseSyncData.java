@@ -21,6 +21,6 @@ class ExtResponseSyncData {
      * Describes the allowed values for bidresponse.ext.usersync.{bidder}.status
      */
     public enum CookieStatus {
-        none, expired, available
+        NONE, EXPIRED, AVAILABLE
     }
 }

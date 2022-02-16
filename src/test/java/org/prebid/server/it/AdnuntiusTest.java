@@ -33,7 +33,7 @@ public class AdnuntiusTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adnuntius/test-auction-adnuntius-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adnuntius/test-auction-adnuntius-response.json", response,

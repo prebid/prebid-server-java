@@ -27,7 +27,7 @@ public class BrightrollTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/brightroll/test-auction-brightroll-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/brightroll/test-auction-brightroll-response.json", response,

@@ -119,8 +119,8 @@ public class JdbcPeriodicRefreshService implements Initializable {
                 JdbcStoredDataResultMapper::map,
                 createTimeout())
                 .map(storedDataResult ->
-                        handleResult(storedDataResult, Instant.now(clock), startTime, MetricName.initialize))
-                .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
+                        handleResult(storedDataResult, Instant.now(clock), startTime, MetricName.INITIALIZE))
+                .recover(exception -> handleFailure(exception, startTime, MetricName.INITIALIZE));
     }
 
     private Void handleResult(StoredDataResult storedDataResult,
@@ -155,8 +155,8 @@ public class JdbcPeriodicRefreshService implements Initializable {
                 JdbcStoredDataResultMapper::map,
                 createTimeout())
                 .map(storedDataResult ->
-                        handleResult(invalidate(storedDataResult), updateTime, startTime, MetricName.update))
-                .recover(exception -> handleFailure(exception, startTime, MetricName.update));
+                        handleResult(invalidate(storedDataResult), updateTime, startTime, MetricName.UPDATE))
+                .recover(exception -> handleFailure(exception, startTime, MetricName.UPDATE));
     }
 
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {

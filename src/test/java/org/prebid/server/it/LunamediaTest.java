@@ -27,7 +27,7 @@ public class LunamediaTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/lunamedia/test-auction-lunamedia-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/lunamedia/test-auction-lunamedia-response.json", response,

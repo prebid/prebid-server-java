@@ -496,7 +496,7 @@ public class FacebookBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                .allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -629,7 +629,7 @@ public class FacebookBidderTest extends VertxTest {
 
         final Bid expectedBid = Bid.builder().impid("imp1").adm("{\"bid_id\":\"10\"}").adid("10").crid("10").build();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(expectedBid, BidType.banner, DEFAULT_BID_CURRENCY));
+                .containsOnly(BidderBid.of(expectedBid, BidType.BANNER, DEFAULT_BID_CURRENCY));
     }
 
     @Test
@@ -648,7 +648,7 @@ public class FacebookBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.video);
+                .containsOnly(BidType.VIDEO);
     }
 
     @Test
@@ -667,7 +667,7 @@ public class FacebookBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.xNative);
+                .containsOnly(BidType.X_NATIVE);
     }
 
     @Test
@@ -686,7 +686,7 @@ public class FacebookBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.audio);
+                .containsOnly(BidType.AUDIO);
     }
 
     @Test

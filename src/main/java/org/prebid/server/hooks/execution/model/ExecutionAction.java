@@ -1,6 +1,13 @@
 package org.prebid.server.hooks.execution.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public enum ExecutionAction {
 
-    no_action, update, reject
+    @JsonProperty("no_action")
+    NO_ACTION,
+    @JsonProperty("update")
+    UPDATE,
+    @JsonProperty("reject")
+    REJECT
 }

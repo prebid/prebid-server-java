@@ -370,7 +370,7 @@ public class SovrnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
+                .allMatch(error -> error.getType() == BidderError.Type.BAD_SERVER_RESPONSE
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
         assertThat(result.getValue()).isEmpty();
     }
@@ -407,7 +407,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .h(150)
                                 .adm("<div>This is an Ad</div>")
                                 .build(),
-                        BidType.banner, "EUR"));
+                        BidType.BANNER, "EUR"));
     }
 
     @Test

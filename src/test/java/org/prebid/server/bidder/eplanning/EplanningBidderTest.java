@@ -125,7 +125,7 @@ public class EplanningBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getMessage())
                             .startsWith("Invalid url: https://eplanning.com/clientId/1/invalid domain/ROS");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -430,7 +430,7 @@ public class EplanningBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -469,7 +469,7 @@ public class EplanningBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
+                .containsOnly(BidderBid.of(expectedBid, BidType.BANNER, null));
     }
 
     @Test
@@ -508,7 +508,7 @@ public class EplanningBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .containsOnly(BidderBid.of(expectedBid, BidType.banner, null));
+                .containsOnly(BidderBid.of(expectedBid, BidType.BANNER, null));
     }
 
     @Test

@@ -413,13 +413,13 @@ public class RequestValidator {
                         "Media type price granularity error: must have at least one media type present");
             }
             if (!isBannerNull) {
-                validateExtPriceGranularity(banner, BidType.banner);
+                validateExtPriceGranularity(banner, BidType.BANNER);
             }
             if (!isVideoNull) {
-                validateExtPriceGranularity(video, BidType.video);
+                validateExtPriceGranularity(video, BidType.VIDEO);
             }
             if (!isNativeNull) {
-                validateExtPriceGranularity(xNative, BidType.xNative);
+                validateExtPriceGranularity(xNative, BidType.X_NATIVE);
             }
         }
     }

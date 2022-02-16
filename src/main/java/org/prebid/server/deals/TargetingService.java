@@ -101,36 +101,36 @@ public class TargetingService {
     private Expression parseTargetingCategory(String fieldName, JsonNode value, String lineItemId) {
         final TargetingCategory category = TargetingCategory.fromString(fieldName);
         switch (category.type()) {
-            case size:
+            case SIZE:
                 return new IntersectsSizes(category,
                         parseArrayFunction(value, MatchingFunction.INTERSECTS, this::parseSize));
-            case mediaType:
-            case userSegment:
+            case MEDIA_TYPE:
+            case USER_SEGMENT:
                 return new IntersectsStrings(category,
                         parseArrayFunction(value, MatchingFunction.INTERSECTS, TargetingService::parseString));
-            case domain:
+            case DOMAIN:
                 return prepareDomainExpression(category, value, lineItemId);
-            case publisherDomain:
+            case PUBLISHER_DOMAIN:
                 return new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
-            case referrer:
-            case appBundle:
-            case adslot:
+            case REFERRER:
+            case APP_BUNDLE:
+            case ADSLOT:
                 return parseStringFunction(category, value);
-            case pagePosition:
-            case dow:
-            case hour:
+            case PAGE_POSITION:
+            case DOW:
+            case HOUR:
                 return new InIntegers(category,
                         parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseInteger));
-            case deviceGeoExt:
-            case deviceExt:
+            case DEVICE_GEO_EXT:
+            case DEVICE_EXT:
                 return new InStrings(category,
                         parseArrayFunction(value, MatchingFunction.IN, TargetingService::parseString));
-            case location:
+            case LOCATION:
                 return new Within(category, parseSingleObjectFunction(value, MatchingFunction.WITHIN,
                         this::parseGeoRegion));
-            case bidderParam:
-            case userFirstPartyData:
-            case siteFirstPartyData:
+            case BIDDER_PARAM:
+            case USER_FIRST_PARTY_DATA:
+            case SITE_FIRST_PARTY_DATA:
                 return parseTypedFunction(category, value);
             default:
                 throw new IllegalStateException(String.format("Unexpected targeting category type %s", category));
@@ -141,7 +141,8 @@ public class TargetingService {
         final DomainMetricAwareExpression domainExpression =
                 new DomainMetricAwareExpression(parseStringFunction(category, value), lineItemId);
 
-        final TargetingCategory publisherDomainCategory = new TargetingCategory(TargetingCategory.Type.publisherDomain);
+        final TargetingCategory publisherDomainCategory =
+                new TargetingCategory(TargetingCategory.Type.PUBLISHER_DOMAIN);
         final DomainMetricAwareExpression publisherDomainExpression =
                 new DomainMetricAwareExpression(parseStringFunction(publisherDomainCategory, value), lineItemId);
 

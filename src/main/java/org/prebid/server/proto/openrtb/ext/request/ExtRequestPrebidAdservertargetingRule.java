@@ -16,9 +16,9 @@ public class ExtRequestPrebidAdservertargetingRule {
     String value;
 
     public enum Source {
-        bidrequest,
+        BIDREQUEST,
         @JsonProperty("static")
-        xStatic,
-        bidresponse
+        X_STATIC,
+        BIDRESPONSE
     }
 }

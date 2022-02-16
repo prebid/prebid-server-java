@@ -28,7 +28,7 @@ public class SmartyAdsTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/smartyads/test-auction-smartyads-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/smartyads/test-auction-smartyads-response.json", response,

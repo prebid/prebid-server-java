@@ -30,7 +30,7 @@ public class AlgorixTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/algorix/test-auction-algorix-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/algorix/test-auction-algorix-response.json", response, singletonList("algorix"));

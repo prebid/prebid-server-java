@@ -247,14 +247,14 @@ public class Tcf2Service {
                                             boolean wasDowngraded) {
 
         switch (purposeOneTreatmentInterpretation) {
-            case accessAllowed:
+            case ACCESS_ALLOWED:
                 vendorPermissionsWithGvl.forEach(vendorPermission ->
                         purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
                 break;
-            case noAccessAllowed:
+            case NO_ACCESS_ALLOWED:
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
                 break;
-            case ignore:
+            case IGNORE:
             default:
                 purposeOneStrategy.processTypePurposeStrategy(
                         tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
@@ -264,16 +264,16 @@ public class Tcf2Service {
     private static Purpose downgradePurpose(Purpose purpose) {
         final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
 
-        return enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
-                ? Purpose.of(EnforcePurpose.basic, purpose.getEnforceVendors(), purpose.getVendorExceptions())
+        return enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.FULL)
+                ? Purpose.of(EnforcePurpose.BASIC, purpose.getEnforceVendors(), purpose.getVendorExceptions())
                 : purpose;
     }
 
     private static Purpose weakPurpose(Purpose purpose) {
         final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
         final EnforcePurpose downgradedEnforce =
-                enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
-                        ? EnforcePurpose.basic
+                enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.FULL)
+                        ? EnforcePurpose.BASIC
                         : enforcePurpose;
 
         return Purpose.of(downgradedEnforce, false, purpose.getVendorExceptions());

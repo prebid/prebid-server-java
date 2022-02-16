@@ -27,7 +27,7 @@ public class BidscubeTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/bidscube/test-auction-bidscube-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/bidscube/test-auction-bidscube-response.json", response,

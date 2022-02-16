@@ -28,7 +28,7 @@ public class AdvangelistsTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/advangelists/test-auction-advangelists-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/advangelists/test-auction-advangelists-response.json", response,

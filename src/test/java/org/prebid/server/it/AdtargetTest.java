@@ -27,7 +27,7 @@ public class AdtargetTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adtarget/test-auction-adtarget-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adtarget/test-auction-adtarget-response.json", response,

@@ -196,18 +196,18 @@ public class AnalyticsReporterDelegator {
     }
 
     private <T> Future<Void> processSuccess(T event, String reporterName) {
-        updateMetricsByEventType(event, reporterName, MetricName.ok);
+        updateMetricsByEventType(event, reporterName, MetricName.OK);
         return Future.succeededFuture();
     }
 
     private <T> Future<Void> processFail(Throwable exception, T event, String reporterName) {
         final MetricName failedResult;
         if (exception instanceof TimeoutException || exception instanceof ConnectTimeoutException) {
-            failedResult = MetricName.timeout;
+            failedResult = MetricName.TIMEOUT;
         } else if (exception instanceof InvalidRequestException) {
-            failedResult = MetricName.badinput;
+            failedResult = MetricName.BADINPUT;
         } else {
-            failedResult = MetricName.err;
+            failedResult = MetricName.ERR;
         }
         updateMetricsByEventType(event, reporterName, failedResult);
         return Future.failedFuture(exception);
@@ -216,19 +216,19 @@ public class AnalyticsReporterDelegator {
     private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
         final MetricName eventType;
         if (event instanceof AuctionEvent) {
-            eventType = MetricName.event_auction;
+            eventType = MetricName.EVENT_AUCTION;
         } else if (event instanceof AmpEvent) {
-            eventType = MetricName.event_amp;
+            eventType = MetricName.EVENT_AMP;
         } else if (event instanceof VideoEvent) {
-            eventType = MetricName.event_video;
+            eventType = MetricName.EVENT_VIDEO;
         } else if (event instanceof SetuidEvent) {
-            eventType = MetricName.event_setuid;
+            eventType = MetricName.EVENT_SETUID;
         } else if (event instanceof CookieSyncEvent) {
-            eventType = MetricName.event_cookie_sync;
+            eventType = MetricName.EVENT_COOKIE_SYNC;
         } else if (event instanceof NotificationEvent) {
-            eventType = MetricName.event_notification;
+            eventType = MetricName.EVENT_NOTIFICATION;
         } else {
-            eventType = MetricName.event_unknown;
+            eventType = MetricName.EVENT_UNKNOWN;
         }
         metrics.updateAnalyticEventMetric(analyticsCode, eventType, result);
     }

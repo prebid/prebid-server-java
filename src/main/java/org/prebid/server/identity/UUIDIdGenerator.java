@@ -14,6 +14,6 @@ public class UUIDIdGenerator implements IdGenerator {
 
     @Override
     public IdGeneratorType getType() {
-        return IdGeneratorType.uuid;
+        return IdGeneratorType.UUID;
     }
 }

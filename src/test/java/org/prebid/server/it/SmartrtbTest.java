@@ -27,7 +27,7 @@ public class SmartrtbTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/smartrtb/test-auction-smartrtb-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/smartrtb/test-auction-smartrtb-response.json", response,

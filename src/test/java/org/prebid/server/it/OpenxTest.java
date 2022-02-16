@@ -27,7 +27,7 @@ public class OpenxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/openx/test-auction-openx-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/openx/test-auction-openx-response.json", response, singletonList("openx"));

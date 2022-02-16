@@ -27,7 +27,7 @@ public class AdopplerTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adoppler/test-auction-adoppler-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adoppler/test-auction-adoppler-response.json", response,

@@ -3,7 +3,7 @@ package org.prebid.server.bidder.openx.model;
 public enum OpenxImpType {
 
     // supported
-    banner, video,
+    BANNER, VIDEO,
     // not supported
-    other
+    OTHER
 }

@@ -299,7 +299,7 @@ public class InvibesBidder implements Bidder<InvibesBidRequest> {
                 .map(InvibesTypedBid::getBid)
                 .filter(Objects::nonNull)
                 //TODO add DealPriority
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCurrency()))
+                .map(bid -> BidderBid.of(bid, BidType.BANNER, bidResponse.getCurrency()))
                 .collect(Collectors.toList());
     }
 }

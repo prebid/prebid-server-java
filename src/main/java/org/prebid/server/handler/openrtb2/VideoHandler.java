@@ -45,7 +45,7 @@ public class VideoHandler implements Handler<RoutingContext> {
 
     private static final Logger logger = LoggerFactory.getLogger(VideoHandler.class);
 
-    private static final MetricName REQUEST_TYPE_METRIC = MetricName.video;
+    private static final MetricName REQUEST_TYPE_METRIC = MetricName.VIDEO;
 
     private final VideoRequestFactory videoRequestFactory;
     private final VideoResponseFactory videoResponseFactory;
@@ -127,7 +127,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         enrichWithCommonHeaders(response);
 
         if (responseSucceeded) {
-            metricRequestStatus = MetricName.ok;
+            metricRequestStatus = MetricName.OK;
             errorMessages = Collections.emptyList();
 
             status = HttpResponseStatus.OK;
@@ -136,7 +136,7 @@ public class VideoHandler implements Handler<RoutingContext> {
         } else {
             final Throwable exception = responseResult.cause();
             if (exception instanceof InvalidRequestException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
                 logger.info("Invalid request format: {0}", errorMessages);
 
@@ -145,7 +145,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                         .map(msg -> String.format("Invalid request format: %s", msg))
                         .collect(Collectors.joining("\n"));
             } else if (exception instanceof UnauthorizedAccountException) {
-                metricRequestStatus = MetricName.badinput;
+                metricRequestStatus = MetricName.BADINPUT;
                 final String errorMessage = exception.getMessage();
                 logger.info("Unauthorized: {0}", errorMessage);
                 errorMessages = Collections.singletonList(errorMessage);
@@ -153,7 +153,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = String.format("Unauthorised: %s", errorMessage);
             } else {
-                metricRequestStatus = MetricName.err;
+                metricRequestStatus = MetricName.ERR;
                 logger.error("Critical error while running the auction", exception);
 
                 final String message = exception.getMessage();
@@ -211,7 +211,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                              VideoEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_video,
+        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.OPENRTB2_VIDEO,
                 response -> response
                         .exceptionHandler(this::handleResponseException)
                         .setStatusCode(status.code())
@@ -222,13 +222,13 @@ public class VideoHandler implements Handler<RoutingContext> {
             metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, metricRequestStatus);
             analyticsDelegator.processEvent(event, tcfContext);
         } else {
-            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+            metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.NETWORKERR);
         }
     }
 
     private void handleResponseException(Throwable throwable) {
         logger.warn("Failed to send video response: {0}", throwable.getMessage());
-        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
+        metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.NETWORKERR);
     }
 
     private void enrichWithCommonHeaders(HttpServerResponse response) {

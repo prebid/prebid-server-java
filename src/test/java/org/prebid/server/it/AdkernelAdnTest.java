@@ -28,7 +28,7 @@ public class AdkernelAdnTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adkerneladn/test-auction-adkerneladn-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adkerneladn/test-auction-adkerneladn-response.json", response,

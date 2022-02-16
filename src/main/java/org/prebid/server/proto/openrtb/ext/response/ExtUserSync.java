@@ -16,6 +16,6 @@ class ExtUserSync {
      * Describes the allowed values for bidresponse.ext.usersync.{bidder}.syncs[i].type
      */
     public enum UserSyncType {
-        iframe, pixel
+        IFRAME, PIXEL
     }
 }

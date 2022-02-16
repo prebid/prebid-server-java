@@ -4,9 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum PurposeOneTreatmentInterpretation {
 
-    ignore,
+    IGNORE,
     @JsonProperty("no-access-allowed")
-    noAccessAllowed,
+    NO_ACCESS_ALLOWED,
     @JsonProperty("access-allowed")
-    accessAllowed
+    ACCESS_ALLOWED
 }

@@ -93,8 +93,8 @@ public class RevcontentBidder implements Bidder<BidRequest> {
         // banner: <div id='rtb-widget...
         final String bidAdm = bid.getAdm();
         return StringUtils.isNotBlank(bidAdm) && bidAdm.charAt(0) == '<'
-                ? BidType.banner
-                : BidType.xNative;
+                ? BidType.BANNER
+                : BidType.X_NATIVE;
     }
 }
 

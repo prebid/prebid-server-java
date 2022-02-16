@@ -29,8 +29,8 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class SmartadserverBidderTest extends VertxTest {
 
@@ -167,7 +167,7 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .allMatch(error -> error.getMessage().startsWith("Failed to decode: Unrecognized token")
-                        && error.getType() == BidderError.Type.bad_server_response);
+                        && error.getType() == BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -215,7 +215,7 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, "EUR"));
     }
 
     @Test
@@ -234,7 +234,7 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().build(), BANNER, "EUR"));
     }
 
     @Test
@@ -253,7 +253,7 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, "EUR"));
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

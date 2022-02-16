@@ -37,7 +37,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class UnicornBidderTest extends VertxTest {
 
@@ -89,7 +89,7 @@ public class UnicornBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors())
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage())
                             .startsWith("Error while decoding ext of imp with id: 123, error: Cannot deserialize");
                 });
@@ -255,7 +255,7 @@ public class UnicornBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -302,7 +302,7 @@ public class UnicornBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().build(), BANNER, null));
     }
 
     private static BidRequest givenBidRequest(

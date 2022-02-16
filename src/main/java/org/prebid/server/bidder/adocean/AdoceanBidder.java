@@ -312,7 +312,7 @@ public class AdoceanBidder implements Bidder<Void> {
                 .filter(adoceanResponse -> !adoceanResponse.getError().equals("true"))
                 .filter(adoceanResponse ->
                         StringUtils.isNotBlank(MapUtils.getString(auctionIds, adoceanResponse.getId())))
-                .map(adoceanResponse -> BidderBid.of(createBid(auctionIds, adoceanResponse), BidType.banner,
+                .map(adoceanResponse -> BidderBid.of(createBid(auctionIds, adoceanResponse), BidType.BANNER,
                         adoceanResponse.getCurrency()))
                 .collect(Collectors.toList());
 

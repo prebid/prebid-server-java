@@ -28,9 +28,9 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class AdfBidderTest extends VertxTest {
 
@@ -112,7 +112,7 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
-                        .impid("123").ext(createBidExtPrebidWithType("banner")).build(), banner, "USD"));
+                        .impid("123").ext(createBidExtPrebidWithType("banner")).build(), BANNER, "USD"));
     }
 
     @Test
@@ -134,7 +134,7 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
-                        .impid("123").ext(createBidExtPrebidWithType("video")).build(), video, "USD"));
+                        .impid("123").ext(createBidExtPrebidWithType("video")).build(), VIDEO, "USD"));
     }
 
     @Test
@@ -154,7 +154,7 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
-                        .impid("123").ext(createBidExtPrebidWithType("native")).build(), xNative, "USD"));
+                        .impid("123").ext(createBidExtPrebidWithType("native")).build(), X_NATIVE, "USD"));
     }
 
     @Test

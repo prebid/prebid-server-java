@@ -27,7 +27,7 @@ public class AdprimeTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adprime/test-auction-adprime-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adprime/test-auction-adprime-response.json", response,

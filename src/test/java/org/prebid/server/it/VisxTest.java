@@ -27,7 +27,7 @@ public class VisxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/visx/test-auction-visx-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/visx/test-auction-visx-response.json", response, singletonList("visx"));

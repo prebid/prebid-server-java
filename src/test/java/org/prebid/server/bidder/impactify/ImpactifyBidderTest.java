@@ -254,7 +254,7 @@ public class ImpactifyBidderTest extends VertxTest {
 
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+                .containsExactly(BidType.BANNER);
     }
 
     @Test
@@ -309,7 +309,7 @@ public class ImpactifyBidderTest extends VertxTest {
                         .build());
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
-                .containsExactly(BidType.video);
+                .containsExactly(BidType.VIDEO);
     }
 
     @Test

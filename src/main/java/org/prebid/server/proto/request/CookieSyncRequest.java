@@ -46,7 +46,7 @@ public class CookieSyncRequest {
     }
 
     public enum FilterType {
-        include, exclude
+        INCLUDE, EXCLUDE
     }
 }
 

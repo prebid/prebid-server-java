@@ -28,7 +28,7 @@ public class RichaudienceTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/richaudience/test-auction-richaudience-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/richaudience/test-auction-richaudience-response.json", response,

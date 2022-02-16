@@ -107,7 +107,7 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missed mediaType");
         }
         try {
-            return BidType.valueOf(mediaType);
+            return BidType.getEnum(mediaType);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }

@@ -913,7 +913,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .filterSettings(CookieSyncRequest.FilterSettings.of(
                                 CookieSyncRequest.MethodFilter.of(
                                         new TextNode("*"),
-                                        CookieSyncRequest.FilterType.exclude),
+                                        CookieSyncRequest.FilterType.EXCLUDE),
                                 null))
                         .build()));
 

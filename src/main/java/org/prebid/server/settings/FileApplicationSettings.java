@@ -87,8 +87,8 @@ public class FileApplicationSettings implements ApplicationSettings {
                 existingStoredIdToJson(requestIds, storedIdToRequest),
                 existingStoredIdToJson(impIds, storedIdToImp),
                 Stream.of(
-                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
-                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.REQUEST),
+                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.IMP))
                         .flatMap(Collection::stream)
                         .collect(Collectors.toList())));
     }
@@ -135,7 +135,7 @@ public class FileApplicationSettings implements ApplicationSettings {
                 ? StoredResponseDataResult.of(Collections.emptyMap(), Collections.emptyList())
                 : StoredResponseDataResult.of(
                 existingStoredIdToJson(responseIds, storedIdToSeatBid),
-                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.seatbid)));
+                errorsForMissedIds(responseIds, storedIdToSeatBid, StoredDataType.SEATBID)));
     }
 
     private static <T, K, U> Map<K, U> toMap(List<T> list, Function<T, K> keyMapper, Function<T, U> valueMapper) {

@@ -188,9 +188,9 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     private static BidType getType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId) && imp.getBanner() != null) {
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
-        return BidType.video;
+        return BidType.VIDEO;
     }
 }

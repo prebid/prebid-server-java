@@ -229,7 +229,7 @@ public class CacheServiceTest extends VertxTest {
                 .build();
         // when
         cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder",
+                singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.BANNER, "bidder",
                         "lineItemId")),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -432,9 +432,9 @@ public class CacheServiceTest extends VertxTest {
                 ExtPrebid.of(ExtBidPrebid.builder().bidid("generatedId").build(),
                         emptyMap()));
         final String receivedBid2Adm = "adm2";
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder1");
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.BANNER, "bidder1");
         final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2").adm(receivedBid2Adm).ext(bidExt2),
-                BidType.video, "bidder2");
+                BidType.VIDEO, "bidder2");
 
         final EventsContext eventsContext = EventsContext.builder()
                 .auctionId("auctionId")
@@ -453,9 +453,9 @@ public class CacheServiceTest extends VertxTest {
 
         // then
         // Second value is adm length for each
-        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.xml));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(0), eq(MetricName.JSON));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.JSON));
+        verify(metrics).updateCacheCreativeSize(eq("accountId"), eq(4), eq(MetricName.XML));
 
         final Bid bid1 = bidInfo1.getBid();
         final Bid bid2 = bidInfo2.getBid();
@@ -711,7 +711,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldReturnExpectedResultForVideoBids() {
         // given
-        final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId1").adm("adm1"), BidType.video,
+        final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId1").adm("adm1"), BidType.VIDEO,
                 "bidder");
 
         // when
@@ -731,7 +731,7 @@ public class CacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldAddDebugLogCacheAlongWithBids() throws IOException {
         // given
-        final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId").adm("adm1"), BidType.video, "bidder");
+        final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId").adm("adm1"), BidType.VIDEO, "bidder");
         final Imp imp = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         final AuctionContext auctionContext = givenAuctionContext(
                 bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp)))
@@ -762,8 +762,8 @@ public class CacheServiceTest extends VertxTest {
                         CacheObject.of("uuid2"),
                         CacheObject.of("videoUuid1")))));
 
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.video, "bidder1");
-        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2"), BidType.banner, "bidder2");
+        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bidId1"), BidType.VIDEO, "bidder1");
+        final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2"), BidType.BANNER, "bidder2");
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
@@ -788,7 +788,7 @@ public class CacheServiceTest extends VertxTest {
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").adm("adm"),
-                BidType.video, "bidder", null)
+                BidType.VIDEO, "bidder", null)
                 .toBuilder().category("bid1Category").build();
 
         given(idGenerator.generateId()).willReturn("randomId");
@@ -818,7 +818,7 @@ public class CacheServiceTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"),
-                BidType.video, "bidder", null);
+                BidType.VIDEO, "bidder", null);
 
         given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any(), any())).willReturn("adm");
 
@@ -851,7 +851,7 @@ public class CacheServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(
                 BidCacheResponse.of(asList(CacheObject.of("uuid"), CacheObject.of("catDir_randomId")))));
         final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"),
-                BidType.video, "bidder").toBuilder().category("catDir").build();
+                BidType.VIDEO, "bidder").toBuilder().category("catDir").build();
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
         given(idGenerator.generateId()).willReturn("randomId");
 
@@ -935,9 +935,9 @@ public class CacheServiceTest extends VertxTest {
                 timeout);
 
         // then
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.json));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.xml));
-        verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.unknown));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(12), eq(MetricName.JSON));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(4), eq(MetricName.XML));
+        verify(metrics).updateCacheCreativeSize(eq("account"), eq(11), eq(MetricName.UNKNOWN));
 
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), firstPutObject, "account", "pbjs");
         verify(vastModifier).modifyVastXml(true, singleton("bidder1"), secondPutObject, "account", "pbjs");
@@ -997,7 +997,7 @@ public class CacheServiceTest extends VertxTest {
                 .bid(bidCustomizer.apply(Bid.builder()).build())
                 .correspondingImp(impCustomizer.apply(Imp.builder()).build())
                 .bidder("bidder")
-                .bidType(BidType.banner)
+                .bidType(BidType.BANNER)
                 .build();
     }
 

@@ -27,7 +27,7 @@ public class UnicornTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/unicorn/test-auction-unicorn-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/unicorn/test-auction-unicorn-response.json", response, singletonList("unicorn"));

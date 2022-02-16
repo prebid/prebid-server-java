@@ -145,13 +145,13 @@ public class AdopplerBidder implements Bidder<BidRequest> {
             final String impId = imp.getId();
 
             if (imp.getBanner() != null) {
-                impTypes.put(impId, BidType.banner);
+                impTypes.put(impId, BidType.BANNER);
             } else if (imp.getVideo() != null) {
-                impTypes.put(impId, BidType.video);
+                impTypes.put(impId, BidType.VIDEO);
             } else if (imp.getAudio() != null) {
-                impTypes.put(impId, BidType.audio);
+                impTypes.put(impId, BidType.AUDIO);
             } else if (imp.getXNative() != null) {
-                impTypes.put(impId, BidType.xNative);
+                impTypes.put(impId, BidType.X_NATIVE);
             }
         }
         return impTypes;
@@ -163,7 +163,7 @@ public class AdopplerBidder implements Bidder<BidRequest> {
         if (impTypes.get(bidImpId) == null) {
             throw new PreBidException(String.format("unknown impId: %s", bidImpId));
         }
-        if (impTypes.get(bidImpId) == BidType.video) {
+        if (impTypes.get(bidImpId) == BidType.VIDEO) {
             validateVideoBidExt(bid);
         }
 

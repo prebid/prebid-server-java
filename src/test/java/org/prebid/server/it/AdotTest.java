@@ -27,7 +27,7 @@ public class AdotTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/adot/test-auction-adot-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/adot/test-auction-adot-response.json", response,

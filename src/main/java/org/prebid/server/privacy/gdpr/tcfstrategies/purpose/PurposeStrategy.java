@@ -82,16 +82,16 @@ public abstract class PurposeStrategy {
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();
-        if (Objects.equals(purposeType, EnforcePurpose.basic)) {
+        if (Objects.equals(purposeType, EnforcePurpose.BASIC)) {
             return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
-        if (Objects.equals(purposeType, EnforcePurpose.no)) {
+        if (Objects.equals(purposeType, EnforcePurpose.NO)) {
             return allowedByNoTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 
         // Full by default
-        if (purposeType == null || purposeType.equals(EnforcePurpose.full)) {
+        if (purposeType == null || purposeType.equals(EnforcePurpose.FULL)) {
             return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
         }
 

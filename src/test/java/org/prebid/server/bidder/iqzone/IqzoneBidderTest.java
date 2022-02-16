@@ -134,7 +134,7 @@ public class IqzoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -179,7 +179,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.video));
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.VIDEO));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -195,7 +195,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.xNative));
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.X_NATIVE));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -211,7 +211,7 @@ public class IqzoneBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.banner));
+                .allSatisfy(value -> assertThat(value.getType()).isEqualTo(BidType.BANNER));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -228,7 +228,7 @@ public class IqzoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to find impression for ID:");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -246,7 +246,7 @@ public class IqzoneBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Unknown impression type for ID");
                 });
     }

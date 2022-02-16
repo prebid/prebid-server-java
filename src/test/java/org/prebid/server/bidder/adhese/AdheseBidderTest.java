@@ -257,7 +257,7 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -272,7 +272,7 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected response body");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -300,7 +300,7 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -338,7 +338,7 @@ public class AdheseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -394,7 +394,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
-                BidType.banner, "USD");
+                BidType.BANNER, "USD");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
@@ -453,7 +453,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
-                BidType.video, "USD");
+                BidType.VIDEO, "USD");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
@@ -511,7 +511,7 @@ public class AdheseBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
                                 "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
                         .build(),
-                BidType.banner, "USD");
+                BidType.BANNER, "USD");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);

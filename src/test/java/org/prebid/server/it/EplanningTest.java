@@ -25,7 +25,7 @@ public class EplanningTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/eplanning/test-auction-eplanning-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/eplanning/test-auction-eplanning-response.json", response,

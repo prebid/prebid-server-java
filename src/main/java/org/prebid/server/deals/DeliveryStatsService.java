@@ -179,7 +179,7 @@ public class DeliveryStatsService implements Suspendable {
                                               DeliveryProgressReport deliveryProgressReport,
                                               Promise<Void> promise,
                                               long startTime) {
-        metrics.updateRequestTimeMetric(MetricName.delivery_request_time, clock.millis() - startTime);
+        metrics.updateRequestTimeMetric(MetricName.DELIVERY_REQUEST_TIME, clock.millis() - startTime);
         if (result.failed()) {
             logger.warn("Cannot send delivery progress report to delivery stats service", result.cause());
             promise.fail(new PreBidException(String.format("Sending report with id = %s failed in a reason: %s",

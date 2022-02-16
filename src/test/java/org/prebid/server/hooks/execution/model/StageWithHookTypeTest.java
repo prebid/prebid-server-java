@@ -16,42 +16,42 @@ public class StageWithHookTypeTest {
 
     @Test
     public void forStageShouldReturnEntrypoint() {
-        assertThat(StageWithHookType.forStage(Stage.entrypoint)).isSameAs(StageWithHookType.ENTRYPOINT);
+        assertThat(StageWithHookType.forStage(Stage.ENTRYPOINT)).isSameAs(StageWithHookType.ENTRYPOINT);
     }
 
     @Test
     public void forStageShouldReturnRawAuctionRequest() {
-        assertThat(StageWithHookType.forStage(Stage.raw_auction_request))
+        assertThat(StageWithHookType.forStage(Stage.RAW_AUCTION_REQUEST))
                 .isSameAs(StageWithHookType.RAW_AUCTION_REQUEST);
     }
 
     @Test
     public void forStageShouldReturnProcessedAuctionRequest() {
-        assertThat(StageWithHookType.forStage(Stage.processed_auction_request))
+        assertThat(StageWithHookType.forStage(Stage.PROCESSED_AUCTION_REQUEST))
                 .isSameAs(StageWithHookType.PROCESSED_AUCTION_REQUEST);
     }
 
     @Test
     public void forStageShouldReturnBidderRequest() {
-        assertThat(StageWithHookType.forStage(Stage.bidder_request))
+        assertThat(StageWithHookType.forStage(Stage.BIDDER_REQUEST))
                 .isSameAs(StageWithHookType.BIDDER_REQUEST);
     }
 
     @Test
     public void forStageShouldReturnRawBidderResponse() {
-        assertThat(StageWithHookType.forStage(Stage.raw_bidder_response))
+        assertThat(StageWithHookType.forStage(Stage.RAW_BIDDER_RESPONSE))
                 .isSameAs(StageWithHookType.RAW_BIDDER_RESPONSE);
     }
 
     @Test
     public void forStageShouldReturnProcessedBidderResponse() {
-        assertThat(StageWithHookType.forStage(Stage.processed_bidder_response))
+        assertThat(StageWithHookType.forStage(Stage.PROCESSED_BIDDER_RESPONSE))
                 .isSameAs(StageWithHookType.PROCESSED_BIDDER_RESPONSE);
     }
 
     @Test
     public void forStageShouldReturnAuctionResponse() {
-        assertThat(StageWithHookType.forStage(Stage.auction_response))
+        assertThat(StageWithHookType.forStage(Stage.AUCTION_RESPONSE))
                 .isSameAs(StageWithHookType.AUCTION_RESPONSE);
     }
 }

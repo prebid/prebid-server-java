@@ -255,7 +255,7 @@ public class CriteoBidder implements Bidder<CriteoRequest> {
     }
 
     private static BidderBid slotToBidderBid(CriteoResponseSlot slot) {
-        return BidderBid.of(slotToBid(slot), BidType.banner, slot.getCurrency());
+        return BidderBid.of(slotToBid(slot), BidType.BANNER, slot.getCurrency());
     }
 
     private static Bid slotToBid(CriteoResponseSlot slot) {

@@ -27,7 +27,7 @@ public class InmobiTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/inmobi/test-auction-inmobi-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/inmobi/test-auction-inmobi-response.json", response, singletonList("inmobi"));

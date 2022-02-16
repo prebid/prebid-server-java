@@ -27,7 +27,7 @@ public class UnrulyTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/unruly/test-auction-unruly-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/unruly/test-auction-unruly-response.json", response, singletonList("unruly"));

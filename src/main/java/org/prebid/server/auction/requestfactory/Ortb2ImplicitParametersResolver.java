@@ -183,14 +183,14 @@ public class Ortb2ImplicitParametersResolver {
         final String deviceIp = device != null ? device.getIp() : null;
         final String deviceIpv6 = device != null ? device.getIpv6() : null;
 
-        String resolvedIp = sanitizeIp(deviceIp, IpAddress.IP.v4);
-        String resolvedIpv6 = sanitizeIp(deviceIpv6, IpAddress.IP.v6);
+        String resolvedIp = sanitizeIp(deviceIp, IpAddress.IP.V4);
+        String resolvedIpv6 = sanitizeIp(deviceIpv6, IpAddress.IP.V6);
 
         if (resolvedIp == null && resolvedIpv6 == null) {
             final IpAddress requestIp = findIpFromRequest(httpRequest);
 
-            resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.v4);
-            resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.v6);
+            resolvedIp = getIpIfVersionIs(requestIp, IpAddress.IP.V4);
+            resolvedIpv6 = getIpIfVersionIs(requestIp, IpAddress.IP.V6);
         }
 
         logWarnIfNoIp(resolvedIp, resolvedIpv6);
@@ -648,16 +648,16 @@ public class Ortb2ImplicitParametersResolver {
      */
     private static void resolveImpMediaTypes(Imp imp, Set<BidType> impsMediaTypes) {
         if (imp.getBanner() != null) {
-            impsMediaTypes.add(BidType.banner);
+            impsMediaTypes.add(BidType.BANNER);
         }
         if (imp.getVideo() != null) {
-            impsMediaTypes.add(BidType.video);
+            impsMediaTypes.add(BidType.VIDEO);
         }
         if (imp.getAudio() != null) {
-            impsMediaTypes.add(BidType.audio);
+            impsMediaTypes.add(BidType.AUDIO);
         }
         if (imp.getXNative() != null) {
-            impsMediaTypes.add(BidType.xNative);
+            impsMediaTypes.add(BidType.X_NATIVE);
         }
     }
 
@@ -738,15 +738,15 @@ public class Ortb2ImplicitParametersResolver {
 
         final JsonNode banner = mediaTypePriceGranularity.getBanner();
         if (banner != null && !banner.isNull()) {
-            priceGranularityTypes.add(BidType.banner);
+            priceGranularityTypes.add(BidType.BANNER);
         }
         final JsonNode video = mediaTypePriceGranularity.getVideo();
         if (video != null && !video.isNull()) {
-            priceGranularityTypes.add(BidType.video);
+            priceGranularityTypes.add(BidType.VIDEO);
         }
         final JsonNode xNative = mediaTypePriceGranularity.getXNative();
         if (xNative != null && !xNative.isNull()) {
-            priceGranularityTypes.add(BidType.xNative);
+            priceGranularityTypes.add(BidType.X_NATIVE);
         }
         return priceGranularityTypes;
     }
@@ -781,7 +781,7 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private static ExtRequestPrebidChannel populateChannel(BidRequest bidRequest, String endpoint) {
-        if (StringUtils.equals(Endpoint.openrtb2_amp.value(), endpoint)) {
+        if (StringUtils.equals(Endpoint.OPENRTB2_AMP.value(), endpoint)) {
             return ExtRequestPrebidChannel.of(AMP_CHANNEL);
         } else if (bidRequest.getApp() != null) {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);

@@ -27,9 +27,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class SaLunamediaBidderTest extends VertxTest {
 
@@ -76,7 +76,7 @@ public class SaLunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -159,7 +159,7 @@ public class SaLunamediaBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
                 });
     }
@@ -183,7 +183,7 @@ public class SaLunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(
-                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), xNative, null));
+                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), X_NATIVE, null));
     }
 
     @Test
@@ -205,7 +205,7 @@ public class SaLunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(
-                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), banner, null));
+                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), BANNER, null));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class SaLunamediaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(BidderBid.of(
-                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), video, null));
+                Bid.builder().impid("123").ext(mediaTypeObjectNode).build(), VIDEO, null));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

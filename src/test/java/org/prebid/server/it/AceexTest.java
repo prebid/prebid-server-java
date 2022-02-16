@@ -27,7 +27,7 @@ public class AceexTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/aceex/test-auction-aceex-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/aceex/test-auction-aceex-response.json", response, singletonList("aceex"));

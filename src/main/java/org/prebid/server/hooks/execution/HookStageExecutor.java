@@ -299,7 +299,7 @@ public class HookStageExecutor {
     }
 
     private StageExecutionPlan planForEntrypointStage(Endpoint endpoint) {
-        return effectiveStagePlanFrom(ExecutionPlan.empty(), endpoint, Stage.entrypoint);
+        return effectiveStagePlanFrom(ExecutionPlan.empty(), endpoint, Stage.ENTRYPOINT);
     }
 
     private StageExecutionPlan planForStage(Account account, Endpoint endpoint, Stage stage) {

@@ -42,7 +42,7 @@ public class BidderErrorNotifier {
     public <T> HttpCall<T> processTimeout(HttpCall<T> httpCall, Bidder<T> bidder) {
         final BidderError error = httpCall.getError();
 
-        if (error != null && error.getType() == BidderError.Type.timeout) {
+        if (error != null && error.getType() == BidderError.Type.TIMEOUT) {
             final HttpRequest<Void> timeoutNotification = bidder.makeTimeoutNotification(httpCall.getRequest());
             if (timeoutNotification != null) {
                 httpClient.request(

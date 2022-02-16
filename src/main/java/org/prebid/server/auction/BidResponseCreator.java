@@ -249,7 +249,7 @@ public class BidResponseCreator {
         final Account account = auctionContext.getAccount();
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
-        final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.none
+        final String generatedBidId = bidIdGenerator.getType() != IdGeneratorType.NONE
                 ? bidIdGenerator.generateId()
                 : null;
         final String effectiveBidId = ObjectUtils.defaultIfNull(generatedBidId, bid.getId());
@@ -286,7 +286,7 @@ public class BidResponseCreator {
                                 String lineItemId) {
 
         final String bidAdm = bid.getAdm();
-        return BidType.video.equals(bidType)
+        return BidType.VIDEO.equals(bidType)
                 ? vastModifier.createBidVastXml(
                 bidder,
                 bidAdm,
@@ -963,7 +963,7 @@ public class BidResponseCreator {
                 .distinct()
                 .filter(bidderCatalog::isDeprecatedName)
                 .collect(Collectors.toMap(Function.identity(),
-                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.bad_input.getCode(),
+                        bidder -> Collections.singletonList(ExtBidderError.of(BidderError.Type.BAD_INPUT.getCode(),
                                 bidderCatalog.errorForDeprecatedName(bidder)))));
     }
 
@@ -991,7 +991,7 @@ public class BidResponseCreator {
         final List<String> errors = videoStoredDataResult.getErrors();
         if (CollectionUtils.isNotEmpty(errors)) {
             return errors.stream()
-                    .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                    .map(message -> ExtBidderError.of(BidderError.Type.GENERIC.getCode(), message))
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
@@ -1002,7 +1002,7 @@ public class BidResponseCreator {
      */
     private static List<ExtBidderError> extractContextErrors(AuctionContext auctionContext) {
         return auctionContext.getPrebidErrors().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                .map(message -> ExtBidderError.of(BidderError.Type.GENERIC.getCode(), message))
                 .collect(Collectors.toList());
     }
 
@@ -1012,7 +1012,7 @@ public class BidResponseCreator {
     private static Map<String, List<ExtBidderError>> extractCacheErrors(CacheServiceResult cacheResult) {
         final Throwable error = cacheResult.getError();
         if (error != null) {
-            final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.generic.getCode(),
+            final ExtBidderError extBidderError = ExtBidderError.of(BidderError.Type.GENERIC.getCode(),
                     error.getMessage());
             return Collections.singletonMap(CACHE, Collections.singletonList(extBidderError));
         }
@@ -1043,7 +1043,7 @@ public class BidResponseCreator {
 
     private static Map<String, List<ExtBidderError>> extractContextWarnings(AuctionContext auctionContext) {
         final List<ExtBidderError> contextWarnings = auctionContext.getDebugWarnings().stream()
-                .map(message -> ExtBidderError.of(BidderError.Type.generic.getCode(), message))
+                .map(message -> ExtBidderError.of(BidderError.Type.GENERIC.getCode(), message))
                 .collect(Collectors.toList());
 
         return contextWarnings.isEmpty()
@@ -1221,12 +1221,12 @@ public class BidResponseCreator {
             modifiedBidAdm = null;
         }
 
-        if (bidType.equals(BidType.xNative) && modifiedBidAdm != null) {
+        if (bidType.equals(BidType.X_NATIVE) && modifiedBidAdm != null) {
             try {
                 modifiedBidAdm = createNativeMarkup(modifiedBidAdm, correspondingImp);
             } catch (PreBidException e) {
                 bidErrors.computeIfAbsent(bidder, ignored -> new ArrayList<>())
-                        .add(ExtBidderError.of(BidderError.Type.bad_server_response.getCode(), e.getMessage()));
+                        .add(ExtBidderError.of(BidderError.Type.BAD_SERVER_RESPONSE.getCode(), e.getMessage()));
                 return null;
             }
         }
@@ -1495,19 +1495,19 @@ public class BidResponseCreator {
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
-            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest, account));
+            result.put(BidType.BANNER, createKeywordsCreator(targeting, isApp, banner, bidRequest, account));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
-            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest, account));
+            result.put(BidType.VIDEO, createKeywordsCreator(targeting, isApp, video, bidRequest, account));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
-            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account));
+            result.put(BidType.X_NATIVE, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account));
         }
 
         return result;

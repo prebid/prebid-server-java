@@ -33,8 +33,8 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class VisxBidderTest extends VertxTest {
 
@@ -85,7 +85,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -128,7 +128,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), banner, null));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), BANNER, null));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(Bid.builder().id("id").impid("123").build(), video, null));
+                BidderBid.of(Bid.builder().id("id").impid("123").build(), VIDEO, null));
     }
 
     @Test
@@ -200,7 +200,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(identity()), banner, null));
+                .containsExactly(BidderBid.of(givenBid(identity()), BANNER, null));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(null)), video, null));
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(null)), VIDEO, null));
     }
 
     @Test
@@ -241,7 +241,7 @@ public class VisxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(
-                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(givenBidExt("123"))), video, null));
+                BidderBid.of(givenBid(bidBuilder -> bidBuilder.ext(givenBidExt("123"))), VIDEO, null));
     }
 
     @Test
@@ -295,7 +295,7 @@ public class VisxBidderTest extends VertxTest {
                         .h(100)
                         .adomain(singletonList("adomain"))
                         .build(),
-                video, null);
+                VIDEO, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);

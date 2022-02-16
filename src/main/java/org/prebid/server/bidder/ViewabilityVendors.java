@@ -2,13 +2,13 @@ package org.prebid.server.bidder;
 
 public enum ViewabilityVendors {
 
-    activeview("doubleclickbygoogle.com"),
-    comscore("comscore.com"),
-    doubleverify("doubleverify.com"),
-    integralads("integralads.com"),
-    moat("moat.com"),
-    sizemek("sizmek.com"),
-    whiteops("whiteops.com");
+    ACTIVEVIEW("doubleclickbygoogle.com"),
+    COMSCORE("comscore.com"),
+    DOUBLEVERIFY("doubleverify.com"),
+    INTEGRALADS("integralads.com"),
+    MOAT("moat.com"),
+    SIZEMEK("sizmek.com"),
+    WHITEOPS("whiteops.com");
 
     private final String url;
 

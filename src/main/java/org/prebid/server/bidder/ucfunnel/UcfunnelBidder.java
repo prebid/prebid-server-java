@@ -97,7 +97,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         for (SeatBid seatBid : bidResponse.getSeatbid()) {
             for (Bid bid : seatBid.getBid()) {
                 final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
-                if (bidType == BidType.banner || bidType == BidType.video) {
+                if (bidType == BidType.BANNER || bidType == BidType.VIDEO) {
                     final BidderBid bidderBid = BidderBid.of(bid, bidType, bidResponse.getCur());
                     bidderBids.add(bidderBid);
                 }
@@ -118,16 +118,16 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 } else if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 } else if (imp.getAudio() != null) {
-                    return BidType.audio;
+                    return BidType.AUDIO;
                 }
             }
         }
-        return BidType.xNative;
+        return BidType.X_NATIVE;
     }
 }

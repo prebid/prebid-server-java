@@ -240,7 +240,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 .adomain(extractDomain(ad.getDestinationUrls()))
                 .build();
 
-        return BidderBid.of(bid, BidType.banner, currency);
+        return BidderBid.of(bid, BidType.BANNER, currency);
     }
 
     private static String extractImpId(AdnuntiusAdsUnit adsUnit) {

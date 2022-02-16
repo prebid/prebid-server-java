@@ -159,9 +159,9 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impid)) {
-                return imp.getVideo() != null ? BidType.video : BidType.banner;
+                return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

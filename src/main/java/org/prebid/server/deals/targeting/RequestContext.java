@@ -82,32 +82,32 @@ public class RequestContext {
     public String lookupString(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         switch (type) {
-            case domain:
+            case DOMAIN:
                 return ObjectUtils.defaultIfNull(
                         getIfNotNull(bidRequest.getSite(), Site::getDomain),
                         getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain));
-            case publisherDomain:
+            case PUBLISHER_DOMAIN:
                 return getIfNotNull(getIfNotNull(bidRequest.getSite(), Site::getPublisher), Publisher::getDomain);
-            case referrer:
+            case REFERRER:
                 return getIfNotNull(bidRequest.getSite(), Site::getPage);
-            case appBundle:
+            case APP_BUNDLE:
                 return getIfNotNull(bidRequest.getApp(), App::getBundle);
-            case adslot:
+            case ADSLOT:
                 return getFirstNonNullStringFromImpExt(
                         "context.data.pbadslot",
                         "context.data.adserver.adslot",
                         "data.pbadslot",
                         "data.adserver.adslot");
-            case deviceGeoExt:
+            case DEVICE_GEO_EXT:
                 return getValueFrom(geoExt, category, RequestContext::nodeToString);
-            case deviceExt:
+            case DEVICE_EXT:
                 return getValueFrom(deviceExt, category, RequestContext::nodeToString);
-            case bidderParam:
+            case BIDDER_PARAM:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToString);
-            case userFirstPartyData:
+            case USER_FIRST_PARTY_DATA:
                 return userAttributeReader.read(bidRequest.getUser(), category,
                         RequestContext::nodeToString, String.class);
-            case siteFirstPartyData:
+            case SITE_FIRST_PARTY_DATA:
                 return getSiteFirstPartyData(category, RequestContext::nodeToString);
             default:
                 throw new TargetingSyntaxException(
@@ -118,18 +118,18 @@ public class RequestContext {
     public Integer lookupInteger(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         switch (type) {
-            case pagePosition:
+            case PAGE_POSITION:
                 return getIfNotNull(getIfNotNull(imp, Imp::getBanner), Banner::getPos);
-            case dow:
+            case DOW:
                 return getIntegerFromUserExt("time.userdow");
-            case hour:
+            case HOUR:
                 return getIntegerFromUserExt("time.userhour");
-            case bidderParam:
+            case BIDDER_PARAM:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToInteger);
-            case userFirstPartyData:
+            case USER_FIRST_PARTY_DATA:
                 return userAttributeReader.read(bidRequest.getUser(), category,
                         RequestContext::nodeToInteger, Integer.class);
-            case siteFirstPartyData:
+            case SITE_FIRST_PARTY_DATA:
                 return getSiteFirstPartyData(category, RequestContext::nodeToInteger);
             default:
                 throw new TargetingSyntaxException(
@@ -140,16 +140,16 @@ public class RequestContext {
     public List<String> lookupStrings(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         switch (type) {
-            case mediaType:
+            case MEDIA_TYPE:
                 return getMediaTypes();
-            case bidderParam:
+            case BIDDER_PARAM:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfStrings);
-            case userSegment:
+            case USER_SEGMENT:
                 return getSegments(category);
-            case userFirstPartyData:
+            case USER_FIRST_PARTY_DATA:
                 return userAttributeReader.readFromExt(bidRequest.getUser(), category,
                         RequestContext::nodeToListOfStrings);
-            case siteFirstPartyData:
+            case SITE_FIRST_PARTY_DATA:
                 return getSiteFirstPartyData(category, RequestContext::nodeToListOfStrings);
             default:
                 throw new TargetingSyntaxException(
@@ -160,12 +160,12 @@ public class RequestContext {
     public List<Integer> lookupIntegers(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
         switch (type) {
-            case bidderParam:
+            case BIDDER_PARAM:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToListOfIntegers);
-            case userFirstPartyData:
+            case USER_FIRST_PARTY_DATA:
                 return userAttributeReader.readFromExt(bidRequest.getUser(), category,
                         RequestContext::nodeToListOfIntegers);
-            case siteFirstPartyData:
+            case SITE_FIRST_PARTY_DATA:
                 return getSiteFirstPartyData(category, RequestContext::nodeToListOfIntegers);
             default:
                 throw new TargetingSyntaxException(
@@ -175,7 +175,7 @@ public class RequestContext {
 
     public List<Size> lookupSizes(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
-        if (type != TargetingCategory.Type.size) {
+        if (type != TargetingCategory.Type.SIZE) {
             throw new TargetingSyntaxException(
                     String.format("Unexpected category for fetching sizes for: %s", type));
         }
@@ -188,7 +188,7 @@ public class RequestContext {
 
     public GeoLocation lookupGeoLocation(TargetingCategory category) {
         final TargetingCategory.Type type = category.type();
-        if (type != TargetingCategory.Type.location) {
+        if (type != TargetingCategory.Type.LOCATION) {
             throw new TargetingSyntaxException(
                     String.format("Unexpected category for fetching geo location for: %s", type));
         }

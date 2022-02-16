@@ -27,7 +27,7 @@ public class BeintooTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/beintoo/test-auction-beintoo-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/beintoo/test-auction-beintoo-response.json", response, singletonList("beintoo"));

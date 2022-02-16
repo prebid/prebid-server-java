@@ -135,7 +135,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.AMP))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -1458,7 +1458,8 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidErrors())
-                .containsExactly("Amp request parameter gdpr_consent has invalid format for consent type tcfV2: 1YY-");
+                .containsExactly("Amp request parameter gdpr_consent has"
+                        + " invalid format for consent type TCF_V_2: 1YY-");
     }
 
     @Test
@@ -1476,7 +1477,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrebidErrors())
                 .containsExactly(
-                        "Amp request parameter consent_string has invalid format for consent type tcfV2: 1YY-");
+                        "Amp request parameter consent_string has"
+                                + " invalid format for consent type TCF_V_2: 1YY-");
     }
 
     @Test
@@ -1494,7 +1496,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrebidErrors())
                 .containsExactly("Amp request parameter consent_string has invalid format for "
-                                + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
+                                + "consent type US_PRIVACY: BONV8oqONXwgmADACHENAO7pqzAAppY");
     }
 
     @Test
@@ -1512,7 +1514,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrebidErrors())
                 .containsExactly("Amp request parameter gdpr_consent has invalid format for "
-                                + "consent type usPrivacy: BONV8oqONXwgmADACHENAO7pqzAAppY");
+                                + "consent type US_PRIVACY: BONV8oqONXwgmADACHENAO7pqzAAppY");
     }
 
     @Test
@@ -1529,7 +1531,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidErrors())
-                .containsExactly("Consent type tcfV1 is no longer supported");
+                .containsExactly("Consent type TCF_V_1 is no longer supported");
     }
 
     @Test
@@ -1741,7 +1743,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.openrtb2_amp), eq(MetricName.amp));
+        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.OPENRTB2_AMP), eq(MetricName.AMP));
     }
 
     @Test

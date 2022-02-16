@@ -84,9 +84,9 @@ public class SmileWantedBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impid) && imp.getVideo() != null) {
-                return BidType.video;
+                return BidType.VIDEO;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

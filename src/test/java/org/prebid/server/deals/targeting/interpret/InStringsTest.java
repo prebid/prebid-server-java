@@ -30,7 +30,7 @@ public class InStringsTest {
     @Before
     public void setUp() {
         // given
-        category = new TargetingCategory(TargetingCategory.Type.referrer);
+        category = new TargetingCategory(TargetingCategory.Type.REFERRER);
         expression = new InStrings(category, asList("Munich", "Berlin", "Stuttgart"));
     }
 

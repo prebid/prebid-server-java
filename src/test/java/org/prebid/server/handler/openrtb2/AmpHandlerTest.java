@@ -511,7 +511,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.ok));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.OK));
     }
 
     @Test
@@ -596,7 +596,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.badinput));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.BADINPUT));
     }
 
     @Test
@@ -609,7 +609,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.err));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.ERR));
     }
 
     @SuppressWarnings("unchecked")
@@ -635,7 +635,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTimeMetric(eq(MetricName.request_time), eq(500L));
+        verify(metrics).updateRequestTimeMetric(eq(MetricName.REQUEST_TIME), eq(500L));
     }
 
     @Test
@@ -671,7 +671,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -687,7 +687,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+        verify(metrics, never()).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -705,7 +705,7 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.amp), eq(MetricName.networkerr));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.AMP), eq(MetricName.NETWORKERR));
     }
 
     @Test
@@ -743,7 +743,7 @@ public class AmpHandlerTest extends VertxTest {
         // then
         final AmpEvent ampEvent = captureAmpEvent();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.amp)
+                .requestTypeMetric(MetricName.AMP)
                 .build();
 
         assertThat(ampEvent).isEqualTo(AmpEvent.builder()
@@ -781,7 +781,7 @@ public class AmpHandlerTest extends VertxTest {
                         .build()))
                 .build();
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
-                .requestTypeMetric(MetricName.amp)
+                .requestTypeMetric(MetricName.AMP)
                 .bidResponse(expectedBidResponse)
                 .build();
 
@@ -804,7 +804,7 @@ public class AmpHandlerTest extends VertxTest {
         return AuctionContext.builder()
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .requestTypeMetric(MetricName.amp)
+                .requestTypeMetric(MetricName.AMP)
                 .timeout(timeout)
                 .debugContext(DebugContext.empty())
                 .build();

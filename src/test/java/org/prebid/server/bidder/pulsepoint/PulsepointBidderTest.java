@@ -252,7 +252,7 @@ public class PulsepointBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -337,7 +337,7 @@ public class PulsepointBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.banner);
+                .containsOnly(BidType.BANNER);
     }
 
     @Test
@@ -357,7 +357,7 @@ public class PulsepointBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.video);
+                .containsOnly(BidType.VIDEO);
     }
 
     @Test
@@ -377,7 +377,7 @@ public class PulsepointBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.audio);
+                .containsOnly(BidType.AUDIO);
     }
 
     @Test
@@ -397,7 +397,7 @@ public class PulsepointBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getType)
-                .containsOnly(BidType.xNative);
+                .containsOnly(BidType.X_NATIVE);
     }
 
     private static BidRequest givenBidRequest(

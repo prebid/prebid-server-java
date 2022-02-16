@@ -19,23 +19,23 @@ public class BidderError {
     }
 
     public static BidderError generic(String message) {
-        return BidderError.of(message, Type.generic);
+        return BidderError.of(message, Type.GENERIC);
     }
 
     public static BidderError badInput(String message) {
-        return BidderError.of(message, Type.bad_input);
+        return BidderError.of(message, Type.BAD_INPUT);
     }
 
     public static BidderError badServerResponse(String message) {
-        return BidderError.of(message, Type.bad_server_response);
+        return BidderError.of(message, Type.BAD_SERVER_RESPONSE);
     }
 
     public static BidderError failedToRequestBids(String message) {
-        return BidderError.of(message, Type.failed_to_request_bids);
+        return BidderError.of(message, Type.FAILED_TO_REQUEST_BIDS);
     }
 
     public static BidderError timeout(String message) {
-        return BidderError.of(message, Type.timeout);
+        return BidderError.of(message, Type.TIMEOUT);
     }
 
     public enum Type {
@@ -45,7 +45,7 @@ public class BidderError {
          * Error of this type will not be written to the app log, since it's not an actionable item for the Prebid
          * Server hosts.
          */
-        bad_input(2),
+        BAD_INPUT(2),
 
         /**
          * Should be used when returning errors which are caused by bad/unexpected behavior on the remote server.
@@ -58,7 +58,7 @@ public class BidderError {
          * These should not be used to log _connection_ errors (e.g. "couldn't find host"), which may indicate config
          * issues for the PBS host company
          */
-        bad_server_response(3),
+        BAD_SERVER_RESPONSE(3),
 
         /**
          * Covers the case where a bidder failed to generate any http requests to get bids, but did not generate any
@@ -67,10 +67,10 @@ public class BidderError {
          * generate an error explaining the deficiency. Otherwise it will be extremely difficult to debug the reason
          * why a bidder is not bidding.
          */
-        failed_to_request_bids(4),
+        FAILED_TO_REQUEST_BIDS(4),
 
-        timeout(1),
-        generic(999);
+        TIMEOUT(1),
+        GENERIC(999);
 
         private final Integer code;
 

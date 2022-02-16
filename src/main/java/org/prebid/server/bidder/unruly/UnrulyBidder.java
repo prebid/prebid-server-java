@@ -132,7 +132,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
-                return BidType.video;
+                return BidType.VIDEO;
             }
         }
         throw new PreBidException(String.format("Failed to find impression %s", impId));

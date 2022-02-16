@@ -241,7 +241,7 @@ public class TcfDefinerService {
             return ipAddress;
         }
 
-        return ip.getVersion() == IpAddress.IP.v4
+        return ip.getVersion() == IpAddress.IP.V4
                 ? ipAddressHelper.maskIpv4(ipAddress)
                 : ipAddressHelper.anonymizeIpv6(ipAddress);
     }
@@ -394,21 +394,21 @@ public class TcfDefinerService {
         }
 
         switch (requestLogInfo.getRequestType()) {
-            case amp:
+            case AMP:
                 AMP_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
+                        logMessage(consent, MetricName.AMP.toString(), requestLogInfo, message), 100);
                 break;
-            case openrtb2app:
+            case OPENRTB2_APP:
                 APP_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+                        logMessage(consent, MetricName.OPENRTB2_APP.toString(), requestLogInfo, message), 100);
                 break;
-            case openrtb2web:
+            case OPENRTB2_WEB:
                 SITE_CORRUPT_CONSENT_LOGGER.info(
-                        logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
+                        logMessage(consent, MetricName.OPENRTB2_WEB.toString(), requestLogInfo, message), 100);
                 break;
-            case video:
-            case cookiesync:
-            case setuid:
+            case VIDEO:
+            case COOKIESYNC:
+            case SETUID:
             default:
                 UNDEFINED_CORRUPT_CONSENT_LOGGER.info(
                         logMessage(consent, "video or sync or setuid", requestLogInfo, message), 100);

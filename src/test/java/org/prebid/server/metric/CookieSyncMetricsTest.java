@@ -10,7 +10,7 @@ public class CookieSyncMetricsTest {
     @Test
     public void forBidderShouldReturnSameBidderCookieSyncMetricsOnSuccessiveCalls() {
         // given
-        final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.counter);
+        final CookieSyncMetrics cookieSyncMetrics = new CookieSyncMetrics(new MetricRegistry(), CounterType.COUNTER);
 
         // when and then
         assertThat(cookieSyncMetrics.forBidder("rubicon")).isSameAs(cookieSyncMetrics.forBidder("rubicon"));

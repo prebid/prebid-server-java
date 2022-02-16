@@ -18,9 +18,9 @@ public class AccountMetricsVerbosity {
 
         this.accountVerbosityLevels = new HashMap<>();
         Objects.requireNonNull(basicVerbosity)
-                .forEach(accountId -> accountVerbosityLevels.put(accountId, AccountMetricsVerbosityLevel.basic));
+                .forEach(accountId -> accountVerbosityLevels.put(accountId, AccountMetricsVerbosityLevel.BASIC));
         Objects.requireNonNull(detailedVerbosity)
-                .forEach(accountId -> accountVerbosityLevels.put(accountId, AccountMetricsVerbosityLevel.detailed));
+                .forEach(accountId -> accountVerbosityLevels.put(accountId, AccountMetricsVerbosityLevel.DETAILED));
     }
 
     public AccountMetricsVerbosityLevel forAccount(String accountId) {

@@ -26,7 +26,7 @@ public class KayzenTest extends IntegrationTest {
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/kayzen/test-kayzen-bid-response.json"))));
         // when
         final Response response = responseFor("openrtb2/kayzen/test-auction-kayzen-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/kayzen/test-auction-kayzen-response.json", response,

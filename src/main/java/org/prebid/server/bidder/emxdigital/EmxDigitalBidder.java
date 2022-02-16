@@ -266,6 +266,6 @@ public class EmxDigitalBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(String bidAdm) {
         return StringUtils.containsAny(bidAdm, "<?xml", "<vast")
-                ? BidType.video : BidType.banner;
+                ? BidType.VIDEO : BidType.BANNER;
     }
 }

@@ -459,7 +459,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         return makeBeachfrontResponseSlots(responseBody).stream()
                 .filter(Objects::nonNull)
                 .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
-                .map(bid -> BidderBid.of(bid, BidType.banner, BeachfrontFloorResolver.DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.BANNER, BeachfrontFloorResolver.DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
@@ -510,7 +510,7 @@ public class BeachfrontBidder implements Bidder<Void> {
                 : updateVideoBids(bids);
 
         return updatedBids.stream()
-                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidType.VIDEO, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 

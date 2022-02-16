@@ -156,7 +156,7 @@ public class UserService {
                             .responseTimeMillis(responseTime)
                             .build()));
         }
-        metrics.updateRequestTimeMetric(MetricName.user_details_request_time, responseTime);
+        metrics.updateRequestTimeMetric(MetricName.USER_DETAILS_REQUEST_TIME, responseTime);
         metrics.updateUserDetailsRequestMetric(true);
         return UserDetails.of(user.getData(), user.getExt().getFcapIds());
     }
@@ -207,7 +207,7 @@ public class UserService {
                                 .responseTimeMillis(responseTime)
                                 .build()));
         metrics.updateUserDetailsRequestMetric(false);
-        metrics.updateRequestTimeMetric(MetricName.user_details_request_time, responseTime);
+        metrics.updateRequestTimeMetric(MetricName.USER_DETAILS_REQUEST_TIME, responseTime);
         logger.warn("Error occurred while fetching user details", exception);
         return Future.failedFuture(exception);
     }

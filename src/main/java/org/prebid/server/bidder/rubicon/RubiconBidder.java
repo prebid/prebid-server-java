@@ -195,7 +195,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<Imp> imps = extractValidImps(bidRequest, errors);
         if (CollectionUtils.isEmpty(imps)) {
             errors.add(BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
-                    BidderError.Type.bad_input));
+                    BidderError.Type.BAD_INPUT));
             return Result.of(Collections.emptyList(), errors);
         }
         final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
@@ -272,21 +272,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final BidType type = resolveExpectedBidType(imp);
         return BidderError.of(
                 String.format("Impression with id %s rejected with invalid type `%s`." + " Allowed types are banner and"
-                        + " video.", imp.getId(), type != null ? type.name() : "unknown"), BidderError.Type.bad_input);
+                        + " video.", imp.getId(), type != null ? type.name() : "unknown"), BidderError.Type.BAD_INPUT);
     }
 
     private static BidType resolveExpectedBidType(Imp imp) {
         if (imp.getBanner() != null) {
-            return BidType.banner;
+            return BidType.BANNER;
         }
         if (imp.getVideo() != null) {
-            return BidType.video;
+            return BidType.VIDEO;
         }
         if (imp.getAudio() != null) {
-            return BidType.audio;
+            return BidType.AUDIO;
         }
         if (imp.getXNative() != null) {
-            return BidType.xNative;
+            return BidType.X_NATIVE;
         }
         return null;
     }
@@ -1450,7 +1450,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidType bidType(BidRequest bidRequest) {
-        return isVideo(bidRequest.getImp().get(0)) ? BidType.video : BidType.banner;
+        return isVideo(bidRequest.getImp().get(0)) ? BidType.VIDEO : BidType.BANNER;
     }
 
     private ObjectNode toObjectNode(JsonNode node) {

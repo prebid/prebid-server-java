@@ -40,9 +40,9 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
-import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
-import static org.prebid.server.settings.model.BidValidationEnforcement.warn;
+import static org.prebid.server.settings.model.BidValidationEnforcement.ENFORCE;
+import static org.prebid.server.settings.model.BidValidationEnforcement.SKIP;
+import static org.prebid.server.settings.model.BidValidationEnforcement.WARN;
 
 public class ResponseBidValidatorTest extends VertxTest {
 
@@ -62,7 +62,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(enforce, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(ENFORCE, ENFORCE, metrics, jacksonMapper, true);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
     }
@@ -71,7 +71,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.banner, "invalid", identity()),
+                givenBid(BidType.BANNER, "invalid", identity()),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -179,7 +179,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldReturnSuccessIfNonBannerBidHasAnySize() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.w(3).h(3)),
+                givenBid(BidType.VIDEO, builder -> builder.w(3).h(3)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -196,7 +196,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                         .set("prebid", mapper.createObjectNode())));
 
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.w(3).h(3)),
+                givenBid(BidType.VIDEO, builder -> builder.w(3).h(3)),
                 BIDDER_NAME,
                 givenAuctionContext(bidRequest),
                 bidderAliases);
@@ -213,7 +213,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 BIDDER_NAME,
                 givenAuctionContext(
                         givenAccount(builder -> builder.auction(AccountAuctionConfig.builder()
-                                .bidValidations(AccountBidValidationConfig.of(skip))
+                                .bidValidations(AccountBidValidationConfig.of(SKIP))
                                 .build()))),
                 bidderAliases);
 
@@ -300,7 +300,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.adm(null).nurl(null)),
+                givenBid(BidType.VIDEO, builder -> builder.adm(null).nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -308,14 +308,14 @@ public class ResponseBidValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors())
                 .containsOnly("Bid \"bidId1\" with video type missing adm and nurl");
-        verify(metrics).updateAdapterRequestErrorMetric(BIDDER_NAME, MetricName.badserverresponse);
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER_NAME, MetricName.BADSERVERRESPONSE);
     }
 
     @Test
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.adm(null)),
+                givenBid(BidType.VIDEO, builder -> builder.adm(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -328,7 +328,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
         // when
         final ValidationResult result = responseBidValidator.validate(
-                givenBid(BidType.video, builder -> builder.nurl(null)),
+                givenBid(BidType.VIDEO, builder -> builder.nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
                 bidderAliases);
@@ -353,7 +353,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(SKIP, ENFORCE, metrics, jacksonMapper, true);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -369,7 +369,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfBannerSizeEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(WARN, ENFORCE, metrics, jacksonMapper, true);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -389,7 +389,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, skip, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(ENFORCE, SKIP, metrics, jacksonMapper, true);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -405,7 +405,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfSecureMarkupEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(ENFORCE, WARN, metrics, jacksonMapper, true);
 
         // when
         final ValidationResult result = responseBidValidator.validate(
@@ -432,13 +432,13 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
+        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.ERR);
     }
 
     @Test
     public void validateShouldIncrementSizeValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(WARN, WARN, metrics, jacksonMapper, true);
 
         // when
         responseBidValidator.validate(
@@ -448,7 +448,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+        verify(metrics).updateSizeValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.WARN);
     }
 
     @Test
@@ -461,13 +461,13 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.err);
+        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.ERR);
     }
 
     @Test
     public void validateShouldIncrementSecureValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(WARN, WARN, metrics, jacksonMapper, true);
 
         // when
         responseBidValidator.validate(
@@ -477,7 +477,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 bidderAliases);
 
         // then
-        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
+        verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.WARN);
     }
 
     @Test
@@ -544,7 +544,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     @Test
     public void validateShouldFailIfBidIsBannerAndImpHasNoBanner() {
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true);
+        responseBidValidator = new ResponseBidValidator(SKIP, ENFORCE, metrics, jacksonMapper, true);
 
         final ValidationResult result = responseBidValidator.validate(
                 givenBid(bid -> bid.dealid("dealId1")),
@@ -668,11 +668,11 @@ public class ResponseBidValidatorTest extends VertxTest {
     }
 
     private static BidderBid givenVideoBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return givenBid(BidType.video, bidCustomizer);
+        return givenBid(BidType.VIDEO, bidCustomizer);
     }
 
     private static BidderBid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return givenBid(BidType.banner, bidCustomizer);
+        return givenBid(BidType.BANNER, bidCustomizer);
     }
 
     private static BidderBid givenBid(BidType type, UnaryOperator<Bid.BidBuilder> bidCustomizer) {

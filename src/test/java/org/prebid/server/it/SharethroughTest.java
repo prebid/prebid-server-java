@@ -29,7 +29,7 @@ public class SharethroughTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/sharethrough/test-auction-sharethrough-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/sharethrough/test-auction-sharethrough-response.json", response,

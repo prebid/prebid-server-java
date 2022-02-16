@@ -83,23 +83,23 @@ public class JdbcStoredDataResultMapper {
 
                 final StoredDataType type;
                 try {
-                    type = StoredDataType.valueOf(typeAsString);
+                    type = StoredDataType.valueOf(typeAsString.toUpperCase());
                 } catch (IllegalArgumentException e) {
                     logger.error("Stored request data with id={0} has invalid type: ''{1}'' and will be ignored.", e,
                             id, typeAsString);
                     continue;
                 }
 
-                if (type == StoredDataType.request) {
+                if (type == StoredDataType.REQUEST) {
                     addStoredItem(fetchedAccountId, id, data, requestIdToStoredItems);
                 } else {
                     addStoredItem(fetchedAccountId, id, data, impIdToStoredItems);
                 }
             }
 
-            storedIdToRequest = storedItemsOrAddError(StoredDataType.request, accountId, requestIds,
+            storedIdToRequest = storedItemsOrAddError(StoredDataType.REQUEST, accountId, requestIds,
                     requestIdToStoredItems, errors);
-            storedIdToImp = storedItemsOrAddError(StoredDataType.imp, accountId, impIds,
+            storedIdToImp = storedItemsOrAddError(StoredDataType.IMP, accountId, impIds,
                     impIdToStoredItems, errors);
         }
 

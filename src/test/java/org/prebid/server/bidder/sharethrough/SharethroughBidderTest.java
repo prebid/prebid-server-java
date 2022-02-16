@@ -280,7 +280,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .h(20)
                         .adm(adm)
                         .build(),
-                BidType.banner, "USD");
+                BidType.BANNER, "USD");
 
         assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
@@ -298,7 +298,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         assertThat(result.getValue()).isEmpty();
     }
 

@@ -59,15 +59,15 @@ public class IpAddressHelper {
 
         final IpAddress.IP version;
         if (ipAddress.isIPv4()) {
-            version = IpAddress.IP.v4;
+            version = IpAddress.IP.V4;
         } else if (ipAddress.isIPv6()) {
-            version = IpAddress.IP.v6;
+            version = IpAddress.IP.V6;
         } else {
             return null;
         }
 
         if (isIpPublic(ipAddress)) {
-            final String sanitizedIp = version == IpAddress.IP.v6 ? maskIpv6(ipAddress) : ip;
+            final String sanitizedIp = version == IpAddress.IP.V6 ? maskIpv6(ipAddress) : ip;
             return IpAddress.of(sanitizedIp, version);
         }
 

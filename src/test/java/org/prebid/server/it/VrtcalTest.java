@@ -27,7 +27,7 @@ public class VrtcalTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/vrtcal/test-auction-vrtcal-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/vrtcal/test-auction-vrtcal-response.json", response, singletonList("vrtcal"));

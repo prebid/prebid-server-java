@@ -242,13 +242,13 @@ public class BrightrollBidder implements Bidder<BidRequest> {
                 .filter(imp -> Objects.equals(imp.getId(), impId))
                 .findAny()
                 .map(BrightrollBidder::bidTypeFromImp)
-                .orElse(BidType.banner);
+                .orElse(BidType.BANNER);
     }
 
     /**
      * Identifies {@link BidType} depends on {@link Imp} parameters.
      */
     private static BidType bidTypeFromImp(Imp imp) {
-        return imp.getVideo() != null ? BidType.video : BidType.banner;
+        return imp.getVideo() != null ? BidType.VIDEO : BidType.BANNER;
     }
 }

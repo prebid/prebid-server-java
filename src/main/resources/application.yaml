@@ -126,8 +126,8 @@ auction:
     expected-request-time-ms: 10
     only-winning-bids: false
   validations:
-    banner-creative-max-size: skip
-    secure-markup: skip
+    banner-creative-max-size: SKIP
+    secure-markup: SKIP
   host-schain-node:
   category-mapping-enabled: false
 video:
@@ -158,7 +158,7 @@ currency-converter:
     refresh-period-ms: 900000
     stale-after-ms: 259200000
 metrics:
-  metricType: flushingCounter
+  metricType: FLUSHING_COUNTER
   accounts:
     default-verbosity: none
 settings:

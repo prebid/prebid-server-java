@@ -28,7 +28,7 @@ public class EngagebdrTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/engagebdr/test-auction-engagebdr-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/engagebdr/test-auction-engagebdr-response.json", response,

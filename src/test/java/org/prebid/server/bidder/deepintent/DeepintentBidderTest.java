@@ -30,7 +30,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 
 public class DeepintentBidderTest extends VertxTest {
 
@@ -66,7 +66,7 @@ public class DeepintentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(bidderError.getMessage()).isEqualTo("Impression id=impId, has invalid Ext");
         });
     }
@@ -83,7 +83,7 @@ public class DeepintentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(bidderError.getMessage()).isEqualTo("We need a Banner Object in the request, imp : impId");
         });
     }
@@ -100,7 +100,7 @@ public class DeepintentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
-            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(bidderError.getMessage()).isEqualTo("At least one size is required, imp : impId");
         });
     }
@@ -219,7 +219,7 @@ public class DeepintentBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allSatisfy(error -> {
             assertThat(error.getMessage()).contains("Failed to decode: Unrecognized token");
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
         });
         assertThat(result.getValue()).isEmpty();
     }
@@ -285,7 +285,7 @@ public class DeepintentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, CURRENCY));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BANNER, CURRENCY));
     }
 
     private static BidRequest givenBidRequest(

@@ -141,6 +141,6 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     protected BidType getBidType(List<Imp> imps) {
         return CollectionUtils.isNotEmpty(imps)
-                && imps.get(0).getVideo() != null ? BidType.video : BidType.banner;
+                && imps.get(0).getVideo() != null ? BidType.VIDEO : BidType.BANNER;
     }
 }

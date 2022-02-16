@@ -168,7 +168,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         final ExtRequestPrebidPbs pbs = getIfNotNull(prebid, ExtRequestPrebid::getPbs);
         final String endpointName = getIfNotNull(pbs, ExtRequestPrebidPbs::getEndpoint);
 
-        return StringUtils.equals(endpointName, Endpoint.openrtb2_video.value());
+        return StringUtils.equals(endpointName, Endpoint.OPENRTB2_VIDEO.value());
     }
 
     private List<HttpRequest<BidRequest>> constructPodRequests(BidRequest bidRequest, List<BidderError> errors) {
@@ -376,7 +376,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private ExtBidPrebidVideo getExtBidPrebidVideo(Bid bid, BidType bidType) {
         final ObjectNode bidExt = bid.getExt();
-        if (bidType != BidType.video || bidExt == null) {
+        if (bidType != BidType.VIDEO || bidExt == null) {
             return null;
         }
 
@@ -492,9 +492,9 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         switch (markupType) {
             case SMT_AD_TYPE_IMG:
             case SMT_ADTYPE_RICHMEDIA:
-                return BidType.banner;
+                return BidType.BANNER;
             case SMT_ADTYPE_VIDEO:
-                return BidType.video;
+                return BidType.VIDEO;
             default:
                 throw new PreBidException(String.format("Invalid markupType %s", markupType));
         }
