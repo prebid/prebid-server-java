@@ -27,7 +27,7 @@ public class CoinzillaTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/coinzilla/test-auction-coinzilla-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/coinzilla/test-auction-coinzilla-response.json", response,

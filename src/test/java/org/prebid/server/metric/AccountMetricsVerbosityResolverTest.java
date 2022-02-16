@@ -15,23 +15,23 @@ public class AccountMetricsVerbosityResolverTest {
 
     @Before
     public void setUp() {
-        verbosity = new AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel.none, singletonList("1"),
+        verbosity = new AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel.NONE, singletonList("1"),
                 singletonList("2"));
     }
 
     @Test
     public void forAccountShouldReturnBasicLevel() {
-        assertThat(verbosity.forAccount(Account.empty("1"))).isEqualTo(AccountMetricsVerbosityLevel.basic);
+        assertThat(verbosity.forAccount(Account.empty("1"))).isEqualTo(AccountMetricsVerbosityLevel.BASIC);
     }
 
     @Test
     public void forAccountShouldReturnDetailedLevel() {
-        assertThat(verbosity.forAccount(Account.empty("2"))).isEqualTo(AccountMetricsVerbosityLevel.detailed);
+        assertThat(verbosity.forAccount(Account.empty("2"))).isEqualTo(AccountMetricsVerbosityLevel.DETAILED);
     }
 
     @Test
     public void forAccountShouldReturnDefaultLevel() {
-        assertThat(verbosity.forAccount(Account.empty("3"))).isEqualTo(AccountMetricsVerbosityLevel.none);
+        assertThat(verbosity.forAccount(Account.empty("3"))).isEqualTo(AccountMetricsVerbosityLevel.NONE);
     }
 
     @Test
@@ -39,10 +39,10 @@ public class AccountMetricsVerbosityResolverTest {
         // given
         final Account account = Account.builder()
                 .id("2")
-                .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.basic))
+                .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.BASIC))
                 .build();
 
         // when and then
-        assertThat(verbosity.forAccount(account)).isEqualTo(AccountMetricsVerbosityLevel.basic);
+        assertThat(verbosity.forAccount(account)).isEqualTo(AccountMetricsVerbosityLevel.BASIC);
     }
 }

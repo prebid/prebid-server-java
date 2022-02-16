@@ -235,6 +235,6 @@ public class ThirtyThreeAcrossBidder implements Bidder<BidRequest> {
     private static BidType getBidType(Bid bid) {
         final String mediaType = ObjectUtil.getIfNotNull(bid.getExt(),
                 ext -> ext.at(BID_MEDIA_TYPE_POINTER).asText(null));
-        return "video".equals(mediaType) ? BidType.video : BidType.banner;
+        return "video".equals(mediaType) ? BidType.VIDEO : BidType.BANNER;
     }
 }

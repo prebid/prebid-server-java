@@ -149,9 +149,9 @@ public class VideobyteBidder implements Bidder<BidRequest> {
     private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                return imp.getBanner() != null ? BidType.banner : BidType.video;
+                return imp.getBanner() != null ? BidType.BANNER : BidType.VIDEO;
             }
         }
-        return BidType.video;
+        return BidType.VIDEO;
     }
 }

@@ -29,7 +29,7 @@ public class Ttx33AcrossAliasTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/33across/test-auction-33across-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/33across/test-auction-33across-response.json",

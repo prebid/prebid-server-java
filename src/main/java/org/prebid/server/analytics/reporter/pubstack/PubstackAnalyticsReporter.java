@@ -91,17 +91,17 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
         final EventType eventType;
 
         if (event instanceof AmpEvent) {
-            eventType = EventType.amp;
+            eventType = EventType.AMP;
         } else if (event instanceof AuctionEvent) {
-            eventType = EventType.auction;
+            eventType = EventType.AUCTION;
         } else if (event instanceof CookieSyncEvent) {
-            eventType = EventType.cookiesync;
+            eventType = EventType.COOKIESYNC;
         } else if (event instanceof NotificationEvent) {
-            eventType = EventType.notification;
+            eventType = EventType.NOTIFICATION;
         } else if (event instanceof SetuidEvent) {
-            eventType = EventType.setuid;
+            eventType = EventType.SETUID;
         } else if (event instanceof VideoEvent) {
-            eventType = EventType.video;
+            eventType = EventType.VIDEO;
         } else {
             eventType = null;
         }

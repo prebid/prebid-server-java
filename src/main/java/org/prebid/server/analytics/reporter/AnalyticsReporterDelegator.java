@@ -221,17 +221,17 @@ public class AnalyticsReporterDelegator {
         final MetricName eventType;
 
         if (event instanceof AmpEvent) {
-            eventType = MetricName.event_amp;
+            eventType = MetricName.EVENT_AMP;
         } else if (event instanceof AuctionEvent) {
-            eventType = MetricName.event_auction;
+            eventType = MetricName.EVENT_AUCTION;
         } else if (event instanceof CookieSyncEvent) {
             eventType = MetricName.EVENT_COOKIE_SYNC;
         } else if (event instanceof NotificationEvent) {
             eventType = MetricName.EVENT_NOTIFICATION;
         } else if (event instanceof SetuidEvent) {
-            eventType = MetricName.event_setuid;
+            eventType = MetricName.EVENT_SETUID;
         } else if (event instanceof VideoEvent) {
-            eventType = MetricName.event_video;
+            eventType = MetricName.EVENT_VIDEO;
         } else {
             eventType = MetricName.EVENT_UNKNOWN;
         }

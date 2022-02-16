@@ -106,7 +106,7 @@ public class CoinzillaBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
     }
@@ -151,7 +151,7 @@ public class CoinzillaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("impId").build(), BidType.BANNER, "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

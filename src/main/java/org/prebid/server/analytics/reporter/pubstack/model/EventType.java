@@ -2,6 +2,11 @@ package org.prebid.server.analytics.reporter.pubstack.model;
 
 public enum EventType {
 
-    amp, auction, cookiesync, notification, setuid, video
+    AMP, AUCTION, COOKIESYNC, NOTIFICATION, SETUID, VIDEO;
+
+    @Override
+    public String toString() {
+        return super.toString().toLowerCase();
+    }
 }
 

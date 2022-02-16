@@ -183,7 +183,7 @@ public class VideobyteBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).isEqualTo("Bad server response.");
                 });
     }
@@ -227,7 +227,7 @@ public class VideobyteBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.video);
+                .containsExactly(BidType.BANNER, BidType.VIDEO);
         assertThat(result.getErrors()).isEmpty();
     }
 

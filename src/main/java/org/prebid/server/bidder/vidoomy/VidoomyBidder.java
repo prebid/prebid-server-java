@@ -153,10 +153,10 @@ public class VidoomyBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 }
             }
         }

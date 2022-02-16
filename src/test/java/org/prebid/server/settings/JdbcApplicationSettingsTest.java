@@ -227,7 +227,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
                     .status(AccountStatus.ACTIVE)
-                    .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.detailed))
+                    .metrics(AccountMetricsConfig.of(AccountMetricsVerbosityLevel.DETAILED))
                     .auction(AccountAuctionConfig.builder()
                             .priceGranularity("med")
                             .bannerCacheTtl(100)

@@ -27,7 +27,7 @@ public class VidoomyTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/vidoomy/test-auction-vidoomy-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/vidoomy/test-auction-vidoomy-response.json", response,
