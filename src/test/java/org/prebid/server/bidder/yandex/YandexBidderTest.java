@@ -179,8 +179,9 @@ public class YandexBidderTest extends VertxTest {
         // when
         final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id=123"));
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id=123")
+        );
     }
 
     @Test
@@ -326,8 +327,10 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yandexBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid bid imp ID 321 does not match any imp IDs from the original bid request"));
+        assertThat(result.getErrors()).hasSize(1).containsOnly(
+                BidderError.badServerResponse(
+                        "Invalid bid imp ID 321 does not match any imp IDs from the original bid request"
+                ));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -353,6 +356,7 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"), BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"),
+                        BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
     }
 }
