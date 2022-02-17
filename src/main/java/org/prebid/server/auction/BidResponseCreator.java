@@ -1261,7 +1261,7 @@ public class BidResponseCreator {
             final boolean isWinningBid = targetingInfo.isWinningBid();
             final String categoryDuration = bidInfo.getCategory();
             targetingKeywords = keywordsCreator.makeFor(bid, bidderCode, isWinningBid, cacheId,
-                    bidType.getName(), videoCacheId, categoryDuration);
+                    bidType.getValue(), videoCacheId, categoryDuration);
         } else {
             targetingKeywords = null;
         }

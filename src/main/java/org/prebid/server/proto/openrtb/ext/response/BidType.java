@@ -28,21 +28,6 @@ public enum BidType {
         return value;
     }
 
-    public String getName() {
-        switch (this) {
-            case BANNER:
-                return "banner";
-            case VIDEO:
-                return "video";
-            case AUDIO:
-                return "audio";
-            case X_NATIVE:
-                return "native";
-            default:
-                return this.name();
-        }
-    }
-
     public static BidType getEnum(String value) {
         return Arrays.stream(values())
                 .filter(type -> type.getValue().equalsIgnoreCase(value))

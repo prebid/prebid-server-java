@@ -265,7 +265,7 @@ public class AccountConfigReader {
     }
 
     private static Set<String> mediaTypesFrom(BidderBid bidderBid) {
-        return Collections.singleton(bidderBid.getType().getName());
+        return Collections.singleton(bidderBid.getType().getValue());
     }
 
     private Result<JsonNode> overrideFor(JsonNode parent, Set<String> actualMediaTypes, String field) {

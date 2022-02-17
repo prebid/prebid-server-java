@@ -33,7 +33,7 @@ public class InvocationResultImpl<PAYLOAD> implements InvocationResult<PAYLOAD> 
     public static <PAYLOAD> InvocationResult<PAYLOAD> succeeded(PayloadUpdate<PAYLOAD> payloadUpdate) {
         return InvocationResultImpl.<PAYLOAD>builder()
                 .status(InvocationStatus.SUCCESS)
-                .action(InvocationAction.ACTION)
+                .action(InvocationAction.UPDATE)
                 .payloadUpdate(payloadUpdate)
                 .build();
     }

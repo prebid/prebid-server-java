@@ -57,8 +57,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .analyticsTags(TagsImpl.of(singletonList(ActivityImpl.of(
                         "enforce-blocking",
                         "success",
@@ -86,8 +86,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .errors(singletonList("attributes field in account configuration is not an object"))
                 .build());
     }
@@ -106,8 +106,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .build());
     }
 
@@ -139,8 +139,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderResponsePayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.warnings()).isNull();
             softly.assertThat(invocationResult.errors()).isNull();
         });
@@ -213,8 +213,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderResponsePayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.warnings()).containsOnly(
                     "More than one conditions matches request. Bidder: bidder1, request media types: [banner]");
             softly.assertThat(invocationResult.errors()).isNull();
@@ -247,8 +247,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderResponsePayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.warnings()).isNull();
             softly.assertThat(invocationResult.errors()).isNull();
         });
@@ -273,8 +273,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderResponsePayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.debugMessages()).containsOnly(
                     "Bid 0 from bidder bidder1 has been rejected, failed checks: [badv]");
         });
@@ -299,8 +299,8 @@ class Ortb2BlockingRawBidderResponseHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderResponsePayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.debugMessages()).isNull();
         });
     }
@@ -312,7 +312,7 @@ class Ortb2BlockingRawBidderResponseHookTest {
     private static BidderBid bid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidderBid.of(
                 bidCustomizer.apply(Bid.builder().impid("impId1")).build(),
-                BidType.banner,
+                BidType.BANNER,
                 "USD");
     }
 

@@ -40,7 +40,7 @@ public class SampleItRawAuctionRequestHook implements RawAuctionRequestHook {
 
         return Future.succeededFuture(InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.SUCCESS)
-                .action(InvocationAction.ACTION)
+                .action(InvocationAction.UPDATE)
                 .payloadUpdate(payload ->
                         AuctionRequestPayloadImpl.of(payload.bidRequest().toBuilder()
                                 .ext(updatedBidRequest.getExt())

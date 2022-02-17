@@ -19,16 +19,16 @@ class ResponseUpdaterTest {
         // given
         final ResponseUpdater updater = ResponseUpdater.create(BlockedBids.of(new HashSet<>(asList(1, 2, 4))));
         final List<BidderBid> bids = asList(
-            bid("bid1", BidType.banner, "USD"),
-            bid("bid2", BidType.video, "USD"),
-            bid("bid3", BidType.audio, "EUR"),
-            bid("bid4", BidType.xNative, "JPY"),
-            bid("bid5", BidType.video, "UAH"));
+            bid("bid1", BidType.BANNER, "USD"),
+            bid("bid2", BidType.VIDEO, "USD"),
+            bid("bid3", BidType.AUDIO, "EUR"),
+            bid("bid4", BidType.X_NATIVE, "JPY"),
+            bid("bid5", BidType.VIDEO, "UAH"));
 
         // when and then
         assertThat(updater.update(bids)).isEqualTo(asList(
-            bid("bid1", BidType.banner, "USD"),
-            bid("bid4", BidType.xNative, "JPY")));
+            bid("bid1", BidType.BANNER, "USD"),
+            bid("bid4", BidType.X_NATIVE, "JPY")));
     }
 
     private static BidderBid bid(String id, BidType type, String currency) {

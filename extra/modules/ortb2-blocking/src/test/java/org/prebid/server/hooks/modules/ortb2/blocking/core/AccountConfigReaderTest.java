@@ -893,7 +893,7 @@ class AccountConfigReaderTest {
                 .build()));
         final AccountConfigReader reader = AccountConfigReader.create(accountConfig, "bidder1", true);
 
-        final BidderBid bid = BidderBid.of(Bid.builder().build(), BidType.banner, "USD");
+        final BidderBid bid = BidderBid.of(Bid.builder().build(), BidType.BANNER, "USD");
 
         // when and then
         assertThat(reader.responseBlockingConfigFor(bid)).satisfies(result -> {
@@ -1165,7 +1165,7 @@ class AccountConfigReaderTest {
     private static BidderBid bid() {
         return BidderBid.of(
                 Bid.builder().dealid("dealid1").build(),
-                BidType.banner,
+                BidType.BANNER,
                 "USD");
     }
 

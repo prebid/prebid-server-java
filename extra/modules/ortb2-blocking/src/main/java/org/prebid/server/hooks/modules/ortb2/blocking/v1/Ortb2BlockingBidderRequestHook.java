@@ -35,10 +35,10 @@ public class Ortb2BlockingBidderRequestHook implements BidderRequestHook {
 
         final InvocationResultImpl.InvocationResultImplBuilder<BidderRequestPayload> resultBuilder =
                 InvocationResultImpl.<BidderRequestPayload>builder()
-                        .status(InvocationStatus.success)
+                        .status(InvocationStatus.SUCCESS)
                         .action(blockedAttributesResult.hasValue()
-                                ? InvocationAction.update
-                                : InvocationAction.no_action)
+                                ? InvocationAction.UPDATE
+                                : InvocationAction.NO_ACTION)
                         .warnings(blockedAttributesResult.getWarnings())
                         .errors(blockedAttributesResult.getErrors());
         if (blockedAttributesResult.hasValue()) {

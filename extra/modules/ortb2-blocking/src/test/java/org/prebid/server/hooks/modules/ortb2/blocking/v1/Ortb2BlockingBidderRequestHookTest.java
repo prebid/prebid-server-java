@@ -51,8 +51,8 @@ class Ortb2BlockingBidderRequestHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .build());
     }
 
@@ -70,8 +70,8 @@ class Ortb2BlockingBidderRequestHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .errors(singletonList("attributes field in account configuration is not an object"))
                 .build());
     }
@@ -90,8 +90,8 @@ class Ortb2BlockingBidderRequestHookTest {
         // then
         assertThat(result.succeeded()).isTrue();
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
-                .status(InvocationStatus.success)
-                .action(InvocationAction.no_action)
+                .status(InvocationStatus.SUCCESS)
+                .action(InvocationAction.NO_ACTION)
                 .build());
     }
 
@@ -116,8 +116,8 @@ class Ortb2BlockingBidderRequestHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.moduleContext())
                     .isNotNull()
                     .isInstanceOf(ModuleContext.class)
@@ -168,8 +168,8 @@ class Ortb2BlockingBidderRequestHookTest {
         assertThat(result.succeeded()).isTrue();
         final InvocationResult<BidderRequestPayload> invocationResult = result.result();
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.moduleContext())
                     .asInstanceOf(InstanceOfAssertFactories.type(ModuleContext.class))
                     .satisfies(context -> assertThat(context.blockedAttributesFor("bidder1"))
@@ -206,8 +206,8 @@ class Ortb2BlockingBidderRequestHookTest {
         final InvocationResult<BidderRequestPayload> invocationResult = result.result();
 
         assertSoftly(softly -> {
-            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.success);
-            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.update);
+            softly.assertThat(invocationResult.status()).isEqualTo(InvocationStatus.SUCCESS);
+            softly.assertThat(invocationResult.action()).isEqualTo(InvocationAction.UPDATE);
             softly.assertThat(invocationResult.moduleContext())
                     .asInstanceOf(InstanceOfAssertFactories.type(ModuleContext.class))
                     .satisfies(context -> assertThat(context.blockedAttributesFor("bidder1"))

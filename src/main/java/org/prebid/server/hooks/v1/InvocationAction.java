@@ -2,7 +2,7 @@ package org.prebid.server.hooks.v1;
 
 public enum InvocationAction {
 
-    NO_ACTION, ACTION, REJECT;
+    NO_ACTION, UPDATE, REJECT;
 
     @Override
     public String toString() {

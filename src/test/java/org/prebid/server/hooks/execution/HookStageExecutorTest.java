@@ -910,7 +910,7 @@ public class HookStageExecutorTest extends VertxTest {
                 "hook-a",
                 immediateHook(InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.SUCCESS)
-                        .action(InvocationAction.ACTION)
+                        .action(InvocationAction.UPDATE)
                         .build()));
 
         givenEntrypointHook(
@@ -1008,7 +1008,7 @@ public class HookStageExecutorTest extends VertxTest {
                 immediateHook(InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.SUCCESS)
                         .message("Updated the request")
-                        .action(InvocationAction.ACTION)
+                        .action(InvocationAction.UPDATE)
                         .payloadUpdate(identity())
                         .errors(singletonList("There have been some errors though"))
                         .warnings(singletonList("Not without warnings too"))
@@ -1481,7 +1481,7 @@ public class HookStageExecutorTest extends VertxTest {
                     vertx.setTimer(20, timerId -> promise.complete(
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.SUCCESS)
-                                    .action(InvocationAction.ACTION)
+                                    .action(InvocationAction.UPDATE)
                                     .payloadUpdate(identity())
                                     .moduleContext(
                                             StringUtils.trimToEmpty((String) invocationContext.moduleContext()) + "a")
@@ -1768,7 +1768,7 @@ public class HookStageExecutorTest extends VertxTest {
                     vertx.setTimer(20, timerId -> promise.complete(
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.SUCCESS)
-                                    .action(InvocationAction.ACTION)
+                                    .action(InvocationAction.UPDATE)
                                     .payloadUpdate(identity())
                                     .moduleContext(
                                             StringUtils.trimToEmpty((String) invocationContext.moduleContext()) + "a")

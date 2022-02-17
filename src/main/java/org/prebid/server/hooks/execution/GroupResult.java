@@ -79,7 +79,7 @@ class GroupResult<T> {
             case REJECT:
                 applyReject(hookId);
                 break;
-            case ACTION:
+            case UPDATE:
                 applyPayloadUpdate(hookId, payloadUpdate);
                 break;
             case NO_ACTION:
@@ -191,7 +191,7 @@ class GroupResult<T> {
         switch (action) {
             case REJECT:
                 return ExecutionAction.REJECT;
-            case ACTION:
+            case UPDATE:
                 return ExecutionAction.UPDATE;
             case NO_ACTION:
                 return ExecutionAction.NO_ACTION;

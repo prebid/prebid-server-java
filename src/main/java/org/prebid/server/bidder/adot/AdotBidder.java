@@ -108,7 +108,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     private BidType getBidType(Bid bid) {
         final String bidExtType = parseBidExtType(bid);
         return ALLOWED_BID_TYPES.stream()
-                .filter(bidType -> bidType.getName().equals(bidExtType))
+                .filter(bidType -> bidType.getValue().equals(bidExtType))
                 .findFirst()
                 .orElseThrow(() -> new PreBidException(
                         String.format("Wrong Adot bid ext in bid with id : %s", bid.getId())));

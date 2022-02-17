@@ -433,7 +433,7 @@ class BidsBlockerTest {
                                 .impid("impId1")
                                 .dealid("dealid1"))
                         .build(),
-                BidType.banner,
+                BidType.BANNER,
                 "USD");
     }
 

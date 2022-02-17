@@ -56,10 +56,10 @@ public class Ortb2BlockingRawBidderResponseHook implements RawBidderResponseHook
 
         final InvocationResultImpl.InvocationResultImplBuilder<BidderResponsePayload> resultBuilder =
                 InvocationResultImpl.<BidderResponsePayload>builder()
-                        .status(InvocationStatus.success)
+                        .status(InvocationStatus.SUCCESS)
                         .action(blockedBidsResult.hasValue()
-                                ? InvocationAction.update
-                                : InvocationAction.no_action)
+                                ? InvocationAction.UPDATE
+                                : InvocationAction.NO_ACTION)
                         .errors(blockedBidsResult.getErrors())
                         .warnings(blockedBidsResult.getWarnings())
                         .debugMessages(blockedBidsResult.getDebugMessages())

@@ -158,7 +158,7 @@ public class EvolutionBidderTest extends VertxTest {
 
     private static Bid givenBid(String impid, BidType bidType) {
         return Bid.builder().impid(impid).ext(
-                mapper.createObjectNode().put("mediaType", bidType.getName())).build();
+                mapper.createObjectNode().put("mediaType", bidType.getValue())).build();
     }
 
     private static Bid givenBid(String impid, String bidType) {
