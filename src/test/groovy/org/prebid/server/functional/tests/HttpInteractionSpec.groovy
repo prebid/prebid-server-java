@@ -7,17 +7,20 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Execution
 import spock.lang.Retry
 
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 @PBSTest
 class HttpInteractionSpec extends BaseSpec {
 
     @Retry
+    @Execution(SAME_THREAD)
     def "PBS should only log request to the specified adapter"() {
         given: "Test start time"
         def startTime = Instant.now()
@@ -49,6 +52,7 @@ class HttpInteractionSpec extends BaseSpec {
         assert getLogsByText(rubiconBidderLogs, bidRequest.id).size() == 0
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should not log request to adapter when it is not allowed"() {
         given: "Test start time"
         def startTime = Instant.now()
@@ -66,6 +70,7 @@ class HttpInteractionSpec extends BaseSpec {
         assert getLogsByText(genericBidderLogs, bidRequest.id).size() == 0
     }
 
+    @Execution(SAME_THREAD)
     def "PBS log request to specific adapter should contain only bid params for the named bidder"() {
         given: "Test start time"
         def startTime = Instant.now()
@@ -89,6 +94,7 @@ class HttpInteractionSpec extends BaseSpec {
         then: "Extract request from logs"
         def logs = defaultPbsService.getLogsByTime(startTime)
         assert logs.size() > 0
+
         def genericBidderLogs = getLogsByBidder(logs, GENERIC)
         assert genericBidderLogs.size() > 0
         def idLogs = getLogsByText(genericBidderLogs, bidRequest.id)

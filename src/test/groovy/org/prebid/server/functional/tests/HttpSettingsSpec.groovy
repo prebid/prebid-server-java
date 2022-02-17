@@ -16,7 +16,10 @@ import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
+import spock.lang.Execution
 import spock.lang.Shared
+
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 @PBSTest
 class HttpSettingsSpec extends BaseSpec {
@@ -28,6 +31,7 @@ class HttpSettingsSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(pbsServiceFactory.httpSettings())
 
+    @Execution(SAME_THREAD)
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
         def bidRequest = BidRequest.defaultBidRequest
@@ -53,6 +57,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert httpSettings.getRequestCount(bidRequest?.site?.publisher?.id) == 1
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should take account information from http data source on AMP request"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -83,6 +88,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert !response.ext?.debug?.httpcalls?.isEmpty()
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should take account information from http data source on event request"() {
         given: "Default EventRequest"
         def eventRequest = EventRequest.defaultEventRequest
@@ -102,6 +108,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert httpSettings.getRequestCount(eventRequest.accountId.toString()) == 1
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should take account information from http data source on setuid request"() {
         given: "Get default SetuidRequest and set account, gdpr=1 "
         def request = SetuidRequest.defaultSetuidRequest
@@ -127,6 +134,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert httpSettings.getRequestCount(request.account) == 1
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should take account information from http data source on vtrack request"() {
         given: "Default VtrackRequest"
         String payload = PBSUtils.randomString
@@ -152,6 +160,7 @@ class HttpSettingsSpec extends BaseSpec {
         assert prebidCacheRequest.contains("/event?t=imp&b=${request.puts[0].bidid}&a=$accountId&bidder=${request.puts[0].bidder}")
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should return error if account settings isn't found"() {
         given: "Default EventRequest"
         def eventRequest = EventRequest.defaultEventRequest

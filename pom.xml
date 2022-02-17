@@ -749,6 +749,7 @@
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
                         <max.containers.count>2</max.containers.count>
+                        <thread.count>2</thread.count>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

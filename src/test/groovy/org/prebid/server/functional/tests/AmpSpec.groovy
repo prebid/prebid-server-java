@@ -4,9 +4,11 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
+import spock.lang.Execution
 import spock.lang.Shared
 
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 class AmpSpec extends BaseSpec {
 
@@ -17,6 +19,7 @@ class AmpSpec extends BaseSpec {
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
                                                                             "auction.default-timeout-ms": DEFAULT_TIMEOUT as String])
 
+    @Execution(SAME_THREAD)
     def "PBS should apply timeout from stored request when it's not specified in the request"() {
         given: "Default AMP request without timeout"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -41,6 +44,7 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should prefer timeout from the request when stored request timeout is #tmax"() {
         given: "Default AMP request with timeout"
         def timeout = getRandomTimeout()
@@ -68,6 +72,7 @@ class AmpSpec extends BaseSpec {
         tmax << [null, getRandomTimeout()]
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should honor max timeout from the settings"() {
         given: "Default AMP request"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -97,6 +102,7 @@ class AmpSpec extends BaseSpec {
         MAX_TIMEOUT + 1   || MAX_TIMEOUT + 1
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should honor default timeout"() {
         given: "Default AMP request without timeout"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {

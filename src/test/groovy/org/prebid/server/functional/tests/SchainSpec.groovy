@@ -9,7 +9,10 @@ import org.prebid.server.functional.model.request.auction.SourceExt
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Execution
 import spock.lang.Shared
+
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 @PBSTest
 class SchainSpec extends BaseSpec {
@@ -24,6 +27,7 @@ class SchainSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(["auction.host-schain-node": mapper.encode(GLOBAL_SCHAIN_NODE)])
 
+    @Execution(SAME_THREAD)
     def "Global schain node should be appended when only ext.prebid.schains exists"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -41,6 +45,7 @@ class SchainSpec extends BaseSpec {
         assert bidderRequest.source?.ext?.schain?.nodes == schain.nodes + GLOBAL_SCHAIN_NODE
     }
 
+    @Execution(SAME_THREAD)
     def "Global schain node should be appended to the end of the node array when only source.ext.schain exists"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -58,6 +63,7 @@ class SchainSpec extends BaseSpec {
         assert bidderRequest.source?.ext?.schain?.nodes == schain.nodes + GLOBAL_SCHAIN_NODE
     }
 
+    @Execution(SAME_THREAD)
     def "Global schain node should be appended when both ext.prebid.schains and source.ext.schain exist"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -80,6 +86,7 @@ class SchainSpec extends BaseSpec {
         assert bidderRequest.source?.ext?.schain?.nodes == schain.nodes + GLOBAL_SCHAIN_NODE
     }
 
+    @Execution(SAME_THREAD)
     def "Global schain node should be appended when ext.prebid.schains and source.ext.schain doesn't exist"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -92,6 +99,7 @@ class SchainSpec extends BaseSpec {
         assert bidderRequest.source?.ext?.schain?.nodes == [GLOBAL_SCHAIN_NODE]
     }
 
+    @Execution(SAME_THREAD)
     def "Global schain node should be appended when ext.prebid.schains applied for unknown bidder"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest

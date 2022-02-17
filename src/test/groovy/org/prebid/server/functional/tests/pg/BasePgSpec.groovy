@@ -14,9 +14,11 @@ import org.prebid.server.functional.testcontainers.scaffolding.pg.GeneralPlanner
 import org.prebid.server.functional.testcontainers.scaffolding.pg.UserData
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.Isolated
 import spock.lang.Shared
 import spock.lang.Specification
 
+@Isolated
 @PBSTest
 // TODO migrate this to extend BaseSpec
 abstract class BasePgSpec extends Specification {

@@ -7,10 +7,12 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
+import spock.lang.Execution
 import spock.lang.Shared
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 class AuctionSpec extends BaseSpec {
 
@@ -35,6 +37,7 @@ class AuctionSpec extends BaseSpec {
         new BidRequest()             || "invalid bid request"
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should apply timeout from stored request when it's not specified in the auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -60,6 +63,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == timeout as Long
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should prefer timeout from the auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def timeout = getRandomTimeout()
@@ -88,6 +92,7 @@ class AuctionSpec extends BaseSpec {
         tmaxStoredRequest << [null, getRandomTimeout()]
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should honor max timeout from the settings for auction request"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -118,6 +123,7 @@ class AuctionSpec extends BaseSpec {
         MAX_TIMEOUT + 1       || MAX_TIMEOUT + 1
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should honor default timeout for auction request"() {
         given: "Default basic BidRequest without timeout"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -142,6 +148,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.tmax == DEFAULT_TIMEOUT as Long
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should take data by priority when request, stored request, default request are defined"() {
         given: "Default request with timeout"
         def defaultRequestModel = new BidRequest(tmax: defaultRequestTmax)

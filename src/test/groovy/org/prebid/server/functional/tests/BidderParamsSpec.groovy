@@ -17,13 +17,16 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import spock.lang.Execution
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
+import static org.spockframework.runtime.model.parallel.ExecutionMode.SAME_THREAD
 
 @PBSTest
 class BidderParamsSpec extends BaseSpec {
 
+    @Execution(SAME_THREAD)
     def "PBS should send request to bidder when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(adapterConfig)
@@ -50,6 +53,7 @@ class BidderParamsSpec extends BaseSpec {
                                     "adapters.generic.enabled": generic]
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should not send request to bidder and emit error when adapter-defaults.enabled = #adapterDefault and adapters.BIDDER.enabled = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(adapterConfig)
@@ -73,6 +77,7 @@ class BidderParamsSpec extends BaseSpec {
                                     "adapters.generic.enabled"   : generic]
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
@@ -101,6 +106,7 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "true"
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should not modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.modifying-vast-xml-allowed": adapterDefault,
@@ -129,6 +135,7 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "false"
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
@@ -156,10 +163,12 @@ class BidderParamsSpec extends BaseSpec {
         "false"        | "true"
     }
 
+    @Execution(SAME_THREAD)
     def "PBS should not mask values when adapter-defaults.pbs-enforces-ccpa = #adapterDefault settings when BIDDER.pbs-enforces-ccpa = #generic"() {
         given: "PBS with adapter configuration"
-        def pbsService = pbsServiceFactory.getService(["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
-                                                       "adapters.generic.pbs-enforces-ccpa": generic])
+        def pbsService = pbsServiceFactory.getService(
+                ["adapter-defaults.pbs-enforces-ccpa": adapterDefault,
+                 "adapters.generic.pbs-enforces-ccpa": generic])
 
         and: "Default basic generic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
@@ -254,6 +263,7 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     // TODO: create same test for enabled circuit breaker
+    @Execution(SAME_THREAD)
     @Issue("https://github.com/prebid/prebid-server-java/issues/1478")
     def "PBS should emit warning when bidder endpoint is invalid"() {
         given: "Pbs config"
