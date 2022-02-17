@@ -275,7 +275,7 @@ public class RequestContext {
     }
 
     private static String nodeToString(JsonNode node) {
-        return node.isTextual() || node.isNumber() ? node.asText() : null;
+        return node.isTextual() ? node.asText() : null;
     }
 
     private static Integer nodeToInteger(JsonNode node) {

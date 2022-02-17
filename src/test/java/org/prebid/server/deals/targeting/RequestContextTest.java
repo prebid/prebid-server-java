@@ -68,7 +68,8 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
-                request(r -> r.site(site(s -> s.publisher(Publisher.builder().domain("domain.com").build())))),
+                request(r -> r.site(site(s -> s
+                                .publisher(Publisher.builder().domain("domain.com").build())))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -509,7 +510,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        // assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isNull();
     }
 
     @Test
@@ -815,7 +816,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        // assertThat(context.lookupStrings(category)).containsOnly("123");
+        assertThat(context.lookupStrings(category)).containsOnly("123");
     }
 
     @Test
