@@ -2,7 +2,6 @@ package org.prebid.server.bidder.yandex;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -81,26 +80,32 @@ public class YandexBidder implements Bidder<BidRequest> {
         return extImpYandex;
     }
 
-    private static Imp modifyImp(Imp imp) {
-        final Banner banner = imp.getBanner();
+    private static Banner makeBanner(Banner banner) {
         if (banner == null) {
-            throw new PreBidException(String.format("Yandex only supports banner types. "
-                    + "Ignoring imp id=%s", imp.getId()));
-        } else {
-            final Integer w = banner.getW();
-            final Integer h = banner.getH();
-            final List<Format> format = banner.getFormat();
-            if (w == null || h == null || w == 0 || h == 0) {
-                if (CollectionUtils.isNotEmpty(format)) {
-                    final Format firstFormat = format.get(0);
-                    final Banner modifiedBanner =
-                            banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
-                    return imp.toBuilder().banner(modifiedBanner).build();
-                }
-                throw new PreBidException(String.format("Invalid sizes provided for Banner %sx%s", w, h));
+            return null;
+        }
+        final Integer w = banner.getW();
+        final Integer h = banner.getH();
+        final List<Format> format = banner.getFormat();
+        if (w == null || h == null || w == 0 || h == 0) {
+            if (CollectionUtils.isNotEmpty(format)) {
+                final Format firstFormat = format.get(0);
+                return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
+            throw new PreBidException(String.format("Invalid sizes provided for Banner %sx%s", w, h));
+        }
+        return banner;
+    }
+
+    private static Imp modifyImp(Imp imp) {
+        if (imp.getBanner() != null) {
+            return imp.toBuilder().banner(makeBanner(imp.getBanner())).build();
+        }
+        if (imp.getXNative() != null) {
             return imp;
         }
+        throw new PreBidException(String.format("Yandex only supports banner and native types. "
+                + "Ignoring imp id=%s", imp.getId()));
     }
 
     private String modifyUrl(ExtImpYandex extImpYandex, String referer, String cur) {
@@ -120,11 +125,8 @@ public class YandexBidder implements Bidder<BidRequest> {
     private String getReferer(BidRequest request) {
         String referer = null;
         final Site site = request.getSite();
-        final App app = request.getApp();
         if (site != null) {
             referer = site.getPage();
-        } else if (app != null) {
-            referer = app.getDomain();
         }
         return referer;
     }
@@ -196,17 +198,37 @@ public class YandexBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(bid -> checkBid(bid.getImpid(), imps))
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static boolean checkBid(String bidImpId, List<Imp> imps) {
+    private static BidType getBidType(String bidImpId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(bidImpId)) {
-                return imp.getBanner() != null;
+            if (bidImpId.equals(imp.getId())) {
+                final BidType bidType = resolveImpType(imp);
+                if (bidType == null) {
+                    throw new PreBidException("Processing an invalid impression; cannot resolve impression type");
+                }
+                return bidType;
             }
         }
-        throw new PreBidException(String.format("Unknown ad unit code '%s'", bidImpId));
+        throw new PreBidException(String.format("Invalid bid imp ID %s does not match any imp IDs from the original "
+                + "bid request", bidImpId));
+    }
+
+    private static BidType resolveImpType(Imp imp) {
+        if (imp.getXNative() != null) {
+            return BidType.xNative;
+        }
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        }
+        if (imp.getVideo() != null) {
+            return BidType.video;
+        }
+        if (imp.getAudio() != null) {
+            return BidType.audio;
+        }
+        return null;
     }
 }

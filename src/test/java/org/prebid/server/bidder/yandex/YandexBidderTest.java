@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -32,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YandexBidderTest extends VertxTest {
 
@@ -178,7 +180,7 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Yandex only supports banner types. Ignoring imp id=123"));
+                .containsOnly(BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id=123"));
     }
 
     @Test
@@ -325,16 +327,16 @@ public class YandexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Unknown ad unit code '321'"));
+                .containsOnly(BidderError.badServerResponse("Invalid bid imp ID 321 does not match any imp IDs from the original bid request"));
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldSkipNotBannerImpAndReturnBannerBidWhenBannerPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerAndNative() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(asList(Imp.builder().id("123").build(),
+                        .imp(asList(Imp.builder().xNative(Native.builder().build()).id("123").build(),
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
@@ -351,6 +353,6 @@ public class YandexBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"), BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
     }
 }
