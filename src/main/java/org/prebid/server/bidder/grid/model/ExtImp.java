@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.grid.model;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -16,5 +17,9 @@ public class ExtImp {
     ExtImpGridData data;
 
     String gpid;
+
+    ObjectNode skadn;
+
+    ObjectNode context;
 }
 
