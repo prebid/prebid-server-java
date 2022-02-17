@@ -144,7 +144,7 @@ public class Ortb2ImplicitParametersResolver {
                 ext, bidRequest, ObjectUtils.defaultIfNull(populatedImps, imps), endpoint);
 
         final Source source = bidRequest.getSource();
-        final Source populatedSource = populateSource(source, populatedExt);
+        final Source populatedSource = populateSource(source, ObjectUtils.defaultIfNull(populatedExt, ext));
 
         if (ObjectUtils.anyNotNull(
                 populatedDevice,
