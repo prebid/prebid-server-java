@@ -1,0 +1,29 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250,
+        "format": [
+          {
+            "w": 728,
+            "h": 90
+          }
+        ]
+      },
+      "ext": {
+        "vidoomy": {
+          "zoneId": "zone-id-123"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

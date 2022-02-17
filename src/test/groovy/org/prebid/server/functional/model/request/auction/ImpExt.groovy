@@ -16,6 +16,7 @@ class ImpExt {
     @Deprecated
     @JsonProperty("appnexus")
     AppNexus appNexus
+    ImpExtContext context
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {
