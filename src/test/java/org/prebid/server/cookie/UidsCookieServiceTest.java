@@ -280,7 +280,6 @@ public class UidsCookieServiceTest extends VertxTest {
                 .updateUid("conversant", "conversantUid")
                 .updateUid(ADNXS, "adnxsUid")
                 .updateUid("sharethrough", "sharethroughUid")
-                .updateUid("somoaudience", "somoaudienceUid")
                 .updateUid("yahoossp", "yahoosspUid");
 
         // the size of uidsCookie above is 530, therefore it is expected to be modified.
