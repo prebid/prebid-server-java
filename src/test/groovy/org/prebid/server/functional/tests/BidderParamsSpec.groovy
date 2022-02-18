@@ -21,6 +21,7 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 @PBSTest
 class BidderParamsSpec extends BaseSpec {
