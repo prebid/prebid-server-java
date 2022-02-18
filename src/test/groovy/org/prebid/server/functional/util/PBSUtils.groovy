@@ -54,10 +54,6 @@ class PBSUtils {
         path
     }
 
-    static String getPropertyOrDefault(String property, String defaultValue) {
-        System.getProperty(property) ?: defaultValue
-    }
-
     static void waitUntil(Closure closure, long timeout = 1000, long pollInterval = 100) {
         with().pollDelay(0, MILLISECONDS)
               .pollInterval(pollInterval, MILLISECONDS)
