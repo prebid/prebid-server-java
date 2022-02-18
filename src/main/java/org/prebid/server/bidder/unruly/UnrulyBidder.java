@@ -105,7 +105,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
             return BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
-            return BidderBid.of(bid, BidType.banner, currency);
+            return BidderBid.of(bid, BidType.BANNER, currency);
         }
     }
 
@@ -115,7 +115,7 @@ public class UnrulyBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return BidType.banner;
+                    return BidType.BANNER;
                 } else if (imp.getVideo() != null) {
                     return BidType.VIDEO;
                 }
