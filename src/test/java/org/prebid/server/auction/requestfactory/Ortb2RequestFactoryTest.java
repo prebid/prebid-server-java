@@ -28,7 +28,7 @@ import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -115,7 +115,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private HookStageExecutor hookStageExecutor;
     @Mock
-    private DealsProcessor dealsProcessor;
+    private DealsPopulator dealsPopulator;
     @Mock
     private PriceFloorProcessor priceFloorProcessor;
     @Mock
@@ -165,6 +165,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
+        given(dealsPopulator.populate(any()))
+                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
+
         target = new Ortb2RequestFactory(
                 false,
                 BLACKLISTED_ACCOUNTS,
@@ -177,7 +180,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
                 clock);
@@ -198,7 +201,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
                 clock);
@@ -237,7 +240,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
                 clock);
@@ -581,7 +584,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 priceFloorProcessor,
                 countryCodeMapper,
                 clock);

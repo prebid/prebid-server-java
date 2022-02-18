@@ -21,7 +21,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -81,9 +81,9 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
+    private final DealsPopulator dealsPopulator;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
-    private final DealsProcessor dealsProcessor;
     private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Clock clock;
@@ -99,7 +99,7 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               DealsProcessor dealsProcessor,
+                               DealsPopulator dealsPopulator,
                                PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Clock clock) {
@@ -115,7 +115,7 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.dealsProcessor = dealsProcessor;
+        this.dealsPopulator = dealsPopulator;
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.clock = Objects.requireNonNull(clock);
@@ -260,8 +260,8 @@ public class Ortb2RequestFactory {
     }
 
     public Future<AuctionContext> populateDealsInfo(AuctionContext auctionContext) {
-        return dealsProcessor != null
-                ? dealsProcessor.populateDealsInfo(auctionContext)
+        return dealsPopulator != null
+                ? dealsPopulator.populate(auctionContext)
                 : Future.succeededFuture(auctionContext);
     }
 

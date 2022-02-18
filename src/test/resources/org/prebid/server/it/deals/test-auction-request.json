@@ -62,7 +62,8 @@
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001,
-              "dealsonly": true
+              "dealsonly": true,
+              "pgdealsonly": true
             }
           }
         }
