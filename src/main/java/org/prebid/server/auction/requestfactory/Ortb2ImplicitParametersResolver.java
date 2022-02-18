@@ -862,8 +862,8 @@ public class Ortb2ImplicitParametersResolver {
         private static boolean modifyDealsOnly(ObjectNode impExt) {
             final Boolean[] isModified = StreamUtil.asStream(bidderParamsFromImpExt(impExt).fields())
                     .map(Map.Entry::getValue)
-                    .map(ObjectNode.class::cast)
                     .filter(ImpPopulationContext::isPgDealsOnlyBidder)
+                    .map(ObjectNode.class::cast)
                     .map(ImpPopulationContext::modifyDealsOnlyIfNotSpecified)
                     .toArray(Boolean[]::new);
 
