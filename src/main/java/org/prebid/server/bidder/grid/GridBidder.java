@@ -15,10 +15,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.grid.model.responce.GridBid;
-import org.prebid.server.bidder.grid.model.responce.GridBidResponse;
-import org.prebid.server.bidder.grid.model.responce.GridBidderBid;
-import org.prebid.server.bidder.grid.model.responce.GridSeatBid;
+import org.prebid.server.bidder.grid.model.response.GridBid;
+import org.prebid.server.bidder.grid.model.response.GridBidResponse;
+import org.prebid.server.bidder.grid.model.response.GridBidderBid;
+import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
@@ -231,6 +231,42 @@ public class GridBidder implements Bidder<BidRequest> {
         return GridBidderBid.of(modifiedGridBid, resolveBidType(gridBid, imps), currency);
     }
 
+    private ObjectNode modifyBidExt(GridBid gridBid) {
+        final String demandSource = ObjectUtils.defaultIfNull(gridBid.getExt(), MissingNode.getInstance())
+                .at("/bidder/grid/demandSource").textValue();
+
+        if (StringUtils.isEmpty(demandSource)) {
+            return null;
+        }
+
+        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
+                .meta(mapper.mapper().createObjectNode()
+                        .set("demandsource", TextNode.valueOf(demandSource)))
+                .build();
+        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
+    }
+
+    private static BidType resolveBidType(GridBid gridBid, List<Imp> imps) {
+        final BidType contentType = gridBid.getContentType();
+        final String impId = gridBid.getImpid();
+        if (contentType != null) {
+            return contentType;
+        } else {
+            for (Imp imp : imps) {
+                if (imp.getId().equals(impId)) {
+                    if (imp.getBanner() != null) {
+                        return BidType.banner;
+                    }
+                    if (imp.getVideo() != null) {
+                        return BidType.video;
+                    }
+                    throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
+                }
+            }
+        }
+        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
+    }
+
     private static BidderBid toBidderBid(GridBidderBid gridBidderBid) {
         return BidderBid.of(resolveBid(gridBidderBid.getBid()), gridBidderBid.getType(),
                 gridBidderBid.getBidCurrency());
@@ -267,39 +303,4 @@ public class GridBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ObjectNode modifyBidExt(GridBid gridBid) {
-        final String demandSource = ObjectUtils.defaultIfNull(gridBid.getExt(), MissingNode.getInstance())
-                .at("/bidder/grid/demandSource").textValue();
-
-        if (StringUtils.isEmpty(demandSource)) {
-            return null;
-        }
-
-        final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode()
-                        .set("demandsource", TextNode.valueOf(demandSource)))
-                .build();
-        return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
-    }
-
-    private static BidType resolveBidType(GridBid gridBid, List<Imp> imps) {
-        final BidType contentType = gridBid.getContentType();
-        final String impId = gridBid.getImpid();
-        if (contentType != null) {
-            return contentType;
-        } else {
-            for (Imp imp : imps) {
-                if (imp.getId().equals(impId)) {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    }
-                    if (imp.getVideo() != null) {
-                        return BidType.video;
-                    }
-                    throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
-                }
-            }
-        }
-        throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
-    }
 }

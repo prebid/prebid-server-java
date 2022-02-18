@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.grid.model.responce;
+package org.prebid.server.bidder.grid.model.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;

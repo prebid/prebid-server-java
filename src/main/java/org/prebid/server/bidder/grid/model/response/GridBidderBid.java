@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.grid.model.responce;
+package org.prebid.server.bidder.grid.model.response;
 
 import lombok.Builder;
 import lombok.Value;
