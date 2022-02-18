@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.pubmatic;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
@@ -27,12 +26,14 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -43,7 +44,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -55,10 +55,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String IMP_EXT_AD_UNIT_KEY = "dfp_ad_unit_code";
     private static final String AD_SERVER_GAM = "gam";
     private static final String PREBID = "prebid";
-
-    private static final TypeReference<Map<String, Integer>> WRAPPER_TYPE =
-            new TypeReference<>() {
-            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -73,25 +69,25 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<Imp> validImps = new ArrayList<>();
 
-        ObjectNode wrapper = null;
-        String pubId = null;
+        String publisherId = null;
+        PubmaticWrapper wrapper;
+        try {
+            wrapper = extractWrapper(request);
+        } catch (IllegalArgumentException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
 
         for (Imp imp : request.getImp()) {
             try {
-                if (imp.getBanner() == null && imp.getVideo() == null) {
-                    throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
-                            + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
-                }
+                validateMediaType(imp);
+
                 final PubmaticBidderImpExt impExt = parseImpExt(imp);
-                final ExtImpPubmatic extBidder = impExt.getBidder();
-                if (pubId == null) {
-                    pubId = StringUtils.trimToNull(extBidder.getPublisherId());
-                }
-                final ObjectNode extWrapper = impExt.getBidder().getWrapper();
-                if (wrapper == null && extWrapper != null && !extWrapper.isEmpty()) {
-                    validateExtWrapper(extWrapper, imp.getId());
-                    wrapper = extWrapper;
-                }
+                final ExtImpPubmatic extImpPubmatic = impExt.getBidder();
+
+                publisherId = ObjectUtils.defaultIfNull(
+                        publisherId, StringUtils.trimToNull(extImpPubmatic.getPublisherId()));
+
+                wrapper = merge(wrapper, extImpPubmatic.getWrapper());
 
                 validImps.add(modifyImp(imp, impExt));
             } catch (PreBidException e) {
@@ -103,7 +99,52 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        return Result.of(Collections.singletonList(createRequest(request, validImps, pubId, wrapper)), errors);
+        final BidRequest modifiedBidRequest = modifyBidRequest(request, validImps, publisherId, wrapper);
+        return Result.of(Collections.singletonList(makeHttpRequest(modifiedBidRequest)), errors);
+    }
+
+    private PubmaticWrapper extractWrapper(BidRequest request) {
+        final ExtRequest extRequest = request.getExt();
+        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
+        final ObjectNode bidderParams = extRequestPrebid != null
+                ? extRequestPrebid.getBidderparams()
+                : null;
+        final JsonNode wrapperNode = bidderParams != null ? bidderParams.get("wrapper") : null;
+
+        return wrapperNode != null && wrapperNode.isObject()
+                ? mapper.mapper().convertValue(wrapperNode, PubmaticWrapper.class)
+                : null;
+    }
+
+    private static void validateMediaType(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException(String.format("Invalid MediaType. PubMatic only supports "
+                    + "Banner and Video. Ignoring ImpID=%s", imp.getId()));
+        }
+    }
+
+    private static PubmaticWrapper merge(PubmaticWrapper left, PubmaticWrapper right) {
+        if (Objects.equals(left, right) || isWrapperValid(left)) {
+            return left;
+        } else if (right == null) {
+            return left;
+        } else if (left == null) {
+            return right;
+        }
+
+        return PubmaticWrapper.of(
+                ObjectUtils.defaultIfNull(stripToNull(left.getProfile()), right.getProfile()),
+                ObjectUtils.defaultIfNull(stripToNull(left.getVersion()), right.getVersion()));
+    }
+
+    private static boolean isWrapperValid(PubmaticWrapper wrapper) {
+        return wrapper != null
+                && stripToNull(wrapper.getProfile()) != null
+                && stripToNull(wrapper.getVersion()) != null;
+    }
+
+    private static Integer stripToNull(Integer value) {
+        return value == null || value == 0 ? null : value;
     }
 
     private PubmaticBidderImpExt parseImpExt(Imp imp) {
@@ -115,46 +156,28 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().audio(null);
-
         final Banner banner = imp.getBanner();
-
-        if (banner != null) {
-            impBuilder.banner(assignSizesIfMissing(banner));
-        }
-
-        enrichImpBuilderWithAdSlotParameters(impBuilder, impExt.getBidder().getAdSlot(), banner);
-
         final ObjectNode keywordsNode = makeKeywords(impExt);
-        if (!keywordsNode.isEmpty()) {
-            impBuilder.ext(keywordsNode);
-        } else {
-            impBuilder.ext(null);
-        }
 
-        return impBuilder.build();
+        final Imp.ImpBuilder impBuilder = imp.toBuilder()
+                .banner(banner != null ? assignSizesIfMissing(banner) : null)
+                .ext(!keywordsNode.isEmpty() ? keywordsNode : null)
+                .audio(null);
+
+        return enrichWithAdSlotParameters(impBuilder, impExt.getBidder().getAdSlot(), banner)
+                .build();
     }
 
-    private void validateExtWrapper(ObjectNode wrapExt, String impId) {
-        try {
-            mapper.mapper().convertValue(wrapExt, WRAPPER_TYPE);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(
-                    String.format("Error in Wrapper Parameters = %s  for ImpID = %s WrapperExt = %s",
-                            e.getMessage(), impId, wrapExt.toString()));
-        }
-    }
-
-    private void enrichImpBuilderWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {
+    private static Imp.ImpBuilder enrichWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {
         final String trimmedAdSlot = StringUtils.trimToNull(adSlot);
 
         if (StringUtils.isEmpty(trimmedAdSlot)) {
-            return;
+            return impBuilder;
         }
 
         if (!trimmedAdSlot.contains("@")) {
             impBuilder.tagid(trimmedAdSlot);
-            return;
+            return impBuilder;
         }
 
         final String[] adSlotParams = trimmedAdSlot.split("@");
@@ -163,7 +186,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 || StringUtils.isEmpty(adSlotParams[1].trim())) {
             throw new PreBidException(String.format("Invalid adSlot '%s'", trimmedAdSlot));
         }
+
         impBuilder.tagid(adSlotParams[0]);
+
         final String[] adSize = adSlotParams[1].toLowerCase().split("x");
         if (adSize.length != 2) {
             throw new PreBidException(String.format("Invalid size provided in adSlot '%s'", trimmedAdSlot));
@@ -173,7 +198,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final String[] heightParams = adSize[1].split(":");
         final Integer height = parseAdSizeParam(heightParams[0], "height", adSlot);
 
-        impBuilder.banner(modifyWithSizeParams(banner, width, height));
+        return impBuilder.banner(modifyWithSizeParams(banner, width, height));
     }
 
     private static Integer parseAdSizeParam(String number, String paramName, String adSlot) {
@@ -246,60 +271,60 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request,
-                                                  List<Imp> imps,
-                                                  String pubId,
-                                                  ObjectNode wrapper) {
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder().imp(imps);
-
-        if (wrapper != null) {
-            requestBuilder.ext(
-                    mapper.fillExtension(ExtRequest.empty(),
-                            mapper.mapper().createObjectNode().set("wrapper", wrapper)));
-        }
-
-        if (pubId != null) {
-            updateRequestWithPubIdParam(requestBuilder, request.getSite(), request.getApp(), pubId);
-        }
-
-        final BidRequest modifiedRequest = requestBuilder.build();
-
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .body(mapper.encodeToBytes(modifiedRequest))
+                .body(mapper.encodeToBytes(request))
                 .headers(HttpUtil.headers())
-                .payload(modifiedRequest)
+                .payload(request)
                 .build();
     }
 
-    private static void updateRequestWithPubIdParam(BidRequest.BidRequestBuilder requestBuilder,
-                                                    Site site,
-                                                    App app,
-                                                    String pubId) {
-        if (site != null) {
-            modifySite(pubId, site, requestBuilder);
-        } else if (app != null) {
-            modifyApp(pubId, app, requestBuilder);
-        }
+    private BidRequest modifyBidRequest(BidRequest request,
+                                        List<Imp> imps,
+                                        String publisherId,
+                                        PubmaticWrapper wrapper) {
+
+        return request.toBuilder()
+                .imp(imps)
+                .app(modifyApp(request.getApp(), publisherId))
+                .site(modifySite(request.getSite(), publisherId))
+                .ext(resolveRequestExt(request, wrapper))
+                .build();
     }
 
-    private static void modifySite(String pubId, Site site, BidRequest.BidRequestBuilder bidRequestBuilder) {
-        if (site.getPublisher() != null) {
-            final Publisher modifiedPublisher = site.getPublisher().toBuilder().id(pubId).build();
-            bidRequestBuilder.site(site.toBuilder().publisher(modifiedPublisher).build());
-        } else {
-            bidRequestBuilder.site(site.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
+    private ExtRequest resolveRequestExt(BidRequest request, PubmaticWrapper wrapper) {
+        if (wrapper == null) {
+            return request.getExt();
         }
+
+        final ObjectNode extNode = mapper.mapper().createObjectNode()
+                .set("wrapper", mapper.mapper().valueToTree(wrapper));
+
+        return mapper.fillExtension(ExtRequest.empty(), extNode);
     }
 
-    private static void modifyApp(String pubId, App app, BidRequest.BidRequestBuilder bidRequestBuilder) {
-        if (app.getPublisher() != null) {
-            final Publisher modifiedPublisher = app.getPublisher().toBuilder().id(pubId).build();
-            bidRequestBuilder.app(app.toBuilder().publisher(modifiedPublisher).build());
-        } else {
-            bidRequestBuilder.app(app.toBuilder().publisher(Publisher.builder().id(pubId).build()).build());
-        }
+    private static Site modifySite(Site site, String publisherId) {
+        return publisherId != null && site != null
+                ? site.toBuilder()
+                .publisher(modifyPublisher(site.getPublisher(), publisherId))
+                .build()
+                : site;
+    }
+
+    private static App modifyApp(App app, String publisherId) {
+        return publisherId != null && app != null
+                ? app.toBuilder()
+                .publisher(modifyPublisher(app.getPublisher(), publisherId))
+                .build()
+                : app;
+    }
+
+    private static Publisher modifyPublisher(Publisher publisher, String publisherId) {
+        return publisher != null
+                ? publisher.toBuilder().id(publisherId).build()
+                : Publisher.builder().id(publisherId).build();
     }
 
     @Override

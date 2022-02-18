@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
-import org.prebid.server.bidder.facebook.proto.FacebookNative;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -423,18 +422,16 @@ public class FacebookBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                // use payload as deserializing from body json string converts native to parent class, which
-                // is not aware of child's fields
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getXNative)
-                .containsOnly(FacebookNative.builder().w(-1).h(-1).api(singletonList(1)).build());
+                .containsOnly(Native.builder().api(singletonList(1)).build());
 
         // extra check to assure that data in body is displayed correctly
         assertThat(result.getValue())
                 .extracting(value -> new String(value.getBody()))
                 .allSatisfy(s -> assertThat(s)
-                        .contains("\"native\":{\"api\":[1],\"w\":-1,\"h\":-1},\"tagid\":\"pubId_placementId\"}"));
+                        .contains("\"native\":{\"api\":[1]},\"tagid\":\"pubId_placementId\"}"));
     }
 
     @Test

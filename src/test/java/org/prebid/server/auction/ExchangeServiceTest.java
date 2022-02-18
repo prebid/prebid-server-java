@@ -54,6 +54,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
@@ -195,43 +196,62 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
+
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
+
     @Mock
     private FpdResolver fpdResolver;
+
     @Mock
     private SchainResolver schainResolver;
+
     @Mock
     private DebugResolver debugResolver;
+
     @Mock
     private HttpBidderRequester httpBidderRequester;
+
     @Mock
     private ResponseBidValidator responseBidValidator;
+
     @Mock
     private CurrencyConversionService currencyService;
+
     @Mock
     private BidResponseCreator bidResponseCreator;
+
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
+
     @Mock
     private HookStageExecutor hookStageExecutor;
+
     @Mock
     private ApplicationEventService applicationEventService;
+
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+
     @Mock
     private Metrics metrics;
+
     @Mock
     private UidsCookie uidsCookie;
+
     private Clock clock;
+
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
     private ExchangeService exchangeService;
 
     private Timeout timeout;
+
+    private DealsProcessor dealsProcessor;
 
     @SuppressWarnings("unchecked")
     @Before
@@ -293,11 +313,13 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
+        dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
                 0,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -323,6 +345,7 @@ public class ExchangeServiceTest extends VertxTest {
                         -1,
                         bidderCatalog,
                         storedResponseProcessor,
+                        dealsProcessor,
                         privacyEnforcementService,
                         fpdResolver,
                         schainResolver,
@@ -589,12 +612,13 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestsWithoutFilteredDealsOnlyBidders() {
+    public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
         // given
         exchangeService = new ExchangeService(
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -620,7 +644,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap("bidder1", 1),
                         identity()),
-                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("dealsonly", BooleanNode.getTrue())),
+                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
                         identity())));
 
         // when
@@ -2533,6 +2557,7 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -2929,12 +2954,13 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics).updateRequestBidderCardinalityMetric(1);
-        verify(metrics).updateAccountRequestMetrics(eq("accountId"), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(any(), eq(MetricName.openrtb2web));
         verify(metrics)
                 .updateAdapterRequestTypeAndNoCookieMetrics(eq("someBidder"), eq(MetricName.openrtb2web), eq(true));
-        verify(metrics).updateAdapterResponseTime(eq("someBidder"), eq("accountId"), anyInt());
-        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
-        verify(metrics).updateAdapterBidMetrics(eq("someBidder"), eq("accountId"), eq(10000L), eq(false), eq("banner"));
+        verify(metrics).updateAdapterResponseTime(eq("someBidder"), any(), anyInt());
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
+        verify(metrics).updateAdapterBidMetrics(
+                eq("someBidder"), any(), eq(10000L), eq(false), eq("banner"));
     }
 
     @Test
@@ -2964,7 +2990,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest, account));
 
         // then
-        verify(metrics).updateAccountRequestMetrics(eq(""), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(eq(Account.empty("")), eq(MetricName.openrtb2web));
     }
 
     @Test
@@ -2979,7 +3005,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(metrics).updateAdapterRequestNobidMetrics(eq("someBidder"), eq("accountId"));
+        verify(metrics).updateAdapterRequestNobidMetrics(eq("someBidder"), any());
     }
 
     @Test
@@ -3004,7 +3030,7 @@ public class ExchangeServiceTest extends VertxTest {
         exchangeService.holdAuction(givenRequestContext(bidRequest));
 
         // then
-        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), eq("accountId"));
+        verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badinput));
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.badserverresponse));
         verify(metrics).updateAdapterRequestErrorMetric(eq("someBidder"), eq(MetricName.failedtorequestbids));
@@ -3627,41 +3653,41 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
-        verify(metrics, times(6)).updateAccountHooksMetrics(anyString(), any(), any(), any());
+        verify(metrics, times(6)).updateAccountHooksMetrics(any(), any(), any(), any());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.update));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.invocation_failure),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module1"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.no_action));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module2"),
                 eq(ExecutionStatus.timeout),
                 isNull());
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module3"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.update));
         verify(metrics).updateAccountHooksMetrics(
-                eq("accountId"),
+                any(),
                 eq("module3"),
                 eq(ExecutionStatus.success),
                 eq(ExecutionAction.no_action));
-        verify(metrics, times(3)).updateAccountModuleDurationMetric(anyString(), any(), any());
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module1"), eq(14L));
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module2"), eq(6L));
-        verify(metrics).updateAccountModuleDurationMetric(eq("accountId"), eq("module3"), eq(8L));
+        verify(metrics, times(3)).updateAccountModuleDurationMetric(any(), any(), any());
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module1"), eq(14L));
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module2"), eq(6L));
+        verify(metrics).updateAccountModuleDurationMetric(any(), eq("module3"), eq(8L));
     }
 
     @Test
