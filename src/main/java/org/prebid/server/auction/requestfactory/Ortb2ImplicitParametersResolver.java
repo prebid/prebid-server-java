@@ -1,6 +1,7 @@
 package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -13,6 +14,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -778,8 +781,11 @@ public class Ortb2ImplicitParametersResolver {
             final ObjectNode modifiedImpEXt = prepareValidImpExtCopy(impExt, mapper);
             final boolean isMoved = moveBidderParamsToPrebid(modifiedImpEXt);
             final boolean isMerged = mergeGlobalBidderParamsToImpExt(modifiedImpEXt, globalBidderParams, jsonMerger);
+            final boolean isDealsOnlyModified = modifyDealsOnly(modifiedImpEXt);
 
-            return isMoved || isMerged ? modifiedImpEXt : null;
+            return isMoved || isMerged || isDealsOnlyModified
+                    ? modifiedImpEXt
+                    : null;
         }
 
         private static ObjectNode prepareValidImpExtCopy(ObjectNode impExt, JacksonMapper mapper) {
@@ -851,6 +857,36 @@ public class Ortb2ImplicitParametersResolver {
                     : jsonMerger.merge(bidderParams, requestParams);
 
             impExtPrebidBidder.set(bidder, mergedParams);
+        }
+
+        private static boolean modifyDealsOnly(ObjectNode impExt) {
+            final Boolean[] isModified = StreamUtil.asStream(bidderParamsFromImpExt(impExt).fields())
+                    .map(Map.Entry::getValue)
+                    .map(ObjectNode.class::cast)
+                    .filter(ImpPopulationContext::isPgDealsOnlyBidder)
+                    .map(ImpPopulationContext::modifyDealsOnlyIfNotSpecified)
+                    .toArray(Boolean[]::new);
+
+            if (ArrayUtils.isEmpty(isModified)) {
+                return false;
+            }
+
+            return BooleanUtils.or(isModified);
+        }
+
+        private static boolean isPgDealsOnlyBidder(JsonNode bidderFields) {
+            final JsonNode pgDealsOnlyNode = bidderFields.path(PG_DEALS_ONLY);
+            return pgDealsOnlyNode.isBoolean() && pgDealsOnlyNode.asBoolean();
+        }
+
+        private static boolean modifyDealsOnlyIfNotSpecified(ObjectNode bidderFields) {
+            final JsonNode dealsOnlyNode = bidderFields.path(DEALS_ONLY);
+            if (dealsOnlyNode.isBoolean()) {
+                return false;
+            }
+
+            bidderFields.set(DEALS_ONLY, BooleanNode.TRUE);
+            return true;
         }
     }
 }
