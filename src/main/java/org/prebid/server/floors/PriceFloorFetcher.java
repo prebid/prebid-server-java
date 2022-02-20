@@ -12,6 +12,7 @@ import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpStatus;
@@ -20,6 +21,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.floors.model.PriceFloorTestingProperties;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.DecodeException;
@@ -56,6 +58,7 @@ public class PriceFloorFetcher {
     private final TimeoutFactory timeoutFactory;
     private final HttpClient httpClient;
     private final JacksonMapper mapper;
+    private final PriceFloorTestingProperties testingProperties;
 
     private final Set<String> fetchInProgress;
     private final Map<String, AccountFetchContext> fetchedData;
@@ -65,7 +68,7 @@ public class PriceFloorFetcher {
                              Vertx vertx,
                              TimeoutFactory timeoutFactory,
                              HttpClient httpClient,
-                             JacksonMapper mapper) {
+                             JacksonMapper mapper, PriceFloorTestingProperties testingProperties) {
 
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.metrics = Objects.requireNonNull(metrics);
@@ -73,6 +76,7 @@ public class PriceFloorFetcher {
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.mapper = Objects.requireNonNull(mapper);
+        this.testingProperties = testingProperties;
 
         fetchInProgress = new ConcurrentHashSet<>();
         fetchedData = Caffeine.newBuilder()
@@ -132,7 +136,10 @@ public class PriceFloorFetcher {
     }
 
     private void fetchPriceFloorRulesAsynchronous(AccountPriceFloorsFetchConfig fetchConfig, String accountId) {
-        final Long timeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
+        final Long accountTimeout = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
+        final Long timeout = ObjectUtils.firstNonNull(testingProperties.getMinTimeoutMs(),
+                testingProperties.getMaxTimeoutMs(),
+                accountTimeout);
         final Long maxFetchFileSizeKb =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
 
@@ -252,12 +259,8 @@ public class PriceFloorFetcher {
     }
 
     private long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
-        final Long responseTtl = cacheInfo.getCacheTtl();
-        if (responseTtl != null) {
-            return responseTtl;
-        }
 
-        return fetchConfig.getMaxAgeSec();
+        return ObjectUtils.defaultIfNull(cacheInfo.getCacheTtl(), fetchConfig.getMaxAgeSec());
     }
 
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {
@@ -268,7 +271,9 @@ public class PriceFloorFetcher {
             vertx.cancelTimer(previousTimerId);
         }
 
-        return vertx.setTimer(TimeUnit.SECONDS.toMillis(cacheTtl), id -> fetchedData.remove(accountId));
+        final Long effectiveCacheTtl =
+                ObjectUtils.defaultIfNull(testingProperties.getMinMaxAgeSec(), TimeUnit.SECONDS.toMillis(cacheTtl));
+        return vertx.setTimer(effectiveCacheTtl, id -> fetchedData.remove(accountId));
     }
 
     private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable, String accountId) {
@@ -292,9 +297,12 @@ public class PriceFloorFetcher {
     private PriceFloorRules createPeriodicTimerForRulesFetch(PriceFloorRules priceFloorRules,
                                                              AccountPriceFloorsFetchConfig fetchConfig,
                                                              String accountId) {
-
-        final long periodicTime = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
-        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), ignored -> periodicFetch(accountId));
+        final long accountPeriodicSec =
+                ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
+        final long periodicTime =
+                ObjectUtils.defaultIfNull(testingProperties.getMinPeriodSec(),
+                        TimeUnit.SECONDS.toMillis(accountPeriodicSec));
+        vertx.setTimer(periodicTime, ignored -> periodicFetch(accountId));
 
         return priceFloorRules;
     }

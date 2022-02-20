@@ -12,12 +12,14 @@ import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.floors.model.PriceFloorTestingProperties;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,7 +34,8 @@ public class PriceFloorsConfiguration {
             Vertx vertx,
             TimeoutFactory timeoutFactory,
             HttpClient httpClient,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            PriceFloorTestingProperties testingProperties) {
 
         return new PriceFloorFetcher(
                 applicationSettings,
@@ -40,7 +43,8 @@ public class PriceFloorsConfiguration {
                 vertx,
                 timeoutFactory,
                 httpClient,
-                mapper);
+                mapper,
+                testingProperties);
     }
 
     @Bean
@@ -94,5 +98,11 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "false", matchIfMissing = true)
     PriceFloorAdjuster noOpPriceFloorAdjuster() {
         return PriceFloorAdjuster.noOp();
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "price-floors")
+    PriceFloorTestingProperties priceFloorTestingProperties() {
+        return new PriceFloorTestingProperties();
     }
 }
