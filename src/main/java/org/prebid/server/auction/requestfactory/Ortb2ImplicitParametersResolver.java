@@ -431,11 +431,8 @@ public class Ortb2ImplicitParametersResolver {
         }
 
         final String generatedId = sourceIdGenerator.generateId();
-        if (StringUtils.isEmpty(generatedId)) {
-            return null;
-        }
 
-        return generatedId;
+        return StringUtils.isNotEmpty(generatedId) ? generatedId : null;
     }
 
     private ExtSource populateExtSource(ExtSource extSource, ExtRequest extRequest) {
@@ -448,14 +445,13 @@ public class Ortb2ImplicitParametersResolver {
         try {
             extRequestSchain = mapper.mapper().convertValue(extRequest.getProperty("schain"), ExtSourceSchain.class);
         } catch (IllegalArgumentException e) {
-            logger.warn("Error occurred while copying BidRequest.Ext.Schain to BidRequest.Source.Ext.Schain.");
             return null;
         }
 
         return extRequestSchain != null ? modifyExtSource(extSource, extRequestSchain) : null;
     }
 
-    private ExtSource modifyExtSource(ExtSource extSource, ExtSourceSchain extSourceSchain) {
+    private static ExtSource modifyExtSource(ExtSource extSource, ExtSourceSchain extSourceSchain) {
         final ExtSource modifiedExtSource = ExtSource.of(extSourceSchain);
         if (extSource != null) {
             modifiedExtSource.addProperties(extSource.getProperties());
