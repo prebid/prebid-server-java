@@ -115,8 +115,8 @@ LIMIT 1
 
     void withBidder(String host) {
         withConfig(["adapters.generic.enabled"      : "true",
-                    "adapters.generic.endpoint"     : "$host/auction".toString(),
-                    "adapters.generic.usersync.url" : "$host/generic-usersync".toString(),
+                    "adapters.generic.endpoint"     : "$host/auction" as String,
+                    "adapters.generic.usersync.url" : "$host/generic-usersync" as String,
                     "adapters.generic.usersync.type": "redirect"
         ])
     }
