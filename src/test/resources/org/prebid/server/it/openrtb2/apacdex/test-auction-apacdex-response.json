@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "valueimpression",
+      "seat": "apacdex",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "valueimpression": "{{ valueimpression.response_time_ms }}"
+      "apacdex": "{{ apacdex.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0
