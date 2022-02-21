@@ -185,7 +185,7 @@ public class UidsCookieServiceTest extends VertxTest {
         final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
 
         // then
-        assertThat(cookie.encode().getBytes().length).isLessThan(4096);
+        assertThat(cookie.encode().getBytes().length).isLessThanOrEqualTo(4096);
     }
 
     @Test
