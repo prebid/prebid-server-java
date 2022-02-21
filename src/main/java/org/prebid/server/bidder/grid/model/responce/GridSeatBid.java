@@ -10,7 +10,7 @@ import java.util.List;
 @Value
 public class GridSeatBid {
 
-    List<GridBid> bid;
+    List<ObjectNode> bid;
 
     String seat;
 
