@@ -103,6 +103,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
+- `cookie-sync.coop-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
+- `cookie-sync.coop-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
 
 ## Vtrack
 - `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.

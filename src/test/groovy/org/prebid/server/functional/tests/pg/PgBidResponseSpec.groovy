@@ -26,7 +26,7 @@ class PgBidResponseSpec extends BasePgSpec {
         def lineItemCount = plansResponse.lineItems.size()
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Set bid response"
         def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse)
@@ -49,7 +49,7 @@ class PgBidResponseSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Set bid response"
         def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {
@@ -75,7 +75,7 @@ class PgBidResponseSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Set bid response"
         def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {
@@ -104,7 +104,7 @@ class PgBidResponseSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Set bid response with unmatched to the bid request size"
         def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {
@@ -141,7 +141,7 @@ class PgBidResponseSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         and: "Set bid response with non-matched to the line item size"
         def bidResponse = BidResponse.getDefaultPgBidResponse(bidRequest, plansResponse).tap {

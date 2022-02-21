@@ -54,6 +54,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
@@ -195,43 +196,62 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+
     @Mock
     private StoredResponseProcessor storedResponseProcessor;
+
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
+
     @Mock
     private FpdResolver fpdResolver;
+
     @Mock
     private SchainResolver schainResolver;
+
     @Mock
     private DebugResolver debugResolver;
+
     @Mock
     private HttpBidderRequester httpBidderRequester;
+
     @Mock
     private ResponseBidValidator responseBidValidator;
+
     @Mock
     private CurrencyConversionService currencyService;
+
     @Mock
     private BidResponseCreator bidResponseCreator;
+
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
+
     @Mock
     private HookStageExecutor hookStageExecutor;
+
     @Mock
     private ApplicationEventService applicationEventService;
+
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
+
     @Mock
     private Metrics metrics;
+
     @Mock
     private UidsCookie uidsCookie;
+
     private Clock clock;
+
     @Mock
     private CriteriaLogManager criteriaLogManager;
 
     private ExchangeService exchangeService;
 
     private Timeout timeout;
+
+    private DealsProcessor dealsProcessor;
 
     @SuppressWarnings("unchecked")
     @Before
@@ -293,11 +313,13 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500);
+        dealsProcessor = new DealsProcessor(jacksonMapper);
 
         exchangeService = new ExchangeService(
                 0,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -323,6 +345,7 @@ public class ExchangeServiceTest extends VertxTest {
                         -1,
                         bidderCatalog,
                         storedResponseProcessor,
+                        dealsProcessor,
                         privacyEnforcementService,
                         fpdResolver,
                         schainResolver,
@@ -589,12 +612,13 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldExtractRequestsWithoutFilteredDealsOnlyBidders() {
+    public void shouldExtractRequestsWithoutFilteredPgDealsOnlyBidders() {
         // given
         exchangeService = new ExchangeService(
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -620,7 +644,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(asList(
                 givenImp(singletonMap("bidder1", 1),
                         identity()),
-                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("dealsonly", BooleanNode.getTrue())),
+                givenImp(singletonMap("bidder2", mapper.createObjectNode().set("pgdealsonly", BooleanNode.getTrue())),
                         identity())));
 
         // when
@@ -2533,6 +2557,7 @@ public class ExchangeServiceTest extends VertxTest {
                 100,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,

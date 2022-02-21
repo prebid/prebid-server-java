@@ -3,16 +3,14 @@
   "imp": [
     {
       "id": "imp_id",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 800,
-        "h": 600
+      "banner": {
+        "w": 300,
+        "h": 250
       },
       "ext": {
-        "bidder": {
-          "siteid": 123
+        "ttx": {
+          "prod": "inview",
+          "zoneid": "zone-id"
         }
       }
     }
@@ -39,6 +37,20 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "ttx": {
+      "caller": [
+        {
+          "name": "caller",
+          "version": "1.0"
+        },
+        {
+          "name": "Prebid-Server-Java",
+          "version": "n/a"
+        }
+      ]
     }
   }
 }

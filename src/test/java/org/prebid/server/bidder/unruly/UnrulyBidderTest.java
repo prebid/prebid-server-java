@@ -1,6 +1,9 @@
 package org.prebid.server.bidder.unruly;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.IntNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
@@ -17,7 +20,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.unruly.ExtImpUnruly;
 
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,8 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.bidder.model.BidderError.Type.bad_server_response;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class UnrulyBidderTest extends VertxTest {
@@ -48,22 +52,6 @@ public class UnrulyBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = unrulyBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnOneRequestPerImpWithExpectedHeaders() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
@@ -79,8 +67,7 @@ public class UnrulyBidderTest extends VertxTest {
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
-                        tuple("Accept", "application/json"),
-                        tuple("X-Unruly-Origin", "Prebid-Server"));
+                        tuple("Accept", "application/json"));
     }
 
     @Test
@@ -131,7 +118,7 @@ public class UnrulyBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -142,15 +129,15 @@ public class UnrulyBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfImpressionWasNotFound() throws JsonProcessingException {
+    public void makeBidsShouldReturnDefaultBannerBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("321").build()))
+                        .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
@@ -159,9 +146,54 @@ public class UnrulyBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("bid responses mediaType didn't match supported mediaTypes"));
+
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorNotFoundBidRequest() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("112").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("111"))));
+
+        // when
+        final Result<List<BidderBid>> result = unrulyBidder.makeBids(httpCall, null);
+
+        // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Failed to find impression 123"));
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Bid response imp ID 111 not found");
+                    assertThat(error.getType()).isEqualTo(bad_server_response);
+                });
+
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("111").build(), banner, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -169,7 +201,7 @@ public class UnrulyBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -178,10 +210,14 @@ public class UnrulyBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnruly.of("uuid", "site_id")))))
+        final ObjectNode impExt = mapper.valueToTree(
+                ExtPrebid.of(null, mapper.createObjectNode().set("siteId", IntNode.valueOf(123))));
+
+        return impCustomizer.apply(
+                        Imp.builder()
+                                .id("123")
+                                .video(Video.builder().build())
+                                .ext(impExt))
                 .build();
     }
 

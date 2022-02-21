@@ -92,7 +92,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -156,7 +156,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -191,7 +191,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -228,7 +228,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -263,7 +263,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -298,7 +298,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -345,7 +345,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -365,7 +365,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -410,7 +410,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -430,7 +430,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -473,7 +473,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -502,7 +502,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -531,7 +531,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -555,7 +555,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -589,7 +589,7 @@ class TargetingSpec extends BasePgSpec {
         def lineItemSize = plansResponse.lineItems.size()
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -632,7 +632,7 @@ class TargetingSpec extends BasePgSpec {
         def lineItemSize = plansResponse.lineItems.size()
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
@@ -666,7 +666,7 @@ class TargetingSpec extends BasePgSpec {
         generalPlanner.initPlansResponse(plansResponse)
 
         and: "Line items are fetched by PBS"
-        pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        updateLineItemsAndWait()
 
         when: "Auction is happened"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
