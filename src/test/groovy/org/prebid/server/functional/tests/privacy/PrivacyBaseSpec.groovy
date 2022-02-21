@@ -67,6 +67,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             gdprConsent = consentString
             consentType = TCF_2
             gdprApplies = true
+            timeout = 5000
         }
     }
 
