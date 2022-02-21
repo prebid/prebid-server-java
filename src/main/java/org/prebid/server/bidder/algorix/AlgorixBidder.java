@@ -215,11 +215,11 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         if (Objects.nonNull(bidExt)) {
             switch (bidExt.getMediaType()) {
                 case "banner":
-                    return BidType.banner;
+                    return BidType.BANNER;
                 case "native":
-                    return BidType.xNative;
+                    return BidType.X_NATIVE;
                 case "video":
-                    return BidType.video;
+                    return BidType.VIDEO;
                 default:
                     break;
             }

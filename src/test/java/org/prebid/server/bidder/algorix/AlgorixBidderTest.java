@@ -307,7 +307,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
                         .ext(mapper.valueToTree(AlgorixBidExt.of("banner")))
-                        .build(), banner, "USD"));
+                        .build(), BANNER, "USD"));
     }
 
     @Test
@@ -328,7 +328,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
                         .ext(mapper.valueToTree(AlgorixBidExt.of("video")))
-                        .build(), video, "USD"));
+                        .build(), VIDEO, "USD"));
     }
 
     @Test
@@ -349,7 +349,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
                         .ext(mapper.valueToTree(AlgorixBidExt.of("native")))
-                        .build(), xNative, "USD"));
+                        .build(), X_NATIVE, "USD"));
     }
 
     private static BidRequest givenBidRequest(
