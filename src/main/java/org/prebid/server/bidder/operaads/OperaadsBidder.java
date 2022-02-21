@@ -3,6 +3,7 @@ package org.prebid.server.bidder.operaads;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.MissingNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -68,13 +69,18 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
+            final ExtImpOperaads extImpOperaads;
+            final Imp modifiedImp;
             try {
-                final ExtImpOperaads extImpOperaads = parseImpExt(imp);
-                final Imp modifiedImp = modifyImp(imp, extImpOperaads.getPlacementId());
-
-                requests.add(createRequest(request, modifiedImp, extImpOperaads));
+                extImpOperaads = parseImpExt(imp);
+                modifiedImp = modifyImp(imp, extImpOperaads.getPlacementId());
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
+            }
+
+            if (modifiedImp != null) {
+                requests.add(createRequest(request, modifiedImp, extImpOperaads));
             }
         }
 
@@ -111,6 +117,8 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         } else if (imp.getXNative() != null) {
             impBuilder.id(buildImpId(impId, BidType.xNative))
                     .xNative(modifyNative(imp.getXNative()));
+        } else {
+            return null;
         }
 
         return impBuilder.build();
@@ -136,6 +144,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
 
             throw new PreBidException("Size information missing for banner");
         }
+
         return banner;
     }
 
@@ -147,7 +156,10 @@ public class OperaadsBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
 
-        final JsonNode nativeNode = requestNode.path("native");
+        final JsonNode nativeNode = requestNode != null
+                ? requestNode.path("native")
+                : MissingNode.getInstance();
+
         if (nativeNode.isMissingNode()) {
             final JsonNode modifiedRequestNode = mapper.mapper().createObjectNode().set("native", requestNode);
             return xNative.toBuilder()

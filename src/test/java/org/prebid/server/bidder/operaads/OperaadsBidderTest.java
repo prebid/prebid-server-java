@@ -185,6 +185,7 @@ public class OperaadsBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))),
                 impBuilder -> impBuilder
                         .id("123")
+                        .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
                                 "placementId", "endpointId", "publisherId")))));
         // when
@@ -207,6 +208,7 @@ public class OperaadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .id("123")
+                .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of("placementId",
                         "endpointId", "publisherId")))));
 
@@ -225,14 +227,18 @@ public class OperaadsBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
-                        "placementId",
-                        "endpointId",
-                        "publisherId")))),
-                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
-                        "placementId",
-                        "endpointId",
-                        "publisherId")))));
+                impBuilder -> impBuilder
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                                "placementId",
+                                "endpointId",
+                                "publisherId")))),
+                impBuilder -> impBuilder
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                                "placementId",
+                                "endpointId",
+                                "publisherId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
@@ -244,6 +250,34 @@ public class OperaadsBidderTest extends VertxTest {
                 .extracting(BidRequest::getImp)
                 .extracting(List::size)
                 .containsOnly(1);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSkipImpWithoutBannerOrVideoOrNative() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                                "placementId",
+                                "endpointId",
+                                "publisherId")))),
+                impBuilder -> impBuilder
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpOperaads.of(
+                                "placementId",
+                                "endpointId",
+                                "publisherId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = operaadsBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .hasSize(1);
     }
 
     @Test
