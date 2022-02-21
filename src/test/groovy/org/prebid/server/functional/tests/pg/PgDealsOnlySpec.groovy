@@ -129,7 +129,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         and: "No line items response"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id))
 
-        and: "Bid response with missing 'dealid' field to check dealsonly flag was added"
+        and: "Bid response with missing 'dealid' field to check dealsonly flag was added and worked"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidResponse.seatbid[0].bid[0].dealid = null
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -144,7 +144,10 @@ class PgDealsOnlySpec extends BasePgSpec {
         then: "Bidder was requested"
         assert initialBidderRequestCount + 1 == bidder.requestCount
 
-        and: "PBS returns an error of missing 'dealid' field in bid which means PBS added dealsonly flag"
+        and: "PBS added dealsonly flag to the bidder request"
+        assert auctionResponse.ext?.debug?.resolvedrequest?.imp?.first()?.ext?.prebid?.bidder?.generic?.dealsOnly
+
+        and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)
         assert bidErrors?.size() == 1
         assert bidErrors[0].code == 999
