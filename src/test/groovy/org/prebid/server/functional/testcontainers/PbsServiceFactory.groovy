@@ -22,13 +22,13 @@ class PbsServiceFactory {
     }
 
     PrebidServerService getService(Map<String, String> config) {
-        if (containers.size() >= MAX_CONTAINERS_COUNT) {
-            def container = containers.find { !it.key.isEmpty() }
-            remove([(container.key): container.value])
-        }
         if (containers.containsKey(config)) {
-            return new PrebidServerService(getContainer(config), mapper)
+            return new PrebidServerService(containers.get(config), mapper)
         } else {
+            if (containers.size() >= MAX_CONTAINERS_COUNT) {
+                def container = containers.find { !it.key.isEmpty() }
+                remove([(container.key): container.value])
+            }
             def pbsContainer = new PrebidServerContainer(config)
             pbsContainer.start()
             containers.put(config, pbsContainer)
