@@ -13,7 +13,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.algorix.model.AlgorixResponseBidExt;
+import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpCall;
@@ -296,7 +296,7 @@ public class AlgorixBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
-                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("banner"))))));
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixBidExt.of("banner"))))));
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -306,7 +306,7 @@ public class AlgorixBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
-                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("banner")))
+                        .ext(mapper.valueToTree(AlgorixBidExt.of("banner")))
                         .build(), banner, "USD"));
     }
 
@@ -317,7 +317,7 @@ public class AlgorixBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
-                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("video"))))));
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixBidExt.of("video"))))));
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -327,7 +327,7 @@ public class AlgorixBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
-                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("video")))
+                        .ext(mapper.valueToTree(AlgorixBidExt.of("video")))
                         .build(), video, "USD"));
     }
 
@@ -338,7 +338,7 @@ public class AlgorixBidderTest extends VertxTest {
                 BidRequest.builder().build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder ->
-                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixResponseBidExt.of("native"))))));
+                                bidBuilder.impid("123").ext(mapper.valueToTree(AlgorixBidExt.of("native"))))));
 
         // when
         final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
@@ -348,7 +348,7 @@ public class AlgorixBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
                         .impid("123")
-                        .ext(mapper.valueToTree(AlgorixResponseBidExt.of("native")))
+                        .ext(mapper.valueToTree(AlgorixBidExt.of("native")))
                         .build(), xNative, "USD"));
     }
 

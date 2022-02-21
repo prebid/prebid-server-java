@@ -14,7 +14,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.algorix.model.AlgorixResponseBidExt;
+import org.prebid.server.bidder.algorix.model.AlgorixBidExt;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -93,12 +93,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 errors);
     }
 
-    /**
-     * Parse Ext Imp
-     *
-     * @param imp BidRequest Imp
-     * @return Algorix Ext Imp
-     */
     private ExtPrebid<ExtImpPrebid, ExtImpAlgorix> parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ALGORIX_EXT_TYPE_REFERENCE);
@@ -107,13 +101,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
     }
 
-    /**
-     * Update Imp for transform banner Size or Video Rewarded Tag
-     *
-     * @param imp imp
-     * @param extImpPrebid ImpPrebid Ext
-     * @return new imp
-     */
     private Imp updateImp(Imp imp, ExtImpPrebid extImpPrebid) {
         if (imp.getBanner() != null) {
             imp = updateBannerImp(imp);
@@ -124,18 +111,12 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    /**
-     * update Imp for Banner Size
-     * transform banner size from first Banner.Format
-     * @param imp Imp
-     * @return new Imp
-     */
     private Imp updateBannerImp(Imp imp) {
         final Banner banner = imp.getBanner();
         if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                 && CollectionUtils.isNotEmpty(banner.getFormat())) {
             final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
-            imp = imp.toBuilder()
+            return imp.toBuilder()
                     .banner(banner.toBuilder()
                             .w(firstFormat.getW())
                             .h(firstFormat.getH())
@@ -145,16 +126,10 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return imp;
     }
 
-    /**
-     * update Imp for Video Rewarded Tag
-     * @param imp imp
-     * @param extImpPrebid ImpPrebid ext
-     * @return new imp
-     */
     private Imp updateVideoImp(Imp imp, ExtImpPrebid extImpPrebid) {
         if (extImpPrebid != null && Objects.equals(extImpPrebid.getIsRewardedInventory(), 1)) {
             final Video video = imp.getVideo();
-            imp = imp.toBuilder()
+            return imp.toBuilder()
                     .video(video.toBuilder()
                             .ext(mapper.mapper().valueToTree(AlgorixVideoExt.of(1)))
                             .build())
@@ -173,13 +148,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         return value != null && value > 0;
     }
 
-    /**
-     * get Region Info From Algorix Ext Imp
-     * Default For Global EP, APAC for apse EP, USE for use EP
-     *
-     * @param extImp Algorix Ext Imp
-     * @return Region String
-     */
     private static String getRegionInfo(ExtImpAlgorix extImp) {
         if (Objects.isNull(extImp.getRegion())) {
             return "xyz";
@@ -194,13 +162,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         }
     }
 
-    /**
-     * Replace url macro
-     *
-     * @param endpoint endpoint Url
-     * @param extImp   Algorix Ext Imp
-     * @return target Url
-     */
     private static String resolveUrl(String endpoint, ExtImpAlgorix extImp) {
         return endpoint
                 .replace(URL_REGION_MACRO, getRegionInfo(extImp))
@@ -208,11 +169,6 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .replace(URL_TOKEN_MACRO, extImp.getToken());
     }
 
-    /**
-     * Add openrtb version header 2.5
-     *
-     * @return headers
-     */
     private static MultiMap resolveHeaders() {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
@@ -246,16 +202,16 @@ public class AlgorixBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private AlgorixResponseBidExt parseAlgorixResponseBidExt(Bid bid) {
+    private AlgorixBidExt parseAlgorixBidExt(Bid bid) {
         try {
-            return mapper.mapper().treeToValue(bid.getExt(), AlgorixResponseBidExt.class);
+            return mapper.mapper().treeToValue(bid.getExt(), AlgorixBidExt.class);
         } catch (IllegalArgumentException | JsonProcessingException error) {
             return null;
         }
     }
 
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final AlgorixResponseBidExt bidExt = parseAlgorixResponseBidExt(bid);
+        final AlgorixBidExt bidExt = parseAlgorixBidExt(bid);
         if (Objects.nonNull(bidExt)) {
             switch (bidExt.getMediaType()) {
                 case "banner":
