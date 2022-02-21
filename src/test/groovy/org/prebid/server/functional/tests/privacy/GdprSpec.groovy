@@ -185,8 +185,7 @@ class GdprSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter gdpr_consent has invalid " +
-                         "format for consent type TCF_V_2: $invalidTcfConsent" as String]
+                ["Amp request parameter gdpr_consent has invalid format for consent type tcfV2: $invalidTcfConsent" as String]
 
         where:
         invalidTcfConsent << [new BogusConsent(), new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)]
@@ -213,7 +212,7 @@ class GdprSpec extends PrivacyBaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
-        assert response.ext?.errors[ErrorType.PREBID]*.message == ["Consent type TCF_V_1 is no longer supported"]
+        assert response.ext?.errors[ErrorType.PREBID]*.message == ["Consent type tcfV1 is no longer supported"]
     }
 
     def "PBS should emit error for amp request with consentString when consent_type is bogus"() {
@@ -260,7 +259,6 @@ class GdprSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter consent_string has invalid " +
-                         "format for consent type TCF_V_2: $ccpaConsent" as String]
+                ["Amp request parameter consent_string has invalid format for consent type tcfV2: $ccpaConsent" as String]
     }
 }
