@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+import java.time.Clock;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/yieldlab.yaml", factory = YamlPropertySourceFactory.class)
@@ -30,12 +31,13 @@ public class YieldlabConfiguration {
     @Bean
     BidderDeps yieldlabBidderDeps(BidderConfigurationProperties yieldlabConfigurationProperties,
                                   @NotBlank @Value("${external-url}") String externalUrl,
+                                  Clock clock,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(yieldlabConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YieldlabBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new YieldlabBidder(config.getEndpoint(), clock, mapper))
                 .assemble();
     }
 }

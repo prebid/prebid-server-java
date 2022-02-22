@@ -18,7 +18,6 @@ import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
-import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
 import org.prebid.server.util.ResourceUtil;
 
@@ -46,7 +45,6 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String FACEBOOK = "audienceNetwork";
     private static final String OPENX = "openx";
     private static final String EPLANNING = "eplanning";
-    private static final String SOMOAUDIENCE = "somoaudience";
     private static final String BEACHFRONT = "beachfront";
 
     @Rule
@@ -69,7 +67,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 FACEBOOK,
                 OPENX,
                 EPLANNING,
-                SOMOAUDIENCE,
                 BEACHFRONT)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
         given(bidderCatalog.bidderInfoByName(eq(APPNEXUS_ALIAS))).willReturn(givenBidderInfo(APPNEXUS));
@@ -344,32 +341,6 @@ public class BidderParamValidatorTest extends VertxTest {
         assertThat(messages.size()).isEqualTo(1);
     }
 
-    @Test
-    public void validateShouldNotReturnValidationMessagesWhenSomoaudienceImpExtIsOk() {
-        // given
-        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.11));
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(SOMOAUDIENCE, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenSomoaudienceExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(SOMOAUDIENCE, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
-    }
-
-    @Test
     public void validateShouldNotReturnValidationMessagesWhenBeachfrontImpExtIsOk() {
         // given
         final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "adm");

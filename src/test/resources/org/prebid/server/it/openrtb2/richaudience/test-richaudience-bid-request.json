@@ -7,9 +7,9 @@
         "w": 300,
         "h": 250
       },
-      "tagid" : "some_pid",
-      "bidfloorcur" : "USD",
-      "secure" : 0,
+      "tagid": "some_pid",
+      "bidfloorcur": "USD",
+      "secure": 0,
       "ext": {
         "bidder": {
           "pid": "some_pid",
@@ -33,7 +33,6 @@
     "ua": "userAgent",
     "ip": "193.168.244.1"
   },
-  "test": 0,
   "at": 1,
   "tmax": 5000,
   "cur": [

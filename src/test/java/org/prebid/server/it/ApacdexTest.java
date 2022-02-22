@@ -16,22 +16,21 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class SomoaudienceTest extends IntegrationTest {
+public class ApacdexTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromSomoaudience() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromApacdex() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/somoaudience-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/somoaudience/test-somoaudience-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom(
-                        "openrtb2/somoaudience/test-somoaudience-bid-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/apacdex-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/apacdex/test-apacdex-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/apacdex/test-apacdex-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/somoaudience/test-auction-somoaudience-request.json",
+        final Response response = responseFor("openrtb2/apacdex/test-auction-apacdex-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/somoaudience/test-auction-somoaudience-response.json", response,
-                singletonList("somoaudience"));
+        assertJsonEquals("openrtb2/apacdex/test-auction-apacdex-response.json", response,
+                singletonList("apacdex"));
     }
 }

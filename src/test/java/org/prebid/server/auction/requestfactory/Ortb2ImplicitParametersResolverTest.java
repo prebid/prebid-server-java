@@ -35,6 +35,8 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -52,6 +54,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -1033,6 +1036,64 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                                 "bidder1", mapper.createObjectNode().put("param1", "value1"))
                                         .<ObjectNode>set(
                                                 "bidder2", mapper.createObjectNode().put("param2", "value2")))))
+                .build();
+        assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
+    }
+
+    @Test
+    public void shouldSetDealsOnlyIfNotSpecifiedAndPgDealsOnlyIsTrue() {
+        final Imp imp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO("someBidder", Map.of("pgdealsonly", true)))
+                                .build(),
+                        null)))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", true)))
+                                .build(),
+                        null)))
+                .build();
+        assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
+    }
+
+    @Test
+    public void shouldNotAffectDealsOnlyIfSpecifiedAndPgDealsOnlyIsTrue() {
+        final Imp imp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", false)))
+                                .build(),
+                        null)))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", false)))
+                                .build(),
+                        null)))
                 .build();
         assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
     }

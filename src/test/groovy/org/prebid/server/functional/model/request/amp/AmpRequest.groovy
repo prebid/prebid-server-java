@@ -22,7 +22,6 @@ class AmpRequest {
     Integer account
     String gdprConsent
     String consentString
-    String targeting
     ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
