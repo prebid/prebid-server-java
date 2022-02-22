@@ -123,7 +123,7 @@ public class RequestContext {
                 return getIntegerFromUserExt("time.userdow");
             case HOUR:
                 return getIntegerFromUserExt("time.userhour");
-            case deviceGeoExt:
+            case DEVICE_GEO_EXT:
                 return getValueFrom(geoExt, category, RequestContext::nodeToInteger);
             case BIDDER_PARAM:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToInteger);

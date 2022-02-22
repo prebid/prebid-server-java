@@ -62,7 +62,7 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
                 });
     }
@@ -137,7 +137,7 @@ public class AdfBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode");
                 });
     }
@@ -159,7 +159,7 @@ public class AdfBidderTest extends VertxTest {
     public void makeBidsShouldExtractBidTypeFromExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.banner).build());
+                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.BANNER).build());
         final HttpCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
@@ -168,7 +168,7 @@ public class AdfBidderTest extends VertxTest {
         // then
         assertThat(result.getValue())
                 .flatExtracting(BidderBid::getType)
-                .containsExactly(BidType.banner);
+                .containsExactly(BidType.BANNER);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -176,7 +176,7 @@ public class AdfBidderTest extends VertxTest {
     public void makeBidsShouldUseBidResponseCur() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.banner).build());
+                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.BANNER).build());
         final HttpCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
@@ -193,7 +193,7 @@ public class AdfBidderTest extends VertxTest {
     public void makeBidsShouldCollectErrorIfBidTypeInvalid() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
-                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.banner).build());
+                .putPOJO("prebid", ExtBidPrebid.builder().type(BidType.BANNER).build());
         final HttpCall<BidRequest> response = givenHttpCall(givenBidResponse(
                 givenBid(identity()),
                 givenBid(bid -> bid.ext(bidExt))));

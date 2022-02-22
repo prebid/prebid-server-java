@@ -192,11 +192,11 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             if (impId.equals(imp.getId())) {
                 if (imp.getVideo() != null) {
-                    return BidType.video;
+                    return BidType.VIDEO;
                 }
-                return BidType.banner;
+                return BidType.BANNER;
             }
         }
-        return BidType.banner;
+        return BidType.BANNER;
     }
 }

@@ -34,11 +34,11 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.prebid.server.bidder.model.BidderError.Type.bad_server_response;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.bidder.model.BidderError.Type.BAD_SERVER_RESPONSE;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class ApacdexBidderTest extends VertxTest {
 
@@ -109,7 +109,7 @@ public class ApacdexBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
                 });
     }
 
@@ -144,7 +144,7 @@ public class ApacdexBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token ");
-                    assertThat(error.getType()).isEqualTo(bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BAD_SERVER_RESPONSE);
                 });
     }
 
@@ -182,10 +182,10 @@ public class ApacdexBidderTest extends VertxTest {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
-                                givenBid("123", banner),
-                                givenBid("456", video),
-                                givenBid("789", audio),
-                                givenBid("44454", xNative)))
+                                givenBid("123", BANNER),
+                                givenBid("456", VIDEO),
+                                givenBid("789", AUDIO),
+                                givenBid("44454", X_NATIVE)))
                         .build());
 
         // when
@@ -195,10 +195,10 @@ public class ApacdexBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactlyInAnyOrder(
-                        BidderBid.of(givenBid("123", banner), banner, null),
-                        BidderBid.of(givenBid("456", video), video, null),
-                        BidderBid.of(givenBid("789", audio), audio, null),
-                        BidderBid.of(givenBid("44454", xNative), xNative, null));
+                        BidderBid.of(givenBid("123", BANNER), BANNER, null),
+                        BidderBid.of(givenBid("456", VIDEO), VIDEO, null),
+                        BidderBid.of(givenBid("789", AUDIO), AUDIO, null),
+                        BidderBid.of(givenBid("44454", X_NATIVE), X_NATIVE, null));
     }
 
     @Test
@@ -231,7 +231,7 @@ public class ApacdexBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder()
                         .seatbid(List.of(SeatBid.builder()
                                 .bid(List.of(
-                                        givenBid("123", banner, identity()),
+                                        givenBid("123", BANNER, identity()),
                                         givenBid("124", null, bidBuilder -> bidBuilder.ext(givenExt))))
                                 .build()))
                         .build()));

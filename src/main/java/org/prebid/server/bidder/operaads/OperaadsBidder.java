@@ -107,15 +107,15 @@ public class OperaadsBidder implements Bidder<BidRequest> {
 
         final String impId = imp.getId();
         if (imp.getBanner() != null) {
-            impBuilder.id(buildImpId(impId, BidType.banner))
+            impBuilder.id(buildImpId(impId, BidType.BANNER))
                     .banner(modifyBanner(imp.getBanner()))
                     .video(null)
                     .xNative(null);
         } else if (imp.getVideo() != null) {
-            impBuilder.id(buildImpId(impId, BidType.video))
+            impBuilder.id(buildImpId(impId, BidType.VIDEO))
                     .xNative(null);
         } else if (imp.getXNative() != null) {
-            impBuilder.id(buildImpId(impId, BidType.xNative))
+            impBuilder.id(buildImpId(impId, BidType.X_NATIVE))
                     .xNative(modifyNative(imp.getXNative()));
         } else {
             return null;
@@ -125,7 +125,7 @@ public class OperaadsBidder implements Bidder<BidRequest> {
     }
 
     private static String buildImpId(String originalId, BidType type) {
-        return String.format("%s:opa:%s", originalId, type.getName());
+        return String.format("%s:opa:%s", originalId, type);
     }
 
     private static Banner modifyBanner(Banner banner) {
@@ -248,7 +248,6 @@ public class OperaadsBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
-        return BidType.BANNER;
     }
 }
 

@@ -198,7 +198,7 @@ public class OperaadsBidderTest extends VertxTest {
                 .extracting(Imp::getTagid)
                 .containsExactly("placementId");
         assertThat(result.getErrors()).allSatisfy(error -> {
-            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
         });
     }
