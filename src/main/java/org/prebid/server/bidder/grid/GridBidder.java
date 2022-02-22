@@ -200,7 +200,7 @@ public class GridBidder implements Bidder<BidRequest> {
         try {
             final GridBidResponse bidResponse =
                     mapper.decodeValue(httpCall.getResponse().getBody(), GridBidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }

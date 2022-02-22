@@ -261,8 +261,7 @@ public class GridBidderTest extends VertxTest {
                                 .id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode().put("impid", "123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -283,8 +282,7 @@ public class GridBidderTest extends VertxTest {
                                 .id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode().put("impid", "123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -303,8 +301,7 @@ public class GridBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode().put("impid", "123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -324,8 +321,7 @@ public class GridBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("321").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode().put("impid", "123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -337,18 +333,17 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidderBidIfIsPresentContentTypeBannerAtGridBid()
-            throws JsonProcessingException {
+    public void makeBidsShouldReturnBidWithTypeFromGridBidContentTypeIfPresent() throws JsonProcessingException {
         // given
+        final ObjectNode bidNode = givenBidNode()
+                .put("content_type", "banner");
+
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode()
-                                .put("impid", "123")
-                                .put("content_type", "banner"))));
+                        givenBidResponse(bidNode)));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -366,16 +361,14 @@ public class GridBidderTest extends VertxTest {
                 .set("bidder", mapper.createObjectNode()
                         .set("grid", mapper.createObjectNode()
                                 .set("demandSource", TextNode.valueOf("demandSource"))));
+        final ObjectNode bidNode = givenBidNode().set("ext", bidExt);
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(jacksonMapper.mapper()
-                                .createObjectNode()
-                                .put("impid", "123")
-                                .set("ext", bidExt))));
+                        givenBidResponse(bidNode)));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -420,5 +413,9 @@ public class GridBidderTest extends VertxTest {
 
     private static JsonNode jsonNodeFrom(String path) throws IOException {
         return mapper.readTree(GridBidderTest.class.getResourceAsStream(path));
+    }
+
+    private ObjectNode givenBidNode() {
+        return mapper.createObjectNode().put("impid", "123");
     }
 }
