@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRe
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -47,7 +48,9 @@ class CurrencySpec extends BasePgSpec {
         def nonDefaultCurrencyLineItemIds = nonDefaultCurrencyLineItems.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
+        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
         pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
 
         when: "Auction is requested"
         def auctionResponse = pgCurrencyConverterPbsService.sendAuctionRequest(bidRequest)
@@ -72,7 +75,9 @@ class CurrencySpec extends BasePgSpec {
         def defaultCurrencyLineItemId = defaultCurrencyLineItem.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
+        def initialPlansRequestCount = generalPlanner.recordedPlansRequestCount
         pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
+        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialPlansRequestCount + 1 }
 
         when: "Auction is requested"
         def auctionResponse = pgCurrencyConverterPbsService.sendAuctionRequest(bidRequest)
