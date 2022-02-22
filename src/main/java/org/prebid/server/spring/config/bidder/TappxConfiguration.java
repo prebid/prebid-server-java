@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+import java.time.Clock;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/tappx.yaml", factory = YamlPropertySourceFactory.class)
@@ -30,12 +31,13 @@ public class TappxConfiguration {
     @Bean
     BidderDeps tappxBidderDeps(BidderConfigurationProperties tappxConfigurationProperties,
                                @NotBlank @Value("${external-url}") String externalUrl,
+                               Clock clock,
                                JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(tappxConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TappxBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new TappxBidder(config.getEndpoint(), clock, mapper))
                 .assemble();
     }
 }

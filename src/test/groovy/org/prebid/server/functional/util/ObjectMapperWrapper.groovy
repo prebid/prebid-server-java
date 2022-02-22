@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 
+// TODO make this into a Trait so that we won't need to pass it around. This will allow us to use it in the models
 class ObjectMapperWrapper {
 
     private final ObjectMapper mapper

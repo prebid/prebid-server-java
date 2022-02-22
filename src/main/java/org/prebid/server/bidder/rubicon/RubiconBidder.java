@@ -127,6 +127,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String ADSERVER_EID = "adserver.org";
     private static final String LIVEINTENT_EID = "liveintent.com";
     private static final String LIVERAMP_EID = "liveramp.com";
+    private static final String SOURCE_RUBICON = "rubiconproject.com";
 
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
@@ -144,6 +145,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
+    private static final String OTHER_STYPE = "other";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
@@ -179,7 +181,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
-        this.supportedVendors = new HashSet<>(supportedVendors);
+        this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -194,12 +196,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final List<Imp> imps = extractValidImps(bidRequest, errors);
         if (CollectionUtils.isEmpty(imps)) {
-            errors.add(BidderError.of("There are no valid impressions to create bid request to rubicon bidder",
-                    BidderError.Type.bad_input));
-            return Result.of(Collections.emptyList(), errors);
+            errors.add(BidderError.badInput("There are no valid impressions to create bid request to rubicon bidder"));
+            return Result.withErrors(errors);
         }
-        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt =
-                parseRubiconImpExts(imps, errors);
+
+        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = parseRubiconImpExts(imps, errors);
         final String impLanguage = firstImpExtLanguage(impToImpExt.values());
         final String uri = makeUri(bidRequest);
 
@@ -270,9 +271,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private BidderError impTypeErrorMessage(Imp imp) {
         final BidType type = resolveExpectedBidType(imp);
-        return BidderError.of(
-                String.format("Impression with id %s rejected with invalid type `%s`." + " Allowed types are banner and"
-                        + " video.", imp.getId(), type != null ? type.name() : "unknown"), BidderError.Type.bad_input);
+        return BidderError.badInput(String.format("Impression with id %s rejected with invalid type `%s`."
+                + " Allowed types are banner and video.", imp.getId(), type != null ? type.name() : "unknown"));
     }
 
     private static BidType resolveExpectedBidType(Imp imp) {
@@ -938,6 +938,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String resolvedId = userId == null ? resolveUserId(extUser) : null;
         final List<ExtUserEid> extUserEids = extUser != null ? extUser.getEids() : null;
+        final String userBuyeruid = user != null ? user.getBuyeruid() : null;
+        final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(extUserEids);
         final Map<String, List<ExtUserEid>> sourceToUserEidExt = extUser != null
                 ? specialExtUserEids(extUserEids)
                 : null;
@@ -952,8 +954,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
         final String liverampId = extractLiverampId(sourceToUserEidExt);
 
-        if (userExtRp == null && userExtTpIds == null && userExtData == null && liverampId == null
-                && resolvedId == null && !hasStypeToRemove) {
+        if (userExtRp == null
+                && userExtTpIds == null
+                && userExtData == null
+                && liverampId == null
+                && resolvedId == null
+                && Objects.equals(userBuyeruid, resolvedBuyeruid)
+                && !hasStypeToRemove) {
             return user;
         }
 
@@ -975,6 +982,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return userBuilder
                 .id(ObjectUtils.defaultIfNull(resolvedId, userId))
+                .buyeruid(resolvedBuyeruid)
                 .gender(null)
                 .yob(null)
                 .geo(null)
@@ -1039,6 +1047,28 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 ? extUserEidUid
                 : ExtUserEidUid.of(extUserEidUid.getId(), extUserEidUid.getAtype(),
                 ExtUserEidUidExt.of(extUserEidUidExt.getRtiPartner(), null));
+    }
+
+    private static String resolveBuyeruidFromEids(List<ExtUserEid> eids) {
+        return CollectionUtils.emptyIfNull(eids).stream()
+                .filter(Objects::nonNull)
+                .filter(eid -> SOURCE_RUBICON.equals(eid.getSource()))
+                .map(ExtUserEid::getUids)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(RubiconBidder::validateExtUserEidUidForUserBuyeruid)
+                .map(ExtUserEidUid::getId)
+                .findFirst()
+                .orElse(null);
+
+    }
+
+    private static boolean validateExtUserEidUidForUserBuyeruid(ExtUserEidUid uid) {
+        final ExtUserEidUidExt uidExt = ObjectUtil.getIfNotNull(uid, ExtUserEidUid::getExt);
+        final String uidExtStype = ObjectUtil.getIfNotNull(uidExt, ExtUserEidUidExt::getStype);
+
+        return StringUtils.equalsAny(uidExtStype, PPUID_STYPE, OTHER_STYPE);
     }
 
     private static Map<String, List<ExtUserEid>> specialExtUserEids(List<ExtUserEid> eids) {

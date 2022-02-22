@@ -3,6 +3,7 @@ package org.prebid.server.deals.targeting.interpret;
 import lombok.EqualsAndHashCode;
 import org.prebid.server.deals.targeting.RequestContext;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,9 +17,16 @@ public class InStrings extends In<String> {
 
     @Override
     public String lookupActualValue(RequestContext context) {
-        final String actualValue = context.lookupString(category);
+        final String actualValue = ObjectUtil.firstNonNull(
+                () -> context.lookupString(category),
+                () -> lookupIntegerAsString(context));
 
         return actualValue != null ? actualValue.toLowerCase() : null;
+    }
+
+    private String lookupIntegerAsString(RequestContext context) {
+        final Integer actualValue = context.lookupInteger(category);
+        return actualValue != null ? actualValue.toString() : null;
     }
 
     private static List<String> toLowerCase(List<String> values) {

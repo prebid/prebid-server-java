@@ -31,7 +31,7 @@ public class InStringsTest {
     public void setUp() {
         // given
         category = new TargetingCategory(TargetingCategory.Type.referrer);
-        expression = new InStrings(category, asList("Munich", "Berlin", "Stuttgart"));
+        expression = new InStrings(category, asList("Munich", "Berlin", "Stuttgart", "123"));
     }
 
     @Test
@@ -69,5 +69,14 @@ public class InStringsTest {
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
+    }
+
+    @Test
+    public void matchesShouldReturnTrueWhenActualValueIsInteger() {
+        // given
+        willReturn(123).given(context).lookupInteger(any());
+
+        // when and then
+        assertThat(expression.matches(context)).isTrue();
     }
 }
