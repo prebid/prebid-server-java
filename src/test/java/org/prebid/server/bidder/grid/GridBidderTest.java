@@ -15,9 +15,13 @@ import com.iab.openrtb.response.BidResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.grid.model.response.GridBid;
-import org.prebid.server.bidder.grid.model.response.GridBidResponse;
-import org.prebid.server.bidder.grid.model.response.GridSeatBid;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.responce.GridBid;
+import org.prebid.server.bidder.grid.model.responce.GridBidResponse;
+import org.prebid.server.bidder.grid.model.responce.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -26,11 +30,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.request.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
@@ -383,12 +383,13 @@ public class GridBidderTest extends VertxTest {
     private static GridBidResponse givenBidResponse(
             UnaryOperator<GridBidResponse.GridBidResponseBuilder> gridBidResponse,
             UnaryOperator<GridBid.GridBidBuilder> bidCustomizer) {
-        return gridBidResponse.apply(
-                        GridBidResponse.builder()
-                                .cur("USD")
-                                .seatbid(singletonList(GridSeatBid.builder()
-                                        .bid(singletonList(bidCustomizer.apply(GridBid.builder()).build()))
-                                        .build())))
+
+        final GridSeatBid gridSeatBid = GridSeatBid.builder()
+                .bid(singletonList(mapper.valueToTree(bidCustomizer.apply(GridBid.builder()).build())))
+                .build();
+
+        return gridBidResponse
+                .apply(GridBidResponse.builder().cur("USD").seatbid(singletonList(gridSeatBid)))
                 .build();
     }
 

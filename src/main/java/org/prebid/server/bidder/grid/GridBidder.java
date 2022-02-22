@@ -15,14 +15,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.grid.model.response.GridBid;
-import org.prebid.server.bidder.grid.model.response.GridBidResponse;
-import org.prebid.server.bidder.grid.model.response.GridBidderBid;
-import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.grid.model.request.ExtImp;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
 import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
 import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.responce.GridBidResponse;
+import org.prebid.server.bidder.grid.model.responce.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -221,86 +219,51 @@ public class GridBidder implements Bidder<BidRequest> {
                 .map(GridSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(gridBid -> resolveGridBidderBid(gridBid, bidRequest.getImp(), gridBidResponse.getCur()))
-                .map(GridBidder::toBidderBid)
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private GridBidderBid resolveGridBidderBid(GridBid gridBid, List<Imp> imps, String currency) {
-        final GridBid modifiedGridBid = gridBid.toBuilder().ext(modifyBidExt(gridBid)).build();
-        return GridBidderBid.of(modifiedGridBid, resolveBidType(gridBid, imps), currency);
+    private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
+        try {
+            final Bid bid = mapper.mapper().treeToValue(bidNode, Bid.class);
+            final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bidNode)).build();
+
+            return BidderBid.of(modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
-    private ObjectNode modifyBidExt(GridBid gridBid) {
-        final String demandSource = ObjectUtils.defaultIfNull(gridBid.getExt(), MissingNode.getInstance())
-                .at("/bidder/grid/demandSource").textValue();
-
+    private ObjectNode modifyBidExt(ObjectNode gridBid) {
+        final String demandSource = ObjectUtils.defaultIfNull(gridBid, MissingNode.getInstance())
+                .at("/ext/bidder/grid/demandSource")
+                .textValue();
         if (StringUtils.isEmpty(demandSource)) {
             return null;
         }
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode()
-                        .set("demandsource", TextNode.valueOf(demandSource)))
+                .meta(mapper.mapper().createObjectNode().set("demandsource", TextNode.valueOf(demandSource)))
                 .build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 
-    private static BidType resolveBidType(GridBid gridBid, List<Imp> imps) {
-        final BidType contentType = gridBid.getContentType();
-        final String impId = gridBid.getImpid();
+    private static BidType resolveBidType(ObjectNode bidNode, String impId, List<Imp> imps) {
+        final BidType contentType = BidType.fromString(bidNode.at("/content_type").asText());
         if (contentType != null) {
             return contentType;
-        } else {
-            for (Imp imp : imps) {
-                if (imp.getId().equals(impId)) {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    }
-                    if (imp.getVideo() != null) {
-                        return BidType.video;
-                    }
-                    throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
+        }
+
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
                 }
+                throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));
             }
         }
         throw new PreBidException(String.format("Failed to find impression for ID: %s", impId));
     }
-
-    private static BidderBid toBidderBid(GridBidderBid gridBidderBid) {
-        return BidderBid.of(resolveBid(gridBidderBid.getBid()), gridBidderBid.getType(),
-                gridBidderBid.getBidCurrency());
-    }
-
-    private static Bid resolveBid(GridBid gridBid) {
-        return Bid.builder()
-                .id(gridBid.getId())
-                .impid(gridBid.getImpid())
-                .price(gridBid.getPrice())
-                .nurl(gridBid.getNurl())
-                .burl(gridBid.getBurl())
-                .lurl(gridBid.getLurl())
-                .adm(gridBid.getAdm())
-                .adid(gridBid.getAdid())
-                .adomain(gridBid.getAdomain())
-                .bundle(gridBid.getBundle())
-                .iurl(gridBid.getIurl())
-                .cid(gridBid.getCid())
-                .crid(gridBid.getCrid())
-                .cat(gridBid.getCat())
-                .attr(gridBid.getAttr())
-                .api(gridBid.getApi())
-                .protocol(gridBid.getProtocol())
-                .qagmediarating(gridBid.getQagmediarating())
-                .language(gridBid.getLanguage())
-                .dealid(gridBid.getDealid())
-                .w(gridBid.getW())
-                .h(gridBid.getH())
-                .wratio(gridBid.getWratio())
-                .hratio(gridBid.getHratio())
-                .exp(gridBid.getExp())
-                .ext(gridBid.getExt())
-                .build();
-    }
-
 }
