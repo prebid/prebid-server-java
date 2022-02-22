@@ -11,6 +11,10 @@ import org.prebid.server.functional.model.request.auction.AppExtData
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Bidder
+import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.GeoExt
+import org.prebid.server.functional.model.request.auction.GeoExtNetAcuity
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
@@ -48,6 +52,8 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.AD_UNIT_SIZE
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.APP_BUNDLE
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.BIDP_ACCOUNT_ID
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.DEVICE_METRO
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.DEVICE_REGION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.DOW
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.HOUR
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.INVALID
@@ -680,5 +686,37 @@ class TargetingSpec extends BasePgSpec {
                                                .addTargeting(AD_UNIT_MEDIA_TYPE, INTERSECTS, [VIDEO])
                                                .build(),
                       new Targeting.Builder(NOT).buildNotBooleanOperatorTargeting(AD_UNIT_SIZE, INTERSECTS, [LineItemSize.defaultLineItemSize])]
+    }
+
+    def "PBS should support line item targeting by device geo region, metro when request region, metro as int or str value are given"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            device = new Device(geo: new Geo(ext: new GeoExt(netAcuity: new GeoExtNetAcuity(region: requestValue,
+                    metro: requestValue))))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(DEVICE_REGION, IN, [lineItemValue])
+                                              .addTargeting(DEVICE_METRO, IN, [lineItemValue])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+        assert auctionResponse.ext.debug.pgmetrics.matchedWholeTargeting.first() == plansResponse.lineItems.first().lineItemId
+
+        where:
+        requestValue          | lineItemValue
+        stringTargetingValue  | stringTargetingValue
+        integerTargetingValue | integerTargetingValue as String
     }
 }

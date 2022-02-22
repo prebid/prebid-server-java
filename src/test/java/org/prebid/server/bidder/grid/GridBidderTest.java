@@ -83,11 +83,16 @@ public class GridBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCorrectlyModifyImpExt() {
         // given
+        final ObjectNode objectNode = jacksonMapper.mapper().createObjectNode().put("version", "2.1");
+
+        final ExtImpGridData extImpGridData = ExtImpGridData.of("pbadslot",
+                ExtImpGridDataAdServer.of("name", "adslot"));
+
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .ext(mapper.valueToTree(ExtImp.builder()
-                                .data(ExtImpGridData.of("pbadslot",
-                                        ExtImpGridDataAdServer.of("name", "adslot")))
+                                .data(extImpGridData)
+                                .skadn(objectNode)
                                 .bidder(ExtImpGrid.of(1, null))
                                 .build()))
                         .build()))
@@ -101,8 +106,8 @@ public class GridBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         final ExtImp expectedExtImp = ExtImp.builder()
-                .data(ExtImpGridData.of("pbadslot",
-                        ExtImpGridDataAdServer.of("name", "adslot")))
+                .data(extImpGridData)
+                .skadn(objectNode)
                 .bidder(ExtImpGrid.of(1, null))
                 .gpid("adslot")
                 .build();

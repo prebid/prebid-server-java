@@ -12,7 +12,12 @@
           "cid": "cid",
           "adm": "adm001",
           "h": 250,
-          "w": 300
+          "w": 300,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            }
+          }
         }
       ]
     }

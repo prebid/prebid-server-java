@@ -9,7 +9,8 @@
       },
       "ext": {
         "adf": {
-          "mid": "1"
+          "mid": "1",
+          "priceType": "net"
         }
       }
     },
@@ -21,12 +22,13 @@
             "w": 100,
             "h": 100
           }
-        ] 
+        ]
       },
       "ext": {
         "adf": {
           "inv": 1234,
-          "mname": "wallpaper"
+          "mname": "wallpaper",
+          "priceType": "gross"
         }
       }
     }
@@ -34,6 +36,11 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "someObj": {
+      "someField": "someValue"
     }
   }
 }

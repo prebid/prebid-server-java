@@ -598,22 +598,6 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
-    public void lookupStringShouldThrowExceptionWhenUnexpectedCategory() {
-        // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.LOCATION);
-        final RequestContext context = new RequestContext(
-                request(identity()),
-                imp(identity()),
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThatThrownBy(() -> context.lookupString(category))
-                .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching string value for: LOCATION");
-    }
-
-    @Test
     public void lookupIntegerShouldReturnDowFromUserExt() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOW);
@@ -715,20 +699,6 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupInteger(category)).isEqualTo(123);
-    }
-
-    @Test
-    public void lookupIntegerShouldThrowExceptionWhenUnexpectedCategory() {
-        // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
-        final RequestContext context = new RequestContext(request(identity()), imp(identity()),
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThatThrownBy(() -> context.lookupInteger(category))
-                .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching integer value for: DOMAIN");
     }
 
     @Test
@@ -969,22 +939,6 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
-    public void lookupStringsShouldThrowExceptionWhenUnexpectedCategory() {
-        // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
-        final RequestContext context = new RequestContext(
-                request(identity()),
-                imp(identity()),
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThatThrownBy(() -> context.lookupStrings(category))
-                .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching string values for: DOMAIN");
-    }
-
-    @Test
     public void lookupIntegersShouldReturnBidderParam() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.BIDDER_PARAM, "rubicon.siteId");
@@ -1087,18 +1041,6 @@ public class RequestContextTest extends VertxTest {
 
         // when and then
         assertThat(context.lookupIntegers(category)).containsOnly(123, 456);
-    }
-
-    @Test
-    public void lookupIntegersShouldThrowExceptionWhenUnexpectedCategory() {
-        // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.DOMAIN);
-        final RequestContext context = new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
-
-        // when and then
-        assertThatThrownBy(() -> context.lookupIntegers(category))
-                .isInstanceOf(TargetingSyntaxException.class)
-                .hasMessage("Unexpected category for fetching integer values for: DOMAIN");
     }
 
     @Test
