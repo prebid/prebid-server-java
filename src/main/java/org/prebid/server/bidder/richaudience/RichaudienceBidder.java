@@ -69,14 +69,14 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 validateImp(imp);
 
                 ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
-                final Imp modifyImp = modifyImp(imp, extImpRichaudience, isSecure);
+                final Imp modifiedImp = modifyImp(imp, extImpRichaudience, isSecure);
 
                 if (!isTest && BooleanUtils.isTrue(extImpRichaudience.getTest())) {
                     isTest = true;
                 }
 
                 httpRequests.add(createHttpRequest(
-                        modifyBidRequest(request, url, modifyImp, isTest)));
+                        modifyBidRequest(request, url, modifiedImp, isTest)));
             }
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -183,14 +183,14 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolvedBidType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid,
+                        resolvedBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidType resolvedBidType(String impid, List<Imp> imps) {
+    private static BidType resolvedBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (impid.equals(imp.getId())) {
+            if (impId.equals(imp.getId())) {
                 if (imp.getVideo() != null) {
                     return BidType.video;
                 }
