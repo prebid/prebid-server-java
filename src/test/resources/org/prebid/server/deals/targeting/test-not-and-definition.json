@@ -1,0 +1,28 @@
+{
+  "$not": {
+    "$and": [
+      {
+        "adunit.size": {
+          "$intersects": [
+            {
+              "w": 450,
+              "h": 250
+            },
+            {
+              "w": 400,
+              "h": 200
+            }
+          ]
+        }
+      },
+      {
+        "adunit.mediatype": {
+          "$intersects": [
+            "banner",
+            "video"
+          ]
+        }
+      }
+    ]
+  }
+}

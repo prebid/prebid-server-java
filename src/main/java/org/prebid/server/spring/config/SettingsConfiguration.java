@@ -7,6 +7,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.JacksonMapper;
@@ -49,6 +50,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@UtilityClass
 public class SettingsConfiguration {
 
     @Configuration
@@ -62,10 +64,12 @@ public class SettingsConfiguration {
                 @Value("${settings.filesystem.stored-requests-dir}") String storedRequestsDir,
                 @Value("${settings.filesystem.stored-imps-dir}") String storedImpsDir,
                 @Value("${settings.filesystem.stored-responses-dir}") String storedResponsesDir,
-                FileSystem fileSystem) {
+                @Value("${settings.filesystem.categories-dir}") String categoriesDir,
+                FileSystem fileSystem,
+                JacksonMapper jacksonMapper) {
 
             return new FileApplicationSettings(fileSystem, settingsFileName, storedRequestsDir, storedImpsDir,
-                    storedResponsesDir);
+                    storedResponsesDir, categoriesDir, jacksonMapper);
         }
     }
 
@@ -123,7 +127,7 @@ public class SettingsConfiguration {
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
             final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
-            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().setHandler(promise));
+            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().onComplete(promise));
 
             return basicJdbcClient;
         }
@@ -193,9 +197,11 @@ public class SettingsConfiguration {
                 JacksonMapper mapper,
                 @Value("${settings.http.endpoint}") String endpoint,
                 @Value("${settings.http.amp-endpoint}") String ampEndpoint,
-                @Value("${settings.http.video-endpoint}") String videoEndpoint) {
+                @Value("${settings.http.video-endpoint}") String videoEndpoint,
+                @Value("${settings.http.category-endpoint}") String categoryEndpoint) {
 
-            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint);
+            return new HttpApplicationSettings(httpClient, mapper, endpoint, ampEndpoint, videoEndpoint,
+                    categoryEndpoint);
         }
     }
 
@@ -319,8 +325,8 @@ public class SettingsConfiguration {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                            jdbcApplicationSettings,
-                            httpApplicationSettings)
+                                    jdbcApplicationSettings,
+                                    httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 

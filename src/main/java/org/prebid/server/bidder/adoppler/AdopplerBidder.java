@@ -37,13 +37,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Adoppler {@link Bidder} implementation.
- */
 public class AdopplerBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdoppler>> ADOPPLER_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdoppler>>() {
+            new TypeReference<>() {
             };
     private static final String DEFAULT_CLIENT = "app";
 
@@ -106,13 +103,12 @@ public class AdopplerBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
-        final String body = mapper.encode(outgoingRequest);
         final MultiMap headers = HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .headers(headers)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

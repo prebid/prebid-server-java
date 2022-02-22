@@ -29,13 +29,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Onetag {@link Bidder} implementation.
- */
 public class OnetagBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpOnetag>> ONETAG_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpOnetag>>() {
+            new TypeReference<>() {
             };
     private static final String URL_PUBLISHER_ID_MACRO = "{{publisherId}}";
 
@@ -92,7 +89,7 @@ public class OnetagBidder implements Bidder<BidRequest> {
                 .uri(url)
                 .headers(HttpUtil.headers())
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

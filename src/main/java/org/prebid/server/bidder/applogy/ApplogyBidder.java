@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class ApplogyBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpApplogy>> APPLOGY_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpApplogy>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -68,13 +68,11 @@ public class ApplogyBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request, String url) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        final String body = mapper.encode(outgoingRequest);
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .headers(HttpUtil.headers())
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

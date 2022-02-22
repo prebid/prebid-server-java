@@ -31,13 +31,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Inmobi {@link Bidder} implementation.
- */
 public class InmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpInmobi>> INMOBI_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpInmobi>>() {
+            new TypeReference<>() {
             };
     private static final int FIRST_IMP_INDEX = 0;
 
@@ -72,13 +69,13 @@ public class InmobiBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .build()),
                 errors);
     }
 
@@ -131,8 +128,13 @@ public class InmobiBidder implements Bidder<BidRequest> {
 
     private static BidType getBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getVideo() != null) {
-                return BidType.video;
+            if (imp.getId().equals(impId)) {
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
             }
         }
         return BidType.banner;

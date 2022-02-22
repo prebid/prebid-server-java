@@ -26,6 +26,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.beintoo.ExtImpBeintoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 public class BeintooBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeintoo>> BEINTOO_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBeintoo>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -58,14 +59,13 @@ public class BeintooBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        final String body = mapper.encode(updatedBidRequest);
         final MultiMap headers = makeHeaders(request);
 
         return Result.of(Collections.singletonList(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .body(body)
+                        .body(mapper.encodeToBytes(updatedBidRequest))
                         .headers(headers)
                         .payload(request)
                         .build()), Collections.emptyList());
@@ -123,7 +123,7 @@ public class BeintooBidder implements Bidder<BidRequest> {
 
         final String stringBidfloor = extImpBeintoo.getBidFloor();
         final BigDecimal bidfloor = StringUtils.isBlank(stringBidfloor) ? null : new BigDecimal(stringBidfloor);
-        return (bidfloor != null ? bidfloor.compareTo(BigDecimal.ZERO) : 0) > 0
+        return BidderUtil.isValidPrice(bidfloor)
                 ? impBuilder.bidfloor(bidfloor).build()
                 : impBuilder.build();
     }

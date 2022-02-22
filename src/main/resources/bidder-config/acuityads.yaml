@@ -1,12 +1,6 @@
 adapters:
   acuityads:
-    enabled: false
     endpoint: http://{{Host}}.admanmedia.com/bid?token={{AccountID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: integrations@acuityads.com
       app-media-types:

@@ -30,13 +30,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Between {@link Bidder} implementation.
- */
 public class SmartyAdsBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartyAds>> SMARTYADS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmartyAds>>() {
+            new TypeReference<>() {
             };
     private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
@@ -73,7 +70,7 @@ public class SmartyAdsBidder implements Bidder<BidRequest> {
                         .uri(resolveUrl(extImpSmartyAds))
                         .headers(resolveHeaders(request.getDevice()))
                         .payload(outgoingRequest)
-                        .body(mapper.encode(outgoingRequest))
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .build()));
     }
 

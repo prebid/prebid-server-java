@@ -205,7 +205,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @SuppressWarnings("unchecked")
-    private <T> void givenWrappedGeoLocationReturning(Future... results) {
+    private <T> void givenWrappedGeoLocationReturning(Future<T>... results) {
         BDDMockito.BDDMyOngoingStubbing<Future<GeoInfo>> given =
                 given(wrappedGeoLocationService.lookup(any(), any()));
         for (Future<T> result : results) {
@@ -217,7 +217,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         final Async async = context.async();
 
         final Future<GeoInfo> future = geoLocationService.lookup(null, null);
-        future.setHandler(ar -> async.complete());
+        future.onComplete(ar -> async.complete());
 
         async.await();
         return future;

@@ -17,29 +17,6 @@
             },
             "origbidcpm": 1.25
           }
-        },
-        {
-          "id": "bid_id2",
-          "impid": "imp_id2",
-          "price": 2.25,
-          "adm": "adm002",
-          "adid": "29681110",
-          "adomain": [
-            "video-example.com"
-          ],
-          "cid": "1001",
-          "crid": "crid002",
-          "cat": [
-            "IAB2"
-          ],
-          "w": 640,
-          "h": 480,
-          "ext": {
-            "prebid": {
-              "type": "video"
-            },
-            "origbidcpm": 2.25
-          }
         }
       ],
       "seat": "adman",

@@ -152,7 +152,6 @@ public class GammaBidderTest extends VertxTest {
                         tuple("Accept", "*/*"),
                         tuple("Connection", "keep-alive"),
                         tuple("Cache-Control", "no-cache"),
-                        tuple("Accept-Encoding", "gzip, deflate"),
                         tuple("x-openrtb-version", "2.5"));
     }
 
@@ -197,7 +196,6 @@ public class GammaBidderTest extends VertxTest {
                         tuple("Accept", "*/*"),
                         tuple("Connection", "keep-alive"),
                         tuple("Cache-Control", "no-cache"),
-                        tuple("Accept-Encoding", "gzip, deflate"),
                         tuple("User-Agent", "userAgent"),
                         tuple("x-openrtb-version", "2.5"),
                         tuple("X-Forwarded-For", "123.123.123.12"),

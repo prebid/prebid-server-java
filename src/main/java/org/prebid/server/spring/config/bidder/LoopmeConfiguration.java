@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -23,17 +21,6 @@ public class LoopmeConfiguration {
 
     private static final String BIDDER_NAME = "loopme";
 
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("loopmeConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
-
     @Bean("loopmeConfigurationProperties")
     @ConfigurationProperties("adapters.loopme")
     BidderConfigurationProperties configurationProperties() {
@@ -41,11 +28,14 @@ public class LoopmeConfiguration {
     }
 
     @Bean
-    BidderDeps loopmeBidderDeps() {
+    BidderDeps loopmeBidderDeps(BidderConfigurationProperties loopmeConfigurationProperties,
+                                @NotBlank @Value("${external-url}") String externalUrl,
+                                JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(loopmeConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new LoopmeBidder(configProperties.getEndpoint(), mapper))
+                .bidderCreator(config -> new LoopmeBidder(loopmeConfigurationProperties.getEndpoint(), mapper))
                 .assemble();
     }
 }

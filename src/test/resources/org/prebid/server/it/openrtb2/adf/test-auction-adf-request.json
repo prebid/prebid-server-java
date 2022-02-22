@@ -9,7 +9,26 @@
       },
       "ext": {
         "adf": {
-          "mid": "1"
+          "mid": "1",
+          "priceType": "net"
+        }
+      }
+    },
+    {
+      "id": "imp_id_banner",
+      "banner": {
+        "format": [
+          {
+            "w": 100,
+            "h": 100
+          }
+        ]
+      },
+      "ext": {
+        "adf": {
+          "inv": 1234,
+          "mname": "wallpaper",
+          "priceType": "gross"
         }
       }
     }
@@ -17,6 +36,11 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "someObj": {
+      "someField": "someValue"
     }
   }
 }

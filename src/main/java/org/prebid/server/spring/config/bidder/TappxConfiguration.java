@@ -7,8 +7,6 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,23 +14,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 import javax.validation.constraints.NotBlank;
+import java.time.Clock;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/tappx.yaml", factory = YamlPropertySourceFactory.class)
 public class TappxConfiguration {
 
     private static final String BIDDER_NAME = "tappx";
-
-    @Value("${external-url}")
-    @NotBlank
-    private String externalUrl;
-
-    @Autowired
-    private JacksonMapper mapper;
-
-    @Autowired
-    @Qualifier("tappxConfigurationProperties")
-    private BidderConfigurationProperties configProperties;
 
     @Bean("tappxConfigurationProperties")
     @ConfigurationProperties("adapters.tappx")
@@ -41,11 +29,15 @@ public class TappxConfiguration {
     }
 
     @Bean
-    BidderDeps tappxBidderDeps() {
+    BidderDeps tappxBidderDeps(BidderConfigurationProperties tappxConfigurationProperties,
+                               @NotBlank @Value("${external-url}") String externalUrl,
+                               Clock clock,
+                               JacksonMapper mapper) {
+
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(configProperties)
+                .withConfig(tappxConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new TappxBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new TappxBidder(config.getEndpoint(), clock, mapper))
                 .assemble();
     }
 }

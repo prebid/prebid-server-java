@@ -37,13 +37,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * AdkernelAdn {@link Bidder} implementation.
- */
 public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>>() {
+            new TypeReference<>() {
             };
     private static final String DEFAULT_DOMAIN = "tag.adkernel.com";
     private static final String URL_HOST_MACRO = "{{Host}}";
@@ -178,11 +175,10 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequest(ExtImpAdkernelAdn extImp, List<Imp> imps, BidRequest preBidRequest) {
         final BidRequest outgoingRequest = createBidRequest(preBidRequest, imps);
-        final String body = mapper.encode(outgoingRequest);
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(buildEndpoint(extImp))
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(headers())
                 .payload(outgoingRequest)
                 .build();

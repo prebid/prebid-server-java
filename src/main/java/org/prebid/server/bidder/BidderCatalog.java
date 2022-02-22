@@ -1,7 +1,5 @@
 package org.prebid.server.bidder;
 
-import org.prebid.server.proto.response.BidderInfo;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,6 +103,13 @@ public class BidderCatalog {
      */
     public boolean isActive(String name) {
         return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isEnabled();
+    }
+
+    /**
+     * Tells if given bidder allows debug.
+     */
+    public boolean isDebugAllowed(String name) {
+        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isDebugAllowed();
     }
 
     /**

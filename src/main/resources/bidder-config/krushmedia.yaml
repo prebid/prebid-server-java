@@ -1,12 +1,6 @@
 adapters:
   krushmedia:
-    enabled: false
     endpoint: http://ads4.krushmedia.com/?c=rtb&m=req&key={{AccountID}}
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: adapter@krushmedia.com
       app-media-types:

@@ -7,16 +7,15 @@
           "adm": "<div style=\"cursor:pointer\" onclick=\"fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F1'.replace(/\\+/g, ' ')), {cache: 'no-cache'});fetch(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fclick%2F2'.replace(/\\+/g, ' ')), {cache: 'no-cache'});;window.open(decodeURIComponent('%2F%2Fprebid-test.smaatolabs.net%2Ftrack%2Fctaurl%2F1'.replace(/\\+/g, ' ')));\"><img src=\"//prebid-test.smaatolabs.net/img/320x50.jpg\" width=\"350\" height=\"50\"/><img src=\"//prebid-test.smaatolabs.net/track/imp/1\" alt=\"\" width=\"0\" height=\"0\"/><img src=\"//prebid-test.smaatolabs.net/track/imp/2\" alt=\"\" width=\"0\" height=\"0\"/></div>",
           "cid": "cid",
           "crid": "crid",
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.01,
           "ext": {
-            "format": "BANNER",
             "prebid": {
               "type": "banner"
             },
             "origbidcpm": 0.01
-          },
-          "id": "bid_id",
-          "impid": "imp_id",
-          "price": 0.01
+          }
         }
       ],
       "group": 0,

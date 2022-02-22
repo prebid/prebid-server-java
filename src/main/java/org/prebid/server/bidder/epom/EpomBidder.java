@@ -26,9 +26,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Epom {@link Bidder} implementation.
- */
 public class EpomBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -52,7 +49,7 @@ public class EpomBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

@@ -2,6 +2,7 @@ package org.prebid.server.analytics.model;
 
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 
 /**
@@ -17,13 +18,15 @@ public class NotificationEvent {
 
     Account account;
 
+    String lineItemId;
+
     String bidder;
 
     Long timestamp;
 
     String integration;
 
-    HttpContext httpContext;
+    HttpRequestContext httpContext;
 
     public enum Type {
         win, imp

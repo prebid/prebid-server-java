@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class FullEnforcePurposeStrategyTest {
 
@@ -117,7 +117,7 @@ public class FullEnforcePurposeStrategyTest {
                 Arrays.asList(excludedNotMentionedPermission, excludedNotAllowedPermission), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission3);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission3);
     }
 
     @Test
@@ -163,8 +163,9 @@ public class FullEnforcePurposeStrategyTest {
                 Arrays.asList(excludedNotMentionedPermission, excludedNotAllowedPermission), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission3,
-                vendorPermission5);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission3, vendorPermission5);
     }
 
     // GVL Purpose part
@@ -188,7 +189,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
     }
@@ -214,7 +215,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
     }
@@ -242,7 +243,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesConsent);
+        verifyNoInteractions(purposesConsent);
     }
 
     @Test
@@ -267,7 +268,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     @Test
@@ -290,7 +291,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
         verify(allowedVendors).contains(1);
@@ -319,7 +320,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     // GVL Legitimate interest Purpose part
@@ -343,7 +344,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
     }
@@ -369,7 +370,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
     }
@@ -398,7 +399,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     @Test
@@ -421,7 +422,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
         verify(allowedVendorsLI).contains(1);
@@ -451,7 +452,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(allowedVendors);
+        verifyNoInteractions(allowedVendors);
     }
 
     // Flexible GVL Purpose part
@@ -479,7 +480,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
     }
@@ -506,7 +507,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
         verify(allowedVendors).contains(1);
@@ -535,7 +536,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     @Test
@@ -562,8 +563,8 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesLI);
-        verifyZeroInteractions(allowedVendorsLI);
+        verifyNoInteractions(purposesLI);
+        verifyNoInteractions(allowedVendorsLI);
     }
 
     @Test
@@ -643,7 +644,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesConsent);
+        verifyNoInteractions(purposesConsent);
     }
 
     @Test
@@ -670,8 +671,8 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesConsent);
-        verifyZeroInteractions(allowedVendors);
+        verifyNoInteractions(purposesConsent);
+        verifyNoInteractions(allowedVendors);
     }
 
     @Test
@@ -695,7 +696,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
     }
@@ -722,7 +723,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
         verify(allowedVendorsLI).contains(1);
@@ -753,7 +754,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(allowedVendorsLI).contains(1);
-        verifyZeroInteractions(purposesConsent);
+        verifyNoInteractions(purposesConsent);
     }
 
     @Test
@@ -781,7 +782,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(allowedVendors);
+        verifyNoInteractions(allowedVendors);
     }
 
     // Flexible GVL Purpose Legitimate interest part
@@ -809,7 +810,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
     }
@@ -836,7 +837,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
         verify(allowedVendors).contains(1);
@@ -865,7 +866,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     @Test
@@ -892,8 +893,8 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesLI);
-        verifyZeroInteractions(allowedVendorsLI);
+        verifyNoInteractions(purposesLI);
+        verifyNoInteractions(allowedVendorsLI);
     }
 
     @Test
@@ -921,7 +922,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesConsent).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(allowedVendorsLI);
+        verifyNoInteractions(allowedVendorsLI);
     }
 
     @Test
@@ -949,7 +950,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(allowedVendors).contains(PURPOSE_CODE.code());
-        verifyZeroInteractions(purposesLI);
+        verifyNoInteractions(purposesLI);
     }
 
     // Restriction type is REQUIRE_LEGITIMATE_INTEREST part
@@ -977,7 +978,7 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesConsent);
+        verifyNoInteractions(purposesConsent);
     }
 
     @Test
@@ -1004,8 +1005,8 @@ public class FullEnforcePurposeStrategyTest {
         // then
         assertThat(result).isEmpty();
 
-        verifyZeroInteractions(purposesConsent);
-        verifyZeroInteractions(allowedVendors);
+        verifyNoInteractions(purposesConsent);
+        verifyNoInteractions(allowedVendors);
     }
 
     @Test
@@ -1029,7 +1030,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
     }
@@ -1056,7 +1057,7 @@ public class FullEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
 
         verify(purposesLI).contains(PURPOSE_CODE.code());
         verify(allowedVendorsLI).contains(1);
@@ -1087,7 +1088,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(allowedVendorsLI).contains(1);
-        verifyZeroInteractions(purposesConsent);
+        verifyNoInteractions(purposesConsent);
     }
 
     @Test
@@ -1115,7 +1116,7 @@ public class FullEnforcePurposeStrategyTest {
         assertThat(result).isEmpty();
 
         verify(purposesLI).contains(1);
-        verifyZeroInteractions(allowedVendors);
+        verifyNoInteractions(allowedVendors);
     }
 
     @Test
@@ -1133,7 +1134,7 @@ public class FullEnforcePurposeStrategyTest {
                 singleton(vendorPermissionWitGvl1), singleton(vendorPermissionWitGvl2), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 
     private void setRestriction(RestrictionType requireConsent) {

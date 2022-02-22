@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -22,6 +23,8 @@ public class MarsmediaTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromMarsmedia() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/marsmedia-exchange"))
+                .withQueryParam("param", equalTo("testParam"))
+                .withQueryParam("zone", equalTo("999"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/marsmedia/test-marsmedia-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/marsmedia/test-marsmedia-bid-response.json"))));
 

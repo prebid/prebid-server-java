@@ -180,7 +180,7 @@ public class BasicEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission);
     }
 
     @Test
@@ -245,7 +245,9 @@ public class BasicEnforcePurposeStrategyTest {
                 vendorPermissionWithGvls, emptyList(), false);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
     }
 
     @Test
@@ -263,6 +265,6 @@ public class BasicEnforcePurposeStrategyTest {
                 singleton(vendorPermissionWitGvl1), singleton(vendorPermissionWitGvl2), true);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission2);
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission2);
     }
 }

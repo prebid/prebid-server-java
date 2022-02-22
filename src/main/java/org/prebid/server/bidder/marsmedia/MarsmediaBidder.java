@@ -33,13 +33,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Marsmedia {@link Bidder} implementation.
- */
 public class MarsmediaBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMarsmedia>> MARSMEDIA_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMarsmedia>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -64,13 +61,11 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         final String uri = String.format("%s%s%s", endpointUrl, "&zone=", firstImpZone);
         final MultiMap headers = resolveHeaders(bidRequest.getDevice());
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.withValue(HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(uri)
                 .headers(headers)
-                .body(body)
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build());
     }
@@ -83,9 +78,9 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("ext.bidder not provided");
         }
 
-        final String zoneId = extImpMarsmedia.getZone();
+        final String zoneId = extImpMarsmedia.getZoneId();
         if (StringUtils.isBlank(zoneId)) {
-            throw new PreBidException("Zone is empty");
+            throw new PreBidException("ZoneId is empty");
         }
 
         return zoneId;

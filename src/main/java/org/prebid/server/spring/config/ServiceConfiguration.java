@@ -9,6 +9,7 @@ import io.vertx.core.net.JksOptions;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
+import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -23,6 +24,9 @@ import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
+import org.prebid.server.auction.categorymapping.CategoryMappingService;
+import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -38,14 +42,20 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsPopulator;
+import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.CriteriaLogManager;
+import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
@@ -54,8 +64,8 @@ import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
-import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
+import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.validation.BidderParamValidator;
@@ -63,6 +73,7 @@ import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vast.VastModifier;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.http.BasicHttpClient;
 import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
 import org.prebid.server.vertx.http.HttpClient;
@@ -97,6 +108,7 @@ public class ServiceConfiguration {
             @Value("${cache.query}") String query,
             @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
             @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
+            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             VastModifier vastModifier,
             EventsService eventsService,
             HttpClient httpClient,
@@ -109,16 +121,36 @@ public class ServiceConfiguration {
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                expectedCacheTimeMs,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
+                new UUIDIdGenerator(),
                 mapper);
     }
 
     @Bean
     VastModifier vastModifier(BidderCatalog bidderCatalog, EventsService eventsService, Metrics metrics) {
         return new VastModifier(bidderCatalog, eventsService, metrics);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "auction", name = "category-mapping-enabled", havingValue = "true")
+    CategoryMappingService basicCategoryMappingService(ApplicationSettings applicationSettings,
+                                                       JacksonMapper jacksonMapper) {
+
+        return new BasicCategoryMappingService(applicationSettings, jacksonMapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "auction",
+            name = "category-mapping-enabled",
+            matchIfMissing = true,
+            havingValue = "false")
+    CategoryMappingService noOpCategoryMappingService() {
+        return new NoOpCategoryMappingService();
     }
 
     @Bean
@@ -155,15 +187,6 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    TimeoutResolver timeoutResolver(
-            @Value("${default-timeout-ms}") long defaultTimeout,
-            @Value("${max-timeout-ms}") long maxTimeout,
-            @Value("${timeout-adjustment-ms}") long timeoutAdjustment) {
-
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
-    }
-
-    @Bean
     TimeoutResolver auctionTimeoutResolver(
             @Value("${auction.default-timeout-ms}") long defaultTimeout,
             @Value("${auction.max-timeout-ms}") long maxTimeout,
@@ -173,12 +196,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    TimeoutResolver ampTimeoutResolver(
-            @Value("${amp.default-timeout-ms}") long defaultTimeout,
-            @Value("${amp.max-timeout-ms}") long maxTimeout,
-            @Value("${amp.timeout-adjustment-ms}") long timeoutAdjustment) {
-
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+    DebugResolver debugResolver(@Value("${debug.override-token:#{null}}") String debugOverrideToken,
+                                BidderCatalog bidderCatalog) {
+        return new DebugResolver(bidderCatalog, debugOverrideToken);
     }
 
     @Bean
@@ -189,6 +209,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
+            JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
         final List<String> blacklistedApps = splitToList(blacklistedAppsString);
@@ -200,6 +221,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
+                jsonMerger,
                 mapper);
     }
 
@@ -209,12 +231,15 @@ public class ServiceConfiguration {
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             RequestValidator requestValidator,
-            TimeoutResolver timeoutResolver,
+            TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
             StoredRequestProcessor storedRequestProcessor,
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
-            HookStageExecutor hookStageExecutor) {
+            HookStageExecutor hookStageExecutor,
+            @Autowired(required = false) DealsPopulator dealsPopulator,
+            CountryCodeMapper countryCodeMapper,
+            Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
@@ -223,12 +248,15 @@ public class ServiceConfiguration {
                 blacklistedAccounts,
                 uidsCookieService,
                 requestValidator,
-                timeoutResolver,
+                auctionTimeoutResolver,
                 timeoutFactory,
                 storedRequestProcessor,
                 applicationSettings,
                 ipAddressHelper,
-                hookStageExecutor);
+                hookStageExecutor,
+                dealsPopulator,
+                countryCodeMapper,
+                clock);
     }
 
     @Bean
@@ -240,7 +268,8 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver timeoutResolver,
+            TimeoutResolver auctionTimeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new AuctionRequestFactory(
@@ -252,7 +281,8 @@ public class ServiceConfiguration {
                 new InterstitialProcessor(),
                 ortbTypesResolver,
                 privacyEnforcementService,
-                timeoutResolver,
+                auctionTimeoutResolver,
+                debugResolver,
                 mapper);
     }
 
@@ -278,7 +308,8 @@ public class ServiceConfiguration {
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
                                         PrivacyEnforcementService privacyEnforcementService,
-                                        TimeoutResolver timeoutResolver,
+                                        TimeoutResolver auctionTimeoutResolver,
+                                        DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
@@ -289,7 +320,8 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
                 privacyEnforcementService,
-                timeoutResolver,
+                auctionTimeoutResolver,
+                debugResolver,
                 mapper);
     }
 
@@ -297,27 +329,31 @@ public class ServiceConfiguration {
     VideoRequestFactory videoRequestFactory(
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
+            @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
             VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver timeoutResolver,
+            TimeoutResolver auctionTimeoutResolver,
+            DebugResolver debugResolver,
             JacksonMapper mapper) {
 
         return new VideoRequestFactory(
                 maxRequestSize,
                 enforceStoredRequest,
+                escapeLogCacheRegex,
                 ortb2RequestFactory,
                 ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
                 privacyEnforcementService,
-                timeoutResolver,
+                auctionTimeoutResolver,
+                debugResolver,
                 mapper);
     }
 
     @Bean
     VideoResponseFactory videoResponseFactory(JacksonMapper mapper) {
-        return new VideoResponseFactory(mapper);
+        return new VideoResponseFactory(new UUIDIdGenerator(), mapper);
     }
 
     @Bean
@@ -332,11 +368,11 @@ public class ServiceConfiguration {
             VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            TimeoutResolver timeoutResolver,
+            TimeoutResolver auctionTimeoutResolver,
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
-        return VideoStoredRequestProcessor.create(
+        return new VideoStoredRequestProcessor(
                 enforceStoredRequest,
                 splitToList(blacklistedAccountsString),
                 defaultTimeoutMs,
@@ -347,7 +383,7 @@ public class ServiceConfiguration {
                 videoRequestValidator,
                 metrics,
                 timeoutFactory,
-                timeoutResolver,
+                auctionTimeoutResolver,
                 mapper,
                 jsonMerger);
     }
@@ -384,8 +420,8 @@ public class ServiceConfiguration {
     @Bean
     @ConfigurationProperties(prefix = "http-client.circuit-breaker")
     @ConditionalOnProperty(prefix = "http-client.circuit-breaker", name = "enabled", havingValue = "true")
-    CircuitBreakerProperties httpClientCircuitBreakerProperties() {
-        return new CircuitBreakerProperties();
+    HttpClientCircuitBreakerProperties httpClientCircuitBreakerProperties() {
+        return new HttpClientCircuitBreakerProperties();
     }
 
     @Bean
@@ -395,14 +431,21 @@ public class ServiceConfiguration {
             Vertx vertx,
             Metrics metrics,
             HttpClientProperties httpClientProperties,
-            @Qualifier("httpClientCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties,
+            @Qualifier("httpClientCircuitBreakerProperties")
+                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
 
-        return new CircuitBreakerSecuredHttpClient(vertx, httpClient, metrics,
-                circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(), clock);
+        return new CircuitBreakerSecuredHttpClient(
+                vertx,
+                httpClient,
+                metrics,
+                circuitBreakerProperties.getOpeningThreshold(),
+                circuitBreakerProperties.getOpeningIntervalMs(),
+                circuitBreakerProperties.getClosingIntervalMs(),
+                circuitBreakerProperties.getIdleExpireHours(),
+                clock);
     }
 
     private static BasicHttpClient createBasicHttpClient(Vertx vertx, HttpClientProperties httpClientProperties) {
@@ -467,18 +510,24 @@ public class ServiceConfiguration {
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
             BidderErrorNotifier bidderErrorNotifier,
-            HttpBidderRequestEnricher requestEnricher) {
+            HttpBidderRequestEnricher requestEnricher,
+            JacksonMapper mapper) {
 
         return new HttpBidderRequester(httpClient,
                 bidderRequestCompletionTrackerFactory,
                 bidderErrorNotifier,
-                requestEnricher);
+                requestEnricher,
+                mapper);
     }
 
     @Bean
-    HttpBidderRequestEnricher httpBidderRequestEnricher(VersionInfo versionInfo) {
+    PrebidVersionProvider prebidVersionProvider(VersionInfo versionInfo) {
+        return new PrebidVersionProvider(versionInfo.getVersion());
+    }
 
-        return new HttpBidderRequestEnricher(versionInfo.getVersion());
+    @Bean
+    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
+        return new HttpBidderRequestEnricher(prebidVersionProvider);
     }
 
     @Bean
@@ -509,6 +558,7 @@ public class ServiceConfiguration {
             WinningBidComparatorFactory winningBidComparatorFactory,
             IdGenerator bidIdGenerator,
             HookStageExecutor hookStageExecutor,
+            CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
             JacksonMapper mapper) {
@@ -522,6 +572,7 @@ public class ServiceConfiguration {
                 winningBidComparatorFactory,
                 bidIdGenerator,
                 hookStageExecutor,
+                categoryMappingService,
                 truncateAttrChars,
                 clock,
                 mapper);
@@ -532,35 +583,45 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
+            DealsProcessor dealsProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
+            DebugResolver debugResolver,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
             BidResponseCreator bidResponseCreator,
             BidResponsePostProcessor bidResponsePostProcessor,
             HookStageExecutor hookStageExecutor,
+            @Autowired(required = false) ApplicationEventService applicationEventService,
+            HttpInteractionLogger httpInteractionLogger,
             Metrics metrics,
             Clock clock,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            CriteriaLogManager criteriaLogManager) {
 
         return new ExchangeService(
                 expectedCacheTimeMs,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
+                debugResolver,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
                 bidResponseCreator,
                 bidResponsePostProcessor,
                 hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
                 metrics,
                 clock,
-                mapper);
+                mapper,
+                criteriaLogManager);
     }
 
     @Bean
@@ -575,7 +636,7 @@ public class ServiceConfiguration {
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
-        return StoredRequestProcessor.create(
+        return new StoredRequestProcessor(
                 defaultTimeoutMs,
                 defaultBidRequestPath,
                 generateBidRequestId,
@@ -608,6 +669,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
+            CountryCodeMapper countryCodeMapper,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
@@ -618,6 +680,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 metrics,
+                countryCodeMapper,
                 ccpaEnforce,
                 lmtEnforce);
     }
@@ -649,9 +712,22 @@ public class ServiceConfiguration {
     ResponseBidValidator responseValidator(
             @Value("${auction.validations.banner-creative-max-size}") BidValidationEnforcement bannerMaxSizeEnforcement,
             @Value("${auction.validations.secure-markup}") BidValidationEnforcement secureMarkupEnforcement,
-            Metrics metrics) {
+            Metrics metrics,
+            JacksonMapper mapper,
+            @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics);
+        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
+                dealsEnabled);
+    }
+
+    @Bean
+    CriteriaLogManager criteriaLogManager(JacksonMapper mapper) {
+        return new CriteriaLogManager(mapper);
+    }
+
+    @Bean
+    CriteriaManager criteriaManager(CriteriaLogManager criteriaLogManager, Vertx vertx) {
+        return new CriteriaManager(criteriaLogManager, vertx);
     }
 
     @Bean

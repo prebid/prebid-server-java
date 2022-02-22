@@ -9,7 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.proto.openrtb.ext.request.adform.ExtImpAdform;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
@@ -18,9 +18,7 @@ import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
 import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
-import org.prebid.server.proto.openrtb.ext.request.somoaudience.ExtImpSomoaudience;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
-import org.prebid.server.proto.response.BidderInfo;
 import org.prebid.server.util.ResourceUtil;
 
 import java.io.IOException;
@@ -41,14 +39,12 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String ADFORM = "adform";
     private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String OPENX = "openx";
     private static final String EPLANNING = "eplanning";
-    private static final String SOMOAUDIENCE = "somoaudience";
     private static final String BEACHFRONT = "beachfront";
 
     @Rule
@@ -65,14 +61,12 @@ public class BidderParamValidatorTest extends VertxTest {
                 RUBICON,
                 APPNEXUS,
                 APPNEXUS_ALIAS,
-                ADFORM,
                 BRIGHTROLL,
                 SOVRN,
                 ADTELLIGENT,
                 FACEBOOK,
                 OPENX,
                 EPLANNING,
-                SOMOAUDIENCE,
                 BEACHFRONT)));
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(givenBidderInfo());
         given(bidderCatalog.bidderInfoByName(eq(APPNEXUS_ALIAS))).willReturn(givenBidderInfo(APPNEXUS));
@@ -180,32 +174,6 @@ public class BidderParamValidatorTest extends VertxTest {
 
         // then
         assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldNotReturnValidationMessagesWhenAdformImpExtIsOk() {
-        // given
-        final ExtImpAdform ext = ExtImpAdform.of(15L, "gross", null, null, null, null, null);
-
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenAdformImpExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(ADFORM, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
     }
 
     @Test
@@ -373,32 +341,6 @@ public class BidderParamValidatorTest extends VertxTest {
         assertThat(messages.size()).isEqualTo(1);
     }
 
-    @Test
-    public void validateShouldNotReturnValidationMessagesWhenSomoaudienceImpExtIsOk() {
-        // given
-        final ExtImpSomoaudience ext = ExtImpSomoaudience.of("placementId", BigDecimal.valueOf(1.11));
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(SOMOAUDIENCE, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenSomoaudienceExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(SOMOAUDIENCE, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
-    }
-
-    @Test
     public void validateShouldNotReturnValidationMessagesWhenBeachfrontImpExtIsOk() {
         // given
         final ExtImpBeachfront ext = ExtImpBeachfront.of("appId", null, BigDecimal.ONE, "adm");
@@ -442,6 +384,7 @@ public class BidderParamValidatorTest extends VertxTest {
     private static BidderInfo givenBidderInfo(String aliasOf) {
         return BidderInfo.create(
                 true,
+                true,
                 "https://endpoint.com",
                 aliasOf,
                 null,
@@ -449,7 +392,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 null,
                 null,
                 0,
-                true,
                 true,
                 false);
     }

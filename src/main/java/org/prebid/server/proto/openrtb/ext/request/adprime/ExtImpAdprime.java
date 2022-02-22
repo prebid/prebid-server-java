@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
+import java.util.List;
+
 /**
  * Defines the contract for bidRequest.imp[i].ext.adprime
  */
@@ -13,4 +15,8 @@ public class ExtImpAdprime {
 
     @JsonProperty("TagID")
     String tagId;
+
+    List<String> keywords;
+
+    List<String> audiences;
 }

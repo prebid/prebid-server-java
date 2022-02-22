@@ -6,11 +6,26 @@
   "properties": {
     "sid": {
       "type": "string",
-      "description": "Your Sid"
+      "description": "Your Sid",
+      "minLength": 1
     },
     "token": {
       "type": "string",
-      "description": "Your Token"
+      "description": "Your Token",
+      "minLength": 1
+    },
+    "placementId": {
+      "type": "string",
+      "description": "An ID which identifies this placement of the impression"
+    },
+    "appId": {
+      "type": "string",
+      "description": "An ID which identifies this app of the impression"
+    },
+    "region": {
+      "type": "string",
+      "enum": ["APAC", "USE"],
+      "description": "Server region for PBS request, null for global, APAC for SG Region, US for USE Region"
     }
   },
   "required": ["sid", "token"]

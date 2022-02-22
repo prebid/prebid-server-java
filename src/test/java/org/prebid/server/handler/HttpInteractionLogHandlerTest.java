@@ -17,7 +17,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class HttpInteractionLogHandlerTest {
 
@@ -52,13 +52,14 @@ public class HttpInteractionLogHandlerTest {
                 .add("endpoint", "auction")
                 .add("statusCode", "400")
                 .add("account", "123")
+                .add("bidder", "ix")
                 .add("limit", "2"));
 
         // when
         handler.handle(routingContext);
 
         // then
-        verify(httpInteractionLogger).setSpec(HttpLogSpec.of(HttpLogSpec.Endpoint.auction, 400, "123", 2));
+        verify(httpInteractionLogger).setSpec(HttpLogSpec.of(HttpLogSpec.Endpoint.auction, 400, "123", "ix", 2));
     }
 
     @Test
@@ -71,7 +72,7 @@ public class HttpInteractionLogHandlerTest {
         handler.handle(routingContext);
 
         // then
-        verify(httpInteractionLogger).setSpec(eq(HttpLogSpec.of(null, null, null, 2)));
+        verify(httpInteractionLogger).setSpec(eq(HttpLogSpec.of(null, null, null, null, 2)));
     }
 
     @Test
@@ -88,7 +89,7 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid 'endpoint' parameter value, allowed values '[auction, amp]'"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 
     @Test
@@ -105,7 +106,7 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid 'statusCode' parameter value"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 
     @Test
@@ -122,7 +123,7 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Parameter 'statusCode' must be between 200 and 500"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 
     @Test
@@ -137,7 +138,7 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Missing required parameter 'limit'"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 
     @Test
@@ -153,7 +154,7 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid 'limit' parameter value"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 
     @Test
@@ -169,6 +170,6 @@ public class HttpInteractionLogHandlerTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Parameter 'limit' must be between 0 and 5"));
 
-        verifyZeroInteractions(httpInteractionLogger);
+        verifyNoInteractions(httpInteractionLogger);
     }
 }

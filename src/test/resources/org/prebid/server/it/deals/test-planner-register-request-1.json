@@ -1,0 +1,15 @@
+{
+  "healthIndex": 1,
+  "status": {
+    "dealsStatus": {
+      "instanceId": "localhost",
+      "vendor": "local",
+      "region": "local",
+      "clientAuctions": 0,
+      "lineItemStatus": []
+    }
+  },
+  "hostInstanceId": "localhost",
+  "region": "local",
+  "vendor": "local"
+}

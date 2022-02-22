@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
@@ -151,6 +151,6 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(405));
-        verifyZeroInteractions(cacheNotificationListener);
+        verifyNoInteractions(cacheNotificationListener);
     }
 }

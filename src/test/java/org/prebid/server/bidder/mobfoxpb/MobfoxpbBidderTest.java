@@ -62,7 +62,7 @@ public class MobfoxpbBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).allSatisfy(error -> {
             assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-            assertThat(error.getMessage()).startsWith("Cannot deserialize instance");
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value");
         });
         assertThat(result.getValue()).isEmpty();
     }

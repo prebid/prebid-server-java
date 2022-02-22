@@ -108,7 +108,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                     assertThat(error.getMessage()).startsWith("ignoring imp id=impId, error while "
-                            + "decoding impExt, err: Cannot deserialize instance");
+                            + "decoding impExt, err: Cannot deserialize value");
                 });
     }
 

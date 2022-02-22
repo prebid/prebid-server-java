@@ -25,9 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * BidMyAdz {@link Bidder} implementation.
- */
 public class BidmyadzBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
@@ -50,7 +47,7 @@ public class BidmyadzBidder implements Bidder<BidRequest> {
                 .uri(endpointUrl)
                 .headers(createHeaders())
                 .payload(request)
-                .body(mapper.encode(request))
+                .body(mapper.encodeToBytes(request))
                 .build());
     }
 

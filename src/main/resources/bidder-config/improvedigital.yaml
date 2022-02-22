@@ -1,12 +1,6 @@
 adapters:
   improvedigital:
-    enabled: false
     endpoint: http://ad.360yield.com/pbs
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: hb@azerion.com
       app-media-types:

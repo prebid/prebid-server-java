@@ -19,13 +19,18 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
-- `privacy.enforce-ccpa` - enforces ccpa if true. Has higher priority than configuration in application.yaml.
+- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
+- `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
+- `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
+- `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
-- `privacy.gdpr.integration-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
-- `privacy.gdpr.integration-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
-- `privacy.gdpr.integration-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
-- `privacy.gdpr.integration-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
+- `privacy.gdpr.channel-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
+- `privacy.gdpr.channel-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
+- `privacy.gdpr.channel-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
+- `privacy.gdpr.channel-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
   Default `full`
@@ -39,6 +44,7 @@ There are two ways to configure application settings: database and file. This do
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
+- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
@@ -98,11 +104,20 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        debug-allow: true
+      metrics:
+        verbosity-level: basic
       privacy:
-        enforce-ccpa: true
+        ccpa:
+          enabled: true
+          channel-enabled:
+            video: true
+            web: true
+            app: true
+            amp: true
         gdpr:
           enabled: true
-          integration-enabled:
+          channel-enabled:
             video: true
             web: true
             app: true
@@ -249,10 +264,22 @@ example:
     },
     "events": {
       "enabled": true
-    }
+    },
+    "debug-allow": true
+  },
+  "metrics": {
+      "verbosity-level": "basic"
   },
   "privacy": {
-    "enforce-ccpa": true,
+    "ccpa": {
+      "enabled": true,
+      "integration-enabled": {
+          "web": true,
+          "amp": false,
+          "app": true,
+          "video": false
+      }
+    },
     "gdpr": {
       "enabled": true,
       "integration-enabled": {
@@ -393,7 +420,7 @@ several tables. MySQL and Postgres provides necessary functions allowing to proj
 expected JSON format.
 
 Let's assume following table schema for example:
-```sql
+```mysql-sql
 'CREATE TABLE `accounts_account` (
     `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
     `uuid` varchar(40) NOT NULL,
@@ -412,6 +439,8 @@ Let's assume following table schema for example:
     `updated_by` int(11) DEFAULT NULL,
     `updated_by_user` varchar(64) DEFAULT NULL,
     `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `verbosity_level` varchar(64) DEFAULT NULL,
+    
 PRIMARY KEY (`id`),
 UNIQUE KEY `uuid` (`uuid`))
 ENGINE=InnoDB DEFAULT CHARSET=utf8'
@@ -419,29 +448,31 @@ ENGINE=InnoDB DEFAULT CHARSET=utf8'
 
 The following Mysql SQL query could be used to construct a JSON document of required shape on the fly:
 
-```sql
-SELECT 
-    JSON_MERGE_PATCH(config, JSON_OBJECT(
-        'id', uuid,
-        'status', status,
-        'auction', JSON_OBJECT(
-            'price-granularity', price_granularity,
-            'banner-cache-ttl', banner_cache_ttl,
-            'video-cache-ttl', video_cache_ttl,
-            'truncate-target-attr', truncate_target_attr,
-            'default-integration', default_integration,
-            'bid-validations', bid_validations,
-            'events', JSON_OBJECT(
-                'enabled', NOT NOT(events_enabled)
-            )
-        ), 
-        'privacy', JSON_OBJECT(
-            'enforce-ccpa', NOT NOT(enforce_ccpa),
-            'gdpr', tcf_config
-        ), 
-        'analytics', analytics_config
-    )) as consolidated_config 
-FROM accounts_account 
-WHERE uuid = %ACCOUNT_ID% 
-LIMIT 1;
+```mysql-sql
+SELECT JSON_MERGE_PATCH(
+               JSON_OBJECT(
+                       'id', uuid,
+                       'status', status,
+                       'auction', JSON_OBJECT(
+                               'price-granularity', price_granularity,
+                               'banner-cache-ttl', banner_cache_ttl,
+                               'video-cache-ttl', video_cache_ttl,
+                               'truncate-target-attr', truncate_target_attr,
+                               'default-integration', default_integration,
+                               'bid-validations', bid_validations,
+                               'events', JSON_OBJECT('enabled', NOT NOT (events_enabled))
+                           ),
+                       'metrics', JSON_OBJECT(
+                               'verbosity-level', verbosity_level
+                           ),
+                       'privacy', JSON_OBJECT(
+                               'ccpa', JSON_OBJECT('enabled', NOT NOT (enforce_ccpa)),
+                               'gdpr', tcf_config
+                           ),
+                       'analytics', analytics_config
+                   ),
+               COALESCE(config, '{}')) as consolidated_config
+FROM accounts_account
+WHERE uuid = %ACCOUNT_ID%
+LIMIT 1
 ```

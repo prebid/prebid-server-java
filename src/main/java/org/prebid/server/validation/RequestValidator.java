@@ -115,6 +115,7 @@ public class RequestValidator {
      * at a time.
      */
     public ValidationResult validate(BidRequest bidRequest) {
+        final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
                 throw new ValidationException("request missing required field: \"id\"");
@@ -152,7 +153,7 @@ public class RequestValidator {
             final List<String> errors = new ArrayList<>();
             final Map<String, Integer> uniqueImps = new HashMap<>();
             for (int i = 0; i < imps.size(); i++) {
-                String impId = imps.get(i).getId();
+                final String impId = imps.get(i).getId();
                 if (uniqueImps.get(impId) != null) {
                     errors.add(String.format(
                             "request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique.",
@@ -167,20 +168,25 @@ public class RequestValidator {
             }
 
             for (int index = 0; index < bidRequest.getImp().size(); index++) {
-                validateImp(bidRequest.getImp().get(index), aliases, index);
+                validateImp(bidRequest.getImp().get(index), aliases, index, warnings);
             }
 
             if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
                 throw new ValidationException("request.site or request.app must be defined");
             }
-            validateSite(bidRequest.getSite());
+
+            // if site and app present site will be removed
+            if (bidRequest.getApp() == null) {
+                validateSite(bidRequest.getSite());
+            }
+
             validateDevice(bidRequest.getDevice());
             validateUser(bidRequest.getUser(), aliases);
             validateRegs(bidRequest.getRegs());
         } catch (ValidationException e) {
             return ValidationResult.error(e.getMessage());
         }
-        return ValidationResult.success();
+        return ValidationResult.success(warnings);
     }
 
     /**
@@ -602,7 +608,8 @@ public class RequestValidator {
         }
     }
 
-    private void validateImp(Imp imp, Map<String, String> aliases, int index) throws ValidationException {
+    private void validateImp(Imp imp, Map<String, String> aliases, int index, List<String> warnings)
+            throws ValidationException {
         if (StringUtils.isBlank(imp.getId())) {
             throw new ValidationException("request.imp[%d] missing required field: \"id\"", index);
         }
@@ -615,12 +622,13 @@ public class RequestValidator {
                     index);
         }
 
-        validateBanner(imp.getBanner(), index);
+        final boolean isInterstitialImp = Objects.equals(imp.getInstl(), 1);
+        validateBanner(imp.getBanner(), isInterstitialImp, index);
         validateVideoMimes(imp.getVideo(), index);
         validateAudioMimes(imp.getAudio(), index);
         fillAndValidateNative(imp.getXNative(), index);
         validatePmp(imp.getPmp(), index);
-        validateImpExt(imp.getExt(), aliases, index);
+        validateImpExt(imp.getExt(), aliases, index, warnings);
     }
 
     private void fillAndValidateNative(Native xNative, int impIndex) throws ValidationException {
@@ -893,11 +901,13 @@ public class RequestValidator {
         }
     }
 
-    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex) throws ValidationException {
-        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex);
+    private void validateImpExt(ObjectNode ext, Map<String, String> aliases, int impIndex,
+                                List<String> warnings) throws ValidationException {
+        validateImpExtPrebid(ext != null ? ext.get(PREBID_EXT) : null, aliases, impIndex, warnings);
     }
 
-    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex)
+    private void validateImpExtPrebid(JsonNode extPrebidNode, Map<String, String> aliases, int impIndex,
+                                      List<String> warnings)
             throws ValidationException {
 
         if (extPrebidNode == null) {
@@ -916,20 +926,20 @@ public class RequestValidator {
             throw new ValidationException(
                     "request.imp[%d].ext.prebid.bidder must be an object type", impIndex);
         }
-
         final ExtImpPrebid extPrebid = parseExtImpPrebid((ObjectNode) extPrebidNode, impIndex);
 
-        validateImpExtPrebidBidder(extPrebid, aliases, impIndex);
+        validateImpExtPrebidBidder(extPrebidBidderNode, extPrebid.getStoredAuctionResponse(),
+                aliases, impIndex, warnings);
         validateImpExtPrebidStoredResponses(extPrebid, aliases, impIndex);
     }
 
-    private void validateImpExtPrebidBidder(ExtImpPrebid extPrebid, Map<String, String> aliases, int impIndex)
-            throws ValidationException {
-
-        final ObjectNode extPrebidBidder = extPrebid.getBidder();
-
+    private void validateImpExtPrebidBidder(JsonNode extPrebidBidder,
+                                            ExtStoredAuctionResponse storedAuctionResponse,
+                                            Map<String, String> aliases,
+                                            int impIndex,
+                                            List<String> warnings) throws ValidationException {
         if (extPrebidBidder == null) {
-            if (extPrebid.getStoredAuctionResponse() != null) {
+            if (storedAuctionResponse != null) {
                 return;
             } else {
                 throw new ValidationException("request.imp[%d].ext.prebid.bidder must be defined", impIndex);
@@ -940,7 +950,20 @@ public class RequestValidator {
         while (bidderExtensions.hasNext()) {
             final Map.Entry<String, JsonNode> bidderExtension = bidderExtensions.next();
             final String bidder = bidderExtension.getKey();
-            validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+            try {
+                validateImpBidderExtName(impIndex, bidderExtension, aliases.getOrDefault(bidder, bidder));
+            } catch (ValidationException ex) {
+                bidderExtensions.remove();
+                warnings.add(
+                        String.format(
+                                "WARNING: request.imp[%d].ext.prebid.bidder.%s was dropped with a reason: %s",
+                                impIndex, bidder, ex.getMessage()));
+            }
+        }
+
+        if (extPrebidBidder.size() == 0) {
+            warnings.add(
+                    String.format("WARNING: request.imp[%d].ext must contain at least one valid bidder", impIndex));
         }
     }
 
@@ -1031,7 +1054,7 @@ public class RequestValidator {
         }
     }
 
-    private void validateBanner(Banner banner, int impIndex) throws ValidationException {
+    private void validateBanner(Banner banner, boolean isInterstitial, int impIndex) throws ValidationException {
         if (banner != null) {
             final Integer width = banner.getW();
             final Integer height = banner.getH();
@@ -1040,12 +1063,12 @@ public class RequestValidator {
             final boolean hasSize = hasWidth && hasHeight;
 
             final List<Format> format = banner.getFormat();
-            if (CollectionUtils.isEmpty(format) && !hasSize) {
+            if (CollectionUtils.isEmpty(format) && !hasSize && !isInterstitial) {
                 throw new ValidationException("request.imp[%d].banner has no sizes. Define \"w\" and \"h\", "
                         + "or include \"format\" elements", impIndex);
             }
 
-            if (width != null && height != null && !hasSize) {
+            if (width != null && height != null && !hasSize && !isInterstitial) {
                 throw new ValidationException("Request imp[%d].banner must define a valid"
                         + " \"h\" and \"w\" properties", impIndex);
             }
@@ -1121,10 +1144,6 @@ public class RequestValidator {
                         impIndex, i);
             }
         }
-    }
-
-    private static boolean isObjectNode(JsonNode node) {
-        return node != null && node.isObject();
     }
 
     private static boolean hasPositiveValue(Integer value) {
