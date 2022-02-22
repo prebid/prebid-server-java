@@ -35,6 +35,8 @@ import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
+import org.prebid.server.proto.openrtb.ext.request.ExtImp;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -50,6 +52,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -1036,6 +1039,64 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
+    public void shouldSetDealsOnlyIfNotSpecifiedAndPgDealsOnlyIsTrue() {
+        final Imp imp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO("someBidder", Map.of("pgdealsonly", true)))
+                                .build(),
+                        null)))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", true)))
+                                .build(),
+                        null)))
+                .build();
+        assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
+    }
+
+    @Test
+    public void shouldNotAffectDealsOnlyIfSpecifiedAndPgDealsOnlyIsTrue() {
+        final Imp imp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", false)))
+                                .build(),
+                        null)))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder().imp(singletonList(imp)).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+
+        // then
+        final Imp expectedImp = Imp.builder()
+                .ext(mapper.valueToTree(ExtImp.of(
+                        ExtImpPrebid.builder()
+                                .bidder(mapper.createObjectNode().putPOJO(
+                                        "someBidder",
+                                        Map.of("pgdealsonly", true, "dealsonly", false)))
+                                .build(),
+                        null)))
+                .build();
+        assertThat(result.getImp()).isEqualTo(singletonList(expectedImp));
+    }
+
+    @Test
     public void shouldNotChangeImpExtWhenBidderParametersAreAtImpExtPrebidBidderOnly() {
         // given
         final List<Imp> imps = singletonList(
@@ -1822,10 +1883,10 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final ExtRequest expectedExtBidRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
-                .cache(ExtRequestPrebidCache.of(null, null, null))
-                .pbs(ExtRequestPrebidPbs.of(ENDPOINT))
-                .channel(ExtRequestPrebidChannel.of("amp"))
-                .build());
+                        .cache(ExtRequestPrebidCache.of(null, null, null))
+                        .pbs(ExtRequestPrebidPbs.of(ENDPOINT))
+                        .channel(ExtRequestPrebidChannel.of("amp"))
+                        .build());
         assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
     }
 
@@ -1844,8 +1905,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         // then
         final ExtRequest expectedExtBidRequest = ExtRequest.of(
                 ExtRequestPrebid.builder()
-                .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
-                .build());
+                        .pbs(ExtRequestPrebidPbs.of(Endpoint.openrtb2_auction.value()))
+                        .build());
         assertThat(result.getExt()).isEqualTo(expectedExtBidRequest);
     }
 

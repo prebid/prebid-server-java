@@ -1,6 +1,7 @@
 package org.prebid.server.auction.requestfactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -11,7 +12,10 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
@@ -20,7 +24,6 @@ import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
-import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -48,6 +51,7 @@ import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -112,10 +116,11 @@ public class Ortb2ImplicitParametersResolver {
      * <p>
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
-    BidRequest resolve(BidRequest bidRequest,
-                       HttpRequestContext httpRequest,
-                       TimeoutResolver timeoutResolver,
-                       String endpoint) {
+    public BidRequest resolve(BidRequest bidRequest,
+                              HttpRequestContext httpRequest,
+                              TimeoutResolver timeoutResolver,
+                              String endpoint) {
+
         checkBlacklistedApp(bidRequest);
 
         final BidRequest result;
@@ -163,6 +168,10 @@ public class Ortb2ImplicitParametersResolver {
             result = bidRequest;
         }
         return result;
+    }
+
+    public static boolean isImpExtBidder(String field) {
+        return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
     private void checkBlacklistedApp(BidRequest bidRequest) {
@@ -419,10 +428,6 @@ public class Ortb2ImplicitParametersResolver {
         return null;
     }
 
-    /**
-     * - Updates imps with security and bidderparams.
-     * - Moves bidder parameters from imp.ext._bidder_ to imp.ext.prebid.bidder._bidder_
-     */
     private List<Imp> populateImps(BidRequest bidRequest, HttpRequestContext httpRequest) {
         final List<Imp> imps = bidRequest.getImp();
         if (CollectionUtils.isEmpty(imps)) {
@@ -432,142 +437,41 @@ public class Ortb2ImplicitParametersResolver {
         final Integer secureFromRequest = paramsExtractor.secureFrom(httpRequest);
         final ObjectNode globalBidderParams = extractGlobalBidderParams(bidRequest);
 
-        if (!shouldModifyImps(imps, secureFromRequest, globalBidderParams)) {
-            return imps;
+        final List<ImpPopulationContext> impPopulationContexts = imps.stream()
+                .map(imp -> new ImpPopulationContext(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger))
+                .collect(Collectors.toList());
+
+        if (impPopulationContexts.stream()
+                .map(ImpPopulationContext::getPopulatedImp)
+                .allMatch(Objects::isNull)) {
+
+            return null;
         }
 
-        return imps.stream()
-                .map(imp -> populateImp(imp, secureFromRequest, globalBidderParams))
+        return impPopulationContexts.stream()
+                .map(ImpPopulationContext::getPopulationResult)
                 .collect(Collectors.toList());
     }
 
-    private ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {
+    private static ObjectNode extractGlobalBidderParams(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extBidPrebid = extRequest != null ? extRequest.getPrebid() : null;
         final ObjectNode bidderParams = extBidPrebid != null ? extBidPrebid.getBidderparams() : null;
 
         return isObjectNode(bidderParams)
                 ? removeNonBidderFields(bidderParams)
-                : mapper.mapper().createObjectNode();
+                : null;
     }
 
     private static ObjectNode removeNonBidderFields(ObjectNode node) {
-        for (String field : IMP_EXT_NON_BIDDER_FIELDS) {
-            node.remove(field);
-        }
+        final ObjectNode modifiedNode = node.deepCopy();
+        IMP_EXT_NON_BIDDER_FIELDS.forEach(modifiedNode::remove);
 
-        return node;
-    }
-
-    private boolean shouldModifyImps(List<Imp> imps, Integer secureFromRequest, ObjectNode globalBidderParams) {
-        return imps.stream()
-                .anyMatch(imp -> shouldSetImpSecure(imp, secureFromRequest) || shouldMoveBidderParams(imp)
-                        || !globalBidderParams.isEmpty());
-    }
-
-    private boolean shouldSetImpSecure(Imp imp, Integer secureFromRequest) {
-        return imp.getSecure() == null && Objects.equals(secureFromRequest, 1);
-    }
-
-    private boolean shouldMoveBidderParams(Imp imp) {
-        return imp.getExt() != null
-                && StreamUtil.asStream(imp.getExt().fieldNames())
-                .anyMatch(Ortb2ImplicitParametersResolver::isImpExtBidderField);
-    }
-
-    public static boolean isImpExtBidderField(String field) {
-        return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
-    }
-
-    private Imp populateImp(Imp imp, Integer secureFromRequest, ObjectNode globalBidderParams) {
-        final boolean shouldSetSecure = shouldSetImpSecure(imp, secureFromRequest);
-        final boolean shouldMoveBidderParams = shouldMoveBidderParams(imp);
-        final boolean shouldUpdateImpExt = shouldMoveBidderParams || !globalBidderParams.isEmpty();
-
-        if (shouldSetSecure || shouldUpdateImpExt) {
-            final ObjectNode impExt = imp.getExt();
-
-            return imp.toBuilder()
-                    .secure(shouldSetSecure ? Integer.valueOf(1) : imp.getSecure())
-                    .ext(shouldUpdateImpExt
-                            ? populateImpExt(impExt, globalBidderParams, shouldMoveBidderParams)
-                            : impExt)
-                    .build();
-        }
-
-        return imp;
-    }
-
-    private ObjectNode populateImpExt(ObjectNode impExt,
-                                      ObjectNode globalBidderParams,
-                                      boolean shouldMoveBidderParams) {
-        final ObjectNode impExtCopy = prepareValidImpExtCopy(impExt);
-        final ObjectNode normalizedExt = shouldMoveBidderParams ? moveBidderParamsToPrebid(impExtCopy) : impExtCopy;
-        if (!globalBidderParams.isEmpty()) {
-            mergeGlobalBidderParamsToImp(normalizedExt, globalBidderParams);
-        }
-
-        return normalizedExt;
-    }
-
-    private ObjectNode prepareValidImpExtCopy(ObjectNode impExt) {
-        final ObjectNode copiedImpExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
-
-        final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(copiedImpExt, PREBID_EXT);
-        copiedImpExt.replace(PREBID_EXT, modifiedExtPrebid);
-        final ObjectNode modifiedExtPrebidBidder = getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
-        modifiedExtPrebid.replace(BIDDER_EXT, modifiedExtPrebidBidder);
-
-        return copiedImpExt;
-    }
-
-    private ObjectNode moveBidderParamsToPrebid(ObjectNode impExt) {
-        final ObjectNode modifiedExtPrebidBidder = (ObjectNode) impExt.get(PREBID_EXT).get(BIDDER_EXT);
-
-        final Set<String> bidderFields = StreamUtil.asStream(impExt.fieldNames())
-                .filter(Ortb2ImplicitParametersResolver::isImpExtBidderField)
-                .collect(Collectors.toSet());
-
-        for (final String currentBidderField : bidderFields) {
-            final ObjectNode modifiedExtPrebidBidderCurrentBidder =
-                    getOrCreateChildObjectNode(modifiedExtPrebidBidder, currentBidderField);
-            modifiedExtPrebidBidder.replace(currentBidderField, modifiedExtPrebidBidderCurrentBidder);
-
-            final JsonNode extCurrentBidder = impExt.remove(currentBidderField);
-            if (isObjectNode(extCurrentBidder)) {
-                modifiedExtPrebidBidderCurrentBidder.setAll((ObjectNode) extCurrentBidder);
-            }
-        }
-        return impExt;
-    }
-
-    private static ObjectNode getOrCreateChildObjectNode(ObjectNode parentNode, String fieldName) {
-        final JsonNode childNode = parentNode.get(fieldName);
-
-        return isObjectNode(childNode) ? (ObjectNode) childNode : parentNode.objectNode();
+        return !modifiedNode.isEmpty() ? modifiedNode : null;
     }
 
     private static boolean isObjectNode(JsonNode node) {
         return node != null && node.isObject();
-    }
-
-    private void mergeGlobalBidderParamsToImp(ObjectNode impExt, ObjectNode requestBidderParams) {
-        final ObjectNode modifiedExtPrebid = (ObjectNode) impExt.get(PREBID_EXT);
-        final ObjectNode modifiedExtBidder = (ObjectNode) modifiedExtPrebid.get(BIDDER_EXT);
-
-        StreamUtil.asStream(requestBidderParams.fields())
-                .forEach(bidderToParam -> mergeBidderParams(
-                        Tuple2.of(bidderToParam.getKey(), bidderToParam.getValue()), modifiedExtBidder));
-    }
-
-    private void mergeBidderParams(Tuple2<String, JsonNode> bidderToParam, ObjectNode extBidder) {
-        final String bidder = bidderToParam.getLeft();
-        final JsonNode impParams = extBidder.get(bidder);
-        final JsonNode requestParams = bidderToParam.getRight();
-        final JsonNode mergedParams = impParams == null
-                ? requestParams
-                : jsonMerger.merge(impParams, requestParams);
-        extBidder.set(bidder, mergedParams);
     }
 
     /**
@@ -817,5 +721,172 @@ public class Ortb2ImplicitParametersResolver {
     private static Long resolveTmax(Long requestTimeout, TimeoutResolver timeoutResolver) {
         final long timeout = timeoutResolver.resolve(requestTimeout);
         return !Objects.equals(requestTimeout, timeout) ? timeout : null;
+    }
+
+    @Value
+    private static class ImpPopulationContext {
+
+        private static final String DEALS_ONLY = "dealsonly";
+        private static final String PG_DEALS_ONLY = "pgdealsonly";
+
+        Imp imp;
+
+        Imp populatedImp;
+
+        ImpPopulationContext(Imp imp,
+                             Integer secureFromRequest,
+                             ObjectNode globalBidderParams,
+                             JacksonMapper mapper,
+                             JsonMerger jsonMerger) {
+
+            this.imp = imp;
+            populatedImp = populateImp(imp, secureFromRequest, globalBidderParams, mapper, jsonMerger);
+        }
+
+        public Imp getPopulationResult() {
+            return populatedImp != null ? populatedImp : imp;
+        }
+
+        private static Imp populateImp(Imp imp,
+                                       Integer secureFromRequest,
+                                       ObjectNode globalBidderParams,
+                                       JacksonMapper mapper,
+                                       JsonMerger jsonMerger) {
+
+            final Integer impSecure = imp.getSecure();
+            final Integer populatedImpSecure = populateImpSecure(impSecure, secureFromRequest);
+
+            final ObjectNode impExt = imp.getExt();
+            final ObjectNode populatedImpExt = populateImpExt(impExt, globalBidderParams, mapper, jsonMerger);
+
+            return ObjectUtils.anyNotNull(populatedImpSecure, populatedImpExt)
+                    ? imp.toBuilder()
+                    .secure(populatedImpSecure != null ? populatedImpSecure : impSecure)
+                    .ext(populatedImpExt != null ? populatedImpExt : impExt)
+                    .build()
+                    : null;
+        }
+
+        private static Integer populateImpSecure(Integer impSecure, Integer secureFromRequest) {
+            return impSecure == null && Objects.equals(secureFromRequest, 1)
+                    ? secureFromRequest
+                    : null;
+        }
+
+        private static ObjectNode populateImpExt(ObjectNode impExt,
+                                                 ObjectNode globalBidderParams,
+                                                 JacksonMapper mapper,
+                                                 JsonMerger jsonMerger) {
+
+            final ObjectNode modifiedImpEXt = prepareValidImpExtCopy(impExt, mapper);
+            final boolean isMoved = moveBidderParamsToPrebid(modifiedImpEXt);
+            final boolean isMerged = mergeGlobalBidderParamsToImpExt(modifiedImpEXt, globalBidderParams, jsonMerger);
+            final boolean isDealsOnlyModified = modifyDealsOnly(modifiedImpEXt);
+
+            return isMoved || isMerged || isDealsOnlyModified
+                    ? modifiedImpEXt
+                    : null;
+        }
+
+        private static ObjectNode prepareValidImpExtCopy(ObjectNode impExt, JacksonMapper mapper) {
+            final ObjectNode copiedImpExt = impExt != null ? impExt.deepCopy() : mapper.mapper().createObjectNode();
+
+            final ObjectNode modifiedExtPrebid = getOrCreateChildObjectNode(copiedImpExt, PREBID_EXT);
+            getOrCreateChildObjectNode(modifiedExtPrebid, BIDDER_EXT);
+
+            return copiedImpExt;
+        }
+
+        private static ObjectNode getOrCreateChildObjectNode(ObjectNode parentNode, String fieldName) {
+            final JsonNode childNode = parentNode.get(fieldName);
+            return isObjectNode(childNode) ? (ObjectNode) childNode : parentNode.putObject(fieldName);
+        }
+
+        private static boolean moveBidderParamsToPrebid(ObjectNode impExt) {
+            final ObjectNode extPrebidBidder = bidderParamsFromImpExt(impExt);
+
+            final Set<String> bidders = StreamUtil.asStream(impExt.fieldNames())
+                    .filter(Ortb2ImplicitParametersResolver::isImpExtBidder)
+                    .collect(Collectors.toSet());
+
+            if (bidders.isEmpty()) {
+                return false;
+            }
+
+            for (String bidder : bidders) {
+                final ObjectNode bidderNode = getOrCreateChildObjectNode(extPrebidBidder, bidder);
+
+                final JsonNode impExtBidderNode = impExt.remove(bidder);
+                if (isObjectNode(impExtBidderNode)) {
+                    bidderNode.setAll((ObjectNode) impExtBidderNode);
+                }
+            }
+
+            return true;
+        }
+
+        private static ObjectNode bidderParamsFromImpExt(ObjectNode ext) {
+            return (ObjectNode) ext.path(PREBID_EXT).path(BIDDER_EXT);
+        }
+
+        private static boolean mergeGlobalBidderParamsToImpExt(ObjectNode impExt,
+                                                               ObjectNode globalBidderParams,
+                                                               JsonMerger jsonMerger) {
+
+            if (globalBidderParams == null || globalBidderParams.isEmpty()) {
+                return false;
+            }
+
+            final ObjectNode impExtPrebidBidder = bidderParamsFromImpExt(impExt);
+
+            StreamUtil.asStream(globalBidderParams.fields())
+                    .forEach(bidderToParam -> mergeBidderParams(impExtPrebidBidder, bidderToParam, jsonMerger));
+
+            return true;
+        }
+
+        private static void mergeBidderParams(ObjectNode impExtPrebidBidder,
+                                              Map.Entry<String, JsonNode> bidderToParam,
+                                              JsonMerger jsonMerger) {
+
+            final String bidder = bidderToParam.getKey();
+            final JsonNode bidderParams = impExtPrebidBidder.get(bidder);
+            final JsonNode requestParams = bidderToParam.getValue();
+            final JsonNode mergedParams = bidderParams == null
+                    ? requestParams
+                    : jsonMerger.merge(bidderParams, requestParams);
+
+            impExtPrebidBidder.set(bidder, mergedParams);
+        }
+
+        private static boolean modifyDealsOnly(ObjectNode impExt) {
+            final Boolean[] isModified = StreamUtil.asStream(bidderParamsFromImpExt(impExt).fields())
+                    .map(Map.Entry::getValue)
+                    .filter(ImpPopulationContext::isPgDealsOnlyBidder)
+                    .map(ObjectNode.class::cast)
+                    .map(ImpPopulationContext::modifyDealsOnlyIfNotSpecified)
+                    .toArray(Boolean[]::new);
+
+            if (ArrayUtils.isEmpty(isModified)) {
+                return false;
+            }
+
+            return BooleanUtils.or(isModified);
+        }
+
+        private static boolean isPgDealsOnlyBidder(JsonNode bidderFields) {
+            final JsonNode pgDealsOnlyNode = bidderFields.path(PG_DEALS_ONLY);
+            return pgDealsOnlyNode.isBoolean() && pgDealsOnlyNode.asBoolean();
+        }
+
+        private static boolean modifyDealsOnlyIfNotSpecified(ObjectNode bidderFields) {
+            final JsonNode dealsOnlyNode = bidderFields.path(DEALS_ONLY);
+            if (dealsOnlyNode.isBoolean()) {
+                return false;
+            }
+
+            bidderFields.set(DEALS_ONLY, BooleanNode.TRUE);
+            return true;
+        }
     }
 }
