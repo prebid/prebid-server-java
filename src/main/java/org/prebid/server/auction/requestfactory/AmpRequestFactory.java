@@ -201,7 +201,7 @@ public class AmpRequestFactory {
         }
 
         if (consentType == ConsentType.TCF_V_1) {
-            errors.add("Consent type TCF_V_1 is no longer supported");
+            errors.add("Consent type tcfV1 is no longer supported");
             return;
         }
 
