@@ -27,6 +27,7 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.model.ServerConfiguration;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -202,22 +203,34 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    ServerConfiguration serverConfiguration(@Value("${auction.ad-server-currency}") String adServerCurrency,
+                                            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+                                            @Value("${external-url}") String externalUrl,
+                                            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+                                            @Value("${datacenter-region}") String datacenterRegion) {
+
+        return ServerConfiguration.builder()
+                .adCurrency(adServerCurrency)
+                .blacklistedApps(splitToList(blacklistedAppsString))
+                .externalUrl(externalUrl)
+                .gdprHostVendorId(hostVendorId)
+                .datacenterRegion(datacenterRegion)
+                .build();
+    }
+
+    @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
-            @Value("${auction.ad-server-currency}") String adServerCurrency,
-            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            ServerConfiguration serverConfiguration,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
                 shouldCacheOnlyWinningBids,
-                adServerCurrency,
-                blacklistedApps,
+                serverConfiguration,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
