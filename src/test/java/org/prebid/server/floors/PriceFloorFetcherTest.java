@@ -19,6 +19,7 @@ import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
+import org.prebid.server.floors.model.PriceFloorTestingProperties;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.metric.Metrics;
@@ -55,6 +56,9 @@ public class PriceFloorFetcherTest extends VertxTest {
     private ApplicationSettings applicationSettings;
 
     @Mock
+    private PriceFloorTestingProperties testingProperties;
+
+    @Mock
     private Metrics metrics;
 
     @Mock
@@ -70,11 +74,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     @Before
     public void setUp() {
+        testingProperties = new PriceFloorTestingProperties();
         priceFloorFetcher = new PriceFloorFetcher(applicationSettings,
                 metrics,
                 vertx,
                 timeoutFactory,
                 httpClient,
+                testingProperties,
                 jacksonMapper);
     }
 
@@ -172,6 +178,74 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
+    public void fetchShouldTakePrecedenceForTestingPropertyToCacheResponse() {
+        // given
+        testingProperties.setMinMaxAgeSec(1L);
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                        .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
+                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(vertx).setTimer(eq(1L), any());
+        verify(vertx).setTimer(eq(1700000L), any());
+    }
+
+    @Test
+    public void fetchShouldTakePrecedenceForTestingPropertyToCreatePeriodicTimer() {
+        // given
+        testingProperties.setMinPeriodSec(1L);
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
+                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(vertx).setTimer(eq(1L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
+    }
+
+    @Test
+    public void fetchShouldTakePrecedenceForTestingPropertyToChooseRequestTimeout() {
+        // given
+        testingProperties.setMaxTimeoutMs(1L);
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
+                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(httpClient).get(anyString(), eq(1L), anyLong());
+    }
+
+    @Test
+    public void fetchShouldTakePrecedenceForMinTimeoutTestingPropertyToChooseRequestTimeout() {
+        // given
+        testingProperties.setMinTimeoutMs(1L);
+        testingProperties.setMaxTimeoutMs(2L);
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
+                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(httpClient).get(anyString(), eq(1L), anyLong());
+    }
+
+    @Test
     public void fetchShouldSetDefaultCacheTimeWhenCacheControlHeaderCantBeParsed() {
         // given
         given(httpClient.get(anyString(), anyLong(), anyLong()))
@@ -183,7 +257,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(1700000L), any());
+        verify(vertx).setTimer(eq(1500000L), any());
     }
 
     @Test
