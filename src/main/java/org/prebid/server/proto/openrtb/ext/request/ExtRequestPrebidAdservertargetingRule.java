@@ -1,6 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Value;
 
 /**
@@ -16,9 +16,16 @@ public class ExtRequestPrebidAdservertargetingRule {
     String value;
 
     public enum Source {
+
         BIDREQUEST,
-        @JsonProperty("static")
         X_STATIC,
-        BIDRESPONSE
+        BIDRESPONSE;
+
+        @JsonValue
+        @Override
+        public String toString() {
+            return this == X_STATIC ? "static"
+                    : name().toLowerCase();
+        }
     }
 }

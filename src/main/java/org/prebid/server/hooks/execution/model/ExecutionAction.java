@@ -1,13 +1,16 @@
 package org.prebid.server.hooks.execution.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum ExecutionAction {
 
-    @JsonProperty("no_action")
     NO_ACTION,
-    @JsonProperty("update")
     UPDATE,
-    @JsonProperty("reject")
-    REJECT
+    REJECT;
+
+    @Override
+    @JsonValue
+    public String toString() {
+        return name().toLowerCase();
+    }
 }

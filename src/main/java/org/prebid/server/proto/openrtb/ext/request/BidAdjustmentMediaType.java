@@ -1,20 +1,16 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum BidAdjustmentMediaType {
 
-    @JsonProperty("banner")
     BANNER,
-    @JsonProperty("audio")
     AUDIO,
-    @JsonProperty("native")
     X_NATIVE,
-    @JsonProperty("video")
     VIDEO,
-    @JsonProperty("video-outstream")
     VIDEO_OUTSTREAM;
 
+    @JsonValue
     @Override
     public String toString() {
         return this == X_NATIVE ? "native"

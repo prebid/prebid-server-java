@@ -1,11 +1,15 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum AccountStatus {
 
-    @JsonProperty("active")
     ACTIVE,
-    @JsonProperty("inactive")
-    INACTIVE
+    INACTIVE;
+
+    @Override
+    @JsonValue
+    public String toString() {
+        return name().toLowerCase();
+    }
 }

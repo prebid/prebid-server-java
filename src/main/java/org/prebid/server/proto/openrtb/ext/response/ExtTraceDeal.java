@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
@@ -35,13 +36,16 @@ public class ExtTraceDeal {
     String message;
 
     public enum Category {
-        @JsonProperty("targeting")
+
         TARGETING,
-        @JsonProperty("pacing")
         PACING,
-        @JsonProperty("cleanup")
         CLEANUP,
-        @JsonProperty("post_processing")
-        POST_PROCESSING
+        POST_PROCESSING;
+
+        @Override
+        @JsonValue
+        public String toString() {
+            return name().toLowerCase();
+        }
     }
 }

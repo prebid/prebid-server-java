@@ -1,31 +1,24 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Arrays;
 
 public enum BidType {
 
-    @JsonProperty("banner")
-    BANNER("banner"),
-
-    @JsonProperty("video")
-    VIDEO("video"),
-
-    @JsonProperty("audio")
-    AUDIO("audio"),
-
-    @JsonProperty("native")
+    BANNER,
+    VIDEO,
+    AUDIO,
     X_NATIVE("native");
 
     private final String value;
 
-    BidType(String value) {
-        this.value = value;
+    BidType() {
+        this.value = name().toLowerCase();
     }
 
-    public String getValue() {
-        return value;
+    BidType(String value) {
+        this.value = value;
     }
 
     public static BidType getEnum(String value) {
@@ -36,8 +29,14 @@ public enum BidType {
                         + "org.prebid.server.proto.openrtb.ext.response.BidType.%s", value)));
     }
 
+    public String getValue() {
+        return value;
+    }
+
+    @JsonValue
     @Override
     public String toString() {
-        return this.getValue();
+        return this == X_NATIVE ? "native"
+                : getValue();
     }
 }
