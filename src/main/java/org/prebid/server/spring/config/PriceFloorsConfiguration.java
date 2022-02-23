@@ -34,8 +34,8 @@ public class PriceFloorsConfiguration {
             Vertx vertx,
             TimeoutFactory timeoutFactory,
             HttpClient httpClient,
-            JacksonMapper mapper,
-            PriceFloorTestingProperties testingProperties) {
+            PriceFloorTestingProperties testingProperties,
+            JacksonMapper mapper) {
 
         return new PriceFloorFetcher(
                 applicationSettings,
@@ -43,8 +43,8 @@ public class PriceFloorsConfiguration {
                 vertx,
                 timeoutFactory,
                 httpClient,
-                mapper,
-                testingProperties);
+                testingProperties,
+                mapper);
     }
 
     @Bean

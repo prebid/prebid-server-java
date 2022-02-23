@@ -80,8 +80,8 @@ public class PriceFloorFetcherTest extends VertxTest {
                 vertx,
                 timeoutFactory,
                 httpClient,
-                jacksonMapper,
-                testingProperties);
+                testingProperties,
+                jacksonMapper);
     }
 
     @Test
