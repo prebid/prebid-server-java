@@ -1,6 +1,6 @@
 adapters:
   tappx:
-    endpoint: https://
+    endpoint: https://{{subdomain}}.tappx.com
     meta-info:
       maintainer-email: tappx@tappx.com
       app-media-types:

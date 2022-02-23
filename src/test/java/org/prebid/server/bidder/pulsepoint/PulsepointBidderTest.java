@@ -74,7 +74,7 @@ public class PulsepointBidderTest extends VertxTest {
                 .site(Site.builder().build())
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpPulsepoint.of(null, null)))))))
+                                null, ExtImpPulsepoint.of(null, 1)))))))
                 .build();
 
         // when

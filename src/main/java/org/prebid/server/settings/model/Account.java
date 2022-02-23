@@ -18,6 +18,8 @@ public class Account {
 
     AccountAnalyticsConfig analytics;
 
+    AccountMetricsConfig metrics;
+
     @JsonProperty("cookie-sync")
     AccountCookieSyncConfig cookieSync;
 

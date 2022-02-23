@@ -1,6 +1,6 @@
 adapters:
   invibes:
-    endpoint: https://{{Host}}/bid/ServerBidAdContent
+    endpoint: https://{{ZoneID}}.videostep.com/bid/ServerBidAdContent
     meta-info:
       maintainer-email: system_operations@invibes.com
       site-media-types:

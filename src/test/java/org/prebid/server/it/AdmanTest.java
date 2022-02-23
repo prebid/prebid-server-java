@@ -22,12 +22,8 @@ public class AdmanTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromAdman() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adman-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-1.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adman-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request-2.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response-2.json"))));
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/adman/test-adman-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/adman/test-adman-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/adman/test-auction-adman-request.json",
