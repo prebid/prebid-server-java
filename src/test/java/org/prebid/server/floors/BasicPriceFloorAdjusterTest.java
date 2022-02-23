@@ -1,7 +1,10 @@
 package org.prebid.server.floors;
 
+import com.iab.openrtb.request.Audio;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Rule;
@@ -150,6 +153,35 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void adjustForImpShouldChooseMinimalFactorFromSeveralAvailable() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidadjustmentfactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video_outstream,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)),
+                                        ImpMediaType.audio,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.75D), "bidder", BigDecimal.valueOf(0.6D)),
+                                        ImpMediaType.xNative,
+                                        Map.of("bidder", BigDecimal.valueOf(0.85D), RUBICON, BigDecimal.valueOf(0.6D)))))
+                                .build())
+                        .build())));
+        final Imp imp = givenImp(impBuilder ->
+                impBuilder
+                        .banner(Banner.builder().build())
+                        .audio(Audio.builder().build())
+                        .xNative(Native.builder().build())
+                        .video(Video.builder().placement(0).build()));
+
+        // when
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp((imp), RUBICON, bidRequest);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.7D));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {

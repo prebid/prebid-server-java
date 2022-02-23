@@ -14,9 +14,10 @@ import org.prebid.server.util.ObjectUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
@@ -24,18 +25,21 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest) {
         final ExtRequestBidadjustmentfactors extBidadjustmentfactors =
                 extractBidadjustmentfactors(bidRequest);
+        final BigDecimal impBidfloor = imp.getBidfloor();
 
-        if (extBidadjustmentfactors == null) {
-            return imp.getBidfloor();
+        if (impBidfloor == null) {
+            return null;
         }
 
-        final ImpMediaType mediaType = chooseMediaType(imp, extBidadjustmentfactors, bidder);
+        if (extBidadjustmentfactors == null) {
+            return impBidfloor;
+        }
 
-        final BigDecimal factor = resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
+        final BigDecimal factor = resolveBidFloor(imp, extBidadjustmentfactors, bidder);
 
-        return imp.getBidfloor() != null
-                ? BidderUtil.roundFloor(imp.getBidfloor().divide(factor, factor.precision(), RoundingMode.HALF_EVEN))
-                : imp.getBidfloor();
+        return factor != null
+                ? BidderUtil.roundFloor(impBidfloor.divide(factor, factor.precision(), RoundingMode.HALF_EVEN))
+                : impBidfloor;
     }
 
     private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
@@ -44,8 +48,11 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         return ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getBidadjustmentfactors);
     }
 
-    private static ImpMediaType chooseMediaType(Imp imp, ExtRequestBidadjustmentfactors extBidadjustmentfactors, String bidder) {
-        if (MapUtils.isEmpty(extBidadjustmentfactors.getMediatypes())) {
+    private static BigDecimal resolveBidFloor(Imp imp, ExtRequestBidadjustmentfactors extBidadjustmentfactors, String bidder) {
+        final EnumMap<ImpMediaType, Map<String, BigDecimal>> extBidadjustmentfactorsMediatypes =
+                extBidadjustmentfactors.getMediatypes();
+
+        if (MapUtils.isEmpty(extBidadjustmentfactorsMediatypes)) {
             return null;
         }
 
@@ -54,59 +61,57 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
             return null;
         }
 
-        final TreeMap<BigDecimal, ImpMediaType> factorToMediatype = new TreeMap<>();
+        final Map.Entry<ImpMediaType, Map<String, BigDecimal>> mediatypeMinFactor = extBidadjustmentfactorsMediatypes.entrySet().stream()
+                .filter(e -> availableMediatypesForImp.contains(e.getKey()))
+                .min(Comparator.comparing(e -> e.getValue().get(bidder)))
+                .orElse(null);
 
-        for (ImpMediaType mediaType : availableMediatypesForImp) {
-            final Map<String, BigDecimal> mediaTypeValues = extBidadjustmentfactors.getMediatypes().get(mediaType);
-            if (MapUtils.isEmpty(mediaTypeValues)) {
-                continue;
-            }
+        final BigDecimal adjustmentFactor = extBidadjustmentfactors.getAdjustments().get(bidder);
 
-            final BigDecimal factor = mediaTypeValues.get(bidder);
-            if (factor == null) {
-                continue;
-            }
-            factorToMediatype.put(factor.setScale(4, RoundingMode.UNNECESSARY), mediaType);
-        }
-
-        return MapUtils.isEmpty(factorToMediatype) ? null : factorToMediatype.firstEntry().getValue();
+        return mediatypeMinFactor != null
+                ? resolveCorrectAdjustment(mediatypeMinFactor.getValue().get(bidder), adjustmentFactor)
+                : adjustmentFactor != null ? adjustmentFactor : BigDecimal.ONE;
     }
 
     private static List<ImpMediaType> retrieveImpMediatypes(Imp imp) {
         final List<ImpMediaType> availableMediatypes = new ArrayList<>();
 
+        if (imp.getBanner() != null) {
+            availableMediatypes.add(ImpMediaType.banner);
+        }
+        if (imp.getVideo() != null) {
+            final Integer placement = imp.getVideo().getPlacement();
+            if (placement != null) {
+                availableMediatypes.add(resolveImpMediaTypeFromPlacement(placement));
+            }
+        }
+        if (imp.getXNative() != null) {
+            availableMediatypes.add(ImpMediaType.xNative);
+        }
         if (imp.getAudio() != null) {
             availableMediatypes.add(ImpMediaType.audio);
-        } else if (imp.getBanner() != null) {
-            availableMediatypes.add(ImpMediaType.banner);
-        } else if (imp.getXNative() != null) {
-            availableMediatypes.add(ImpMediaType.xNative);
-        } else if (imp.getVideo() != null) {
-            if (imp.getVideo().getPlacement() != 1) {
-                availableMediatypes.add(ImpMediaType.video_outstream);
-            } else {
-                availableMediatypes.add(ImpMediaType.video);
-            }
         }
 
         return availableMediatypes;
     }
 
-    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
-                                                         ImpMediaType mediaType,
-                                                         String bidder) {
-        if (mediaType != null) {
-            final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
-                    extBidadjustmentfactors.getMediatypes();
-            final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
-            final BigDecimal adjustmentFactorByMediaType =
-                    adjustmentsByMediatypes != null ? adjustmentsByMediatypes.get(bidder) : null;
-            if (adjustmentFactorByMediaType != null) {
-                return adjustmentFactorByMediaType;
+    private static ImpMediaType resolveImpMediaTypeFromPlacement(Integer placement) {
+        if (placement != 1) {
+            return ImpMediaType.video_outstream;
+        } else {
+            return ImpMediaType.video;
+        }
+    }
+
+    private static BigDecimal resolveCorrectAdjustment(BigDecimal mediaTypeFactor, BigDecimal adjustmentFactor) {
+        if (mediaTypeFactor == null) {
+            return adjustmentFactor == null ? BigDecimal.ONE : adjustmentFactor;
+        } else {
+            if (adjustmentFactor != null) {
+                return mediaTypeFactor.compareTo(adjustmentFactor) < 0 ? mediaTypeFactor : adjustmentFactor;
+            } else {
+                return mediaTypeFactor;
             }
         }
-        final BigDecimal adjustmentFactor = extBidadjustmentfactors.getAdjustments().get(bidder);
-
-        return adjustmentFactor != null ? adjustmentFactor : BigDecimal.ONE;
     }
 }
