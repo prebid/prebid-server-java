@@ -1,13 +1,13 @@
 package org.prebid.server.auction.model;
 
-import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
-@Builder
-@Value
-public class ServerConfiguration {
+@Value(staticConstructor = "of")
+public class ServerConfigurationProperties {
+
+    boolean cacheOnlyWinningBids;
 
     String adCurrency;
 

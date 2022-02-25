@@ -27,7 +27,7 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
-import org.prebid.server.auction.model.ServerConfiguration;
+import org.prebid.server.auction.model.ServerConfigurationProperties;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -203,25 +203,26 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ServerConfiguration serverConfiguration(@Value("${auction.ad-server-currency}") String adServerCurrency,
-                                            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
-                                            @Value("${external-url}") String externalUrl,
-                                            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
-                                            @Value("${datacenter-region}") String datacenterRegion) {
+    ServerConfigurationProperties serverConfiguration(
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
+            @Value("${auction.ad-server-currency}") String adServerCurrency,
+            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion) {
 
-        return ServerConfiguration.builder()
-                .adCurrency(adServerCurrency)
-                .blacklistedApps(splitToList(blacklistedAppsString))
-                .externalUrl(externalUrl)
-                .gdprHostVendorId(hostVendorId)
-                .datacenterRegion(datacenterRegion)
-                .build();
+        return ServerConfigurationProperties.of(
+                cacheOnlyWinningBids,
+                adServerCurrency,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion);
     }
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
-            ServerConfiguration serverConfiguration,
+            ServerConfigurationProperties serverConfigurationProperties,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
@@ -229,8 +230,7 @@ public class ServiceConfiguration {
             JacksonMapper mapper) {
 
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
-                serverConfiguration,
+                serverConfigurationProperties,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
