@@ -500,9 +500,6 @@ public class Ortb2ImplicitParametersResolver {
         return node != null && node.isObject();
     }
 
-    /**
-     * Returns updated {@link ExtRequest} if required or null otherwise.
-     */
     private ExtRequest populateRequestExt(ExtRequest ext, BidRequest bidRequest, List<Imp> imps, String endpoint) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
 
@@ -526,7 +523,11 @@ public class Ortb2ImplicitParametersResolver {
                         ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getPbs)))
                 .server(buildExtRequestPrebidServer(serverConfigurationProperties))
                 .build());
-        updatedExt.addProperties(ext.getProperties());
+
+        final Map<String, JsonNode> extProperties = ObjectUtil.getIfNotNull(ext, ExtRequest::getProperties);
+        if (extProperties != null) {
+            updatedExt.addProperties(extProperties);
+        }
 
         return updatedExt;
     }
