@@ -37,7 +37,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
-import java.time.Instant;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -63,10 +63,12 @@ public class YieldlabBidder implements Bidder<Void> {
             + "</Wrapper></Ad></VAST>";
 
     private final String endpointUrl;
+    private final Clock clock;
     private final JacksonMapper mapper;
 
-    public YieldlabBidder(String endpointUrl, JacksonMapper mapper) {
+    public YieldlabBidder(String endpointUrl, Clock clock, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -128,7 +130,7 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private String makeUrl(ExtImpYieldlab extImpYieldlab, BidRequest request) {
         // for passing validation tests
-        final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(Instant.now().getEpochSecond());
+        final String timestamp = isDebugEnabled(request) ? "200000" : String.valueOf(clock.instant().getEpochSecond());
 
         final String updatedPath = String.format("%s/%s", endpointUrl, extImpYieldlab.getAdslotId());
 
@@ -364,16 +366,18 @@ public class YieldlabBidder implements Bidder<Void> {
         return String.format(AD_SOURCE_BANNER, makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private static String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
-                                     YieldlabResponse yieldlabResponse) {
-        return String.format(VAST_MARKUP, extImpYieldlab.getAdslotId(),
+    private String resolveAdm(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
+        return String.format(
+                VAST_MARKUP,
+                extImpYieldlab.getAdslotId(),
                 makeNurl(bidRequest, extImpYieldlab, yieldlabResponse));
     }
 
-    private static String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab,
-                                   YieldlabResponse yieldlabResponse) {
+    private String makeNurl(BidRequest bidRequest, ExtImpYieldlab extImpYieldlab, YieldlabResponse yieldlabResponse) {
         // for passing validation tests
-        final String timestamp = isDebugEnabled(bidRequest) ? "200000" : String.valueOf(Instant.now().getEpochSecond());
+        final String timestamp = isDebugEnabled(bidRequest)
+                ? "200000"
+                : String.valueOf(clock.instant().getEpochSecond());
 
         final URIBuilder uriBuilder = new URIBuilder()
                 .addParameter("ts", timestamp)

@@ -14,6 +14,7 @@
             "prebid": {
               "type": "native"
             },
+            "pt": "gross",
             "origbidcpm": 10,
             "origbidcur": "EUR"
           }
@@ -29,8 +30,9 @@
             "prebid": {
               "type": "banner"
             },
-          "origbidcpm": 10,
-          "origbidcur": "EUR"
+            "pt": "gross",
+            "origbidcpm": 10,
+            "origbidcur": "EUR"
           }
         }
       ],

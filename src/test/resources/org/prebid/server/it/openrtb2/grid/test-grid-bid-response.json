@@ -18,6 +18,16 @@
               "grid": {
                 "demandSource": "trustx"
               }
+            },
+            "skadn": {
+              "version": "2.0",
+              "sourceapp": "880047117"
+            },
+            "data": {
+              "adserver": {
+                "name": "some_name",
+                "adslot": "some_slot"
+              }
             }
           }
         }

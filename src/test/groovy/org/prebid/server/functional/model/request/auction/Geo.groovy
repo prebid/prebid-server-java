@@ -22,4 +22,5 @@ class Geo {
     String city
     String zip
     Integer utcoffset
+    GeoExt ext
 }

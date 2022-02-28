@@ -6,4 +6,5 @@ import groovy.transform.ToString
 class BidRequestExt {
 
     Prebid prebid
+    Schain schain
 }

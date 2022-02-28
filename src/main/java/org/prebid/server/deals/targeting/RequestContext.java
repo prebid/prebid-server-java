@@ -110,8 +110,7 @@ public class RequestContext {
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToString);
             default:
-                throw new TargetingSyntaxException(
-                        String.format("Unexpected category for fetching string value for: %s", type));
+                return null;
         }
     }
 
@@ -124,6 +123,8 @@ public class RequestContext {
                 return getIntegerFromUserExt("time.userdow");
             case hour:
                 return getIntegerFromUserExt("time.userhour");
+            case deviceGeoExt:
+                return getValueFrom(geoExt, category, RequestContext::nodeToInteger);
             case bidderParam:
                 return impBidderAttributeReader.readFromExt(imp, category, RequestContext::nodeToInteger);
             case userFirstPartyData:
@@ -132,8 +133,7 @@ public class RequestContext {
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToInteger);
             default:
-                throw new TargetingSyntaxException(
-                        String.format("Unexpected category for fetching integer value for: %s", type));
+                return null;
         }
     }
 
@@ -152,8 +152,7 @@ public class RequestContext {
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToListOfStrings);
             default:
-                throw new TargetingSyntaxException(
-                        String.format("Unexpected category for fetching string values for: %s", type));
+                return null;
         }
     }
 
@@ -168,8 +167,7 @@ public class RequestContext {
             case siteFirstPartyData:
                 return getSiteFirstPartyData(category, RequestContext::nodeToListOfIntegers);
             default:
-                throw new TargetingSyntaxException(
-                        String.format("Unexpected category for fetching integer values for: %s", type));
+                return null;
         }
     }
 
