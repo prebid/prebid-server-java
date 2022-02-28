@@ -1304,7 +1304,6 @@ public class ExchangeService {
             }
 
             if (validationResult.hasErrors()) {
-                validationResult.getErrors().stream().map(BidderError::generic).forEach(errors::add);
                 maybeRecordInTxnLog(lineItemId, txnLog::lineItemsResponseInvalidated);
                 continue;
             }
