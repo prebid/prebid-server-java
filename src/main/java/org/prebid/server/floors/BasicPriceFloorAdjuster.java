@@ -2,7 +2,6 @@ package org.prebid.server.floors;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
@@ -18,6 +17,8 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
@@ -25,93 +26,94 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest) {
         final ExtRequestBidadjustmentfactors extBidadjustmentfactors =
                 extractBidadjustmentfactors(bidRequest);
-        final BigDecimal impBidfloor = imp.getBidfloor();
+        final BigDecimal impBidFloor = imp.getBidfloor();
 
-        if (impBidfloor == null) {
-            return null;
+        if (impBidFloor == null || extBidadjustmentfactors == null) {
+            return impBidFloor;
         }
 
-        if (extBidadjustmentfactors == null) {
-            return impBidfloor;
-        }
-
-        final BigDecimal factor = resolveBidFloor(imp, extBidadjustmentfactors, bidder);
+        final BigDecimal factor = resolveAdjustmentFactor(imp, extBidadjustmentfactors, bidder);
 
         return factor != null
-                ? BidderUtil.roundFloor(impBidfloor.divide(factor, factor.precision(), RoundingMode.HALF_EVEN))
-                : impBidfloor;
+                ? BidderUtil.roundFloor(impBidFloor.divide(factor, 4, RoundingMode.HALF_EVEN))
+                : impBidFloor;
     }
 
     private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+
         return ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getBidadjustmentfactors);
     }
 
-    private static BigDecimal resolveBidFloor(Imp imp, ExtRequestBidadjustmentfactors extBidadjustmentfactors, String bidder) {
-        final EnumMap<ImpMediaType, Map<String, BigDecimal>> extBidadjustmentfactorsMediatypes =
-                extBidadjustmentfactors.getMediatypes();
+    private static BigDecimal resolveAdjustmentFactor(Imp imp,
+                                                      ExtRequestBidadjustmentfactors adjustmentFactors,
+                                                      String bidder) {
 
-        if (MapUtils.isEmpty(extBidadjustmentfactorsMediatypes)) {
-            return null;
+        final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaTypes =
+                adjustmentFactors.getMediatypes();
+
+        final BigDecimal bidderAdjustmentFactor = adjustmentFactors.getAdjustments().get(bidder);
+
+        if (MapUtils.isEmpty(adjustmentFactorsByMediaTypes)) {
+            return oneOrMore(bidderAdjustmentFactor);
         }
 
-        final List<ImpMediaType> availableMediatypesForImp = retrieveImpMediatypes(imp);
-        if (CollectionUtils.isEmpty(availableMediatypesForImp)) {
-            return null;
-        }
-
-        final Map.Entry<ImpMediaType, Map<String, BigDecimal>> mediatypeMinFactor = extBidadjustmentfactorsMediatypes.entrySet().stream()
-                .filter(e -> availableMediatypesForImp.contains(e.getKey()))
-                .min(Comparator.comparing(e -> e.getValue().get(bidder)))
+        final List<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
+        final BigDecimal mediaTypeMinFactor = adjustmentFactorsByMediaTypes.entrySet().stream()
+                .filter(entry -> entry.getKey() != null && impMediaTypes.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .filter(Objects::nonNull)
+                .map(adjustments -> adjustments.get(bidder))
+                .filter(Objects::nonNull)
+                .min(Comparator.comparing(Function.identity()))
                 .orElse(null);
 
-        final BigDecimal adjustmentFactor = extBidadjustmentfactors.getAdjustments().get(bidder);
-
-        return mediatypeMinFactor != null
-                ? resolveCorrectAdjustment(mediatypeMinFactor.getValue().get(bidder), adjustmentFactor)
-                : adjustmentFactor != null ? adjustmentFactor : BigDecimal.ONE;
+        return createFactorValue(mediaTypeMinFactor, bidderAdjustmentFactor);
     }
 
-    private static List<ImpMediaType> retrieveImpMediatypes(Imp imp) {
-        final List<ImpMediaType> availableMediatypes = new ArrayList<>();
+    private static List<ImpMediaType> retrieveImpMediaTypes(Imp imp) {
+        final List<ImpMediaType> availableMediaTypes = new ArrayList<>();
 
         if (imp.getBanner() != null) {
-            availableMediatypes.add(ImpMediaType.banner);
+            availableMediaTypes.add(ImpMediaType.banner);
         }
         if (imp.getVideo() != null) {
             final Integer placement = imp.getVideo().getPlacement();
-            if (placement != null) {
-                availableMediatypes.add(resolveImpMediaTypeFromPlacement(placement));
+            if (Objects.equals(placement, 1)) {
+                availableMediaTypes.add(ImpMediaType.video);
+            } else {
+                availableMediaTypes.add(ImpMediaType.video_outstream);
             }
         }
         if (imp.getXNative() != null) {
-            availableMediatypes.add(ImpMediaType.xNative);
+            availableMediaTypes.add(ImpMediaType.xNative);
         }
         if (imp.getAudio() != null) {
-            availableMediatypes.add(ImpMediaType.audio);
+            availableMediaTypes.add(ImpMediaType.audio);
         }
 
-        return availableMediatypes;
+        return availableMediaTypes;
     }
 
-    private static ImpMediaType resolveImpMediaTypeFromPlacement(Integer placement) {
-        if (placement != 1) {
-            return ImpMediaType.video_outstream;
-        } else {
-            return ImpMediaType.video;
-        }
-    }
+    private static BigDecimal createFactorValue(BigDecimal mediaTypeFactor, BigDecimal adjustmentFactor) {
+        final BigDecimal effectiveFactor;
 
-    private static BigDecimal resolveCorrectAdjustment(BigDecimal mediaTypeFactor, BigDecimal adjustmentFactor) {
         if (mediaTypeFactor == null) {
-            return adjustmentFactor == null ? BigDecimal.ONE : adjustmentFactor;
+            effectiveFactor = adjustmentFactor;
+        } else if (adjustmentFactor == null) {
+            effectiveFactor = mediaTypeFactor;
         } else {
-            if (adjustmentFactor != null) {
-                return mediaTypeFactor.compareTo(adjustmentFactor) < 0 ? mediaTypeFactor : adjustmentFactor;
-            } else {
-                return mediaTypeFactor;
-            }
+            effectiveFactor = mediaTypeFactor.compareTo(adjustmentFactor) < 0 ? mediaTypeFactor : adjustmentFactor;
         }
+
+        return oneOrMore(effectiveFactor);
+    }
+
+    private static BigDecimal oneOrMore(BigDecimal value) {
+
+        return value != null && BigDecimal.ONE.compareTo(value) > 0
+                ? value
+                : BigDecimal.ONE;
     }
 }

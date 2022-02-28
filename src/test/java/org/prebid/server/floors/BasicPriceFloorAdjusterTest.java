@@ -18,6 +18,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.UnaryOperator;
@@ -46,7 +47,51 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 .adjustForImp(givenImp(identity()), RUBICON, givenBidRequest(identity()));
 
         // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(11.76D));
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(11.7647D));
+    }
+
+    @Test
+    public void adjustForImpShouldChooseAdjustmentFactorFromAdjustments() {
+        // given
+
+        final ExtRequestBidadjustmentfactors givenFactors = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(givenMediaTypes(Collections.emptyMap()))
+                .build();
+        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(0.6D));
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(givenFactors).build())));
+        final Imp imp = givenImp(impBuilder ->
+                impBuilder);
+
+        // when
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
+    }
+
+    @Test
+    public void adjustForImpShouldNotChooseAdjustmentFactorIfGreaterThanOne() {
+        // given
+
+        final ExtRequestBidadjustmentfactors givenFactors = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(givenMediaTypes(Map.of(
+                        ImpMediaType.video,
+                        Map.of(RUBICON, BigDecimal.valueOf(1.8D)))))
+                .build();
+        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(1.6D));
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(givenFactors).build())));
+        final Imp imp = givenImp(impBuilder ->
+                impBuilder);
+
+        // when
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
     }
 
     @Test
@@ -64,7 +109,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldReturnNullIfImpBidFloorIsNotSet() {
+    public void adjustForImpShouldReturnNullIfImpBidFloorIsNotPresent() {
         // given
         final Imp imp = givenImp(impBuilder -> impBuilder.bidfloor(null));
 
@@ -77,7 +122,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldReturnBidFloorFactoredByOne() {
+    public void adjustForImpShouldReturnBidFloorNotFactoredByOtherBidder() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -97,7 +142,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldReturnFactoredOfOneIfExtBidAdjustmentsFactorMediatypesIsNull() {
+    public void adjustForImpShouldReturnFactoredOfOneIfExtBidAdjustmentsFactorMediaTypesIsNull() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -115,16 +160,9 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldReturnFactorOfOneIfNoMediatypeInImpression() {
+    public void adjustForImpShouldReturnFactorOfOneIfNoMediaTypeInImpression() {
         // given
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidadjustmentfactors(ExtRequestBidadjustmentfactors.builder()
-                                .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video,
-                                        Map.of("bidder", BigDecimal.valueOf(0.8D)))))
-                                .build())
-                        .build())));
+        final BidRequest bidRequest = givenBidRequest(identity());
         final Imp imp = givenImp(impBuilder -> impBuilder.video(null));
 
         // when
@@ -136,14 +174,14 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldSkipMediatypeIfNoMediatypesOfImpFound() {
+    public void adjustForImpShouldSkipMediaTypeIfNoMediaTypesOfImpFound() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidadjustmentfactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
                                         ImpMediaType.video_outstream,
-                                        Map.of("bidder", BigDecimal.valueOf(0.8D)))))
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D)))))
                                 .build())
                         .build())));
 
@@ -167,7 +205,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                                         ImpMediaType.audio,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.75D), "bidder", BigDecimal.valueOf(0.6D)),
                                         ImpMediaType.xNative,
-                                        Map.of("bidder", BigDecimal.valueOf(0.85D), RUBICON, BigDecimal.valueOf(0.6D)))))
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.6D), "bidder", BigDecimal.valueOf(0.7D)))))
                                 .build())
                         .build())));
         final Imp imp = givenImp(impBuilder ->
@@ -178,10 +216,33 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                         .video(Video.builder().placement(0).build()));
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp((imp), RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
 
         // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.7D));
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
+    }
+
+    @Test
+    public void adjustForImpShouldChooseAdjustmentFactorIfLowerThenMediaType() {
+        // given
+
+        final ExtRequestBidadjustmentfactors givenFactors = ExtRequestBidadjustmentfactors.builder()
+                .mediatypes(givenMediaTypes(Map.of(
+                        ImpMediaType.video,
+                        Map.of(RUBICON, BigDecimal.valueOf(0.7D), "bidder", BigDecimal.valueOf(0.5D)))))
+                .build();
+        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(0.6D));
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(givenFactors).build())));
+        final Imp imp = givenImp(impBuilder ->
+                impBuilder);
+
+        // when
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
