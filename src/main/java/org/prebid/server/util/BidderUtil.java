@@ -9,6 +9,7 @@ import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 
@@ -55,5 +56,17 @@ public class BidderUtil {
         return floor != null || currency != null
                 ? PriceFloorInfo.of(floor, currency)
                 : null;
+    }
+
+    public static BigDecimal roundFloor(BigDecimal floor) {
+        if (floor != null) {
+            final BigDecimal convertedPriceValue = floor.setScale(4, RoundingMode.HALF_EVEN).stripTrailingZeros();
+
+            return convertedPriceValue.scale() < 0
+                    ? convertedPriceValue.setScale(0, RoundingMode.UNNECESSARY)
+                    : convertedPriceValue;
+        }
+
+        return null;
     }
 }
