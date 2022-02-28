@@ -108,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.DealUtil;
 import org.prebid.server.util.LineItemUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -1320,13 +1321,13 @@ public class ExchangeService {
     }
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
-        final String bidId = bid != null ? bid.getId() : "unknown";
         final String validationErrors = Stream.concat(
                 validationResult.getErrors().stream().map(message -> "Error: " + message),
                 validationResult.getWarnings().stream().map(message -> "Warning: " + message))
                 .collect(Collectors.joining(". "));
-        return BidderError.invalidBid(String.format("BidId `%s` validation messages: %s",
-                bidId != null ? bidId : "unknown", validationErrors));
+
+        final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
+        return BidderError.invalidBid("BidId `" + bidId + "` validation messages: " + validationErrors);
     }
 
     private static void maybeRecordInTxnLog(String lineItemId, Supplier<Set<String>> metricSupplier) {
