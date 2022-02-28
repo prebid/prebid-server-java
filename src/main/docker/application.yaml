@@ -1,0 +1,4 @@
+gdpr:
+  vendorlist:
+    v2:
+      cache-dir: /app/prebid-server/data/vendorlist-v2

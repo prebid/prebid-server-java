@@ -10,7 +10,10 @@
           "adm": "adm9",
           "crid": "crid9",
           "w": 300,
-          "h": 600
+          "h": 600,
+          "ext": {
+            "bidtype": 1
+          }
         }
       ],
       "seat": "seatId9",

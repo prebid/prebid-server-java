@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class RhythmoneBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpRhythmone>> RHYTHMONE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpRhythmone>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -71,16 +71,15 @@ public class RhythmoneBidder implements Bidder<BidRequest> {
         }
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(modifiedImps).build();
-        final String body = mapper.encode(outgoingRequest);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(composedUrl)
-                        .body(body)
-                        .headers(HttpUtil.headers())
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(composedUrl)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .headers(HttpUtil.headers())
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

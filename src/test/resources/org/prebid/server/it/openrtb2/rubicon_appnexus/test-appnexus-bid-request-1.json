@@ -38,6 +38,17 @@
           "placement_id": 9880618
         }
       }
+    },
+    {
+      "id" : "impId32",
+      "audio" : {
+        "mimes" : [ "video/mp4" ]
+      },
+      "ext" : {
+        "appnexus" : {
+          "placement_id" : 10433394
+        }
+      }
     }
   ],
   "site": {
@@ -139,6 +150,10 @@
     }
   },
   "ext": {
+    "appnexus": {
+      "is_amp": 0,
+      "hb_source": 5
+    },
     "prebid": {
       "debug": 1,
       "aliases": {

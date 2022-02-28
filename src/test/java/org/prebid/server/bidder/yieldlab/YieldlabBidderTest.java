@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,7 +27,9 @@ import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -38,23 +41,25 @@ import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.assertj.core.api.Assertions.within;
 
 public class YieldlabBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
+    private Clock clock;
+
     private YieldlabBidder yieldlabBidder;
 
     @Before
     public void setUp() {
-        yieldlabBidder = new YieldlabBidder(ENDPOINT_URL, jacksonMapper);
+        clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
+        yieldlabBidder = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new YieldlabBidder("invalid_url", jacksonMapper))
+                .isThrownBy(() -> new YieldlabBidder("invalid_url", clock, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
 
@@ -109,7 +114,7 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
 
         // then
-        final int expectedTime = (int) Instant.now().getEpochSecond();
+        final long expectedTime = clock.instant().getEpochSecond();
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -119,7 +124,7 @@ public class YieldlabBidderTest extends VertxTest {
                     assertThat(uri).endsWith("&t=key1%3Dvalue1%26key2%3Dvalue2&ids=buyeruid&yl_rtb_ifa&"
                             + "yl_rtb_devicetype=1&gdpr=1&consent=consent");
                     final String ts = uri.substring(54, uri.indexOf("&t="));
-                    assertThat(Integer.parseInt(ts)).isCloseTo(expectedTime, within(10));
+                    assertThat(Long.parseLong(ts)).isEqualTo(expectedTime);
                 });
 
         assertThat(result.getValue()).hasSize(1)
@@ -229,7 +234,7 @@ public class YieldlabBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
 
         // then
-        final String timestamp = String.valueOf((int) Instant.now().getEpochSecond());
+        final String timestamp = String.valueOf(clock.instant().getEpochSecond());
         final int weekNumber = Calendar.getInstance().get(Calendar.WEEK_OF_YEAR);
         final String adm = String.format(
                 "<script src=\"https://ad.yieldlab.net/d/1/2/728x90?ts=%s&id=extId&pvid=40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5&ids=buyeruid&gdpr=1&consent=consent\"></script>",
@@ -249,6 +254,47 @@ public class YieldlabBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsExactly(expected);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectAdm() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("test-imp-id")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                                .adslotId("12345")
+                                .supplyId("123456789")
+                                .adSize("728x90")
+                                .extId("abc")
+                                .build())))
+                        .video(Video.builder().build())
+                        .build()))
+                .build();
+
+        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
+                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+
+        final HttpCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+
+        // when
+        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        final String timestamp = String.valueOf(clock.instant().getEpochSecond());
+        final String expectedAdm = String.format("<VAST version=\"2.0\"><Ad id=\"12345\"><Wrapper>"
+                + "<AdSystem>Yieldlab</AdSystem>"
+                + "<VASTAdTagURI>"
+                + "<![CDATA[ https://ad.yieldlab.net/d/12345/123456789/728x90?ts=%s&id=abc&pvid=40cb3251-"
+                + "1e1e-4cfd-8edc-7d32dc1a21e5 ]]>"
+                + "</VASTAdTagURI>"
+                + "<Impression></Impression><Creatives></Creatives></Wrapper></Ad></VAST>", timestamp);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getAdm)
+                .containsExactly(expectedAdm);
     }
 
     private static HttpCall<Void> givenHttpCall(String body) {

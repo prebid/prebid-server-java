@@ -120,7 +120,7 @@ class GroupExecutor<PAYLOAD, CONTEXT extends InvocationContext> {
         final long timeoutTimerId = vertx.setTimer(timeout, id -> failWithTimeout(promise));
 
         executeSafely(action)
-                .setHandler(result -> completeWithActionResult(promise, timeoutTimerId, result));
+                .onComplete(result -> completeWithActionResult(promise, timeoutTimerId, result));
 
         return promise.future();
     }

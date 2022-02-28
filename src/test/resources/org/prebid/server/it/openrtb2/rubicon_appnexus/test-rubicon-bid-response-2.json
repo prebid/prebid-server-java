@@ -11,6 +11,15 @@
           "crid": "crid2",
           "w": 300,
           "h": 600
+        },
+        {
+          "id": "zeroPriceBidId",
+          "impid": "impId2",
+          "price": 0,
+          "adm": "adm2",
+          "crid": "crid2",
+          "w": 300,
+          "h": 600
         }
       ],
       "seat": "seatId2",

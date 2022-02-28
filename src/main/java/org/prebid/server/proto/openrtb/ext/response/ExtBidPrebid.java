@@ -34,4 +34,6 @@ public class ExtBidPrebid {
     ExtBidPrebidVideo video;
 
     ObjectNode meta;
+
+    Boolean dealtiersatisfied;
 }

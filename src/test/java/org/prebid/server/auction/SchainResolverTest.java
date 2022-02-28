@@ -8,9 +8,9 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -30,15 +30,13 @@ public class SchainResolverTest extends VertxTest {
         // given
         final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
                 "asi", "sid", 1, "rid", "name", "domain", null);
-        final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(specificNodes), null);
+        final ExtSourceSchain specificSchain = ExtSourceSchain.of("ver", 1, singletonList(specificNodes), null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
                 asList("bidder1", "bidder2"), specificSchain);
 
         final ExtRequestPrebidSchainSchainNode generalNodes = ExtRequestPrebidSchainSchainNode.of(
                 "t", null, 0, "a", null, "ads", null);
-        final ExtRequestPrebidSchainSchain generalSchain = ExtRequestPrebidSchainSchain.of(
-                "t", 123, singletonList(generalNodes), null);
+        final ExtSourceSchain generalSchain = ExtSourceSchain.of("t", 123, singletonList(generalNodes), null);
         final ExtRequestPrebidSchain allSchain = ExtRequestPrebidSchain.of(singletonList("*"), generalSchain);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -58,8 +56,7 @@ public class SchainResolverTest extends VertxTest {
         // given
         final ExtRequestPrebidSchainSchainNode specificNodes = ExtRequestPrebidSchainSchainNode.of(
                 "asi", "sid", 1, "rid", "name", "domain", null);
-        final ExtRequestPrebidSchainSchain specificSchain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(specificNodes), null);
+        final ExtSourceSchain specificSchain = ExtSourceSchain.of("ver", 1, singletonList(specificNodes), null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
                 singletonList("bidder1"), specificSchain);
 
@@ -77,9 +74,9 @@ public class SchainResolverTest extends VertxTest {
     public void shouldIgnoreDuplicatedBidderSchains() {
         // given
         final ExtRequestPrebidSchain schain1 = ExtRequestPrebidSchain.of(
-                singletonList("bidder"), ExtRequestPrebidSchainSchain.of("ver1", null, null, null));
+                singletonList("bidder"), ExtSourceSchain.of("ver1", null, null, null));
         final ExtRequestPrebidSchain schain2 = ExtRequestPrebidSchain.of(
-                singletonList("bidder"), ExtRequestPrebidSchainSchain.of("ver2", null, null, null));
+                singletonList("bidder"), ExtSourceSchain.of("ver2", null, null, null));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -100,10 +97,8 @@ public class SchainResolverTest extends VertxTest {
 
         final ExtRequestPrebidSchainSchainNode node = ExtRequestPrebidSchainSchainNode.of(
                 "asi", "sid", 1, "rid", "name", "domain", null);
-        final ExtRequestPrebidSchainSchain schain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(node), null);
         final ExtRequestPrebidSchain schainEntry = ExtRequestPrebidSchain.of(
-                singletonList("bidder"), schain);
+                singletonList("bidder"), ExtSourceSchain.of("ver", 1, singletonList(node), null));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -114,7 +109,7 @@ public class SchainResolverTest extends VertxTest {
         // when and then
         final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
                 "pbshostcompany.com", "00001", null, null, null, null, null);
-        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
+        final ExtSourceSchain expectedSchain = ExtSourceSchain.of(
                 "ver", 1, asList(node, globalNode), null);
         assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isEqualTo(expectedSchain);
     }
@@ -131,8 +126,7 @@ public class SchainResolverTest extends VertxTest {
         // when and then
         final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
                 "pbshostcompany.com", "00001", null, null, null, null, null);
-        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
-                null, null, singletonList(globalNode), null);
+        final ExtSourceSchain expectedSchain = ExtSourceSchain.of(null, null, singletonList(globalNode), null);
         assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isEqualTo(expectedSchain);
     }
 
@@ -145,8 +139,7 @@ public class SchainResolverTest extends VertxTest {
 
         final ExtRequestPrebidSchainSchainNode node = ExtRequestPrebidSchainSchainNode.of(
                 "asi", "sid", 1, "rid", "name", "domain", null);
-        final ExtRequestPrebidSchainSchain schain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, singletonList(node), null);
+        final ExtSourceSchain schain = ExtSourceSchain.of("ver", 1, singletonList(node), null);
 
         final BidRequest bidRequest = BidRequest.builder()
                 .source(Source.builder()
@@ -157,8 +150,7 @@ public class SchainResolverTest extends VertxTest {
         // when and then
         final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
                 "pbshostcompany.com", "00001", null, null, null, null, null);
-        final ExtRequestPrebidSchainSchain expectedSchain = ExtRequestPrebidSchainSchain.of(
-                "ver", 1, asList(node, globalNode), null);
+        final ExtSourceSchain expectedSchain = ExtSourceSchain.of("ver", 1, asList(node, globalNode), null);
         assertThat(schainResolver.resolveForBidder("bidder", bidRequest)).isEqualTo(expectedSchain);
     }
 }

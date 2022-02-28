@@ -46,13 +46,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
-/**
- * Adhese {@link Bidder} implementation.
- */
-public class AdheseBidder implements Bidder<Void> {
+public class AdheseBidder implements Bidder<AdheseRequestBody> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdhese>> ADHESE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpAdhese>>() {
+            new TypeReference<>() {
             };
 
     private static final String ORIGIN_BID = "JERLICIA";
@@ -69,7 +66,7 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<HttpRequest<Void>>> makeHttpRequests(BidRequest request) {
+    public Result<List<HttpRequest<AdheseRequestBody>>> makeHttpRequests(BidRequest request) {
         if (CollectionUtils.isEmpty(request.getImp())) {
             return Result.withError(BidderError.badInput("No impression in the bid request"));
         }
@@ -82,14 +79,16 @@ public class AdheseBidder implements Bidder<Void> {
         }
 
         final String uri = getUrl(extImpAdhese);
+        final AdheseRequestBody body = buildBody(request, extImpAdhese);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<Void>builder()
-                        .method(HttpMethod.POST)
-                        .uri(uri)
-                        .body(mapper.encode(buildBody(request, extImpAdhese)))
-                        .headers(replaceHeaders(request.getDevice()))
-                        .build()),
+                        HttpRequest.<AdheseRequestBody>builder()
+                                .method(HttpMethod.POST)
+                                .uri(uri)
+                                .body(mapper.encodeToBytes(body))
+                                .payload(body)
+                                .headers(replaceHeaders(request.getDevice()))
+                                .build()),
                 Collections.emptyList());
     }
 
@@ -170,7 +169,7 @@ public class AdheseBidder implements Bidder<Void> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<Void> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(HttpCall<AdheseRequestBody> httpCall, BidRequest bidRequest) {
         final HttpResponse httpResponse = httpCall.getResponse();
 
         final JsonNode bodyNode;
@@ -213,12 +212,12 @@ public class AdheseBidder implements Bidder<Void> {
         }
 
         final BigDecimal price;
-        final Integer width;
-        final Integer height;
+        final int width;
+        final int height;
         try {
             price = getPrice(adheseBid);
-            width = Integer.valueOf(adheseBid.getWidth());
-            height = Integer.valueOf(adheseBid.getHeight());
+            width = Integer.parseInt(adheseBid.getWidth());
+            height = Integer.parseInt(adheseBid.getHeight());
         } catch (NumberFormatException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }

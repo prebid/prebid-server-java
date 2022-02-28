@@ -20,7 +20,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
-import org.prebid.server.bidder.facebook.proto.FacebookNative;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -60,12 +59,10 @@ public class FacebookBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnBlankArguments() {
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
                         ENDPOINT_URL, " ", APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
                         ENDPOINT_URL, PLATFORM_ID, " ", TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
@@ -122,7 +119,7 @@ public class FacebookBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance of");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value of");
     }
 
     @Test
@@ -425,16 +422,16 @@ public class FacebookBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                // use payload as deserializing from body json string converts native to parent class, which
-                // is not aware of child's fields
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getXNative)
-                .containsOnly(FacebookNative.builder().w(-1).h(-1).api(singletonList(1)).build());
+                .containsOnly(Native.builder().api(singletonList(1)).build());
 
         // extra check to assure that data in body is displayed correctly
-        assertThat(result.getValue().get(0).getBody())
-                .contains("\"native\":{\"api\":[1],\"w\":-1,\"h\":-1},\"tagid\":\"pubId_placementId\"}");
+        assertThat(result.getValue())
+                .extracting(value -> new String(value.getBody()))
+                .allSatisfy(s -> assertThat(s)
+                        .contains("\"native\":{\"api\":[1]},\"tagid\":\"pubId_placementId\"}"));
     }
 
     @Test
@@ -699,7 +696,7 @@ public class FacebookBidderTest extends VertxTest {
                 .app(App.builder().publisher(Publisher.builder().id("test").build()).build())
                 .build();
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder()
-                .body(mapper.writeValueAsString(bidRequest))
+                .body(mapper.writeValueAsBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
 
@@ -715,9 +712,9 @@ public class FacebookBidderTest extends VertxTest {
             Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
-                .id("req1")
-                .user(User.builder().buyeruid("bUid").build())
-                .imp(singletonList(givenImp(impCustomizer, impExtCustomizer))))
+                        .id("req1")
+                        .user(User.builder().buyeruid("bUid").build())
+                        .imp(singletonList(givenImp(impCustomizer, impExtCustomizer))))
                 .build();
     }
 
@@ -729,10 +726,10 @@ public class FacebookBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
                                 Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("imp1")
-                .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(
-                        null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
+                        .id("imp1")
+                        .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
                 .build();
     }
 

@@ -292,18 +292,18 @@
         "pricegranularity": {
           "ranges": [
             {
-              "max": 20,
-              "increment": 0.1
+              "max": 10,
+              "increment": 0.5
             }
           ],
-          "precision": 2
+          "precision": 1
         },
         "includewinners": true,
         "includebidderkeys": true,
         "includebrandcategory": {
-          "primaryadserver": 1,
           "publisher": "",
-          "with_category": true
+          "withcategory": true,
+          "translatecategories": false
         }
       },
       "cache": {

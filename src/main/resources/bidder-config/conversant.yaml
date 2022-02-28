@@ -1,13 +1,6 @@
 adapters:
   conversant:
-    enabled: false
     endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
-    pbs-enforces-gdpr: true
-    pbs-enforces-ccpa: true
-    modifying-vast-xml-allowed: true
-    generate-bid-id: true
-    deprecated-names:
-    aliases: {}
     meta-info:
       maintainer-email: CNVR_PublisherIntegration@conversantmedia.com
       app-media-types:
@@ -24,3 +17,4 @@ adapters:
       cookie-family-name: conversant
       type: redirect
       support-cors: false
+    generate-bid-id: true

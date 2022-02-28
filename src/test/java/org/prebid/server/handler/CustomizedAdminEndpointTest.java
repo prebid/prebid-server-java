@@ -41,7 +41,7 @@ public class CustomizedAdminEndpointTest extends VertxTest {
     @Mock
     private Route route;
 
-    private Map<String, String> adminEndpointCredentials = Collections.singletonMap("user", "pass");
+    private final Map<String, String> adminEndpointCredentials = Collections.singletonMap("user", "pass");
 
     @Before
     public void setUp() {

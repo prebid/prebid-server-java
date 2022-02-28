@@ -27,6 +27,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pubnative.ExtImpPubnative;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -40,7 +41,7 @@ import java.util.stream.Collectors;
 public class PubnativeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpPubnative>> PUBNATIVE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpPubnative>>() {
+            new TypeReference<>() {
             };
     private static final String PUBNATIVE_CURRENCY = "USD";
 
@@ -135,7 +136,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
     private BigDecimal resolveBidFloor(BidRequest bidRequest, Imp imp) {
         final BigDecimal bidFloor = imp.getBidfloor();
         final String bidFloorCur = resolveBidFloorCurrency(bidRequest, imp.getBidfloorcur());
-        if (bidFloor == null || bidFloor.compareTo(BigDecimal.ZERO) <= 0
+        if (!BidderUtil.isValidPrice(bidFloor)
                 || StringUtils.equals(bidFloorCur, PUBNATIVE_CURRENCY)
                 || StringUtils.isEmpty(bidFloorCur)) {
             return null;
@@ -160,7 +161,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 .method(HttpMethod.POST)
                 .uri(requestUri)
                 .headers(HttpUtil.headers())
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }

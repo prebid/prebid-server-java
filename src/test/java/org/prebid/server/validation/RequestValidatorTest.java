@@ -66,13 +66,14 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -447,6 +448,30 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldNotReturnValidationMessageForSizesIfImpIsInterstitial() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .imp(singletonList(Imp.builder()
+                        .id("11")
+                        .instl(1)
+                        .banner(Banner.builder()
+                                .w(0)
+                                .h(300)
+                                .format(singletonList(Format.builder().w(1).h(1).build()))
+                                .build())
+                        .ext(mapper.valueToTree(
+                                singletonMap("prebid", singletonMap("bidder", singletonMap("rubicon", 0)))))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroWidth() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -667,8 +692,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnValidationMessageWhenBannerFormatSizesAndRatiosPresent() {
         // given
-        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(),
-                Function.identity());
+        final BidRequest bidRequest = overwriteBannerFormatInFirstImp(validBidRequestBuilder().build(), identity());
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -1025,6 +1049,21 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldNotValidateSiteIfAppPresent() {
+        // given
+        final BidRequest bidRequest = requestWithBothSiteAndApp(
+                validBidRequestBuilder(),
+                identity(),
+                identity()).build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenRequestAppAndRequestSiteBothMissed() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1346,7 +1385,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessagesWhenImpExtPrebidBidderIsUnknown() {
+    public void validateShouldReturnWarningAndDropBidderWhenImpExtPrebidBidderIsUnknown() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(false);
@@ -1355,12 +1394,20 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(2)
+                .containsOnly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
+                        + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                        "WARNING: request.imp[0].ext must contain at least one valid bidder");
+        assertThat(bidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExt -> impExt.get("prebid"))
+                .extracting(prebid -> prebid.get("bidder"))
+                .containsOnly(mapper.createObjectNode());
     }
 
     @Test
-    public void validateShouldReturnValidationMessageWhenBidderExtIsInvalid() {
+    public void validateShouldReturnWarningMessageAndDropBidderWhenBidderExtIsInvalid() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder().build();
         given(bidderParamValidator.validate(any(), any()))
@@ -1370,9 +1417,17 @@ public class RequestValidatorTest extends VertxTest {
         final ValidationResult result = requestValidator.validate(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(
-                        "request.imp[0].ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2");
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getWarnings()).hasSize(2)
+                .containsExactlyInAnyOrder(
+                        "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
+                        + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                        "WARNING: request.imp[0].ext must contain at least one valid bidder");
+        assertThat(bidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(impExt -> impExt.get("prebid"))
+                .extracting(prebid -> prebid.get("bidder"))
+                .containsOnly(mapper.createObjectNode());
     }
 
     @Test
@@ -2142,7 +2197,7 @@ public class RequestValidatorTest extends VertxTest {
     @Test
     public void validateShouldThrowExceptionWhenNativeRequestEmpty() {
         // given
-        final BidRequest bidRequest = givenBidRequest(Function.identity());
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final ValidationResult result = requestValidator.validate(bidRequest);
@@ -3029,14 +3084,14 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(
-            Function<Native.NativeBuilder<?, ?>, Native.NativeBuilder<?, ?>> nativeCustomizer) {
+            UnaryOperator<Native.NativeBuilder> nativeCustomizer) {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
                         .xNative(nativeCustomizer.apply(Native.builder()).build()).build())).build();
     }
 
     private static BidRequest givenBidRequestWithNativeRequest(
-            Function<Request.RequestBuilder, Request.RequestBuilder> nativeRequestCustomizer)
+            UnaryOperator<Request.RequestBuilder> nativeRequestCustomizer)
             throws JsonProcessingException {
         return validBidRequestBuilder()
                 .imp(singletonList(validImpBuilder()
@@ -3067,7 +3122,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest overwriteBannerFormatInFirstImp(
-            BidRequest bidRequest, Function<FormatBuilder, FormatBuilder> formatModifier) {
+            BidRequest bidRequest, UnaryOperator<FormatBuilder> formatModifier) {
         final Banner banner = bidRequest.getImp().get(0).getBanner().toBuilder()
                 .format(singletonList(formatModifier.apply(Format.builder()).build())).build();
 
@@ -3075,7 +3130,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest overwritePmpFirstDealInFirstImp(
-            BidRequest bidRequest, Function<DealBuilder, DealBuilder> dealModifier) {
+            BidRequest bidRequest, UnaryOperator<DealBuilder> dealModifier) {
         final Pmp pmp = bidRequest.getImp().get(0).getPmp().toBuilder()
                 .deals(singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build())).build();
 
@@ -3083,12 +3138,16 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     private static BidRequest.BidRequestBuilder overwriteSite(
-            BidRequest.BidRequestBuilder builder, Function<SiteBuilder, SiteBuilder> siteModifier) {
+            BidRequest.BidRequestBuilder builder, UnaryOperator<SiteBuilder> siteModifier) {
         return builder.site(siteModifier.apply(Site.builder()).build());
     }
 
-    private static BidRequest.BidRequestBuilder overwriteApp(
-            BidRequest.BidRequestBuilder builder, Function<AppBuilder, AppBuilder> appModifier) {
-        return builder.app(appModifier.apply(App.builder()).build());
+    private static BidRequest.BidRequestBuilder requestWithBothSiteAndApp(
+            BidRequest.BidRequestBuilder builder,
+            UnaryOperator<SiteBuilder> siteModifier,
+            UnaryOperator<AppBuilder> appModifier) {
+
+        return builder.site(siteModifier.apply(Site.builder()).build())
+                .app(appModifier.apply(App.builder()).build());
     }
 }

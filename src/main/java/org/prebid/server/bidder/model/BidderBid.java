@@ -1,15 +1,16 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.response.Bid;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 /**
  * Bid returned by a {@link Bidder}.
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class BidderBid {
 
@@ -28,7 +29,21 @@ public class BidderBid {
      */
     String bidCurrency;
 
-    public BidderBid with(Bid bid) {
-        return BidderBid.of(bid, this.type, this.bidCurrency);
+    /**
+     * Optionally provided by adapters and used internally to support deal targeted campaigns.
+     */
+    Integer dealPriority;
+
+    /**
+     * Will become response.seatbid[i].bid.ext.prebid.video in the final OpenRTB response.
+     */
+    ExtBidPrebidVideo videoInfo;
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidCurrency)
+                .build();
     }
 }

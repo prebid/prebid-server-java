@@ -11,6 +11,7 @@ import java.util.function.Function;
 class CacheMetrics extends UpdatableMetrics {
 
     private final RequestMetrics requestsMetrics;
+    private final CacheCreativeSizeMetrics cacheCreativeSizeMetrics;
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(
@@ -19,6 +20,7 @@ class CacheMetrics extends UpdatableMetrics {
                 nameCreator(createPrefix()));
 
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix());
+        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix());
     }
 
     CacheMetrics(MetricRegistry metricRegistry, CounterType counterType, String prefix) {
@@ -28,6 +30,7 @@ class CacheMetrics extends UpdatableMetrics {
                 nameCreator(createPrefix(Objects.requireNonNull(prefix))));
 
         requestsMetrics = new RequestMetrics(metricRegistry, counterType, createPrefix(prefix));
+        cacheCreativeSizeMetrics = new CacheCreativeSizeMetrics(metricRegistry, counterType, createPrefix(prefix));
     }
 
     private static String createPrefix(String prefix) {
@@ -44,5 +47,9 @@ class CacheMetrics extends UpdatableMetrics {
 
     RequestMetrics requests() {
         return requestsMetrics;
+    }
+
+    CacheCreativeSizeMetrics creativeSize() {
+        return cacheCreativeSizeMetrics;
     }
 }

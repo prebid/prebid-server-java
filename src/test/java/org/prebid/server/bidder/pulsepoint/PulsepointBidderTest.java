@@ -63,7 +63,7 @@ public class PulsepointBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize instance");
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -74,7 +74,7 @@ public class PulsepointBidderTest extends VertxTest {
                 .site(Site.builder().build())
                 .imp(singletonList(
                         givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(
-                                null, ExtImpPulsepoint.of(null, null)))))))
+                                null, ExtImpPulsepoint.of(null, 1)))))))
                 .build();
 
         // when

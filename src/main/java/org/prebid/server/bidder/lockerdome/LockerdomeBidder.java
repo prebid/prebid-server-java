@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 public class LockerdomeBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLockerdome>> LOCKERDOME_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpLockerdome>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -70,16 +70,14 @@ public class LockerdomeBidder implements Bidder<BidRequest> {
                 ? bidRequest.toBuilder().imp(validImps).build()
                 : bidRequest;
 
-        final String body = mapper.encode(outgoingRequest);
-
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(headers)
-                        .body(body)
-                        .payload(outgoingRequest)
-                        .build()),
+                        HttpRequest.<BidRequest>builder()
+                                .method(HttpMethod.POST)
+                                .uri(endpointUrl)
+                                .headers(headers)
+                                .body(mapper.encodeToBytes(outgoingRequest))
+                                .payload(outgoingRequest)
+                                .build()),
                 errors);
     }
 

@@ -22,7 +22,7 @@ import java.util.function.BiFunction;
  */
 public class CompositeApplicationSettings implements ApplicationSettings {
 
-    private Proxy proxy;
+    private final Proxy proxy;
 
     public CompositeApplicationSettings(List<ApplicationSettings> delegates) {
         if (Objects.requireNonNull(delegates).isEmpty()) {
@@ -77,6 +77,11 @@ public class CompositeApplicationSettings implements ApplicationSettings {
         return proxy.getVideoStoredData(accountId, requestIds, impIds, timeout);
     }
 
+    @Override
+    public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+        return proxy.getCategories(primaryAdServer, publisher, timeout);
+    }
+
     /**
      * Runs a process to get stored responses by a collection of ids from a chain of retrievers
      * and returns {@link Future&lt;{@link StoredResponseDataResult }&gt;}.
@@ -91,8 +96,8 @@ public class CompositeApplicationSettings implements ApplicationSettings {
      */
     private static class Proxy implements ApplicationSettings {
 
-        private ApplicationSettings applicationSettings;
-        private Proxy next;
+        private final ApplicationSettings applicationSettings;
+        private final Proxy next;
 
         private Proxy(ApplicationSettings applicationSettings, Proxy next) {
             this.applicationSettings = applicationSettings;
@@ -111,6 +116,14 @@ public class CompositeApplicationSettings implements ApplicationSettings {
             return retriever.apply(key, timeout)
                     .recover(throwable -> nextRetriever != null
                             ? nextRetriever.apply(key, timeout)
+                            : Future.failedFuture(throwable));
+        }
+
+        @Override
+        public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
+            return applicationSettings.getCategories(primaryAdServer, publisher, timeout)
+                    .recover(throwable -> next != null
+                            ? next.getCategories(primaryAdServer, publisher, timeout)
                             : Future.failedFuture(throwable));
         }
 

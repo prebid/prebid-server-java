@@ -12,17 +12,22 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
-import org.prebid.server.analytics.model.HttpContext;
 import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.deals.UserService;
+import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ResourceUtil;
 
@@ -40,20 +45,33 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private static final String TRACKING_PIXEL_PNG = "static/tracking-pixel.png";
     private static final String PNG_CONTENT_TYPE = "image/png";
 
-    private static final long DEFAULT_TIMEOUT = 1000L;
-
+    private final UidsCookieService uidsCookieService;
+    private final ApplicationEventService applicationEventService;
+    private final UserService userService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
+    private final long defaultTimeoutMillis;
+    private final boolean dealsEnabled;
     private final TrackingPixel trackingPixel;
 
-    public NotificationEventHandler(AnalyticsReporterDelegator analyticsDelegator,
+    public NotificationEventHandler(UidsCookieService uidsCookieService,
+                                    ApplicationEventService applicationEventService,
+                                    UserService userService,
+                                    AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
-                                    ApplicationSettings applicationSettings) {
+                                    ApplicationSettings applicationSettings,
+                                    long defaultTimeoutMillis,
+                                    boolean dealsEnabled) {
 
+        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.applicationEventService = applicationEventService;
+        this.userService = userService;
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
+        this.defaultTimeoutMillis = defaultTimeoutMillis;
+        this.dealsEnabled = dealsEnabled;
 
         trackingPixel = createTrackingPixel();
     }
@@ -91,19 +109,15 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         }
 
         final EventRequest eventRequest = EventUtil.from(routingContext);
-        if (eventRequest.getAnalytics() == EventRequest.Analytics.enabled) {
-            getAccountById(eventRequest.getAccountId())
-                    .setHandler(async -> handleEvent(async, eventRequest, routingContext));
-        } else {
-            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
-        }
+        getAccountById(eventRequest.getAccountId())
+                .onComplete(async -> handleEvent(async, eventRequest, routingContext));
     }
 
     /**
      * Returns {@link Account} fetched by {@link ApplicationSettings}.
      */
     private Future<Account> getAccountById(String accountId) {
-        return applicationSettings.getAccountById(accountId, timeoutFactory.create(DEFAULT_TIMEOUT))
+        return applicationSettings.getAccountById(accountId, timeoutFactory.create(defaultTimeoutMillis))
                 .recover(exception -> handleAccountExceptionOrFallback(exception, accountId));
     }
 
@@ -112,7 +126,12 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
      */
     private static Future<Account> handleAccountExceptionOrFallback(Throwable exception, String accountId) {
         if (exception instanceof PreBidException) {
-            return Future.succeededFuture(Account.builder().id(accountId).eventsEnabled(false).build());
+            return Future.succeededFuture(Account.builder()
+                    .id(accountId)
+                    .auction(AccountAuctionConfig.builder()
+                            .events(AccountEventsConfig.of(false))
+                            .build())
+                    .build());
         }
         return Future.failedFuture(exception);
     }
@@ -123,25 +142,49 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         } else {
             final Account account = async.result();
 
-            if (Objects.equals(account.getEventsEnabled(), true)) {
+            final String lineItemId = eventRequest.getLineItemId();
+            final String bidId = eventRequest.getBidId();
+            if (dealsEnabled && lineItemId != null) {
+                applicationEventService.publishLineItemWinEvent(lineItemId);
+                userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
+            }
+
+            boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+
+            if (!eventsEnabledForAccount && eventsEnabledForRequest) {
+                respondWithUnauthorized(routingContext,
+                        String.format("Account '%s' doesn't support events", account.getId()));
+                return;
+            }
+
+            final EventRequest.Type eventType = eventRequest.getType();
+            if (eventsEnabledForRequest) {
                 final NotificationEvent notificationEvent = NotificationEvent.builder()
-                        .type(eventRequest.getType() == EventRequest.Type.win
+                        .type(eventType == EventRequest.Type.win
                                 ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
                         .bidId(eventRequest.getBidId())
                         .account(account)
                         .bidder(eventRequest.getBidder())
                         .timestamp(eventRequest.getTimestamp())
                         .integration(eventRequest.getIntegration())
-                        .httpContext(HttpContext.from(routingContext))
+                        .httpContext(HttpRequestContext.from(routingContext))
+                        .lineItemId(lineItemId)
                         .build();
+
                 analyticsDelegator.processEvent(notificationEvent);
 
-                respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
-            } else {
-                respondWithUnauthorized(routingContext,
-                        String.format("Account '%s' doesn't support events", account.getId()));
             }
+            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
         }
+    }
+
+    private static Boolean accountEventsEnabled(Account account) {
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        final AccountEventsConfig accountEventsConfig =
+                accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
+
+        return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

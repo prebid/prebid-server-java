@@ -34,13 +34,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Bidmachine {@link Bidder} implementation.
- */
 public class BidmachineBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>> BIDMACHINE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<ExtImpPrebid, ExtImpBidmachine>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;
@@ -61,12 +58,11 @@ public class BidmachineBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtPrebid<ExtImpPrebid, ExtImpBidmachine> mappedExt = parseImpExt(imp);
                 final BidRequest outgoingRequest = createRequest(imp, mappedExt.getPrebid(), request);
-                final String body = mapper.encode(outgoingRequest);
 
                 httpRequests.add(HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(buildEndpointUrl(mappedExt.getBidder()))
-                        .body(body)
+                        .body(mapper.encodeToBytes(outgoingRequest))
                         .headers(resolveHeaders())
                         .payload(outgoingRequest)
                         .build());

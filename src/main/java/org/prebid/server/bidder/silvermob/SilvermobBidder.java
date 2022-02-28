@@ -31,13 +31,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-/**
- * Silvermob {@link Bidder} implementation.
- */
 public class SilvermobBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSilvermob>> SILVERMOB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSilvermob>>() {
+            new TypeReference<>() {
             };
 
     private static final String URL_HOST_MACRO = "{{Host}}";
@@ -78,7 +75,7 @@ public class SilvermobBidder implements Bidder<BidRequest> {
                 .uri(resolveEndpoint(extImp))
                 .headers(resolveHeaders(request.getDevice()))
                 .payload(outgoingRequest)
-                .body(mapper.encode(outgoingRequest))
+                .body(mapper.encodeToBytes(outgoingRequest))
                 .build();
     }
 

@@ -30,6 +30,7 @@ public enum PurposeCode {
         return code;
     }
 
+    @SuppressWarnings("unused")
     @JsonCreator
     public static PurposeCode valueOf(int code) {
         return Arrays.stream(values())

@@ -16,25 +16,6 @@
           }
         }
       }
-    },
-    {
-      "id": "imp_id2",
-      "video": {
-        "mimes": [
-          "video/mp4"
-        ],
-        "w": 640,
-        "h": 480
-      },
-      "ext": {
-        "prebid": {
-          "bidder": {
-            "adman": {
-              "TagID": "tag_id2"
-            }
-          }
-        }
-      }
     }
   ],
   "tmax": 5000,
