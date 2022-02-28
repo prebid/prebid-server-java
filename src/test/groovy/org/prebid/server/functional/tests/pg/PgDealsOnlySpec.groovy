@@ -118,7 +118,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         assert bidErrors?.size() == 1
         assert bidErrors[0].code == 5
         assert bidErrors[0].message ==~ /BidId `$bidResponseId` validation messages:.* Error: / +
-                /Bid "$bidResponseId" missing required field 'dealid'/
+                /Bid "$bidResponseId" missing required field 'dealid'.*/
     }
 
     def "PBS should add dealsonly flag when it is not specified and pgdealsonly flag is set to true"() {
@@ -154,7 +154,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         assert bidErrors?.size() == 1
         assert bidErrors[0].code == 5
         assert bidErrors[0].message ==~ /BidId `$bidResponseId` validation messages:.* Error: / +
-                /Bid "$bidResponseId" missing required field 'dealid'/
+                /Bid "$bidResponseId" missing required field 'dealid'.*/
     }
 
     def "PBS shouldn't return an error when bidder dealsonly flag is set to true, no available PG line items and bid response misses 'dealid' field"() {

@@ -66,7 +66,7 @@ class PgBidResponseSpec extends BasePgSpec {
 
         assert bidderErrors?.size() == 1
         assert bidderErrors[0].message ==~
-                /BidId `$bidId` validation messages:.* Error: Bid \"$bidId\" has no corresponding imp in request/
+                /BidId `$bidId` validation messages:.* Error: Bid \"$bidId\" has no corresponding imp in request.*/
     }
 
     def "PBS should invalidate bidder response when deal id doesn't match to the bid request deal id"() {
@@ -171,6 +171,6 @@ class PgBidResponseSpec extends BasePgSpec {
         assert bidderErrors?.size() == 1
         assert bidderErrors[0].message ==~ /BidId `$bid.id` validation messages:.* Error: / +
                 /Bid "$bid.id" has 'w' and 'h' not matched to Line Item\. / +
-                /Bid dimensions: '${bid.w}x$bid.h', Line Item sizes: '${lineItemSize.w}x$lineItemSize.h'/
+                /Bid dimensions: '${bid.w}x$bid.h', Line Item sizes: '${lineItemSize.w}x$lineItemSize.h'.*/
     }
 }
