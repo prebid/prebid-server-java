@@ -140,11 +140,6 @@ public class YandexBidder implements Bidder<BidRequest> {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, "X-Real-Ip", device.getIp());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
-            // TODO: remove
-            if (device.getIp().equals("194.111.48.58")) {
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, "x-yabs-debug-token", "7671ae5012345678");
-                HttpUtil.addHeaderIfValueIsNotEmpty(headers, "x-yabs-debug-output", "json");
-            }
         }
 
         return headers;
