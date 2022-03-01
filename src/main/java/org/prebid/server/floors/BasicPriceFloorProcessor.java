@@ -172,7 +172,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors, List<String> errors) {
         final boolean skipFloors = shouldSkipFloors(floors);
 
-        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(bidRequest, errors);
+        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(floors, bidRequest, errors);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
 
         return bidRequest.toBuilder()
@@ -212,11 +212,12 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
-    private List<Imp> updateImpsWithFloors(BidRequest bidRequest, List<String> errors) {
+    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors, BidRequest bidRequest, List<String> errors) {
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floors = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+        final PriceFloorRules floors =
+                ObjectUtils.defaultIfNull(accountFloors, ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
         final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         if (modelGroup == null) {
             return imps;
