@@ -18,6 +18,10 @@ class BidResponse implements ResponseModel {
     Integer nbr
     BidResponseExt ext
 
+    Bid getFirstBid() {
+        return seatbid[0].bid[0]
+    }
+
     static BidResponse getDefaultBidResponse(BidRequest bidRequest) {
         getDefaultBidResponse(bidRequest.id, bidRequest.imp*.id)
     }

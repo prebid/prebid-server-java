@@ -748,7 +748,7 @@
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <max.containers.count>2</max.containers.count>
+                        <max.containers.count>20</max.containers.count>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
