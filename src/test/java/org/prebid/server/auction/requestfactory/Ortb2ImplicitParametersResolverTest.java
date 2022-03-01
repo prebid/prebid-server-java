@@ -2097,11 +2097,11 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         final BidRequest result = target.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
 
         // then
-        assertThat(singletonList(result))
+        assertThat(result)
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .extracting(ExtRequestPrebid::getServer)
-                .containsExactly(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
+                .isEqualTo(ExtRequestPrebidServer.of("https://external.url/", 0, "datacenter-region"));
     }
 
     @Test

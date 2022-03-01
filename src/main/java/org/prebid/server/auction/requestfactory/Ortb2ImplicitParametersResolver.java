@@ -73,7 +73,7 @@ public class Ortb2ImplicitParametersResolver {
     private static final Set<String> IMP_EXT_NON_BIDDER_FIELDS =
             Set.of(PREBID_EXT, "context", "all", "general", "skadn", "data", "gpid");
 
-    private final boolean cacheOnlyWinningBids;
+    private final boolean shouldCacheOnlyWinningBids;
     private final String adServerCurrency;
     private final List<String> blacklistedApps;
     private final ExtRequestPrebidServer serverInfo;
@@ -93,7 +93,7 @@ public class Ortb2ImplicitParametersResolver {
                                            JsonMerger jsonMerger,
                                            JacksonMapper mapper) {
 
-        this.cacheOnlyWinningBids = shouldCacheOnlyWinningBids;
+        this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.serverInfo = Objects.requireNonNull(serverInfo);
@@ -622,7 +622,7 @@ public class Ortb2ImplicitParametersResolver {
      */
     private boolean isWinningOnly(ExtRequestPrebidCache cache) {
         final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
-        return ObjectUtils.defaultIfNull(cacheWinningOnly, cacheOnlyWinningBids);
+        return ObjectUtils.defaultIfNull(cacheWinningOnly, shouldCacheOnlyWinningBids);
     }
 
     /**
@@ -686,7 +686,7 @@ public class Ortb2ImplicitParametersResolver {
     private ExtRequestPrebidCache cacheOrNull(ExtRequestPrebid prebid) {
         final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
         final Boolean cacheWinningOnly = cache != null ? cache.getWinningonly() : null;
-        if (cacheWinningOnly == null && cacheOnlyWinningBids) {
+        if (cacheWinningOnly == null && shouldCacheOnlyWinningBids) {
             return ExtRequestPrebidCache.of(
                     ObjectUtil.getIfNotNull(cache, ExtRequestPrebidCache::getBids),
                     ObjectUtil.getIfNotNull(cache, ExtRequestPrebidCache::getVastxml),
