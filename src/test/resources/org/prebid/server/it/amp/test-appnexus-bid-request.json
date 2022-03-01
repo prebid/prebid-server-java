@@ -59,77 +59,84 @@
     }
   },
   "ext": {
-    "appnexus" : {
-      "is_amp" : 1,
-      "hb_source" : 5
+    "appnexus": {
+      "is_amp": 1,
+      "hb_source": 5
     },
     "prebid": {
-      "currency": {
-        "rates": {
-          "EUR": {
-            "USD": 1.2406
-          },
-          "USD": {
-            "EUR": 0.811
-          }
-        }
-      },
-      "targeting": {
-        "pricegranularity": {
-          "precision": 2,
-          "ranges": [
-            {
-              "max": 3,
-              "increment": 0.01
-            },
-            {
-              "max": 8,
-              "increment": 0.05
-            },
-            {
-              "max": 20,
-              "increment": 0.5
-            }
-          ]
+      "ext": {
+        "server": {
+          "externalurl": "http://localhost:8080",
+          "gvlid": 1,
+          "datacenter": "local"
         },
-        "includewinners": true,
-        "includebidderkeys": true
-      },
-      "storedrequest": {
-        "id": "test-amp-stored-request"
-      },
-      "cache": {
-        "bids": {}
-      },
-      "auctiontimestamp": 0,
-      "amp": {
-        "data": {
-          "curl": "https%3A%2F%2Fgoogle.com",
-          "consent_type": "3",
-          "consent_string": "1YNN",
-          "gdpr_applies": "false",
-          "addtl_consent": "someConsent",
-          "ow": "980",
-          "oh": "120",
-          "tag_id": "test-amp-stored-request",
-          "targeting": "%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D",
-          "slot": "overwrite-tagId",
-          "account": "accountId",
-          "timeout": "10000000"
+        "currency": {
+          "rates": {
+            "EUR": {
+              "USD": 1.2406
+            },
+            "USD": {
+              "EUR": 0.811
+            }
+          }
+        },
+        "targeting": {
+          "pricegranularity": {
+            "precision": 2,
+            "ranges": [
+              {
+                "max": 3,
+                "increment": 0.01
+              },
+              {
+                "max": 8,
+                "increment": 0.05
+              },
+              {
+                "max": 20,
+                "increment": 0.5
+              }
+            ]
+          },
+          "includewinners": true,
+          "includebidderkeys": true
+        },
+        "storedrequest": {
+          "id": "test-amp-stored-request"
+        },
+        "cache": {
+          "bids": {}
+        },
+        "auctiontimestamp": 0,
+        "amp": {
+          "data": {
+            "curl": "https%3A%2F%2Fgoogle.com",
+            "consent_type": "3",
+            "consent_string": "1YNN",
+            "gdpr_applies": "false",
+            "addtl_consent": "someConsent",
+            "ow": "980",
+            "oh": "120",
+            "tag_id": "test-amp-stored-request",
+            "targeting": "%7B%22gam-key1%22%3A%22val1%22%2C%22gam-key2%22%3A%22val2%22%7D",
+            "slot": "overwrite-tagId",
+            "account": "accountId",
+            "timeout": "10000000"
+          }
+        },
+        "adservertargeting": [
+          {
+            "key": "static_keyword1",
+            "source": "static",
+            "value": "static_value1"
+          }
+        ],
+        "channel": {
+          "name": "amp"
+        },
+        "pbs": {
+          "endpoint": "/openrtb2/amp"
         }
-      },
-      "adservertargeting": [
-        {
-          "key": "static_keyword1",
-          "source": "static",
-          "value": "static_value1"
-        }
-      ],
-      "channel": {
-        "name": "amp"
-      },
-      "pbs": {
-        "endpoint": "/openrtb2/amp"
       }
     }
   }

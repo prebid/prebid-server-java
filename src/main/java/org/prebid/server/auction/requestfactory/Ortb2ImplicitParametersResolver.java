@@ -83,7 +83,7 @@ public class Ortb2ImplicitParametersResolver {
     private final JsonMerger jsonMerger;
     private final JacksonMapper mapper;
 
-    public Ortb2ImplicitParametersResolver(boolean cacheOnlyWinningBids,
+    public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
                                            String adServerCurrency,
                                            List<String> blacklistedApps,
                                            ExtRequestPrebidServer serverInfo,
@@ -93,7 +93,7 @@ public class Ortb2ImplicitParametersResolver {
                                            JsonMerger jsonMerger,
                                            JacksonMapper mapper) {
 
-        this.cacheOnlyWinningBids = cacheOnlyWinningBids;
+        this.cacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
         this.serverInfo = Objects.requireNonNull(serverInfo);
