@@ -211,7 +211,7 @@ public class PriceFloorFetcher {
     }
 
     private static int resolveMaxRules(Integer accountMaxRules) {
-        return Objects.equals(accountMaxRules, 0L) ? Integer.MAX_VALUE : accountMaxRules;
+        return Objects.equals(accountMaxRules, 0) ? Integer.MAX_VALUE : accountMaxRules;
     }
 
     private static void validateModelGroup(PriceFloorModelGroup modelGroup, Integer maxRules) {
