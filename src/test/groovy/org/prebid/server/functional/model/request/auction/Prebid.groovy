@@ -20,4 +20,5 @@ class Prebid {
     List<MultiBid> multibid
     Pbs pbs
     Map<BidderName, Map<String, Integer>> bidderParams
+    Server server
 }
