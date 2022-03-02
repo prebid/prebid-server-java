@@ -154,7 +154,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
                 .filter(modelGroup -> isValidModelWeight(modelGroup.getModelWeight()))
-                .sorted(Comparator.comparing(PriceFloorModelGroup::getModelWeight))
+                .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
                 .collect(Collectors.toList());
 
         int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
