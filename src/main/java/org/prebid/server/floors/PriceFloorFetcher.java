@@ -51,8 +51,6 @@ public class PriceFloorFetcher {
 
     private static final int ACCOUNT_FETCH_TIMEOUT_MS = 5000;
     private static final int MAXIMUM_CACHE_SIZE = 300;
-    private static final int MODEL_WEIGHT_MAX_VALUE = 1_000_000;
-    private static final int MODEL_WEIGHT_MIN_VALUE = 0;
 
     private final ApplicationSettings applicationSettings;
     private final Metrics metrics;
@@ -217,13 +215,6 @@ public class PriceFloorFetcher {
     }
 
     private static void validateModelGroup(PriceFloorModelGroup modelGroup, Integer maxRules) {
-
-        final Integer modelWeight = modelGroup.getModelWeight();
-        if (modelWeight != null && (modelWeight <= MODEL_WEIGHT_MIN_VALUE || modelWeight >= MODEL_WEIGHT_MAX_VALUE)) {
-            throw new PreBidException(String.format("Price floor rules modelWeight should be in "
-                    + "range from 0 to 1 000 000, but was %s", modelWeight));
-        }
-
         final Map<String, BigDecimal> values = modelGroup.getValues();
         if (MapUtils.isEmpty(values)) {
             throw new PreBidException(String.format("Price floor rules values can't be null or empty, but were %s",

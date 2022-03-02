@@ -36,6 +36,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
+    private static final int MODEL_WEIGHT_MAX_VALUE = 1_000_000;
+    private static final int MODEL_WEIGHT_MIN_VALUE = 0;
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
@@ -144,12 +146,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
         final int overallModelWeight = modelGroups.stream()
+                .filter(modelGroup -> isValidModelWeight(modelGroup.getModelWeight()))
                 .mapToInt(BasicPriceFloorProcessor::resolveModelGroupWeight)
                 .sum();
 
         Collections.shuffle(modelGroups);
 
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
+                .filter(modelGroup -> isValidModelWeight(modelGroup.getModelWeight()))
                 .sorted(Comparator.comparing(PriceFloorModelGroup::getModelWeight))
                 .collect(Collectors.toList());
 
@@ -163,6 +167,10 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         return groupsByWeight.get(groupsByWeight.size() - 1);
+    }
+
+    private static boolean isValidModelWeight(Integer modelWeight) {
+        return modelWeight == null || (modelWeight > MODEL_WEIGHT_MIN_VALUE && modelWeight < MODEL_WEIGHT_MAX_VALUE);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
