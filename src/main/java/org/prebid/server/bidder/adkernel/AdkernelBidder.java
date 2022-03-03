@@ -79,8 +79,8 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
-            throw new PreBidException(String.format(
-                    "Invalid imp id=%s. Expected imp.banner / imp.video / imp.native", imp.getId()));
+            throw new PreBidException("Invalid imp id=" + imp.getId()
+                    + ". Expected imp.banner / imp.video / imp.native");
         }
     }
 

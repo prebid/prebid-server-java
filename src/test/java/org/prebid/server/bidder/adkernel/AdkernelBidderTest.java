@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdkernelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://pbs.adksrv.com/hb?zone=%s";
+    private static final String ENDPOINT_URL = "https://test.com?zone=%s";
 
     private AdkernelBidder adkernelBidder;
 
@@ -135,7 +135,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("https://pbs.adksrv.com/hb?zone=3426", HttpRequest::getUri);
+                .returns("https://test.com?zone=3426", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(
