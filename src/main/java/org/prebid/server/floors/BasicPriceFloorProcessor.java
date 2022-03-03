@@ -92,16 +92,18 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
-        if (fetchResult != null) {
+        final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
+
+        if (fetchResult != null && fetchStatus == FetchStatus.success) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRules());
-            return createFloorsFrom(mergedFloors, fetchResult.getFetchStatus(), PriceFloorLocation.provider);
+            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.provider);
         }
 
         if (requestFloors != null) {
-            return createFloorsFrom(requestFloors, null, PriceFloorLocation.request);
+            return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
         }
 
-        return createFloorsFrom(null, null, PriceFloorLocation.none);
+        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.none);
     }
 
     private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
@@ -146,14 +148,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
         final int overallModelWeight = modelGroups.stream()
-                .filter(modelGroup -> isValidModelWeight(modelGroup.getModelWeight()))
+                .filter(BasicPriceFloorProcessor::isValidModelGroup)
                 .mapToInt(BasicPriceFloorProcessor::resolveModelGroupWeight)
                 .sum();
 
         Collections.shuffle(modelGroups);
 
         final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
-                .filter(modelGroup -> isValidModelWeight(modelGroup.getModelWeight()))
+                .filter(BasicPriceFloorProcessor::isValidModelGroup)
                 .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
                 .collect(Collectors.toList());
 
@@ -169,8 +171,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return groupsByWeight.get(groupsByWeight.size() - 1);
     }
 
-    private static boolean isValidModelWeight(Integer modelWeight) {
-        return modelWeight == null || (modelWeight > MODEL_WEIGHT_MIN_VALUE && modelWeight < MODEL_WEIGHT_MAX_VALUE);
+    private static boolean isValidModelGroup(PriceFloorModelGroup modelGroup) {
+        final Integer skipRate = modelGroup.getSkipRate();
+        if (skipRate != null && (skipRate < SKIP_RATE_MIN || skipRate > SKIP_RATE_MAX)) {
+            return false;
+        }
+
+        final Integer modelWeight = modelGroup.getModelWeight();
+        return modelWeight == null
+                || (modelWeight > MODEL_WEIGHT_MIN_VALUE && modelWeight < MODEL_WEIGHT_MAX_VALUE);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
