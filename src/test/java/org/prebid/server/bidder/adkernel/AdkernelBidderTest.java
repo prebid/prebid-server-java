@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AdkernelBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://%s/hb?zone=%s";
+    private static final String ENDPOINT_URL = "https://pbs.adksrv.com/hb?zone=%s";
 
     private AdkernelBidder adkernelBidder;
 
@@ -70,7 +70,8 @@ public class AdkernelBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Invalid imp id=123. Expected imp.banner or imp.video"));
+                .containsExactly(BidderError
+                        .badInput("Invalid imp id=123. Expected imp.banner / imp.video / imp.native"));
     }
 
     @Test
@@ -123,34 +124,6 @@ public class AdkernelBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtHostisEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.host(null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtHostIsInvalid() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(), extBuilder -> extBuilder.host(" "));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Host is empty. Ignoring imp id=123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetExpectedMethodUrlAndHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -162,7 +135,7 @@ public class AdkernelBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns("http://test_host/hb?zone=3426", HttpRequest::getUri);
+                .returns("https://pbs.adksrv.com/hb?zone=3426", HttpRequest::getUri);
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(
@@ -394,7 +367,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .id("123")
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        extCustomizer.apply(ExtImpAdkernel.builder().zoneId(3426).host("test_host")).build()))))
+                        extCustomizer.apply(ExtImpAdkernel.builder().zoneId(3426)).build()))))
                 .build();
     }
 
