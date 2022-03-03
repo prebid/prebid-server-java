@@ -96,14 +96,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         if (fetchResult != null && fetchStatus == FetchStatus.success) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRules());
-            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.provider);
+            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
 
         if (requestFloors != null) {
             return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
         }
 
-        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.none);
+        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
     }
 
     private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,

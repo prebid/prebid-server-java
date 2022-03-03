@@ -113,7 +113,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .isEqualTo(givenFloors(floors -> floors
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.provider)));
+                        .location(PriceFloorLocation.fetch)));
     }
 
     @Test
@@ -137,7 +137,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         .enabled(true)
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.provider)));
+                        .location(PriceFloorLocation.fetch)));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
-                        .location(PriceFloorLocation.none)));
+                        .location(PriceFloorLocation.noData)));
     }
 
     @Test
