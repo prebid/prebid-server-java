@@ -12,10 +12,15 @@ import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -44,10 +49,51 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     public void adjustForImpShouldApplyFactorToBidFloorIfPresent() {
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(givenImp(identity()), RUBICON, givenBidRequest(identity()));
+                .adjustForImp(givenImp(identity()), RUBICON, givenBidRequest(identity()), null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(11.7647D));
+    }
+
+    @Test
+    public void adjustForImpShouldNotApplyFactorIfAdjustmentDisabledByAccount() {
+        // when
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .priceFloors(AccountPriceFloorsConfig.builder()
+                                .adjustForBidAdjustment(false)
+                                .build())
+                        .build())
+                .build();
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
+                .adjustForImp(givenImp(identity()), RUBICON, givenBidRequest(identity()), account);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
+    public void adjustForImpShouldNotApplyFactorIfAdjustmentDisabledByRequest() {
+        // when
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidadjustmentfactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
+                                .build())
+                        .floors(PriceFloorRules.builder()
+                                .enforcement(PriceFloorEnforcement.builder()
+                                        .bidAdjustment(false)
+                                        .build())
+                                .build())
+                        .build())));
+
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
+                .adjustForImp(givenImp(identity()), RUBICON, bidRequest, null);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
     }
 
     @Test
@@ -65,7 +111,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 impBuilder);
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
@@ -88,7 +134,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 impBuilder);
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
@@ -102,7 +148,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         final Imp imp = givenImp(identity());
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(imp.getBidfloor());
@@ -115,7 +161,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(imp, RUBICON, givenBidRequest(identity()));
+                .adjustForImp(imp, RUBICON, givenBidRequest(identity()), null);
 
         // then
         assertThat(adjustedBidFloor).isNull();
@@ -135,7 +181,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(givenImp(identity()), RUBICON, bidRequest);
+                .adjustForImp(givenImp(identity()), RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
@@ -153,7 +199,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(givenImp(identity()), RUBICON, bidRequest);
+                .adjustForImp(givenImp(identity()), RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
@@ -167,7 +213,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(imp, RUBICON, bidRequest);
+                .adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
@@ -187,7 +233,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         // when
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster
-                .adjustForImp(givenImp(identity()), RUBICON, bidRequest);
+                .adjustForImp(givenImp(identity()), RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
@@ -216,7 +262,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                         .video(Video.builder().placement(0).build()));
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));
@@ -239,7 +285,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 impBuilder);
 
         // when
-        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest);
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
         assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(16.6667D));

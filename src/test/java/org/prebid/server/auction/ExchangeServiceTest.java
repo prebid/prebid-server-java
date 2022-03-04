@@ -316,7 +316,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(priceFloorEnforcer.enforce(any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(1));
-        given(priceFloorAdjuster.adjustForImp(any(), any(), any()))
+        given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
                 .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))

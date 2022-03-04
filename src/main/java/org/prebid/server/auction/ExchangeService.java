@@ -541,7 +541,7 @@ public class ExchangeService {
                 .mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs, aliases, context.getDebugWarnings()));
+                                bidderToMultiBid, biddersToConfigs, aliases, context));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -750,7 +750,7 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             BidderAliases aliases,
-            List<String> debugWarnings) {
+            AuctionContext context) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
 
@@ -767,7 +767,7 @@ public class ExchangeService {
                         biddersToConfigs,
                         bidderToPrebidBidders,
                         aliases,
-                        debugWarnings))
+                        context))
                 // Can't be removed after we prepare workflow to filter blocked
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
@@ -808,7 +808,7 @@ public class ExchangeService {
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,
             BidderAliases bidderAliases,
-            List<String> debugWarnings) {
+            AuctionContext context) {
 
         final boolean blockedRequestByTcf = bidderPrivacyResult.isBlockedRequestByTcf();
         final boolean blockedAnalyticsByTcf = bidderPrivacyResult.isBlockedAnalyticsByTcf();
@@ -830,7 +830,7 @@ public class ExchangeService {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         if (app != null && site != null) {
-            debugWarnings.add("BidRequest contains app and site. Removed site object");
+            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
         }
         final Site resolvedSite = app == null ? site : null;
 
@@ -846,7 +846,7 @@ public class ExchangeService {
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases))
+                .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, bidderAliases, context.getAccount()))
                 .app(prepareApp(app, fpdApp, useFirstPartyData))
                 .site(prepareSite(resolvedSite, fpdSite, useFirstPartyData))
                 .source(prepareSource(bidder, bidRequest))
@@ -869,12 +869,13 @@ public class ExchangeService {
                                   List<Imp> imps,
                                   BidRequest bidRequest,
                                   boolean useFirstPartyData,
-                                  BidderAliases aliases) {
+                                  BidderAliases aliases,
+                                  Account account) {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> imp.toBuilder()
-                        .bidfloor(resolveBidFloor(imp, bidder, bidRequest))
+                        .bidfloor(resolveBidFloor(imp, bidder, bidRequest, account))
                         .pmp(preparePmp(bidder, imp.getPmp(), aliases))
                         .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
                         .build())
@@ -884,8 +885,8 @@ public class ExchangeService {
     /**
      * @return Bidfloor divided by factor from {@link PriceFloorAdjuster}
      */
-    private BigDecimal resolveBidFloor(Imp imp, String bidder, BidRequest bidRequest) {
-        return priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest);
+    private BigDecimal resolveBidFloor(Imp imp, String bidder, BidRequest bidRequest, Account account) {
+        return priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest, account);
     }
 
     /**

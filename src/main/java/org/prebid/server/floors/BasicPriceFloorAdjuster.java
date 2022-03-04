@@ -3,13 +3,16 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
+import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -26,11 +29,11 @@ import java.util.function.Function;
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     @Override
-    public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest) {
+    public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
         final ExtRequestBidadjustmentfactors extBidadjustmentfactors = extractBidadjustmentfactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
-        if (!shouldAdjustBidFloor(bidRequest) || impBidFloor == null || extBidadjustmentfactors == null) {
+        if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null || extBidadjustmentfactors == null) {
             return impBidFloor;
         }
 
@@ -41,15 +44,30 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
                 : impBidFloor;
     }
 
-    private static boolean shouldAdjustBidFloor(BidRequest bidRequest) {
+    private static boolean shouldAdjustBidFloor(BidRequest bidRequest, Account account) {
+        final Boolean shouldAdjustBidFloor =
+                ObjectUtils.defaultIfNull(
+                        shouldAdjustBidFloorByRequest(bidRequest),
+                        shouldAdjustBidFloorByAccount(account));
+
+        return ObjectUtils.defaultIfNull(shouldAdjustBidFloor, true);
+    }
+
+    private static Boolean shouldAdjustBidFloorByRequest(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
         final PriceFloorRules floorRules = ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getFloors);
         final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getEnforcement);
-        final Boolean shouldAdjustBidFloor =
-                ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getBidAdjustment);
 
-        return BooleanUtils.toBooleanDefaultIfNull(shouldAdjustBidFloor, true);
+        return ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getBidAdjustment);
+    }
+
+    private static Boolean shouldAdjustBidFloorByAccount(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+        final AccountPriceFloorsConfig floorsConfig =
+                ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+
+        return ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getAdjustForBidAdjustment);
     }
 
     private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
