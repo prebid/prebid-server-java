@@ -69,9 +69,8 @@ public class AdkernelBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError
-                        .badInput("Invalid imp id=123. Expected imp.banner / imp.video / imp.native"));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badInput("Invalid imp id=123. Expected imp.banner / imp.video / imp.native"));
     }
 
     @Test
