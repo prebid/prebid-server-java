@@ -13,7 +13,6 @@ public class PriceFloorResult {
 
     BigDecimal floorValue;
 
-    // TODO: Do we need this field
     String currency;
 
     public static PriceFloorResult empty() {

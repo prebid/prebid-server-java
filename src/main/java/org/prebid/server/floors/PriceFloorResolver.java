@@ -38,7 +38,7 @@ public interface PriceFloorResolver {
                                         Format format,
                                         String currency) {
 
-            return PriceFloorResult.empty();
+            return null;
         }
     }
 }
