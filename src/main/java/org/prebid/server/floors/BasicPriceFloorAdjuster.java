@@ -3,6 +3,9 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.BooleanUtils;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -24,11 +27,10 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     @Override
     public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest) {
-        final ExtRequestBidadjustmentfactors extBidadjustmentfactors =
-                extractBidadjustmentfactors(bidRequest);
+        final ExtRequestBidadjustmentfactors extBidadjustmentfactors = extractBidadjustmentfactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
-        if (impBidFloor == null || extBidadjustmentfactors == null) {
+        if (!shouldAdjustBidFloor(bidRequest) || impBidFloor == null || extBidadjustmentfactors == null) {
             return impBidFloor;
         }
 
@@ -37,6 +39,17 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         return factor != null
                 ? BidderUtil.roundFloor(impBidFloor.divide(factor, 4, RoundingMode.HALF_EVEN))
                 : impBidFloor;
+    }
+
+    private static boolean shouldAdjustBidFloor(BidRequest bidRequest) {
+        final ExtRequest extRequest = bidRequest.getExt();
+        final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
+        final PriceFloorRules floorRules = ObjectUtil.getIfNotNull(extPrebid, ExtRequestPrebid::getFloors);
+        final PriceFloorEnforcement enforcement = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getEnforcement);
+        final Boolean shouldAdjustBidFloor =
+                ObjectUtil.getIfNotNull(enforcement, PriceFloorEnforcement::getBidAdjustment);
+
+        return BooleanUtils.toBooleanDefaultIfNull(shouldAdjustBidFloor, true);
     }
 
     private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
@@ -112,8 +125,6 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     private static BigDecimal oneOrMore(BigDecimal value) {
 
-        return value != null && BigDecimal.ONE.compareTo(value) > 0
-                ? value
-                : BigDecimal.ONE;
+        return value != null && BigDecimal.ONE.compareTo(value) > 0 ? value : BigDecimal.ONE;
     }
 }
