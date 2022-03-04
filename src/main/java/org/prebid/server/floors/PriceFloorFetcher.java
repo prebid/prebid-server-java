@@ -105,7 +105,7 @@ public class PriceFloorFetcher {
         final String accountId = account.getId();
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
-            logger.warn(String.format("Malformed fetch.url passed for account %s", accountId));
+            logger.error(String.format("Malformed fetch.url: '%s', passed for account %s", fetchUrl, accountId));
             return FetchResult.of(null, FetchStatus.error);
         }
         if (!fetchInProgress.contains(accountId)) {
@@ -144,11 +144,12 @@ public class PriceFloorFetcher {
                 accountTimeout);
         final Long maxFetchFileSizeKb =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
+        final String fetchUrl = fetchConfig.getUrl();
 
         fetchInProgress.add(accountId);
-        httpClient.get(fetchConfig.getUrl(), timeout, resolveMaxFileSize(maxFetchFileSizeKb))
+        httpClient.get(fetchUrl, timeout, resolveMaxFileSize(maxFetchFileSizeKb))
                 .map(httpClientResponse -> parseFloorResponse(httpClientResponse, fetchConfig, accountId))
-                .recover(throwable -> recoverFromFailedFetching(throwable, accountId))
+                .recover(throwable -> recoverFromFailedFetching(throwable, fetchUrl, accountId))
                 .map(cacheInfo -> updateCache(cacheInfo, fetchConfig, accountId))
                 .map(priceFloorRules -> createPeriodicTimerForRulesFetch(priceFloorRules, fetchConfig, accountId));
     }
@@ -177,7 +178,9 @@ public class PriceFloorFetcher {
 
         validatePriceFloorRules(priceFloorRules, fetchConfig);
 
-        return ResponseCacheInfo.of(priceFloorRules, FetchStatus.success, cacheTtlFromResponse(httpClientResponse));
+        return ResponseCacheInfo.of(priceFloorRules,
+                FetchStatus.success,
+                cacheTtlFromResponse(httpClientResponse, fetchConfig.getUrl()));
     }
 
     private PriceFloorRules parsePriceFloorRules(String body, String accountId) {
@@ -227,7 +230,7 @@ public class PriceFloorFetcher {
         }
     }
 
-    private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse) {
+    private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {
         final String cacheMaxAge = httpClientResponse.getHeaders().get(HttpHeaders.CACHE_CONTROL);
 
         if (StringUtils.isNotBlank(cacheMaxAge) && cacheMaxAge.contains("max-age")) {
@@ -236,7 +239,9 @@ public class PriceFloorFetcher {
                 try {
                     return Long.parseLong(maxAgeRecord[1]);
                 } catch (NumberFormatException e) {
-                    logger.warn(String.format("Can't parse Cache Control header '%s'", cacheMaxAge));
+                    logger.error(String.format("Can't parse Cache Control header '%s', fetch.url: '%s'",
+                            cacheMaxAge,
+                            fetchUrl));
                 }
             }
         }
@@ -277,22 +282,31 @@ public class PriceFloorFetcher {
                 ObjectUtils.defaultIfNull(
                         ObjectUtil.getIfNotNull(testingProperties, PriceFloorTestingProperties::getMinMaxAgeSec),
                         TimeUnit.SECONDS.toMillis(cacheTtl));
+
         return vertx.setTimer(effectiveCacheTtl, id -> fetchedData.remove(accountId));
     }
 
-    private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable, String accountId) {
+    private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable,
+                                                                String fetchUrl,
+                                                                String accountId) {
+
         metrics.updatePriceFloorFetchMetric(MetricName.failure);
 
         final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
             fetchStatus = FetchStatus.timeout;
-            logger.warn(
-                    String.format("Fetch price floor request timeout for account %s exceeded.", accountId));
+            logger.error(
+                    String.format("Fetch price floor request timeout for fetch.url: '%s', account %s exceeded.",
+                            fetchUrl,
+                            accountId));
         } else {
             fetchStatus = FetchStatus.error;
-            logger.warn(
-                    String.format("Failed to fetch price floor from provider for account = %s with a reason : %s ",
-                            accountId, throwable.getMessage()));
+            logger.error(
+                    String.format("Failed to fetch price floor from provider for fetch.url: '%s',"
+                                    + " account = %s with a reason : %s ",
+                            fetchUrl,
+                            accountId,
+                            throwable.getMessage()));
         }
 
         return Future.succeededFuture(ResponseCacheInfo.withStatus(fetchStatus));
