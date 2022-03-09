@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static java.util.Arrays.asList;
@@ -38,7 +39,7 @@ public class IntersectsStringsTest {
     @Test
     public void matchesShouldReturnTrueWhenThereIsMatch() {
         // given
-        willReturn(asList("Rock", "Alternative", "Folk")).given(context).lookupStrings(any());
+        willReturn(LookupResult.ofValue(asList("Rock", "Alternative", "Folk"))).given(context).lookupStrings(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -48,7 +49,7 @@ public class IntersectsStringsTest {
     @Test
     public void matchesShouldReturnFalseWhenThereIsNoMatch() {
         // given
-        willReturn(asList("Folk", "Trance")).given(context).lookupStrings(any());
+        willReturn(LookupResult.ofValue(asList("Folk", "Trance"))).given(context).lookupStrings(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -57,7 +58,7 @@ public class IntersectsStringsTest {
     @Test
     public void matchesShouldPerformCaseInsensitiveComparison() {
         // given
-        willReturn(asList("ROCK", "ALTERNATIVE", "FOLK")).given(context).lookupStrings(any());
+        willReturn(LookupResult.ofValue(asList("ROCK", "ALTERNATIVE", "FOLK"))).given(context).lookupStrings(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -66,7 +67,7 @@ public class IntersectsStringsTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsMissing() {
         // given
-        willReturn(emptyList()).given(context).lookupStrings(any());
+        willReturn(LookupResult.empty()).given(context).lookupStrings(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -75,7 +76,7 @@ public class IntersectsStringsTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsNotDefined() {
         // given
-        willReturn(null).given(context).lookupStrings(any());
+        willReturn(LookupResult.empty()).given(context).lookupStrings(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();

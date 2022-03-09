@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static java.util.Arrays.asList;
@@ -38,7 +39,7 @@ public class IntersectsIntegersTest {
     @Test
     public void matchesShouldReturnTrueWhenThereIsMatch() {
         // given
-        willReturn(asList(2, 3, 4)).given(context).lookupIntegers(any());
+        willReturn(LookupResult.ofValue(asList(2, 3, 4))).given(context).lookupIntegers(any());
 
         // when and then
         assertThat(expression.matches(context)).isTrue();
@@ -48,7 +49,7 @@ public class IntersectsIntegersTest {
     @Test
     public void matchesShouldReturnFalseWhenThereIsNoMatch() {
         // given
-        willReturn(asList(4, 5)).given(context).lookupIntegers(any());
+        willReturn(LookupResult.ofValue(asList(4, 5))).given(context).lookupIntegers(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -57,7 +58,7 @@ public class IntersectsIntegersTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsMissing() {
         // given
-        willReturn(emptyList()).given(context).lookupIntegers(any());
+        willReturn(LookupResult.empty()).given(context).lookupIntegers(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
@@ -66,7 +67,7 @@ public class IntersectsIntegersTest {
     @Test
     public void matchesShouldReturnFalseWhenActualValueIsNotDefined() {
         // given
-        willReturn(null).given(context).lookupIntegers(any());
+        willReturn(LookupResult.empty()).given(context).lookupIntegers(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
