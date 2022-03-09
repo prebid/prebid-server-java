@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class TelariaBidder implements Bidder<BidRequest> {
 
@@ -64,14 +63,13 @@ public class TelariaBidder implements Bidder<BidRequest> {
         String seatCode = null;
         final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         ExtImpTelaria extImp = null;
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                extImp = parseImpExt(imp);
-                seatCode = extImp.getSeatCode();
-                validImps.add(updateImp(imp, extImp, publisherId));
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
+        final Imp imp = bidRequest.getImp().get(0);
+        try {
+            extImp = parseImpExt(imp);
+            seatCode = extImp.getSeatCode();
+            validImps.add(updateImp(imp, extImp, publisherId));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
         if (extImp != null && extImp.getExtra() != null) {
@@ -169,29 +167,36 @@ public class TelariaBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse, bidRequest));
         } catch (PreBidException | DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
+        return bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
         final List<Bid> bids = firstSeatBid.getBid();
+        final List<BidderBid> bidderBids = new ArrayList<>();
+        final List<Imp> imps = bidRequest.getImp();
 
-        if (CollectionUtils.isEmpty(bids)) {
+        if (CollectionUtils.isEmpty(bids) || CollectionUtils.isEmpty(imps)) {
             return Collections.emptyList();
         }
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
-                .collect(Collectors.toList());
+
+        for (int i = 0; i < bids.size(); i++) {
+            final Bid bid = bids.get(i);
+            if (bid != null && i < imps.size()) {
+                final Bid modifyBid = bid.toBuilder().impid(imps.get(i).getId()).build();
+                bidderBids.add(BidderBid.of(modifyBid, BidType.video, bidResponse.getCur()));
+            }
+        }
+        return bidderBids;
     }
 }
