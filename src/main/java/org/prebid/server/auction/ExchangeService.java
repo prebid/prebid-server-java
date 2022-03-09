@@ -77,6 +77,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -874,12 +875,23 @@ public class ExchangeService {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
-                .map(imp -> imp.toBuilder()
-                        .bidfloor(resolveBidFloor(imp, bidder, bidRequest, account))
-                        .pmp(preparePmp(bidder, imp.getPmp(), aliases))
-                        .ext(prepareImpExt(bidder, imp.getExt(), useFirstPartyData))
-                        .build())
+                .map(imp -> prepareImp(imp, bidder, bidRequest, useFirstPartyData, aliases, account))
                 .collect(Collectors.toList());
+    }
+
+    private Imp prepareImp(Imp imp,
+                           String bidder,
+                           BidRequest bidRequest,
+                           boolean useFirstPartyData,
+                           BidderAliases aliases,
+                           Account account) {
+        final BigDecimal adjustedFloor = resolveBidFloor(imp, bidder, bidRequest, account);
+
+        return imp.toBuilder()
+                .bidfloor(adjustedFloor)
+                .pmp(preparePmp(bidder, imp.getPmp(), aliases))
+                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, useFirstPartyData))
+                .build();
     }
 
     /**
@@ -948,10 +960,13 @@ public class ExchangeService {
      * <li>"data" field populated with an imp.ext.data field value, may be null</li>
      * </ul>
      */
-    private ObjectNode prepareImpExt(String bidder, ObjectNode impExt, boolean useFirstPartyData) {
+    private ObjectNode prepareImpExt(String bidder,
+                                     ObjectNode impExt,
+                                     BigDecimal adjustedFloor,
+                                     boolean useFirstPartyData) {
         final ObjectNode modifiedImpExt = impExt.deepCopy();
 
-        final JsonNode impExtPrebid = cleanBidderParamsFromImpExtPrebid(impExt.get(PREBID_EXT));
+        final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
         if (impExtPrebid == null) {
             modifiedImpExt.remove(PREBID_EXT);
         } else {
@@ -963,10 +978,17 @@ public class ExchangeService {
         return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
-    private JsonNode cleanBidderParamsFromImpExtPrebid(JsonNode extImpPrebidNode) {
+    private JsonNode prepareImpExt(JsonNode extImpPrebidNode, BigDecimal adjustedFloor) {
         if (extImpPrebidNode.size() > 1) {
+            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
+            final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
+            final ExtImpPrebidFloors updatedFloors = floors != null
+                    ? ExtImpPrebidFloors.of(floors.getFloorRule(), floors.getFloorRuleValue(), adjustedFloor)
+                    : null;
+
             return mapper.mapper().valueToTree(
                     extImpPrebid(extImpPrebidNode).toBuilder()
+                            .floors(updatedFloors)
                             .bidder(null)
                             .build());
         }
