@@ -118,15 +118,15 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
-    public void adjustForImpShouldNotChooseAdjustmentFactorIfGreaterThanOne() {
+    public void adjustForImpShouldChooseAdjustmentFactorIfGreaterThanOne() {
         // given
 
         final ExtRequestBidadjustmentfactors givenFactors = ExtRequestBidadjustmentfactors.builder()
                 .mediatypes(givenMediaTypes(Map.of(
                         ImpMediaType.video,
-                        Map.of(RUBICON, BigDecimal.valueOf(1.8D)))))
+                        Map.of(RUBICON, BigDecimal.valueOf(3D)))))
                 .build();
-        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(1.6D));
+        givenFactors.addFactor(RUBICON, BigDecimal.valueOf(2D));
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(givenFactors).build())));
@@ -137,7 +137,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
         final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
 
         // then
-        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.TEN);
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(5));
     }
 
     @Test

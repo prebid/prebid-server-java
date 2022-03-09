@@ -85,17 +85,19 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
                 adjustmentFactors.getMediatypes();
 
         final BigDecimal bidderAdjustmentFactor = adjustmentFactors.getAdjustments().get(bidder);
+        final BigDecimal effectiveBidderAdjustmentFactor = bidderAdjustmentFactor != null
+                ? bidderAdjustmentFactor
+                : BigDecimal.ONE;
 
         if (MapUtils.isEmpty(adjustmentFactorsByMediaTypes)) {
-            return oneOrMore(bidderAdjustmentFactor);
+            return effectiveBidderAdjustmentFactor;
         }
 
-        final List<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
-        final BigDecimal mediaTypeMinFactor = adjustmentFactorsByMediaTypes.entrySet().stream()
-                .filter(entry -> entry.getKey() != null && impMediaTypes.contains(entry.getKey()))
-                .map(Map.Entry::getValue)
-                .filter(Objects::nonNull)
-                .map(adjustments -> adjustments.get(bidder))
+        final BigDecimal mediaTypeMinFactor = retrieveImpMediaTypes(imp).stream()
+                .map(adjustmentFactorsByMediaTypes::get)
+                .map(bidderToFactor -> MapUtils.isNotEmpty(bidderToFactor)
+                        ? bidderToFactor.get(bidder)
+                        : effectiveBidderAdjustmentFactor)
                 .filter(Objects::nonNull)
                 .min(Comparator.comparing(Function.identity()))
                 .orElse(null);
@@ -138,11 +140,6 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
             effectiveFactor = mediaTypeFactor.compareTo(adjustmentFactor) < 0 ? mediaTypeFactor : adjustmentFactor;
         }
 
-        return oneOrMore(effectiveFactor);
-    }
-
-    private static BigDecimal oneOrMore(BigDecimal value) {
-
-        return value != null && BigDecimal.ONE.compareTo(value) > 0 ? value : BigDecimal.ONE;
+        return effectiveFactor != null ? effectiveFactor : BigDecimal.ONE;
     }
 }
