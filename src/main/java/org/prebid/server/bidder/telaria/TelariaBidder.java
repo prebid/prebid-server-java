@@ -32,13 +32,11 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
 
@@ -198,11 +196,11 @@ public class TelariaBidder implements Bidder<BidRequest> {
         return IntStream.range(0, bids.size())
                 .filter(i -> bids.get(i) != null)
                 .filter(i -> i < imps.size())
-                .mapToObj(i -> makeBidderBid(bids.get(i), bids, bidResponse, imps.get(i)))
+                .mapToObj(i -> makeBidderBid(bids.get(i), bidResponse, imps.get(i)))
                 .collect(Collectors.toList());
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Bid> bids, BidResponse bidResponse, Imp imp) {
+    private static BidderBid makeBidderBid(Bid bid, BidResponse bidResponse, Imp imp) {
         final Bid modifyBid = bid.toBuilder().impid(imp.getId()).build();
         return BidderBid.of(modifyBid, BidType.video, bidResponse.getCur());
     }
