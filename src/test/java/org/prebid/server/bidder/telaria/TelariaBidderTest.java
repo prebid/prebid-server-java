@@ -337,23 +337,6 @@ public class TelariaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfNoImpsFromBidRequestArePresent() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder().build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(BidResponse.builder()
-                        .seatbid(singletonList(SeatBid.builder()
-                                .bid(singletonList(Bid.builder().build())).build())).build()));
-
-        // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
