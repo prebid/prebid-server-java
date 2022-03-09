@@ -2,6 +2,7 @@ package org.prebid.server.deals.targeting.interpret;
 
 import lombok.EqualsAndHashCode;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
@@ -15,7 +16,7 @@ public class IntersectsSizes extends Intersects<Size> {
     }
 
     @Override
-    public List<Size> lookupActualValues(RequestContext context) {
+    public LookupResult<List<Size>> lookupActualValues(RequestContext context) {
         return context.lookupSizes(category);
     }
 }
