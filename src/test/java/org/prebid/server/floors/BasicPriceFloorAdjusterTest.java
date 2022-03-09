@@ -269,6 +269,27 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
+    public void adjustForImpShouldChooseVideoMediaTypeIfPlacementIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidadjustmentfactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)))))
+                                .build())
+                        .build())));
+        final Imp imp = givenImp(impBuilder ->
+                impBuilder.video(Video.builder().placement(null).build()));
+
+        // when
+        final BigDecimal adjustedBidFloor = basicPriceFloorAdjuster.adjustForImp(imp, RUBICON, bidRequest, null);
+
+        // then
+        assertThat(adjustedBidFloor).isEqualTo(BigDecimal.valueOf(12.5D));
+    }
+
+    @Test
     public void adjustForImpShouldChooseAdjustmentFactorIfLowerThenMediaType() {
         // given
 

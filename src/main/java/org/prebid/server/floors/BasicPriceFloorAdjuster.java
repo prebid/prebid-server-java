@@ -113,7 +113,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         }
         if (imp.getVideo() != null) {
             final Integer placement = imp.getVideo().getPlacement();
-            if (Objects.equals(placement, 1)) {
+            if (placement == null || Objects.equals(placement, 1)) {
                 availableMediaTypes.add(ImpMediaType.video);
             } else {
                 availableMediaTypes.add(ImpMediaType.video_outstream);
