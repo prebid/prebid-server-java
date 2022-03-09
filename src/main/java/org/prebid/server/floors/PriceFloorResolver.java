@@ -13,15 +13,11 @@ public interface PriceFloorResolver {
                              PriceFloorModelGroup modelGroup,
                              Imp imp,
                              ImpMediaType mediaType,
-                             Format format,
-                             String currency);
+                             Format format);
 
-    default PriceFloorResult resolve(BidRequest bidRequest,
-                                     PriceFloorModelGroup modelGroup,
-                                     Imp imp,
-                                     String currency) {
+    default PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp) {
 
-        return resolve(bidRequest, modelGroup, imp, null, null, currency);
+        return resolve(bidRequest, modelGroup, imp, null, null);
     }
 
     static NoOpPriceFloorResolver noOp() {
@@ -35,8 +31,7 @@ public interface PriceFloorResolver {
                                         PriceFloorModelGroup modelGroup,
                                         Imp imp,
                                         ImpMediaType mediaType,
-                                        Format format,
-                                        String currency) {
+                                        Format format) {
 
             return null;
         }

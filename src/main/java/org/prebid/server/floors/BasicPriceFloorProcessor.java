@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -257,11 +256,9 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                                     BidRequest bidRequest,
                                     List<String> errors) {
 
-        final String currency = resolveFloorCurrency(imp, bidRequest);
-
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, currency);
+            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp);
         } catch (IllegalStateException e) {
             errors.add(String.format("Cannot resolve bid floor, error: %s", e.getMessage()));
             return imp;
@@ -276,16 +273,6 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .bidfloorcur(priceFloorResult.getCurrency())
                 .ext(updateImpExtWithFloors(imp.getExt(), priceFloorResult))
                 .build();
-    }
-
-    private static String resolveFloorCurrency(Imp imp, BidRequest bidRequest) {
-        final String impCurrency = StringUtils.stripToNull(imp.getBidfloorcur());
-        if (impCurrency != null) {
-            return impCurrency;
-        }
-
-        final List<String> requestCurrencies = bidRequest.getCur();
-        return CollectionUtils.isNotEmpty(requestCurrencies) ? requestCurrencies.get(0) : null;
     }
 
     private ObjectNode updateImpExtWithFloors(ObjectNode ext, PriceFloorResult priceFloorResult) {

@@ -34,7 +34,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -306,51 +305,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         priceFloorProcessor.enrichWithPriceFloors(auctionContext);
 
         // then
-        verify(floorResolver).resolve(any(), same(modelGroup), any(), any());
-    }
-
-    @Test
-    public void shouldUseImpBidFloorCurrency() {
-        // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors
-                .data(givenFloorData(floorData -> floorData
-                        .modelGroups(singletonList(givenModelGroup(identity()))))));
-
-        final AuctionContext auctionContext = givenAuctionContext(
-                givenAccount(identity()),
-                givenBidRequest(
-                        request -> request
-                                .imp(singletonList(givenImp(imp -> imp.bidfloorcur("EUR"))))
-                                .cur(singletonList("USD")),
-                        requestFloors));
-
-        // when
-        priceFloorProcessor.enrichWithPriceFloors(auctionContext);
-
-        // then
-        verify(floorResolver).resolve(any(), any(), any(), eq("EUR"));
-    }
-
-    @Test
-    public void shouldUseRequestCurrency() {
-        // given
-        final PriceFloorRules requestFloors = givenFloors(floors -> floors
-                .data(givenFloorData(floorData -> floorData
-                        .modelGroups(singletonList(givenModelGroup(identity()))))));
-
-        final AuctionContext auctionContext = givenAuctionContext(
-                givenAccount(identity()),
-                givenBidRequest(
-                        request -> request
-                                .imp(singletonList(givenImp(imp -> imp.bidfloorcur(null))))
-                                .cur(singletonList("USD")),
-                        requestFloors));
-
-        // when
-        priceFloorProcessor.enrichWithPriceFloors(auctionContext);
-
-        // then
-        verify(floorResolver).resolve(any(), any(), any(), eq("USD"));
+        verify(floorResolver).resolve(any(), same(modelGroup), any());
     }
 
     @Test
@@ -368,7 +323,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(imps),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any(), any())).willReturn(null);
+        given(floorResolver.resolve(any(), any(), any())).willReturn(null);
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -391,7 +346,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(singletonList(givenImp(identity()))),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any(), any()))
+        given(floorResolver.resolve(any(), any(), any()))
                 .willReturn(PriceFloorResult.of("rule", BigDecimal.ONE, BigDecimal.TEN, "USD"));
 
         // when
@@ -425,7 +380,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(imps),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any(), any()))
+        given(floorResolver.resolve(any(), any(), any()))
                 .willThrow(new IllegalStateException("error"));
 
         // when

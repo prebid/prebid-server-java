@@ -26,6 +26,7 @@ import org.prebid.server.bidder.model.Price;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.DeviceType;
+import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
@@ -90,8 +91,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     PriceFloorModelGroup modelGroup,
                                     Imp imp,
                                     ImpMediaType mediaType,
-                                    Format format,
-                                    String currency) {
+                                    Format format) {
 
         if (modelGroup == null) {
             return null;
@@ -115,9 +115,12 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final BigDecimal floorForRule = rule != null ? rules.get(rule) : null;
 
         final BigDecimal floor = floorForRule != null ? floorForRule : modelGroup.getDefaultFloor();
+        final String modelGroupCurrency = modelGroup.getCurrency();
+        final String floorCurrency = StringUtils.isNotEmpty(modelGroupCurrency)
+                ? modelGroupCurrency
+                : getDataCurrency(bidRequest);
 
-        // TODO: Add data.currency providing
-        return resolveResult(floor, rule, floorForRule, bidRequest, modelGroup.getCurrency(), currency);
+        return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
     }
 
     private List<List<String>> createRuleKey(PriceFloorSchema schema,
@@ -399,12 +402,18 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
     }
 
+    private static String getDataCurrency(BidRequest bidRequest) {
+        final PriceFloorRules rules = extractRules(bidRequest);
+        final PriceFloorData data = ObjectUtil.getIfNotNull(rules, PriceFloorRules::getData);
+
+        return ObjectUtil.getIfNotNull(data, PriceFloorData::getCurrency);
+    }
+
     private PriceFloorResult resolveResult(BigDecimal floor,
                                            String rule,
                                            BigDecimal floorForRule,
                                            BidRequest bidRequest,
-                                           String rulesCurrency,
-                                           String desiredCurrency) {
+                                           String rulesCurrency) {
 
         if (floor == null) {
             return null;
@@ -415,29 +424,24 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final String floorMinCur = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getFloorMinCur);
 
         final String effectiveRulesCurrency = ObjectUtils.defaultIfNull(rulesCurrency, DEFAULT_RULES_CURRENCY);
-        final String effectiveFloorMinCurrency = ObjectUtils.defaultIfNull(floorMinCur, DEFAULT_RULES_CURRENCY);
+        final String effectiveFloorMinCurrency =
+                ObjectUtils.firstNonNull(floorMinCur, rulesCurrency, DEFAULT_RULES_CURRENCY);
 
-        final BigDecimal convertedFloor = desiredCurrency != null
-                ? convertCurrency(floor, bidRequest, effectiveRulesCurrency, desiredCurrency)
+        final BigDecimal convertedFloorMinValue = !StringUtils.equals(effectiveRulesCurrency, effectiveFloorMinCurrency)
+                ? convertCurrency(floorMin, bidRequest, effectiveFloorMinCurrency, effectiveRulesCurrency)
                 : null;
 
-        final BigDecimal convertedFloorMin = desiredCurrency != null
-                ? convertCurrency(floor, bidRequest, effectiveFloorMinCurrency, desiredCurrency)
-                : null;
-
-        final Price effectiveFloor = convertedFloor != null
-                ? Price.of(desiredCurrency, convertedFloor)
-                : Price.of(effectiveRulesCurrency, floor);
-
-        final Price effectiveFloorMin = convertedFloorMin != null
-                ? Price.of(desiredCurrency, convertedFloorMin)
+        final Price effectiveFloor = Price.of(effectiveRulesCurrency, floor);
+        final Price effectiveFloorMin = Price.of(effectiveFloorMinCurrency, floorMin);
+        final Price convertedFloorMin = convertedFloorMinValue != null
+                ? Price.of(effectiveRulesCurrency, convertedFloorMinValue)
                 : Price.of(effectiveFloorMinCurrency, floorMin);
 
-        final BigDecimal floorValue = ObjectUtil.getIfNotNull(effectiveFloor, Price::getValue);
-        final String floorCurrency = ObjectUtil.getIfNotNull(effectiveFloor, Price::getCurrency);
+        final BigDecimal floorValue = effectiveFloor.getValue();
+        final String floorCurrency = effectiveFloor.getCurrency();
 
-        final BigDecimal floorMinValue = ObjectUtil.getIfNotNull(effectiveFloorMin, Price::getValue);
-        final String floorMinCurrency = ObjectUtil.getIfNotNull(effectiveFloorMin, Price::getCurrency);
+        final BigDecimal floorMinValue = convertedFloorMin.getValue();
+        final String floorMinCurrency = convertedFloorMin.getCurrency();
 
         final Price resolvedPrice;
         if (StringUtils.equals(floorCurrency, floorMinCurrency) && floorValue != null && floorMinValue != null) {
