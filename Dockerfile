@@ -9,7 +9,7 @@ COPY src/main/docker/run.sh ./
 COPY src/main/docker/application.yaml ./
 COPY target/prebid-server.jar ./
 
-EXPOSE 8080
+EXPOSE 8050
 EXPOSE 8060
 
 ENTRYPOINT [ "/app/prebid-server/run.sh" ]
