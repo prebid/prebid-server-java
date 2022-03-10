@@ -1,7 +1,7 @@
 adapters:
   alkimi:
     enabled: true
-    endpoint: http://exchange:8085/server/bid
+    endpoint: http://exchange:8080/server/bid
     meta-info:
       maintainer-email: maintainer@email.com
       app-media-types:
