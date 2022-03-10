@@ -12,6 +12,11 @@ pipeline {
     }
     agent any
     stages {
+        stage('Configure') {
+            steps {
+                sh 'cp ./src/main/resources/bidder-config/alkimi.yaml.demo ./src/main/resources/bidder-config/alkimi.yaml'
+            }
+        }
         stage('Build jar') {
             steps {
                 script {
