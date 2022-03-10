@@ -16,7 +16,7 @@ pipeline {
             steps {
                 script {
                         sh "echo ${GIT_BRANCH} ${GIT_COMMIT} ${MY_VERSION}"
-                        sh "mvn clean package -Drevision=${MY_VERSION}"
+                        sh "mvn clean package -Drevision=${MY_VERSION} -DskipTests=true"
                 }
             }
         }
