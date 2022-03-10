@@ -13,7 +13,7 @@ cache:
   query: uuid=
 settings:
   filesystem:
-    settings-filename: conf/sample-app-settings.yaml
+    settings-filename: sample/sample-app-settings.yaml
     stored-requests-dir:
     stored-imps-dir:
     stored-responses-dir:

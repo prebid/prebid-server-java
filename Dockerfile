@@ -3,12 +3,13 @@ FROM openjdk:11-jre-slim
 WORKDIR /app/prebid-server
 
 VOLUME /app/prebid-server/conf
+VOLUME /app/prebid-server/sample
 VOLUME /app/prebid-server/data
 
 COPY src/main/docker/run.sh ./
 COPY src/main/docker/application.yaml ./
-COPY sample/prebid-config.yaml ./conf/
-COPY sample/sample-app-settings.yaml ./conf/
+COPY sample/prebid-config.yaml ./sample/
+COPY sample/sample-app-settings.yaml ./sample/
 COPY target/prebid-server.jar ./
 
 EXPOSE 8050
