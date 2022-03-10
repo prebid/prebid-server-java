@@ -15,7 +15,7 @@ pipeline {
         stage('Build jar') {
             steps {
                 script {
-                        sh "echo ${BRANCH_NAME} ${GIT_BRANCH} ${GIT_COMMIT} ${JAVA_HOME} ${MY_VERSION}"
+                        sh "echo ${GIT_BRANCH} ${GIT_COMMIT} ${MY_VERSION}"
                         sh "mvn clean package -Drevision=${MY_VERSION}"
                 }
             }
