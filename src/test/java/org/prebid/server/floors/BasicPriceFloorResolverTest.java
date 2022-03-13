@@ -446,6 +446,24 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsVideoByEmptyPlacementInStreamAndRuleMediaTypeIsVideo() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when and then
+        assertThat(priceFloorResolver.resolve(bidRequest,
+                PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .value("video", BigDecimal.TEN)
+                        .build(),
+                givenImp(impBuilder -> impBuilder
+                        .banner(null)
+                        .video(Video.builder().placement(null).build()))
+        ).getFloorValue())
+                .isEqualTo(BigDecimal.TEN);
+    }
+
+    @Test
     public void resolveShouldReturnPriceFloorWhenImpMediaTypeIsVideoInStreamAndRuleMediaTypeIsVideoInstream() {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();

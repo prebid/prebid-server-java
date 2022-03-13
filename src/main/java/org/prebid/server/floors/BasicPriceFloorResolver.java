@@ -183,8 +183,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         final Video video = imp.getVideo();
-        if (imp.getVideo() != null) {
-            if (Objects.equals(video.getPlacement(), 1)) {
+        if (video != null) {
+            final Integer placement = video.getPlacement();
+            if (placement == null || Objects.equals(placement, 1)) {
                 impMediaTypes.add(ImpMediaType.video);
             } else {
                 impMediaTypes.add(ImpMediaType.video_outstream);
