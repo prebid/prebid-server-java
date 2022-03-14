@@ -12,7 +12,6 @@ import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,7 +50,8 @@ public class IntersectsSizesTest {
     @Test
     public void matchesShouldReturnFalseWhenThereIsNoMatch() {
         // given
-        willReturn(LookupResult.ofValue(asList(Size.of(450, 500), Size.of(500, 550)))).given(context).lookupSizes(any());
+        willReturn(LookupResult.ofValue(asList(Size.of(450, 500), Size.of(500, 550))))
+                .given(context).lookupSizes(any());
 
         // when and then
         assertThat(expression.matches(context)).isFalse();
