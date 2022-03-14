@@ -26,8 +26,13 @@ import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -35,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,9 +60,7 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
-                request(r -> r.site(site(s -> s
-                        .domain("domain.com")
-                        .publisher(Publisher.builder().domain("anotherdomain.com").build())))),
+                request(r -> r.site(site(s -> s.domain("domain.com")))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -198,13 +202,9 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
-                                        .put("pbadslot", "/123/456")
-                                        .set("adserver", obj("adslot", "/234/567"))))
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                                        .put("pbadslot", "/123/456"))))),
                 txnLog,
                 jacksonMapper);
 
@@ -219,12 +219,9 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
-                                        .set("adserver", obj("adslot", "/234/567"))))
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                                        .set("adserver", obj("adslot", "/234/567")))))),
                 txnLog,
                 jacksonMapper);
 
@@ -239,9 +236,7 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                        .set("data", mapper.createObjectNode().put("pbadslot", "/345/678")))),
                 txnLog,
                 jacksonMapper);
 
@@ -438,11 +433,8 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.userFirstPartyData, "buyeruid");
-        final ExtUser extUser = ExtUser.builder().data(obj("buyeruid", "456")).build();
         final RequestContext context = new RequestContext(
-                request(r -> r.user(user(u -> u
-                        .buyeruid("123")
-                        .ext(extUser)))),
+                request(r -> r.user(user(u -> u.buyeruid("123")))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -550,12 +542,8 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "basketball")));
-        final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
-                request(r -> r
-                        .site(site(s -> s.ext(extSite)))
-                        .app(app(a -> a.ext(extApp)))),
+                request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", obj("section", obj("sport", "hockey")))))),
                 txnLog,
                 jacksonMapper);
@@ -570,11 +558,8 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.siteFirstPartyData, "section.sport");
         final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "hockey")));
-        final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
-                request(r -> r
-                        .site(site(s -> s.ext(extSite)))
-                        .app(app(a -> a.ext(extApp)))),
+                request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
@@ -591,6 +576,26 @@ public class RequestContextTest extends VertxTest {
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "hockey")));
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.ext(extApp)))),
+                imp(identity()),
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromExt() {
+        // given
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(
+                        ExtRequestPrebidBidderConfig.of(emptyList(), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
+                .build());//ExtApp.of(null, obj("section", obj("sport", "hockey")));
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
