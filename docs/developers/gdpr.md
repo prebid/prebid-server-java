@@ -35,10 +35,10 @@ Callers are encouraged to send the `gdpr_consent` param if `gdpr` is omitted.
 As an additional option for determining whether a client falls under GDPR requirements or not,
 a geo location service can be used(enabled by default) to determine the country of incoming client request.
 
-See all config Geo Locations can [here](https://github.com/prebid/prebid-server-java/blob/1e3d209fbdbaf112f5c4535e9aa18c3974170991/docs/config-app.md#geo-location).
-
 Prebid server provides a geo location service interface `src/main/java/org/prebid/server/geolocation/GeoLocationService.java`, 
 which could be used by the host company to provide its own implementation, as well as a default implementation using 
 MaxMind GeoLite2 Country database(available from [https://www.maxmind.com](https://www.maxmind.com) and included in this product)
 and GeoIP2 Java API. The database file gets downloaded automatically from MaxMind web page during project packing
 by Maven Download Plugin.
+
+Description of Geo location service configuration can be found [here](https://github.com/prebid/prebid-server-java/blob/1e3d209fbdbaf112f5c4535e9aa18c3974170991/docs/config-app.md#geo-location).
