@@ -593,7 +593,7 @@ public class RequestContextTest extends VertxTest {
                 .bidderconfig(singletonList(
                         ExtRequestPrebidBidderConfig.of(emptyList(), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
                                 obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
-                .build());//ExtApp.of(null, obj("section", obj("sport", "hockey")));
+                .build());
         final RequestContext context = new RequestContext(
                 request(r -> r.ext(ext)),
                 imp(identity()),
