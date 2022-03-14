@@ -2,6 +2,7 @@ package org.prebid.server.auction.privacycontextfactory;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -14,11 +15,13 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.geolocation.CountryCodeMapper;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
+import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
@@ -28,9 +31,12 @@ import java.util.ArrayList;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -171,13 +177,102 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                         .debugWarnings(new ArrayList<>())
                         .account(Account.builder().build())
                         .prebidErrors(new ArrayList<>())
-                        .bidRequest(givenBidRequest());
+                        .bidRequest(givenBidRequest(identity()));
 
         return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }
 
-    private static BidRequest givenBidRequest() {
-        return BidRequest.builder().device(Device.builder().build()).build();
+
+    @Test
+    public void contextFromShouldMaskIpV4WhenCoppaEqualsToOneAndIpV4Present() {
+        // given
+        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.of("1YYY"), 1);
+        given(privacyExtractor.validPrivacyFrom(any(), any()))
+                .willReturn(privacy);
+
+        given(ipAddressHelper.maskIpv4(anyString()))
+                .willReturn("maskedIpV4");
+        given(ipAddressHelper.anonymizeIpv6(anyString()))
+                .willReturn("maskedIpV6");
+
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.empty()));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.device(Device.builder().ip("ip").build()));
+
+        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
+                auctionContextBuilder
+                        .httpRequest(givenHttpRequestContext("invalid"))
+                        .bidRequest(bidRequest));
+
+        // when
+        ampPrivacyContextFactory.contextFrom(auctionContext);
+
+        // then
+        verify(ipAddressHelper).maskIpv4(anyString());
+    }
+
+    @Test
+    public void contextFromShouldMaskIpV6WhenCoppaEqualsToOneAndIpV6Present() {
+        // given
+        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.of("1YYY"), 1);
+        given(privacyExtractor.validPrivacyFrom(any(), any()))
+                .willReturn(privacy);
+
+        given(ipAddressHelper.maskIpv4(anyString()))
+                .willReturn("maskedIpV4");
+        given(ipAddressHelper.anonymizeIpv6(anyString()))
+                .willReturn("maskedIpV6");
+
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.empty()));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.device(Device.builder().ipv6("ipV6").build()));
+
+        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
+                auctionContextBuilder
+                        .httpRequest(givenHttpRequestContext("invalid"))
+                        .bidRequest(bidRequest));
+
+        // when
+        ampPrivacyContextFactory.contextFrom(auctionContext);
+
+        // then
+        verify(ipAddressHelper).anonymizeIpv6(anyString());
+    }
+
+    @Test
+    public void contextFromShouldAddRefUrlWhenPresentAndRequestTypeIsWeb() {
+        // given
+        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, 0);
+        given(privacyExtractor.validPrivacyFrom(any(), any()))
+                .willReturn(privacy);
+
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(TcfContext.empty()));
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.site(Site.builder().ref("refUrl").build()));
+
+        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
+                auctionContextBuilder
+                        .requestTypeMetric(MetricName.openrtb2web)
+                        .httpRequest(givenHttpRequestContext("invalid"))
+                        .bidRequest(bidRequest));
+
+        // when
+        ampPrivacyContextFactory.contextFrom(auctionContext);
+
+        // then
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
+        verify(tcfDefinerService)
+                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any());
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
+        return bidRequestCustomizer.apply(BidRequest.builder()).build();
     }
 
     private static HttpRequestContext givenHttpRequestContext(String consentType) {
