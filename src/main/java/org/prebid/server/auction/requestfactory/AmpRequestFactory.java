@@ -206,7 +206,7 @@ public class AmpRequestFactory {
     private static User createUser(ConsentParam consentParam, ConsentType consentType, String addtlConsent) {
         final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
 
-        if (consentType == ConsentType.tcfV1 || consentType == ConsentType.tcfV2 || consentParam.isTcf()) {
+        if (consentType == ConsentType.TCF_V1 || consentType == ConsentType.TCF_V2 || consentParam.isTcf()) {
             userExtBuilder.consent(consentParam.getConsentString());
         }
         if (StringUtils.isNotBlank(addtlConsent)) {
@@ -216,7 +216,7 @@ public class AmpRequestFactory {
     }
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
-        final String usPrivacy = consentType == ConsentType.ccpa || consentParam.isCcpa()
+        final String usPrivacy = consentType == ConsentType.CCPA || consentParam.isCcpa()
                 ? consentParam.getConsentString()
                 : null;
 

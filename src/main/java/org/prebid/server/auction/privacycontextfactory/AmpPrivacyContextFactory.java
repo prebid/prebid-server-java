@@ -66,7 +66,7 @@ public class AmpPrivacyContextFactory {
                 requestType,
                 requestLogInfo(requestType, bidRequest, account.getId()),
                 timeout)
-                .map(tcfContext -> logWarnings(auctionContext, tcfContext))
+                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
 
@@ -76,10 +76,10 @@ public class AmpPrivacyContextFactory {
         final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
         final ConsentType consentType = ConsentType.from(consentTypeParam);
 
-        if (consentType == ConsentType.unknown) {
+        if (consentType == ConsentType.UNKNOWN) {
             errors.add("Invalid consent_type param passed");
             return privacy.withoutConsent();
-        } else if (consentType == ConsentType.tcfV1) {
+        } else if (consentType == ConsentType.TCF_V1) {
             errors.add("Consent type tcfV1 is no longer supported");
             return privacy.withoutConsent();
         }
@@ -93,8 +93,8 @@ public class AmpPrivacyContextFactory {
         return accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
     }
 
-    private static TcfContext logWarnings(AuctionContext auctionContext, TcfContext tcfContext) {
-        auctionContext.getDebugWarnings().addAll(tcfContext.getWarnings());
+    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
+        debugWarnings.addAll(tcfContext.getWarnings());
 
         return tcfContext;
     }
@@ -124,7 +124,7 @@ public class AmpPrivacyContextFactory {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        if (Objects.equals(requestType, MetricName.openrtb2web)) {
+        if (requestType == MetricName.openrtb2web) {
             final Site site = bidRequest != null ? bidRequest.getSite() : null;
             final String refUrl = site != null ? site.getRef() : null;
             return RequestLogInfo.of(requestType, refUrl, accountId);

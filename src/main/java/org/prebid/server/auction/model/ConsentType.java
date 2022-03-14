@@ -9,7 +9,7 @@ import java.util.Arrays;
  */
 public enum ConsentType {
 
-    tcfV1("1"), tcfV2("2"), ccpa("3"), empty(""), unknown("unknown");
+    TCF_V1("1"), TCF_V2("2"), CCPA("3"), EMPTY(""), UNKNOWN("unknown");
 
     private final String type;
 
@@ -18,11 +18,11 @@ public enum ConsentType {
     }
 
     public static ConsentType from(String type) {
-        final String resolvedType = StringUtils.defaultString(type);
+        final String resolvedValue = StringUtils.defaultString(type);
 
         return Arrays.stream(ConsentType.values())
-                .filter(value -> StringUtils.equals(value.type, resolvedType))
+                .filter(value -> resolvedValue.equals(value.type))
                 .findAny()
-                .orElse(ConsentType.unknown);
+                .orElse(ConsentType.UNKNOWN);
     }
 }

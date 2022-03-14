@@ -121,12 +121,12 @@ public class PrivacyEnforcementService {
                 requestType,
                 requestLogInfo,
                 timeout)
-                .map(tcfContext -> logWarnings(auctionContext, tcfContext))
+                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }
 
-    private static TcfContext logWarnings(AuctionContext auctionContext, TcfContext tcfContext) {
-        auctionContext.getDebugWarnings().addAll(tcfContext.getWarnings());
+    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
+        debugWarnings.addAll(tcfContext.getWarnings());
 
         return tcfContext;
     }
