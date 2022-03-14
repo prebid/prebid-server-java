@@ -113,12 +113,10 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         if (imp.getBanner() != null) {
             return impBuilder.video(null).xNative(null).build();
         } else if (imp.getVideo() != null) {
-            return impBuilder.banner(null).xNative(null).build();
-        } else if (imp.getXNative() != null) {
-            return impBuilder.banner(null).video(null).build();
+            return impBuilder.xNative(null).build();
+        } else {
+            return impBuilder.build();
         }
-
-        throw new PreBidException("Invalid impression");
     }
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
