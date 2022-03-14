@@ -182,7 +182,6 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }
 
-
     @Test
     public void contextFromShouldMaskIpV4WhenCoppaEqualsToOneAndIpV4Present() {
         // given
