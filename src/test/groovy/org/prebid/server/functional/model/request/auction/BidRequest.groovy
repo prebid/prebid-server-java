@@ -4,6 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
 class BidRequest {
@@ -29,14 +32,19 @@ class BidRequest {
     Regs regs
     BidRequestExt ext
 
-    static BidRequest getDefaultBidRequest() {
+    static BidRequest getDefaultBidRequest(DistributionChannel channel = SITE) {
         new BidRequest().tap {
             it.addImp(Imp.defaultImpression)
             regs = Regs.defaultRegs
             id = UUID.randomUUID()
             tmax = 2500
-            site = Site.defaultSite
             ext = new BidRequestExt(prebid: new Prebid(debug: 1))
+            if (channel == SITE) {
+                site = Site.defaultSite
+            }
+            if (channel == APP) {
+                app = App.defaultApp
+            }
         }
     }
 

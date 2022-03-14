@@ -11,4 +11,5 @@ class Deal {
     Integer at
     List<String> wseat
     List<String> wadomain
+    DealExt ext
 }

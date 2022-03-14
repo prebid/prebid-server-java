@@ -60,7 +60,7 @@ public class UidsCookieService {
         this.optOutCookieValue = optOutCookieValue;
         this.hostCookieFamily = hostCookieFamily;
         this.hostCookieName = hostCookieName;
-        this.hostCookieDomain = hostCookieDomain;
+        this.hostCookieDomain = StringUtils.isNotBlank(hostCookieDomain) ? hostCookieDomain : null;
         this.ttlSeconds = Duration.ofDays(ttlDays).getSeconds();
         this.maxCookieSizeBytes = maxCookieSizeBytes;
         this.mapper = Objects.requireNonNull(mapper);
@@ -135,27 +135,31 @@ public class UidsCookieService {
      */
     public Cookie toCookie(UidsCookie uidsCookie) {
         UidsCookie modifiedUids = uidsCookie;
-        byte[] cookieBytes = uidsCookie.toJson().getBytes();
 
-        while (maxCookieSizeBytes > 0 && cookieBytes.length > maxCookieSizeBytes) {
-            final String familyName = modifiedUids.getCookieUids().getUids().entrySet().stream()
-                    .reduce(UidsCookieService::getClosestExpiration)
-                    .map(Map.Entry::getKey)
-                    .orElse(null);
-            modifiedUids = modifiedUids.deleteUid(familyName);
-            cookieBytes = modifiedUids.toJson().getBytes();
+        while (maxCookieSizeBytes > 0 && cookieBytesLength(modifiedUids) > maxCookieSizeBytes) {
+            modifiedUids = modifiedUids.deleteUid(getClosestExpirationFamilyName(modifiedUids));
         }
 
-        final Cookie cookie = Cookie
-                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(cookieBytes))
+        return makeCookie(modifiedUids);
+    }
+
+    private int cookieBytesLength(UidsCookie uidsCookie) {
+        return makeCookie(uidsCookie).encode().getBytes().length;
+    }
+
+    private Cookie makeCookie(UidsCookie uidsCookie) {
+        return Cookie
+                .cookie(COOKIE_NAME, Base64.getUrlEncoder().encodeToString(uidsCookie.toJson().getBytes()))
                 .setPath("/")
-                .setMaxAge(ttlSeconds);
+                .setMaxAge(ttlSeconds)
+                .setDomain(hostCookieDomain);
+    }
 
-        if (StringUtils.isNotBlank(hostCookieDomain)) {
-            cookie.setDomain(hostCookieDomain);
-        }
-
-        return cookie;
+    private static String getClosestExpirationFamilyName(UidsCookie uidsCookie) {
+        return uidsCookie.getCookieUids().getUids().entrySet().stream()
+                .reduce(UidsCookieService::getClosestExpiration)
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
 
     /**

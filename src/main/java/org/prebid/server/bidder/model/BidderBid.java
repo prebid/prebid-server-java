@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.response.Bid;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -10,13 +10,9 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 /**
  * Bid returned by a {@link Bidder}.
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class BidderBid {
-
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
-        return BidderBid.of(bid, bidType, bidCurrency, null, null);
-    }
 
     /**
      * bid.ext will become "response.seatbid[i].bid.ext.bidder" in the final OpenRTB response
@@ -43,7 +39,11 @@ public class BidderBid {
      */
     ExtBidPrebidVideo videoInfo;
 
-    public BidderBid with(Bid bid) {
-        return BidderBid.of(bid, this.type, this.bidCurrency);
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidCurrency)
+                .build();
     }
 }

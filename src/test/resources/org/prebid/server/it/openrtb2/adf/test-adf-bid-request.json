@@ -10,7 +10,8 @@
       "tagid": "1",
       "ext": {
         "bidder": {
-          "mid": "1"
+          "mid": "1",
+          "priceType": "net"
         }
       }
     },
@@ -22,12 +23,13 @@
             "w": 100,
             "h": 100
           }
-        ] 
+        ]
       },
       "ext": {
         "bidder": {
           "inv": 1234,
-          "mname": "wallpaper"
+          "mname": "wallpaper",
+          "priceType": "gross"
         }
       }
     }
@@ -54,6 +56,17 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      }
+    },
+    "pt": "net",
+    "someObj": {
+      "someField": "someValue"
     }
   }
 }

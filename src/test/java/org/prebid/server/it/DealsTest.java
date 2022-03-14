@@ -1,5 +1,7 @@
 package org.prebid.server.it;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.tomakehurst.wiremock.client.CountMatchingStrategy;
 import com.github.tomakehurst.wiremock.client.VerificationException;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
 import com.github.tomakehurst.wiremock.matching.AnythingPattern;
@@ -8,6 +10,7 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.apache.commons.collections4.CollectionUtils;
 import org.json.JSONException;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -20,7 +23,6 @@ import org.prebid.server.deals.proto.report.LineItemStatus;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
 import org.skyscreamer.jsonassert.comparator.CustomComparator;
@@ -49,9 +51,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static io.restassured.RestAssured.given;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.prebid.server.it.IntegrationTest.equalToBidCacheRequest;
+import static org.prebid.server.it.IntegrationTest.jsonFrom;
+import static org.prebid.server.it.IntegrationTest.openrtbAuctionResponseFrom;
+import static org.skyscreamer.jsonassert.JSONCompare.compareJSON;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RunWith(SpringRunner.class)
@@ -83,6 +90,15 @@ public class DealsTest extends VertxTest {
     @BeforeClass
     public static void setUpInner() throws IOException {
         // given
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
+                .willReturn(aResponse()
+                        .withJsonBody(mapper.createObjectNode()
+                                .putPOJO("requests", emptyMap())
+                                .putPOJO("imps", emptyMap()))));
+
+        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
+                .willReturn(aResponse().withJsonBody(mapper.createObjectNode())));
+
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/delivery-stats-progress"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
@@ -99,65 +115,57 @@ public class DealsTest extends VertxTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/planner-register"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-planner-register-request-1.json"), false, true))
-                .willReturn(aResponse().withBody(IntegrationTest.jsonFrom(
-                        "deals/test-planner-register-response.json"))));
+                .withRequestBody(equalToJson(jsonFrom("deals/test-planner-register-request-1.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-planner-register-response.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
-                .withRequestBody(IntegrationTest.equalToBidCacheRequest(
-                        IntegrationTest.jsonFrom("deals/test-cache-deals-request.json")))
+                .withRequestBody(equalToBidCacheRequest(jsonFrom("deals/test-cache-deals-request.json")))
                 .willReturn(aResponse()
                         .withTransformers("cache-response-transformer")
                         .withTransformerParameter("matcherName", "deals/test-cache-matcher.json")));
+    }
+
+    @Before
+    public void setUp() throws IOException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-win-event"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-win-event-request-1.json"), false, true))
+                .willReturn(aResponse()));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-details"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-details-request-1.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-user-data-details-response-1.json"))));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-1.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-1.json"))));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-2.json"), false, true))
+                .willReturn(aResponse()
+                        .withFixedDelay(300)
+                        .withBody(jsonFrom("deals/test-rubicon-bid-response-2.json"))));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-3.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-3.json"))));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-4.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-4.json"))));
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-5.json"), false, true))
+                .willReturn(aResponse()
+                        .withFixedDelay(600)
+                        .withBody(jsonFrom("deals/test-rubicon-bid-response-5.json"))));
     }
 
     @Test
     public void openrtb2AuctionShouldRespondWithDealBids() throws IOException, JSONException {
         // given
         awaitForLineItemMetadata();
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-win-event"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-user-data-win-event-request-1.json"), false, true))
-                .willReturn(aResponse()));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-details"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-user-data-details-request-1.json"), false, true))
-                .willReturn(aResponse().withBody(IntegrationTest.jsonFrom(
-                        "deals/test-user-data-details-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-request-1.json"), false, true))
-                .willReturn(aResponse().withBody(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-request-2.json"), false, true))
-                .willReturn(aResponse()
-                        .withFixedDelay(300)
-                        .withBody(IntegrationTest.jsonFrom("deals/test-rubicon-bid-response-2.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-request-3.json"), false, true))
-                .willReturn(aResponse().withBody(IntegrationTest.jsonFrom("deals/test-rubicon-bid-response-3.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-request-4.json"), false, true))
-                .willReturn(aResponse().withBody(IntegrationTest.jsonFrom("deals/test-rubicon-bid-response-4.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom(
-                        "deals/test-rubicon-bid-request-5.json"), false, true))
-                .willReturn(aResponse()
-                        .withFixedDelay(600)
-                        .withBody(IntegrationTest.jsonFrom("deals/test-rubicon-bid-response-5.json"))));
 
         // when
         final Response response = given(SPEC)
@@ -170,9 +178,11 @@ public class DealsTest extends VertxTest {
                 .post("/openrtb2/auction");
 
         // then
-        final String expectedAuctionResponse = withTemporalFields(IntegrationTest.openrtbAuctionResponseFrom(
-                "deals/test-auction-response.json", response, singletonList(RUBICON)));
-        JSONAssert.assertEquals(expectedAuctionResponse, response.asString(), openrtbDeepDebugTimeComparator());
+        JSONAssert.assertEquals(
+                withTemporalFields(openrtbAuctionResponseFrom(
+                        "deals/test-auction-response.json", response, singletonList(RUBICON))),
+                response.asString(),
+                openrtbDeepDebugTimeComparator());
 
         // when
         final Response eventResponse = given(SPEC)
@@ -187,29 +197,29 @@ public class DealsTest extends VertxTest {
 
         // then
         assertThat(eventResponse.getStatusCode()).isEqualTo(200);
-
         await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
                 verify(() -> WIRE_MOCK_RULE.verify(postRequestedFor(urlPathEqualTo("/user-data-win-event")))));
 
         // verify delivery stats report
-        await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
-                verify(() -> WIRE_MOCK_RULE.verify(2, postRequestedFor(urlPathEqualTo("/delivery-stats-progress")))));
-
-        final String expectedRequestBody = IntegrationTest.jsonFrom(
-                "deals/test-delivery-stats-progress-request-1.json");
+        await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() ->
+                verify(() -> WIRE_MOCK_RULE.verify(
+                        new CountMatchingStrategy(CountMatchingStrategy.GREATER_THAN_OR_EQUAL, 2),
+                        postRequestedFor(urlPathEqualTo("/delivery-stats-progress")))));
 
         final List<LoggedRequest> requestList = WIRE_MOCK_RULE.findAll(
                 postRequestedFor(urlPathEqualTo("/delivery-stats-progress")));
-
         final DeliveryProgressReport report = chooseReportToCompare(requestList);
 
-        JSONAssert.assertEquals(expectedRequestBody, mapper.writeValueAsString(report), JSONCompareMode.LENIENT);
+        JSONAssert.assertEquals(
+                jsonFrom("deals/test-delivery-stats-progress-request-1.json"),
+                mapper.writeValueAsString(report),
+                JSONCompareMode.LENIENT);
     }
 
     private static String plannerResponseFrom(String templatePath) throws IOException {
         final ZonedDateTime now = ZonedDateTime.now().withFixedOffsetZone();
 
-        return IntegrationTest.jsonFrom(templatePath)
+        return jsonFrom(templatePath)
                 .replaceAll("\\{\\{ now }}", now.toString())
                 .replaceAll("\\{\\{ lineItem.startTime }}", now.minusDays(5).toString())
                 .replaceAll("\\{\\{ lineItem.endTime }}", now.plusDays(5).toString())
@@ -219,10 +229,10 @@ public class DealsTest extends VertxTest {
 
     private String withTemporalFields(String auctionResponse) {
         final ZonedDateTime dateTime = ZonedDateTime.now(clock);
+        final int dayOfWeek = dateTime.getDayOfWeek().get(WeekFields.SUNDAY_START.dayOfWeek());
 
         return auctionResponse
-                .replaceAll("\"?\\{\\{ userdow }}\"?", Integer.toString(
-                        dateTime.getDayOfWeek().get(WeekFields.SUNDAY_START.dayOfWeek())))
+                .replaceAll("\"?\\{\\{ userdow }}\"?", Integer.toString(dayOfWeek))
                 .replaceAll("\"?\\{\\{ userhour }}\"?", Integer.toString(dateTime.getHour()));
     }
 
@@ -250,8 +260,7 @@ public class DealsTest extends VertxTest {
 
         final ValueMatcher<Object> jsonStringValueMatcher = (actual, expected) -> {
             try {
-                return !JSONCompare.compareJSON(actual.toString(), expected.toString(), JSONCompareMode.NON_EXTENSIBLE)
-                        .failed();
+                return compareJSON(actual.toString(), expected.toString(), JSONCompareMode.NON_EXTENSIBLE).passed();
             } catch (JSONException e) {
                 throw new RuntimeException("Unexpected json exception", e);
             }
@@ -263,17 +272,21 @@ public class DealsTest extends VertxTest {
                 new Customization("ext.debug.httpcalls.cache[*].responsebody", jsonStringValueMatcher)));
 
         final List<Customization> arrayValueMatchers = IntStream.range(1, 5)
-                .mapToObj(i -> new Customization("ext.debug.trace.lineitems.lineItem" + i,
-                        new ArrayValueMatcher<>(new CustomComparator(
-                                JSONCompareMode.NON_EXTENSIBLE,
-                                new Customization("ext.debug.trace.lineitems.lineItem" + i + "[*].time",
-                                        timeValueMatcher)))))
+                .mapToObj(i -> new Customization(
+                        "ext.debug.trace.lineitems.lineItem" + i,
+                        new ArrayValueMatcher<>(
+                                new CustomComparator(
+                                        JSONCompareMode.NON_EXTENSIBLE,
+                                        new Customization(
+                                                "ext.debug.trace.lineitems.lineItem" + i + "[*].time",
+                                                timeValueMatcher)))))
                 .collect(Collectors.toList());
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
         arrayValueMatchers.add(new Customization("ext.debug.httpcalls.cache", cacheArrayValueMatcher));
         arrayValueMatchers.add(new Customization("**.requestheaders.x-prebid", (o1, o2) -> true));
-        return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE, arrayValueMatchers.toArray(new Customization[0]));
+
+        return new CustomComparator(JSONCompareMode.NON_EXTENSIBLE, arrayValueMatchers.toArray(Customization[]::new));
     }
 
     private static boolean verify(Runnable verify) {
@@ -286,11 +299,11 @@ public class DealsTest extends VertxTest {
     }
 
     private static DeliveryProgressReport chooseReportToCompare(List<LoggedRequest> requestList)
-            throws com.fasterxml.jackson.core.JsonProcessingException {
-        final DeliveryProgressReport firstReport = mapper.readValue(requestList.get(0).getBodyAsString(),
-                DeliveryProgressReport.class);
-        final DeliveryProgressReport secondReport = mapper.readValue(requestList.get(1).getBodyAsString(),
-                DeliveryProgressReport.class);
+            throws JsonProcessingException {
+
+        final int size = requestList.size();
+        final DeliveryProgressReport firstReport = readDeliveryProgressReport(requestList.get(size - 2));
+        final DeliveryProgressReport secondReport = readDeliveryProgressReport(requestList.get(size - 1));
 
         // in a reason cron high dependent on time value, report with statistic should be chosen
         final DeliveryProgressReport report = firstReport.getClientAuctions() != 0 ? firstReport : secondReport;
@@ -318,5 +331,11 @@ public class DealsTest extends VertxTest {
         }
 
         return report;
+    }
+
+    private static DeliveryProgressReport readDeliveryProgressReport(LoggedRequest loggedRequest)
+            throws JsonProcessingException {
+
+        return mapper.readValue(loggedRequest.getBodyAsString(), DeliveryProgressReport.class);
     }
 }
