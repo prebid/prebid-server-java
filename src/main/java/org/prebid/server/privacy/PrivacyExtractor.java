@@ -79,12 +79,7 @@ public class PrivacyExtractor {
                 errors);
     }
 
-    private static Privacy toValidPrivacy(String gdpr,
-                                          String consent,
-                                          String usPrivacy,
-                                          Integer coppa,
-                                          List<String> errors) {
-
+    public Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy, Integer coppa, List<String> errors) {
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;

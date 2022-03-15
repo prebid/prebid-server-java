@@ -15,7 +15,6 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
@@ -23,14 +22,15 @@ import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
+import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -90,7 +90,7 @@ public class AmpRequestFactory {
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final FpdResolver fpdResolver;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final AmpPrivacyContextFactory ampPrivacyContextFactory;
     private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
@@ -101,7 +101,7 @@ public class AmpRequestFactory {
                              ImplicitParametersExtractor implicitParametersExtractor,
                              Ortb2ImplicitParametersResolver paramsResolver,
                              FpdResolver fpdResolver,
-                             PrivacyEnforcementService privacyEnforcementService,
+                             AmpPrivacyContextFactory ampPrivacyContextFactory,
                              TimeoutResolver timeoutResolver,
                              DebugResolver debugResolver,
                              JacksonMapper mapper) {
@@ -114,7 +114,7 @@ public class AmpRequestFactory {
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.ampPrivacyContextFactory = Objects.requireNonNull(ampPrivacyContextFactory);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -128,7 +128,7 @@ public class AmpRequestFactory {
                 Endpoint.openrtb2_amp, MetricName.amp);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext)
+                .compose(httpRequest -> parseBidRequest(httpRequest)
                         .map(bidRequest -> ortb2RequestFactory.enrichAuctionContext(
                                 initialAuctionContext, httpRequest, bidRequest, startTime)))
 
@@ -140,7 +140,7 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> updateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> ampPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
@@ -158,15 +158,14 @@ public class AmpRequestFactory {
      * Creates {@link BidRequest} and sets properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
      */
-    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest, AuctionContext auctionContext) {
+    private Future<BidRequest> parseBidRequest(HttpRequestContext httpRequest) {
         final String tagId = httpRequest.getQueryParams().get(TAG_ID_REQUEST_PARAM);
         if (StringUtils.isBlank(tagId)) {
             return Future.failedFuture(new InvalidRequestException("AMP requests require an AMP tag_id"));
         }
 
         final ConsentParam consentParam = consentParamFromQueryStringParams(httpRequest);
-        final ConsentType consentType = consentTypeFromQueryStringParams(httpRequest);
-        validateConsentParam(consentParam, consentType, auctionContext.getPrebidErrors());
+        final ConsentType consentType = ConsentType.from(httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM));
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
@@ -175,7 +174,7 @@ public class AmpRequestFactory {
 
         final BidRequest bidRequest = BidRequest.builder()
                 .site(createSite(httpRequest))
-                .user(createUser(consentType, consentParam, addtlConsent))
+                .user(createUser(consentParam, consentType, addtlConsent))
                 .regs(createRegs(consentParam, consentType, gdpr))
                 .test(debug)
                 .tmax(timeout)
@@ -183,53 +182,6 @@ public class AmpRequestFactory {
                 .build();
 
         return Future.succeededFuture(bidRequest);
-    }
-
-    private static void validateConsentParam(ConsentParam consentParam, ConsentType consentType, List<String> errors) {
-        if (consentParam == null) {
-            return;
-        }
-
-        if (consentType == ConsentType.unknown) {
-            errors.add("Invalid consent_type param passed");
-            return;
-        }
-
-        if (consentType == ConsentType.tcfV1) {
-            errors.add("Consent type tcfV1 is no longer supported");
-            return;
-        }
-
-        final boolean isValidTcfv2 = BooleanUtils.isTrue(consentParam.getTcfV2());
-        if (consentType == ConsentType.tcfV2 && !isValidTcfv2) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
-            return;
-        }
-
-        final boolean isValidCcpa = BooleanUtils.isTrue(consentParam.getCcpa());
-        if (consentType == ConsentType.usPrivacy && !isValidCcpa) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
-            return;
-        }
-
-        if (!consentParam.getCcpa() && !consentParam.getTcfV2()) {
-            errors.add(constructMessageForInvalidParam(consentParam, consentType));
-        }
-    }
-
-    private static String constructMessageForInvalidParam(ConsentParam consentParam, ConsentType consentType) {
-        final StringBuilder messageBuilder = new StringBuilder("Amp request parameter ")
-                .append(consentParam.getFromParam())
-                .append(" has invalid format");
-
-        if (consentType != null) {
-            messageBuilder.append(" for consent type ")
-                    .append(consentType);
-        }
-        messageBuilder.append(": ")
-                .append(consentParam.getConsentString());
-
-        return messageBuilder.toString();
     }
 
     private static Site createSite(HttpRequestContext httpRequest) {
@@ -246,40 +198,35 @@ public class AmpRequestFactory {
                 : null;
     }
 
-    private static User createUser(ConsentType consentType, ConsentParam consentParam, String addtlConsent) {
-        final boolean shouldSetUserConsent = consentParam != null && BooleanUtils.isTrue(consentParam.getTcfV2())
-                && (consentType == null || consentType == ConsentType.tcfV2);
+    private static User createUser(ConsentParam consentParam, ConsentType consentType, String addtlConsent) {
+        final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
 
-        if (StringUtils.isNotBlank(addtlConsent) || shouldSetUserConsent) {
-            final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
-            if (shouldSetUserConsent) {
-                userExtBuilder.consent(consentParam.getConsentString());
-            }
-            if (StringUtils.isNotBlank(addtlConsent)) {
-                userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
-            }
-            return User.builder().ext(userExtBuilder.build()).build();
+        if (consentType == ConsentType.TCF_V1 || consentType == ConsentType.TCF_V2 || consentParam.isTcf()) {
+            userExtBuilder.consent(consentParam.getConsentString());
         }
-
-        return null;
+        if (StringUtils.isNotBlank(addtlConsent)) {
+            userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
+        }
+        return User.builder().ext(userExtBuilder.build()).build();
     }
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
-        final boolean shouldSetUsPrivacy = consentParam != null && BooleanUtils.isTrue(consentParam.getCcpa())
-                && (consentType == null || consentType == ConsentType.usPrivacy);
-        if (shouldSetUsPrivacy || gdpr != null) {
-            return Regs.of(null, ExtRegs.of(gdpr, shouldSetUsPrivacy ? consentParam.getConsentString() : null));
-        }
+        final String usPrivacy = consentType == ConsentType.CCPA || consentParam.isCcpa()
+                ? consentParam.getConsentString()
+                : null;
 
-        return null;
+        return gdpr != null || usPrivacy != null
+                ? Regs.of(null, ExtRegs.of(gdpr, usPrivacy))
+                : null;
     }
 
     private static ExtRequest createExt(HttpRequestContext httpRequest, String tagId, Integer debug) {
-        return ExtRequest.of(ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of(tagId))
-                .amp(ExtRequestPrebidAmp.of(ampDataFromQueryString(httpRequest)))
-                .debug(debug)
-                .build());
+        return ExtRequest.of(
+                ExtRequestPrebid.builder()
+                        .storedrequest(ExtStoredRequest.of(tagId))
+                        .amp(ExtRequestPrebidAmp.of(ampDataFromQueryString(httpRequest)))
+                        .debug(debug)
+                        .build());
     }
 
     /**
@@ -298,41 +245,12 @@ public class AmpRequestFactory {
         }
     }
 
-    private static ConsentType consentTypeFromQueryStringParams(HttpRequestContext httpRequest) {
-        final String consentTypeParam = httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM);
-        if (consentTypeParam == null) {
-            return null;
-        }
-        switch (consentTypeParam) {
-            case "1":
-                return ConsentType.tcfV1;
-            case "2":
-                return ConsentType.tcfV2;
-            case "3":
-                return ConsentType.usPrivacy;
-            default:
-                return ConsentType.unknown;
-        }
-    }
-
     private static ConsentParam consentParamFromQueryStringParams(HttpRequestContext httpRequest) {
-        final String consentParam = httpRequest.getQueryParams().get(CONSENT_PARAM);
-        if (consentParam != null) {
-            return ConsentParam.of(consentParam,
-                    CONSENT_PARAM,
-                    TcfDefinerService.isConsentStringValid(consentParam),
-                    Ccpa.isValid(consentParam));
-        }
+        final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
+        final String consent = StringUtils.defaultString(
+                queryParams.get(CONSENT_PARAM), queryParams.get(GDPR_CONSENT_PARAM));
 
-        final String gdprConsentParam = httpRequest.getQueryParams().get(GDPR_CONSENT_PARAM);
-        if (gdprConsentParam != null) {
-            return ConsentParam.of(gdprConsentParam,
-                    GDPR_CONSENT_PARAM,
-                    TcfDefinerService.isConsentStringValid(gdprConsentParam),
-                    Ccpa.isValid(gdprConsentParam));
-        }
-
-        return null;
+        return ConsentParam.of(consent, TcfDefinerService.isConsentStringValid(consent), Ccpa.isValid(consent));
     }
 
     private static String addtlConsentFromQueryStringParams(HttpRequestContext httpRequest) {
@@ -761,10 +679,8 @@ public class AmpRequestFactory {
 
         String consentString;
 
-        String fromParam;
+        boolean tcf;
 
-        Boolean tcfV2;
-
-        Boolean ccpa;
+        boolean ccpa;
     }
 }
