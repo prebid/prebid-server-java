@@ -35,6 +35,21 @@ adapters:
           url:
           redirect-url:
           cookie-family-name: streamkey
+      janet:
+        endpoint: http://ghb.bidder.jmgads.com/pbs/ortb
+        meta-info:
+          maintainer-email: info@thejmg.com
+          app-media-types:
+            - banner
+            - video
+          site-media-types:
+            - banner
+            - video
+          vendor-id: 0
+          usersync:
+            url:
+            redirect-url:
+            cookie-family-name: janet
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:

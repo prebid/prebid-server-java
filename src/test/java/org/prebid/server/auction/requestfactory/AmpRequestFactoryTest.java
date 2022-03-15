@@ -327,7 +327,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                                 .build())
                         .cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                                 ExtRequestPrebidCacheVastxml.of(null, null), null))
-                        .channel(ExtRequestPrebidChannel.of("amp"))
                         .build());
     }
 
@@ -539,21 +538,6 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getExt).isNotNull()
                 .extracting(extBidRequest -> extBidRequest.getPrebid().getCache().getBids())
                 .containsExactly(ExtRequestPrebidCacheBids.of(null, null));
-    }
-
-    @Test
-    public void shouldReturnBidRequestWithChannelIfStoredBidRequestExtHasNoChannel() {
-        // given
-        givenBidRequest();
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        assertThat(singletonList(request))
-                .extracting(BidRequest::getExt)
-                .extracting(extBidRequest -> extBidRequest.getPrebid().getChannel())
-                .containsExactly(ExtRequestPrebidChannel.of("amp"));
     }
 
     @Test
