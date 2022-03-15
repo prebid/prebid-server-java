@@ -172,8 +172,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter consent_string has invalid format for consent " +
-                         "type usPrivacy: $invalidCcpa" as String]
+                ["CCPA consent $invalidCcpa has invalid format: us_privacy must contain 4 characters" as String]
 
         where:
         invalidCcpa << [new BogusConsent(), new TcfConsent.Builder()
@@ -225,6 +224,6 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.PREBID]*.code == [999]
         assert response.ext?.errors[ErrorType.PREBID]*.message ==
-                ["Amp request parameter gdpr_consent has invalid format for consent type usPrivacy: $tcfConsent" as String]
+                ["CCPA consent $tcfConsent has invalid format: us_privacy must contain 4 characters" as String]
     }
 }
