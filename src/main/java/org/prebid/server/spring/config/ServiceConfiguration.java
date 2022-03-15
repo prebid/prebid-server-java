@@ -685,7 +685,6 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             Metrics metrics,
-            CountryCodeMapper countryCodeMapper,
             @Value("${ccpa.enforce}") boolean ccpaEnforce,
             @Value("${lmt.enforce}") boolean lmtEnforce) {
 
@@ -697,7 +696,6 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ipAddressHelper,
                 metrics,
-                countryCodeMapper,
                 ccpaEnforce,
                 lmtEnforce);
     }

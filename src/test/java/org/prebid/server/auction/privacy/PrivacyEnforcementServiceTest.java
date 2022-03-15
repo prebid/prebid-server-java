@@ -133,7 +133,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, false);
+                implicitParametersExtractor, ipAddressHelper, metrics, false, false);
     }
 
     @Test
@@ -241,7 +241,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, true, false);
+                implicitParametersExtractor, ipAddressHelper, metrics, true, false);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -271,7 +271,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, true);
+                implicitParametersExtractor, ipAddressHelper, metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -313,7 +313,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, true);
+                implicitParametersExtractor, ipAddressHelper, metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -351,7 +351,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, true);
+                implicitParametersExtractor, ipAddressHelper, metrics, false, true);
 
         given(tcfDefinerService.resultForBidderNames(anySet(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, emptyMap(), null)));
@@ -399,7 +399,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, true, false);
+                implicitParametersExtractor, ipAddressHelper, metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
@@ -415,7 +415,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, true, false);
+                implicitParametersExtractor, ipAddressHelper, metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YNY");
         final Account account = Account.builder().build();
@@ -429,7 +429,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, true, false);
+                implicitParametersExtractor, ipAddressHelper, metrics, true, false);
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder().build();
@@ -553,7 +553,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // given
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
-                implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, true);
+                implicitParametersExtractor, ipAddressHelper, metrics, false, true);
 
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap(BIDDER_NAME, 1)),

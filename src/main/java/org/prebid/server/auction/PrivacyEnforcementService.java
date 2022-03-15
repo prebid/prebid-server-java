@@ -62,7 +62,6 @@ public class PrivacyEnforcementService {
     private final ImplicitParametersExtractor implicitParametersExtractor;
     private final IpAddressHelper ipAddressHelper;
     private final Metrics metrics;
-    private final CountryCodeMapper countryCodeMapper;
     private final boolean ccpaEnforce;
     private final boolean lmtEnforce;
 
@@ -73,7 +72,6 @@ public class PrivacyEnforcementService {
                                      ImplicitParametersExtractor implicitParametersExtractor,
                                      IpAddressHelper ipAddressHelper,
                                      Metrics metrics,
-                                     CountryCodeMapper countryCodeMapper,
                                      boolean ccpaEnforce,
                                      boolean lmtEnforce) {
 
@@ -84,7 +82,6 @@ public class PrivacyEnforcementService {
         this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.metrics = Objects.requireNonNull(metrics);
-        this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.ccpaEnforce = ccpaEnforce;
         this.lmtEnforce = lmtEnforce;
     }
@@ -120,8 +117,6 @@ public class PrivacyEnforcementService {
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
-    // ---------------------------------------------------------
-
     private String resolveIpFromRequest(HttpServerRequest request) {
         final MultiMap headers = request.headers();
         final String host = request.remoteAddress().host();
@@ -143,6 +138,9 @@ public class PrivacyEnforcementService {
 
         return RequestLogInfo.of(requestType, null, accountId);
     }
+
+    // ---------------------------------------------------------
+    // TODO: extract all above to separate privacy context factories
 
     public Future<List<BidderPrivacyResult>> mask(AuctionContext auctionContext,
                                                   Map<String, User> bidderToUser,
