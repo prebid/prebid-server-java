@@ -241,7 +241,6 @@ public class AuctionPrivacyContextFactoryTest extends VertxTest {
                                 .errors(Collections.singletonList("Error"))
                                 .build());
 
-
         final AuctionContext auctionContext = AuctionContext.builder()
                 .debugWarnings(new ArrayList<>())
                 .bidRequest(bidRequest)

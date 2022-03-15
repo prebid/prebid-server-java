@@ -29,7 +29,6 @@ import org.prebid.server.privacy.model.PrivacyResult;
 import org.prebid.server.settings.model.Account;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.function.UnaryOperator;
 
