@@ -28,6 +28,7 @@ import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacycontextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -269,6 +270,7 @@ public class ServiceConfiguration {
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
+            AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
@@ -282,6 +284,7 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
                 ortbTypesResolver,
+                auctionPrivacyContextFactory,
                 privacyEnforcementService,
                 auctionTimeoutResolver,
                 debugResolver,
@@ -335,6 +338,7 @@ public class ServiceConfiguration {
             VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
+            AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             PrivacyEnforcementService privacyEnforcementService,
             TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
@@ -347,6 +351,7 @@ public class ServiceConfiguration {
                 ortb2RequestFactory,
                 ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
+                auctionPrivacyContextFactory,
                 privacyEnforcementService,
                 auctionTimeoutResolver,
                 debugResolver,
@@ -704,6 +709,19 @@ public class ServiceConfiguration {
                                                       CountryCodeMapper countryCodeMapper) {
 
         return new AmpPrivacyContextFactory(
+                privacyExtractor,
+                tcfDefinerService,
+                ipAddressHelper,
+                countryCodeMapper);
+    }
+
+    @Bean
+    AuctionPrivacyContextFactory auctionPrivacyContextFactory(PrivacyExtractor privacyExtractor,
+                                                              TcfDefinerService tcfDefinerService,
+                                                              IpAddressHelper ipAddressHelper,
+                                                              CountryCodeMapper countryCodeMapper) {
+
+        return new AuctionPrivacyContextFactory(
                 privacyExtractor,
                 tcfDefinerService,
                 ipAddressHelper,

@@ -10,7 +10,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.model.Privacy;
-import org.prebid.server.privacy.model.PrivacyExtractionResult;
+import org.prebid.server.privacy.model.PrivacyResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -33,28 +33,38 @@ public class PrivacyExtractor {
     private static final Ccpa DEFAULT_CCPA_VALUE = Ccpa.EMPTY;
     private static final Integer DEFAULT_COPPA_VALUE = 0;
 
-    /**
-     * Retrieves:
-     * <p><ul>
-     * <li>gdpr from regs.ext.gdpr
-     * <li>consent from user.ext.consent
-     * <li>us_privacy from regs.ext.us_privacy
-     * <li>coppa from regs.coppa
-     * </ul><p>
-     * And construct {@link Privacy} from them. Use default values in case of invalid value.
-     */
-    public PrivacyExtractionResult validPrivacyFrom(BidRequest bidRequest) {
+    public PrivacyResult extractPrivacyFrom(Privacy originPrivacy) {
         final List<String> errors = new ArrayList<>();
-        final Privacy originPrivacy = extractOriginPrivacy(bidRequest.getRegs(), bidRequest.getUser());
 
-        return PrivacyExtractionResult.builder()
+        return PrivacyResult.builder()
                 .originPrivacy(originPrivacy)
                 .validPrivacy(toValidPrivacy(originPrivacy, errors))
                 .errors(errors)
                 .build();
     }
 
-    public static Privacy validPrivacyFrom(CookieSyncRequest request) {
+    public PrivacyResult extractPrivacyFrom(BidRequest bidRequest) {
+        return extractPrivacyFrom(extractOriginPrivacyFrom(bidRequest));
+    }
+
+    public Privacy extractOriginPrivacyFrom(BidRequest bidRequest) {
+        return extractOriginPrivacyFrom(bidRequest.getRegs(), bidRequest.getUser());
+    }
+
+    private static Privacy extractOriginPrivacyFrom(Regs regs, User user) {
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        final ExtUser extUser = user != null ? user.getExt() : null;
+
+        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
+        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
+        final String consent = extUser != null ? extUser.getConsent() : null;
+        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
+        final Integer coppa = regs != null ? regs.getCoppa() : null;
+
+        return Privacy.of(gdpr, consent, Ccpa.of(usPrivacy), coppa);
+    }
+
+    public static Privacy extractValidPrivacyFrom(CookieSyncRequest request) {
         final Integer gdprAsInteger = request.getGdpr();
         final String gdpr = gdprAsInteger != null ? gdprAsInteger.toString() : null;
         final String gdprConsent = request.getGdprConsent();
@@ -79,7 +89,12 @@ public class PrivacyExtractor {
                 errors);
     }
 
-    public Privacy toValidPrivacy(String gdpr, String consent, String usPrivacy, Integer coppa, List<String> errors) {
+    private static Privacy toValidPrivacy(String gdpr,
+                                          String consent,
+                                          String usPrivacy,
+                                          Integer coppa,
+                                          List<String> errors) {
+
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;
@@ -88,19 +103,6 @@ public class PrivacyExtractor {
         final Integer validCoppa = coppa == null ? DEFAULT_COPPA_VALUE : coppa;
 
         return Privacy.of(validGdpr, validConsent, validCcpa, validCoppa);
-    }
-
-    private static Privacy extractOriginPrivacy(Regs regs, User user) {
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final ExtUser extUser = user != null ? user.getExt() : null;
-
-        final Integer extRegsGdpr = extRegs != null ? extRegs.getGdpr() : null;
-        final String gdpr = extRegsGdpr != null ? Integer.toString(extRegsGdpr) : null;
-        final String consent = extUser != null ? extUser.getConsent() : null;
-        final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
-        final Integer coppa = regs != null ? regs.getCoppa() : null;
-
-        return Privacy.of(gdpr, consent, Ccpa.of(usPrivacy), coppa);
     }
 
     private static Ccpa toValidCcpa(String usPrivacy, List<String> errors) {

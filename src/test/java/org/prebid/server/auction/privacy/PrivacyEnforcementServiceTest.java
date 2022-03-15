@@ -4,8 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -31,7 +29,6 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.CountryCodeMapper;
-import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -47,7 +44,6 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.privacy.model.PrivacyDebugLog;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
@@ -60,7 +56,6 @@ import org.prebid.server.settings.model.EnabledForRequestType;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,7 +74,6 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -140,202 +134,6 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementService = new PrivacyEnforcementService(
                 bidderCatalog, privacyExtractor, privacyAnonymizationService, tcfDefinerService,
                 implicitParametersExtractor, ipAddressHelper, metrics, countryCodeMapper, false, false);
-    }
-
-    @Test
-    public void contextFromBidRequestShouldReturnTcfContextForCoppa() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(1, null))
-                .build();
-
-        final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
-                .consentString("consent")
-                .consent(TCStringEmpty.create())
-                .build();
-
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(tcfContext));
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
-                .build();
-
-        // when
-        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
-
-        final var res = privacyContext.result();
-        final PrivacyDebugLog expectedPrivacyDebugLog = PrivacyDebugLog.from(
-                Privacy.of(null, null, Ccpa.EMPTY, 1),
-                Privacy.of("", "", Ccpa.EMPTY, 1),
-                tcfContext);
-
-        // then
-        FutureAssertion.assertThat(privacyContext).succeededWith(
-                PrivacyContext.of(
-                        Privacy.of(EMPTY, EMPTY, Ccpa.EMPTY, 1),
-                        tcfContext,
-                        null,
-                        expectedPrivacyDebugLog));
-    }
-
-    @Test
-    public void contextFromBidRequestShouldReturnTcfContext() {
-        // given
-        final String referer = "Referer";
-        final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
-                        .build())
-                .site(Site.builder().ref(referer).build())
-                .build();
-
-        final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
-                .consentString("consent")
-                .consent(TCStringEmpty.create())
-                .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(tcfContext));
-
-        final String accountId = "account";
-        final MetricName requestType = MetricName.openrtb2web;
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .account(Account.empty(accountId))
-                .requestTypeMetric(requestType)
-                .prebidErrors(new ArrayList<>())
-                .build();
-
-        // when
-        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
-
-        // then
-        final Privacy expectedPrivacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
-        FutureAssertion.assertThat(privacyContext).succeededWith(
-                PrivacyContext.of(
-                        expectedPrivacy,
-                        tcfContext,
-                        null,
-                        PrivacyDebugLog.from(
-                                Privacy.of("1", "consent", Ccpa.of("1YYY"), null),
-                                Privacy.of("1", "consent", Ccpa.of("1YYY"), 0),
-                                tcfContext)));
-
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(requestType, referer, accountId);
-        verify(tcfDefinerService).resolveTcfContext(
-                eq(expectedPrivacy), isNull(), isNull(), isNull(), same(requestType),
-                eq(expectedRequestLogInfo), isNull(), any());
-    }
-
-    @Test
-    public void contextFromBidRequestShouldReturnTcfContextWithIpMasked() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .regs(Regs.of(null, ExtRegs.of(1, "1YYY")))
-                .user(User.builder()
-                        .ext(ExtUser.builder()
-                                .consent("consent")
-                                .build())
-                        .build())
-                .device(Device.builder()
-                        .lmt(1)
-                        .ip("ip")
-                        .build())
-                .build();
-
-        given(ipAddressHelper.maskIpv4(any())).willReturn("ip-masked");
-
-        final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
-                .consentString("consent")
-                .consent(TCStringEmpty.create())
-                .ipAddress("ip-masked")
-                .inEea(false)
-                .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
-                .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(tcfContext));
-
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .account(Account.empty("account"))
-                .requestTypeMetric(MetricName.openrtb2web)
-                .prebidErrors(new ArrayList<>())
-                .build();
-
-        // when
-        final Future<PrivacyContext> privacyContext = privacyEnforcementService.contextFromBidRequest(auctionContext);
-
-        // then
-        final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
-        FutureAssertion.assertThat(privacyContext).succeededWith(
-                PrivacyContext.of(
-                        privacy,
-                        tcfContext,
-                        "ip-masked",
-                        PrivacyDebugLog.from(
-                                Privacy.of("1", "consent", Ccpa.of("1YYY"), null),
-                                privacy,
-                                tcfContext)));
-
-        verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull(), any());
-    }
-
-    @Test
-    public void contextFromBidRequestShouldCallResolveTcfContextWithIpv6AnonymizedWhenIpNotPresentAndLmtIsOne() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .lmt(1)
-                        .ipv6("ipv6")
-                        .build())
-                .build();
-        given(ipAddressHelper.anonymizeIpv6(any())).willReturn("ip-masked");
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfContext.builder().build()));
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
-                .build();
-
-        // when
-        privacyEnforcementService.contextFromBidRequest(auctionContext);
-
-        // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    public void contextFromBidRequestShouldCallResolveTcfContextWithIpv6WhenIpv4NotPresent() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .ipv6("ipv6")
-                        .build())
-                .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfContext.builder().build()));
-        final AuctionContext auctionContext = AuctionContext.builder()
-                .bidRequest(bidRequest)
-                .account(Account.empty("account"))
-                .prebidErrors(new ArrayList<>())
-                .build();
-
-        // when
-        privacyEnforcementService.contextFromBidRequest(auctionContext);
-
-        // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any(), any());
     }
 
     @Test

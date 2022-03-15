@@ -2,7 +2,6 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -10,7 +9,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -30,8 +28,6 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
-import org.prebid.server.privacy.model.PrivacyDebugLog;
-import org.prebid.server.privacy.model.PrivacyExtractionResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.request.CookieSyncRequest;
@@ -93,67 +89,6 @@ public class PrivacyEnforcementService {
         this.lmtEnforce = lmtEnforce;
     }
 
-    public Future<PrivacyContext> contextFromBidRequest(AuctionContext auctionContext) {
-        final BidRequest bidRequest = auctionContext.getBidRequest();
-
-        final Account account = auctionContext.getAccount();
-        final MetricName requestType = auctionContext.getRequestTypeMetric();
-        final Device device = bidRequest.getDevice();
-
-        final PrivacyExtractionResult privacyExtractionResult = privacyExtractor.validPrivacyFrom(bidRequest);
-        final Privacy validPrivacy = privacyExtractionResult.getValidPrivacy();
-
-        return tcfDefinerService.resolveTcfContext(
-                validPrivacy,
-                resolveAlpha2CountryCode(device),
-                resolveIpAddress(device, validPrivacy),
-                accountGdprConfig(account),
-                requestType,
-                requestLogInfo(requestType, bidRequest, account.getId()),
-                auctionContext.getTimeout())
-                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
-                .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
-    }
-
-    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
-        debugWarnings.addAll(tcfContext.getWarnings());
-
-        return tcfContext;
-    }
-
-    private String resolveAlpha2CountryCode(Device device) {
-        final Geo geo = device != null ? device.getGeo() : null;
-        final String alpha3CountryCode = geo != null ? geo.getCountry() : null;
-
-        return countryCodeMapper.mapToAlpha2(alpha3CountryCode);
-    }
-
-    private String resolveIpAddress(Device device, Privacy privacy) {
-        final boolean shouldBeMasked = isCoppaMaskingRequired(privacy) || isLmtEnabled(device);
-
-        final String ipV4Address = device != null ? device.getIp() : null;
-        if (StringUtils.isNotBlank(ipV4Address)) {
-            return shouldBeMasked ? ipAddressHelper.maskIpv4(ipV4Address) : ipV4Address;
-        }
-
-        final String ipV6Address = device != null ? device.getIpv6() : null;
-        if (StringUtils.isNotBlank(ipV6Address)) {
-            return shouldBeMasked ? ipAddressHelper.anonymizeIpv6(ipV6Address) : ipV6Address;
-        }
-
-        return null;
-    }
-
-    private static PrivacyContext toPrivacyContext(TcfContext tcfContext,
-                                                   PrivacyExtractionResult privacyExtractionResult) {
-
-        final Privacy validPrivacy = privacyExtractionResult.getValidPrivacy();
-        final PrivacyDebugLog privacyDebugLog = PrivacyDebugLog.from(
-                privacyExtractionResult.getOriginPrivacy(), validPrivacy, tcfContext);
-
-        return PrivacyContext.of(validPrivacy, tcfContext, tcfContext.getIpAddress(), privacyDebugLog);
-    }
-
     public Future<PrivacyContext> contextFromSetuidRequest(HttpServerRequest httpRequest,
                                                            Account account,
                                                            Timeout timeout) {
@@ -174,7 +109,7 @@ public class PrivacyEnforcementService {
                                                                Account account,
                                                                Timeout timeout) {
 
-        final Privacy privacy = privacyExtractor.validPrivacyFrom(cookieSyncRequest);
+        final Privacy privacy = privacyExtractor.extractValidPrivacyFrom(cookieSyncRequest);
         final String ipAddress = resolveIpFromRequest(httpRequest);
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
         final String accountId = account.getId();

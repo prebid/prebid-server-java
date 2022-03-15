@@ -17,4 +17,12 @@ public class PrivacyContext {
     public static PrivacyContext of(Privacy privacy, TcfContext tcfContext) {
         return of(privacy, tcfContext, null, null);
     }
+
+    public static PrivacyContext from(TcfContext tcfContext, PrivacyResult privacyResult) {
+        final Privacy validPrivacy = privacyResult.getValidPrivacy();
+        final PrivacyDebugLog privacyDebugLog = PrivacyDebugLog.from(
+                privacyResult.getOriginPrivacy(), validPrivacy, tcfContext);
+
+        return PrivacyContext.of(validPrivacy, tcfContext, tcfContext.getIpAddress(), privacyDebugLog);
+    }
 }

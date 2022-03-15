@@ -7,7 +7,7 @@ import java.util.List;
 
 @Value
 @Builder
-public class PrivacyExtractionResult {
+public class PrivacyResult {
 
     Privacy validPrivacy;
 

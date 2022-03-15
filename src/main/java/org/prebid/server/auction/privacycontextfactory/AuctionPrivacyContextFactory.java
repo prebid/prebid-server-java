@@ -8,8 +8,6 @@ import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.ConsentType;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -26,16 +24,14 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import java.util.List;
 import java.util.Objects;
 
-public class AmpPrivacyContextFactory {
-
-    private static final String CONSENT_TYPE_PARAM = "consent_type";
+public class AuctionPrivacyContextFactory {
 
     private final PrivacyExtractor privacyExtractor;
     private final TcfDefinerService tcfDefinerService;
     private final IpAddressHelper ipAddressHelper;
     private final CountryCodeMapper countryCodeMapper;
 
-    public AmpPrivacyContextFactory(PrivacyExtractor privacyExtractor,
+    public AuctionPrivacyContextFactory(PrivacyExtractor privacyExtractor,
                                     TcfDefinerService tcfDefinerService,
                                     IpAddressHelper ipAddressHelper,
                                     CountryCodeMapper countryCodeMapper) {
@@ -49,57 +45,25 @@ public class AmpPrivacyContextFactory {
     public Future<PrivacyContext> contextFrom(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
+        final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Device device = bidRequest.getDevice();
 
-        final PrivacyResult privacy = extractPrivacy(auctionContext);
+        final PrivacyResult privacy = privacyExtractor.extractPrivacyFrom(bidRequest);
         auctionContext.getPrebidErrors().addAll(privacy.getErrors());
 
         final Privacy validPrivacy = privacy.getValidPrivacy();
-
-        final Device device = bidRequest.getDevice();
-        final Account account = auctionContext.getAccount();
 
         return tcfDefinerService.resolveTcfContext(
                 validPrivacy,
                 resolveAlpha2CountryCode(device),
                 resolveIpAddress(device, validPrivacy),
-                extractGdprConfig(account),
+                accountGdprConfig(account),
                 requestType,
                 requestLogInfo(requestType, bidRequest, account.getId()),
-                timeout)
+                auctionContext.getTimeout())
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.from(tcfContext, privacy));
-    }
-
-    private PrivacyResult extractPrivacy(AuctionContext auctionContext) {
-        final Privacy originPrivacy = privacyExtractor.extractOriginPrivacyFrom(auctionContext.getBidRequest());
-        final Privacy strippedPrivacy = stripPrivacy(originPrivacy, auctionContext);
-
-        return privacyExtractor.extractPrivacyFrom(strippedPrivacy);
-    }
-
-    private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
-        final List<String> errors = auctionContext.getPrebidErrors();
-
-        final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
-        final ConsentType consentType = ConsentType.from(consentTypeParam);
-
-        if (consentType == ConsentType.UNKNOWN) {
-            errors.add("Invalid consent_type param passed");
-            return privacy.withoutConsent();
-        } else if (consentType == ConsentType.TCF_V1) {
-            errors.add("Consent type tcfV1 is no longer supported");
-            return privacy.withoutConsent();
-        }
-
-        return privacy;
-    }
-
-    private AccountGdprConfig extractGdprConfig(Account account) {
-        final AccountPrivacyConfig accountPrivacyConfig = account != null ? account.getPrivacy() : null;
-
-        return accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
     }
 
     private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
@@ -116,7 +80,7 @@ public class AmpPrivacyContextFactory {
     }
 
     private String resolveIpAddress(Device device, Privacy privacy) {
-        final boolean shouldBeMasked = Objects.equals(privacy.getCoppa(), 1)
+        final boolean shouldBeMasked = privacy.getCoppa() == 1
                 || (device != null && Objects.equals(device.getLmt(), 1));
 
         final String ipV4Address = device != null ? device.getIp() : null;
@@ -140,5 +104,10 @@ public class AmpPrivacyContextFactory {
         }
 
         return RequestLogInfo.of(requestType, null, accountId);
+    }
+
+    private static AccountGdprConfig accountGdprConfig(Account account) {
+        final AccountPrivacyConfig privacyConfig = account.getPrivacy();
+        return privacyConfig != null ? privacyConfig.getGdpr() : null;
     }
 }

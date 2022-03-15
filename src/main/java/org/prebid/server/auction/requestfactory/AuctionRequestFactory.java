@@ -13,6 +13,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacycontextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -35,6 +36,7 @@ public class AuctionRequestFactory {
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
@@ -50,6 +52,7 @@ public class AuctionRequestFactory {
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
+                                 AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                  PrivacyEnforcementService privacyEnforcementService,
                                  TimeoutResolver timeoutResolver,
                                  DebugResolver debugResolver,
@@ -62,6 +65,7 @@ public class AuctionRequestFactory {
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
@@ -99,7 +103,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(

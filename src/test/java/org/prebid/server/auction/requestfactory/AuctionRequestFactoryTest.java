@@ -31,6 +31,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.privacycontextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -81,6 +82,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private InterstitialProcessor interstitialProcessor;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
+    @Mock
+    private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
@@ -142,7 +145,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(interstitialProcessor.process(any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
-        given(privacyEnforcementService.contextFromBidRequest(any()))
+        given(auctionPrivacyContextFactory.contextFrom(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
@@ -163,6 +166,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
+                auctionPrivacyContextFactory,
                 privacyEnforcementService,
                 timeoutResolver,
                 debugResolver,
@@ -195,6 +199,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
+                auctionPrivacyContextFactory,
                 privacyEnforcementService,
                 timeoutResolver,
                 debugResolver,
@@ -603,7 +608,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.of("1", "consent", Ccpa.EMPTY, 0),
                 TcfContext.builder().geoInfo(geoInfo).build());
-        given(privacyEnforcementService.contextFromBidRequest(any()))
+        given(auctionPrivacyContextFactory.contextFrom(any()))
                 .willReturn(Future.succeededFuture(privacyContext));
 
         // when

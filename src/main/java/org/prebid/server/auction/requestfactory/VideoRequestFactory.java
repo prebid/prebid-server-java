@@ -22,6 +22,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.privacycontextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -55,6 +56,7 @@ public class VideoRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final VideoStoredRequestProcessor storedRequestProcessor;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final TimeoutResolver timeoutResolver;
     private final DebugResolver debugResolver;
@@ -66,6 +68,7 @@ public class VideoRequestFactory {
                                Ortb2RequestFactory ortb2RequestFactory,
                                Ortb2ImplicitParametersResolver paramsResolver,
                                VideoStoredRequestProcessor storedRequestProcessor,
+                               AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                PrivacyEnforcementService privacyEnforcementService,
                                TimeoutResolver timeoutResolver,
                                DebugResolver debugResolver,
@@ -76,6 +79,7 @@ public class VideoRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
@@ -120,7 +124,7 @@ public class VideoRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
