@@ -12,8 +12,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -47,7 +45,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
@@ -64,8 +61,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AmpRequestFactory {
-
-    private static final Logger logger = LoggerFactory.getLogger(AmpRequestFactory.class);
 
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
     private static final String TARGETING_REQUEST_PARAM = "targeting";
@@ -455,12 +450,9 @@ public class AmpRequestFactory {
         final boolean setDefaultTargeting;
         final boolean setDefaultCache;
 
-        final boolean setChannel;
-
         if (prebid == null) {
             setDefaultTargeting = true;
             setDefaultCache = true;
-            setChannel = true;
         } else {
             final ExtRequestTargeting targeting = prebid.getTargeting();
             setDefaultTargeting = targeting == null
@@ -470,23 +462,19 @@ public class AmpRequestFactory {
 
             final ExtRequestPrebidCache cache = prebid.getCache();
             setDefaultCache = cache == null || cache.equals(ExtRequestPrebidCache.EMPTY);
-
-            setChannel = prebid.getChannel() == null;
         }
 
         final BidRequest result;
         if (setSecure
                 || setDefaultTargeting
-                || setDefaultCache
-                || setChannel) {
+                || setDefaultCache) {
 
             result = bidRequest.toBuilder()
                     .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
                     .ext(extRequest(
                             bidRequest,
                             setDefaultTargeting,
-                            setDefaultCache,
-                            setChannel))
+                            setDefaultCache))
                     .build();
         } else {
             result = bidRequest;
@@ -702,11 +690,10 @@ public class AmpRequestFactory {
      */
     private ExtRequest extRequest(BidRequest bidRequest,
                                   boolean setDefaultTargeting,
-                                  boolean setDefaultCache,
-                                  boolean setChannel) {
+                                  boolean setDefaultCache) {
 
         final ExtRequest result;
-        if (setDefaultTargeting || setDefaultCache || setChannel) {
+        if (setDefaultTargeting || setDefaultCache) {
             final ExtRequest requestExt = bidRequest.getExt();
             final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
             final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = prebid != null
@@ -719,9 +706,6 @@ public class AmpRequestFactory {
             if (setDefaultCache) {
                 prebidBuilder.cache(ExtRequestPrebidCache.of(ExtRequestPrebidCacheBids.of(null, null),
                         ExtRequestPrebidCacheVastxml.of(null, null), null));
-            }
-            if (setChannel) {
-                prebidBuilder.channel(ExtRequestPrebidChannel.of(AMP_CHANNEL));
             }
 
             final ExtRequest updatedExt = ExtRequest.of(prebidBuilder.build());
