@@ -11,8 +11,7 @@
       "ext": {
         "bidder": {
           "tappxkey": "pub-12345-android-9876",
-          "endpoint": "tappx-exchange",
-          "host": "localhost:8090",
+          "endpoint": "test",
           "bidfloor": 1.5
         }
       }

@@ -1,14 +1,16 @@
 adapters:
   unruly:
-    endpoint: http://targeting.unrulymedia.com/openrtb/2.2
+    endpoint: https://targeting.unrulymedia.com/unruly_prebid_server
     meta-info:
-      maintainer-email: adspaces@unrulygroup.com
+      maintainer-email: prebidsupport@unrulygroup.com
       app-media-types:
+        - banner
         - video
       site-media-types:
+        - banner
         - video
       supported-vendors:
-      vendor-id: 162
+      vendor-id: 36
     usersync:
       url: https://sync.1rx.io/usersync2/rmphb?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir=
       redirect-url: /setuid?bidder=unruly&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[RX_UUID]

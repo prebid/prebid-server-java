@@ -62,4 +62,13 @@ public class IntersectsIntegersTest {
         // when and then
         assertThat(expression.matches(context)).isFalse();
     }
+
+    @Test
+    public void matchesShouldReturnFalseWhenActualValueIsNotDefined() {
+        // given
+        willReturn(null).given(context).lookupIntegers(any());
+
+        // when and then
+        assertThat(expression.matches(context)).isFalse();
+    }
 }

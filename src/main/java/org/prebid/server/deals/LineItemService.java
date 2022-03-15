@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.currency.CurrencyConversionService;
@@ -137,11 +138,12 @@ public class LineItemService {
      * taking into account Line Items’ targeting and delivery progress by the given time.
      */
     protected MatchLineItemsResult findMatchingLineItems(AuctionContext auctionContext, Imp imp, ZonedDateTime now) {
-        final List<LineItem> matchedLineItems = getPreMatchedLineItems(auctionContext.getAccount().getId(),
-                imp, extractAliases(auctionContext.getBidRequest()))
-                .stream()
-                .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext))
-                .collect(Collectors.toList());
+        final BidderAliases aliases = aliases(auctionContext.getBidRequest());
+        final List<LineItem> matchedLineItems =
+                getPreMatchedLineItems(auctionContext.getAccount().getId(), imp, aliases).stream()
+                        .filter(lineItem -> isTargetingMatched(lineItem, imp, auctionContext))
+                        .collect(Collectors.toList());
+
         return MatchLineItemsResult.of(postProcessMatchedLineItems(matchedLineItems, auctionContext, imp, now));
     }
 
@@ -268,24 +270,27 @@ public class LineItemService {
     /**
      * Checks if bidder is valid against configured bidders in {@link BidderCatalog} or aliases.
      */
-    private boolean isValidActiveBidder(String bidder, Map<String, String> aliases) {
+    private boolean isValidActiveBidder(String bidder, BidderAliases aliases) {
         return !bidderCatalog.isDeprecatedName(bidder)
-                && (bidderCatalog.isValidName(bidder) || aliases.containsKey(bidder));
+                && bidderCatalog.isValidName(aliases.resolveBidder(bidder));
     }
 
     /**
      * Returns true if collection of bidder codes contains bidder or it's alias value.
      */
-    private boolean containBidderCodeConsideringAliases(List<String> bidders, String bidder,
-                                                        Map<String, String> aliases) {
-        return bidders.contains(bidder) || bidders.contains(aliases.get(bidder))
-                || bidders.stream().anyMatch(bidderCode -> bidder.equals(aliases.get(bidderCode)));
+    private boolean containBidderCodeConsideringAliases(List<String> bidders,
+                                                        String bidder,
+                                                        BidderAliases aliases) {
+
+        return bidders.contains(bidder)
+                || bidders.contains(aliases.resolveBidder(bidder))
+                || bidders.stream().map(aliases::resolveBidder).anyMatch(bidder::equals);
     }
 
     /**
      * Return {@link List<LineItem>} matched to {@link Imp} bidders considering aliases.
      */
-    private List<LineItem> getPreMatchedLineItems(String accountId, Imp imp, Map<String, String> aliases) {
+    private List<LineItem> getPreMatchedLineItems(String accountId, Imp imp, BidderAliases aliases) {
         if (StringUtils.isBlank(accountId)) {
             return Collections.emptyList();
         }
@@ -314,14 +319,13 @@ public class LineItemService {
         return imp.getExt().get(PREBID_EXT).get(BIDDER_EXT);
     }
 
-    /**
-     * Extracts aliases from {@link BidRequest}.
-     */
-    private Map<String, String> extractAliases(BidRequest bidRequest) {
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid prebid = extRequest != null ? extRequest.getPrebid() : null;
+    private BidderAliases aliases(BidRequest bidRequest) {
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequestPrebid prebid = requestExt != null ? requestExt.getPrebid() : null;
         final Map<String, String> aliases = prebid != null ? prebid.getAliases() : null;
-        return aliases != null ? aliases : Collections.emptyMap();
+        final Map<String, Integer> aliasgvlids = prebid != null ? prebid.getAliasgvlids() : null;
+
+        return BidderAliases.of(aliases, aliasgvlids, bidderCatalog);
     }
 
     /**
@@ -414,10 +418,19 @@ public class LineItemService {
                     accountId, lineItemSource, lineItemId);
         } else {
             txnLog.lineItemsPacingDeferred().add(lineItemId);
-            deepDebug(auctionContext, Category.pacing, String.format("Matched Line Item %s for bidder %s not ready to"
-                            + " serve. Will be ready at %s, current time is %s", lineItemId, lineItemSource,
-                    readyAt != null ? UTC_MILLIS_FORMATTER.format(readyAt) : "never", UTC_MILLIS_FORMATTER.format(now)),
-                    accountId, lineItemSource, lineItemId);
+            deepDebug(
+                    auctionContext,
+                    Category.pacing,
+                    String.format(
+                            "Matched Line Item %s for bidder %s not ready to serve."
+                                    + " Will be ready at %s, current time is %s",
+                            lineItemId,
+                            lineItemSource,
+                            readyAt != null ? UTC_MILLIS_FORMATTER.format(readyAt) : "never",
+                            UTC_MILLIS_FORMATTER.format(now)),
+                    accountId,
+                    lineItemSource,
+                    lineItemId);
         }
 
         return ready;

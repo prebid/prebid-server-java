@@ -1,9 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request.pubmatic;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 
 import java.util.List;
 
@@ -28,7 +28,7 @@ public class ExtImpPubmatic {
     @JsonProperty("pmzoneid")
     String pmZoneId;
 
-    ObjectNode wrapper;
+    PubmaticWrapper wrapper;
 
     List<ExtImpPubmaticKeyVal> keywords;
 

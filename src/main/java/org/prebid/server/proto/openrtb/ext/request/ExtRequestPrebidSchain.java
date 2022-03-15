@@ -20,6 +20,6 @@ public class ExtRequestPrebidSchain {
     /**
      * Defines the contract for bidrequest.ext.prebid.schains[i].schain
      */
-    ExtRequestPrebidSchainSchain schain;
+    ExtSourceSchain schain;
 }
 

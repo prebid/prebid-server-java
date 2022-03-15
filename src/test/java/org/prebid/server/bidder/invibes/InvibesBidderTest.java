@@ -43,7 +43,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class InvibesBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/test";
+    private static final String ENDPOINT_URL = "https://{{ZoneID}}.videostep.com/bid/";
     private static final int BANNER_H = 12;
     private static final int BANNER_W = 15;
     private static final String PAGE_URL = "www.test.com";
@@ -72,7 +72,7 @@ public class InvibesBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateCorrectURL() {
+    public void makeHttpRequestsShouldCreateCorrectURLFor1003Zone() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -85,7 +85,75 @@ public class InvibesBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid3.videostep.com/test");
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid3.videostep.com/bid/");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURLFor0Zone() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                ExtImpInvibes.of("12", 0, InvibesDebug.of("test", true)));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURLFor1Zone() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                ExtImpInvibes.of("12", 1, InvibesDebug.of("test", true)));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURLFor1001Zone() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                ExtImpInvibes.of("12", 1001, InvibesDebug.of("test", true)));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid.videostep.com/bid/");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURLFor999Zone() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()),
+                ExtImpInvibes.of("12", 999, InvibesDebug.of("test", true)));
+
+        // when
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://bid999.videostep.com/bid/");
     }
 
     @Test

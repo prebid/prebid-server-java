@@ -16,6 +16,6 @@ public class ExtSource extends FlexibleExtension {
     /**
      * Defines the contract for bidrequest.source.ext.schain
      */
-    ExtRequestPrebidSchainSchain schain;
+    ExtSourceSchain schain;
 }
 

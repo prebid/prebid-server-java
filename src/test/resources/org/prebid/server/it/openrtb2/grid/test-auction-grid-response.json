@@ -15,7 +15,10 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "banner",
+              "meta": {
+                "demandsource": "trustx"
+              }
             },
             "origbidcpm": 3.33
           }

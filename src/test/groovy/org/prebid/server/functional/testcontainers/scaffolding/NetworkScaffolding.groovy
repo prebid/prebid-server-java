@@ -2,12 +2,15 @@ package org.prebid.server.functional.testcontainers.scaffolding
 
 import org.mockserver.client.MockServerClient
 import org.mockserver.matchers.Times
+import org.mockserver.model.ClearType
 import org.mockserver.model.HttpRequest
+import org.mockserver.model.HttpStatusCode
 import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
+import static org.mockserver.model.ClearType.EXPECTATIONS
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -46,31 +49,13 @@ abstract class NetworkScaffolding {
                         .size()
     }
 
-    boolean checkRequestCount(int expectedCount, int pollTime = 1000, int pollFrequency = 50) {
-        def expectedCountReached = false
-        def startTime = System.currentTimeMillis()
-        def elapsedTime = 0
-
-        while (elapsedTime < pollTime) {
-            def requestCount = getRequestCount()
-            if (requestCount == expectedCount) {
-                expectedCountReached = true
-                break
-            } else if (requestCount > expectedCount) {
-                throw new IllegalStateException("The number of recorded requests: $requestCount exceeds the expected number: $expectedCount")
-            } else {
-                elapsedTime += System.currentTimeMillis() - startTime
-                Thread.sleep(pollFrequency)
-            }
-        }
-
-        expectedCountReached
-    }
-
-    void setResponse(HttpRequest httpRequest, ResponseModel responseModel) {
+    void setResponse(HttpRequest httpRequest,
+                     ResponseModel responseModel,
+                     HttpStatusCode statusCode = OK_200,
+                     Times times = Times.exactly(1)) {
         def mockResponse = mapper.encode(responseModel)
-        mockServerClient.when(httpRequest, Times.exactly(1))
-                        .respond(response().withStatusCode(OK_200.code())
+        mockServerClient.when(httpRequest, times)
+                        .respond(response().withStatusCode(statusCode.code())
                                            .withBody(mockResponse, APPLICATION_JSON))
     }
 
@@ -135,8 +120,8 @@ abstract class NetworkScaffolding {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
-    void reset() {
-        mockServerClient.clear(request().withPath(endpoint))
+    void reset(String resetEndpoint = endpoint, ClearType clearType = EXPECTATIONS) {
+        mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
 
     private static List<Map<String, String>> getRequestsHeaders(List<HttpRequest> httpRequests) {

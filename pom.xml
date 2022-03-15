@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.81.0-SNAPSHOT</version>
+        <version>1.85.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -41,7 +41,7 @@
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
-        <postgresql.version>42.1.4</postgresql.version>
+        <postgresql.version>42.3.3</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
         <metrics.version>4.0.3</metrics.version>
@@ -60,14 +60,14 @@
         <mockito-junit-jupiter.version>4.0.0</mockito-junit-jupiter.version>
         <assertj.version>3.21.0</assertj.version>
         <wiremock.version>2.31.0</wiremock.version>
-        <awaitility.version>4.1.0</awaitility.version>
+        <awaitility.version>4.1.1</awaitility.version>
         <jetty.version>9.4.44.v20210927</jetty.version>
         <restassured.version>4.4.0</restassured.version>
-        <h2.version>2.0.206</h2.version>
+        <h2.version>2.1.210</h2.version>
         <spock.version>2.0-groovy-3.0</spock.version>
-        <testcontainers.version>1.16.2</testcontainers.version>
+        <testcontainers.version>1.16.3</testcontainers.version>
         <mockserver-client.version>5.11.2</mockserver-client.version>
-        <allure.version>2.16.1</allure.version>
+        <allure.version>2.17.2</allure.version>
         <aspectj.version>1.9.7</aspectj.version>
         <h2.version>1.4.200</h2.version>
         <bytebuddy.version>1.11.19</bytebuddy.version>

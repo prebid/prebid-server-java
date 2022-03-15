@@ -96,11 +96,11 @@ and verify response status is `200 OK`.
 - [Adding new bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html)
 - [Adding new analytics module](https://docs.prebid.org/prebid-server/developers/pbs-build-an-analytics-adapter.html#adding-an-analytics-adapter-in-pbs-java)
 - [Adding viewability support](docs/developers/add-viewability-vendors.md)
-- [Auction result post-processing](docs/developers/auction-result-post-processing.md)
+- [Auction result post-processing](docs/auction-result-post-processing.md)
 - [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
 - [Stored Requests](docs/developers/stored-requests.md)
 - [Unit Tests](docs/developers/unit-tests.md)
-- [GDPR](docs/developers/gdpr.md)
+- [GDPR](docs/gdpr.md)
 
 ## Maintenance
 - [Build for local](docs/build.md)
@@ -112,7 +112,7 @@ and verify response status is `200 OK`.
 - [Metrics](docs/metrics.md)
 
 ## Contributing
-- [Contributing](docs/contributing.md)
-- [Code Style](docs/code-style.md)
-- [Code Review](docs/code-reviews.md)
-- [Versioning](docs/versioning.md)
+- [Contributing](docs/developers/contributing.md)
+- [Code Style](docs/developers/code-style.md)
+- [Code Review](docs/developers/code-reviews.md)
+- [Versioning](docs/developers/versioning.md)
