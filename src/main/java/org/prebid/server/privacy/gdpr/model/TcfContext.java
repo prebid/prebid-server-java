@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.geolocation.model.GeoInfo;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,9 +29,10 @@ public class TcfContext {
 
     String ipAddress;
 
-    List<String> warnings;
+    @Builder.Default
+    List<String> warnings = new ArrayList<>();
 
     public static TcfContext empty() {
-        return builder().warnings(Collections.emptyList()).build();
+        return builder().build();
     }
 }
