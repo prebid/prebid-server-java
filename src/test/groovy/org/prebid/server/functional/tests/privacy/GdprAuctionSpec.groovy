@@ -197,17 +197,17 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
     }
 
     def "PBS should recognise 'web' and 'pbjs' as the same channel when privacy.gdpr config is defined in account"() {
-        given: "BidRequest with channel: #channelNameRequest, gdpr"
+        given: "BidRequest with channel: #requestChannel, gdpr"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
                 .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
-            ext.prebid.channel = new Channel(name: channelNameRequest)
+            ext.prebid.channel = new Channel(name: requestChannel)
         }
 
-        and: "Save account config #channelNameDb = true with into DB"
-        def gdprConfig = new AccountGdprConfig(enabled: false, channelEnabled: [(channelNameDb): true])
+        and: "Save account config #accountChannel = true with into DB"
+        def gdprConfig = new AccountGdprConfig(enabled: false, channelEnabled: [(accountChannel): true])
         def account = getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig)
         accountDao.save(account)
 
@@ -219,11 +219,11 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
 
         where:
-        channelNameRequest | channelNameDb
-        WEB                | WEB
-        WEB                | PBJS
-        PBJS               | WEB
-        PBJS               | PBJS
+        requestChannel | accountChannel
+        WEB            | WEB
+        WEB            | PBJS
+        PBJS           | WEB
+        PBJS           | PBJS
     }
 
     private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {

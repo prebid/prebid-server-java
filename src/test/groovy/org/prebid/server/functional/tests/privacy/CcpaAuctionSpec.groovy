@@ -203,14 +203,14 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
     }
 
     def "PBS should recognise 'web' and 'pbjs' as the same channel when privacy.ccpa config is defined in account"() {
-        given: "BidRequest with channel: #channelNameRequest, ccpa"
+        given: "BidRequest with channel: #requestChannel, ccpa"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         def bidRequest = getCcpaBidRequest(validCcpa).tap {
-            ext.prebid.channel = new Channel(name: channelNameRequest)
+            ext.prebid.channel = new Channel(name: requestChannel)
         }
 
-        and: "Save account config #channelNameDb = true with into DB"
-        def ccpaConfig = new AccountCcpaConfig(enabled: false, channelEnabled: [(channelNameDb): true])
+        and: "Save account config #accountChannel = true with into DB"
+        def ccpaConfig = new AccountCcpaConfig(enabled: false, channelEnabled: [(accountChannel): true])
         def account = getAccountWithCcpa(bidRequest.site.publisher.id, ccpaConfig)
         accountDao.save(account)
 
@@ -222,11 +222,11 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
 
         where:
-        channelNameRequest | channelNameDb
-        WEB                | WEB
-        WEB                | PBJS
-        PBJS               | WEB
-        PBJS               | PBJS
+        requestChannel | accountChannel
+        WEB            | WEB
+        WEB            | PBJS
+        PBJS           | WEB
+        PBJS           | PBJS
     }
 
     private Account getAccountWithCcpa(String accountId, AccountCcpaConfig ccpaConfig) {
