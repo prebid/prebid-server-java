@@ -1135,6 +1135,34 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenConsentAndAddtlConsentAreAbsent() {
+        // given
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenConsentTypeIsNotTcfAndAddtlConsentIsAbsent() {
+        // given
+        routingContext.queryParams()
+                .add("consent_type", "3")
+                .add("consent_string", "consent_string");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");

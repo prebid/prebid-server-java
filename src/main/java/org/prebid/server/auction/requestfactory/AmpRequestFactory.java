@@ -199,15 +199,23 @@ public class AmpRequestFactory {
     }
 
     private static User createUser(ConsentParam consentParam, ConsentType consentType, String addtlConsent) {
-        final ExtUser.ExtUserBuilder userExtBuilder = ExtUser.builder();
+        final boolean shouldSetConsent = StringUtils.isNotBlank(consentParam.getConsentString())
+                && (consentType == ConsentType.TCF_V1 || consentType == ConsentType.TCF_V2 || consentParam.isTcf());
 
-        if (consentType == ConsentType.TCF_V1 || consentType == ConsentType.TCF_V2 || consentParam.isTcf()) {
-            userExtBuilder.consent(consentParam.getConsentString());
+        if (!shouldSetConsent && StringUtils.isBlank(addtlConsent)) {
+            return null;
         }
-        if (StringUtils.isNotBlank(addtlConsent)) {
-            userExtBuilder.consentedProvidersSettings(ConsentedProvidersSettings.of(addtlConsent));
-        }
-        return User.builder().ext(userExtBuilder.build()).build();
+
+        final ConsentedProvidersSettings consentedProvidersSettings = StringUtils.isNotBlank(addtlConsent)
+                ? ConsentedProvidersSettings.of(addtlConsent)
+                : null;
+
+        final ExtUser extUser = ExtUser.builder()
+                .consent(consentParam.getConsentString())
+                .consentedProvidersSettings(consentedProvidersSettings)
+                .build();
+
+        return User.builder().ext(extUser).build();
     }
 
     private static Regs createRegs(ConsentParam consentParam, ConsentType consentType, Integer gdpr) {
