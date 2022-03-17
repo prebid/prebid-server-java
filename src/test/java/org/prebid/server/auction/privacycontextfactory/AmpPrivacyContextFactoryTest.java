@@ -107,27 +107,6 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void contextFromShouldRemoveConsentStringAndEmitErrorOnInvalidConsentTypeParam() {
-        // given
-        final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(privacy);
-
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfContext.empty()));
-
-        final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext("invalid")));
-
-        // when
-        final Future<PrivacyContext> result = ampPrivacyContextFactory.contextFrom(auctionContext);
-
-        // then
-        assertThat(result.result().getPrivacy()).isEqualTo(privacy.withoutConsent());
-        assertThat(auctionContext.getPrebidErrors()).containsExactly("Invalid consent_type param passed");
-    }
-
-    @Test
     public void contextFromShouldNotRemoveConsentStringOnEmptyConsentTypeParam() {
         // given
         final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
