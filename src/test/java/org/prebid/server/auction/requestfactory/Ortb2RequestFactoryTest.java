@@ -45,6 +45,7 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
@@ -114,6 +115,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private DealsPopulator dealsPopulator;
     @Mock
     private CountryCodeMapper countryCodeMapper;
+    @Mock
+    private Metrics metrics;
 
     private final Clock clock = Clock.systemDefaultZone();
 
@@ -172,7 +175,47 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsPopulator,
                 countryCodeMapper,
+                metrics,
                 clock);
+    }
+
+    @Test
+    public void shouldIncrementRejectedByInvalidAccountMetricsIfUnknownUser() {
+        // given
+        target = new Ortb2RequestFactory(
+                true,
+                BLACKLISTED_ACCOUNTS,
+                uidsCookieService,
+                requestValidator,
+                timeoutResolver,
+                timeoutFactory,
+                storedRequestProcessor,
+                applicationSettings,
+                ipAddressHelper,
+                hookStageExecutor,
+                dealsPopulator,
+                countryCodeMapper,
+                metrics,
+                clock);
+
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("Not found")));
+
+        final String accountId = "absentId";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .app(App.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        // when
+        target.fetchAccount(
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .bidRequest(bidRequest)
+                        .build());
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidAccountMetrics(eq("absentId"));
     }
 
     @Test
@@ -191,6 +234,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsPopulator,
                 countryCodeMapper,
+                metrics,
                 clock);
 
         given(storedRequestProcessor.processStoredRequests(any(), any()))
@@ -228,6 +272,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsPopulator,
                 countryCodeMapper,
+                metrics,
                 clock);
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -570,6 +615,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 hookStageExecutor,
                 dealsPopulator,
                 countryCodeMapper,
+                metrics,
                 clock);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());

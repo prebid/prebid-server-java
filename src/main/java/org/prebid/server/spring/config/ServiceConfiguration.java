@@ -240,6 +240,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -257,6 +258,7 @@ public class ServiceConfiguration {
                 hookStageExecutor,
                 dealsPopulator,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 

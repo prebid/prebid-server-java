@@ -582,19 +582,6 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldIncrementRejectedMetricsIfUnknownUser() {
-        // given
-        given(auctionRequestFactory.fromRequest(any(), anyLong())).willReturn(
-                Future.failedFuture(new UnauthorizedAccountException("Unauthorised account id 1", "1")));
-
-        // when
-        auctionHandler.handle(routingContext);
-
-        // then
-        verify(metrics).updateAccountRequestRejectedMetrics(eq("1"));
-    }
-
-    @Test
     public void shouldPassBadRequestEventToAnalyticsReporterIfBidRequestIsInvalid() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))

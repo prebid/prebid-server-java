@@ -227,9 +227,21 @@ public class Metrics extends UpdatableMetrics {
         }
     }
 
-    public void updateAccountRequestRejectedMetrics(String accountId) {
+    public void updateAccountRequestRejectedByInvalidAccountMetrics(String accountId) {
+        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_account);
+    }
+
+    public void updateAccountRequestRejectedByInvalidStoredImpMetrics(String accountId) {
+        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_stored_impr);
+    }
+
+    public void updateAccountRequestRejectedByInvalidStoredRequestMetrics(String accountId) {
+        updateAccountRequestRejectedMetrics(accountId, MetricName.rejected_by_invalid_stored_request);
+    }
+
+    private void updateAccountRequestRejectedMetrics(String accountId, MetricName metricName) {
         final AccountMetrics accountMetrics = forAccount(accountId);
-        accountMetrics.requests().incCounter(MetricName.rejected);
+        accountMetrics.requests().incCounter(metricName);
     }
 
     public void updateAdapterRequestTypeAndNoCookieMetrics(String bidder, MetricName requestType, boolean noCookie) {
