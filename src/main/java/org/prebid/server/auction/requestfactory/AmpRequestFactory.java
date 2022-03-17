@@ -724,9 +724,10 @@ public class AmpRequestFactory {
         boolean isCcpa;
 
         public boolean canBeTreatedAsTcf() {
-            final boolean specifiedAsTcf = specifiedType == ConsentType.TCF_V1 || specifiedType == ConsentType.TCF_V2;
+            final boolean typeSpecifiedAsTcf =
+                    specifiedType == ConsentType.TCF_V1 || specifiedType == ConsentType.TCF_V2;
 
-            return (isConsentStringPresent() && specifiedAsTcf) || isTcf;
+            return (isConsentStringPresent() && typeSpecifiedAsTcf) || isTcf;
         }
 
         public boolean canBeTreatedAsCcpa() {

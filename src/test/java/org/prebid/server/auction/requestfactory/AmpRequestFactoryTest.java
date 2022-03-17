@@ -1312,6 +1312,51 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddErrorToAuctionContextWhenConsentTypeIsInvalid() {
+        // given
+        routingContext.queryParams().add("consent_type", "invalid");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Invalid consent_type param passed");
+    }
+
+    @Test
+    public void shouldAddErrorToAuctionContextWhenConsentStringQueryParamIsInvalid() {
+        // given
+        routingContext.queryParams().add("consent_string", "consent-value");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
+    }
+
+    @Test
+    public void shouldAddErrorToAuctionContextWhenGdprConsentQueryParamIsInvalid() {
+        // given
+        routingContext.queryParams().add("gdpr_consent", "consent-value");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
+    }
+
+    @Test
     public void shouldReturnBidRequestWithRegsContainsGdprEqualZeroIfGdprAppliesIsFalse() {
         // given
         routingContext.queryParams().add("gdpr_applies", "false");
