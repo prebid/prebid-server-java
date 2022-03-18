@@ -5,7 +5,6 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
-import org.skyscreamer.jsonassert.Customization;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -23,7 +22,7 @@ public class SharethroughTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSharethrough() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sharethrough-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-sharethrough-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-request.json")))
                 .willReturn(
                         aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response.json"))));
 
@@ -33,7 +32,6 @@ public class SharethroughTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/sharethrough/test-auction-sharethrough-response.json", response,
-                singletonList("sharethrough"),
-                new Customization("seatbid[group=0].bid[adid=arid].adm", (o1, o2) -> true));
+                singletonList("sharethrough"));
     }
 }

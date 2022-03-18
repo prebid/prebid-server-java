@@ -1,244 +1,189 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.response.Bid;
-import io.vertx.core.MultiMap;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
-import org.prebid.server.bidder.sharethrough.model.Size;
-import org.prebid.server.bidder.sharethrough.model.StrUriParameters;
-import org.prebid.server.bidder.sharethrough.model.UserInfo;
-import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
-import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
-import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class SharethroughBidder implements Bidder<SharethroughRequestBody> {
+public class SharethroughBidder implements Bidder<BidRequest> {
 
-    private static final String VERSION = "8";
-    private static final String SUPPLY_ID = "FGMrCMMc";
+    private static final String ADAPTER_VERSION = "10.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
-    private static final Date TEST_TIME = new Date(1604455678999L);
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
 
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointUrl;
+    private final PrebidVersionProvider prebidVersionProvider;
+    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    private final SharethroughRequestUtil requestUtil;
-
-    public SharethroughBidder(String endpointUrl, JacksonMapper mapper) {
+    public SharethroughBidder(String endpointUrl,
+                              CurrencyConversionService currencyConversionService,
+                              PrebidVersionProvider prebidVersionProvider,
+                              JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
-
-        this.requestUtil = new SharethroughRequestUtil();
     }
 
     @Override
-    public Result<List<HttpRequest<SharethroughRequestBody>>> makeHttpRequests(BidRequest request) {
-        final String page = requestUtil.getPage(request.getSite());
-
-        // site.page validation is already performed by {@link RequestValidator#validate}
-        if (page == null) {
-            return Result.withError(BidderError.badInput("site.page is required"));
-        }
-
-        final boolean test = Objects.equals(request.getTest(), 1);
-        final Date date = test ? TEST_TIME : new Date();
-
-        List<StrUriParameters> strUriParameters;
-        try {
-            strUriParameters = parseBidRequestToUriParameters(request, date, test);
-        } catch (IllegalArgumentException e) {
-            return Result.withError(BidderError.badInput(
-                    String.format("Error occurred parsing sharethrough parameters %s", e.getMessage())));
-        }
-        final MultiMap headers = makeHeaders(request.getDevice(), page);
-
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<SharethroughRequestBody>> httpRequests = strUriParameters.stream()
-                .map(strUriParameter -> makeHttpRequest(headers, date, strUriParameter, errors))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        BidRequest modifiedBidRequest = null;
+
+        for (Imp imp : request.getImp()) {
+            try {
+                final ExtImpSharethrough extImpSharethrough = parseImpExt(imp);
+                final Price bidFloorPrice = resolveBidFloor(imp, request);
+                modifiedBidRequest = modifyRequest(imp, request, extImpSharethrough, bidFloorPrice);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+
+            httpRequests.add(makeHttpRequest(modifiedBidRequest));
+        }
+
         return Result.of(httpRequests, errors);
     }
 
-    /**
-     * Retrieves from {@link Imp} and filter not valid {@link ExtImpSharethrough} and returns list result with errors.
-     */
-    private List<StrUriParameters> parseBidRequestToUriParameters(BidRequest request, Date date, boolean test) {
-        final Regs regs = request.getRegs();
-        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
-        final boolean consentRequired = requestUtil.isConsentRequired(extRegs);
-        final String usPrivacy = requestUtil.usPrivacy(extRegs);
-        final UserInfo userInfo = requestUtil.getUserInfo(request.getUser());
-        final String ttdUid = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getTtdUid);
-        final String consent = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getConsent);
-        final String stxuid = requestUtil.retrieveFromUserInfo(userInfo, UserInfo::getStxuid);
-
-        final boolean canAutoPlay = requestUtil.canBrowserAutoPlayVideo(request.getDevice().getUa());
-
-        final long tmax = request.getTmax();
-        final List<String> badv = request.getBadv();
-        final Date deadLine = new Date(date.getTime() + tmax);
-
-        final List<StrUriParameters> strUriParameters = new ArrayList<>();
-        for (Imp imp : request.getImp()) {
-            final ExtImpSharethrough extImpStr = mapper.mapper().convertValue(imp.getExt(),
-                    SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
-            final SharethroughRequestBody body = SharethroughRequestBody.of(badv, tmax, DATE_FORMAT.format(deadLine),
-                    test, extImpStr.getBidfloor());
-            strUriParameters.add(createStrUriParameters(extImpStr, imp, consentRequired, consent, usPrivacy,
-                    canAutoPlay, ttdUid, stxuid, body));
+    private ExtImpSharethrough parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), SHARETHROUGH_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
         }
-        return strUriParameters;
     }
 
-    /**
-     * Populate {@link StrUriParameters} with publisher request, imp, imp.ext values.
-     */
-    private StrUriParameters createStrUriParameters(ExtImpSharethrough extImpSharethrough, Imp imp,
-                                                    boolean isConsentRequired,
-                                                    String consentString, String usPrivacy,
-                                                    boolean canBrowserAutoPlayVideo, String ttdUid, String buyeruid,
-                                                    SharethroughRequestBody body) {
-        final Size size = requestUtil.getSize(imp, extImpSharethrough);
-        final ExtData extData = extImpSharethrough.getData();
-        return StrUriParameters.builder()
-                .pkey(extImpSharethrough.getPkey())
-                .bidID(imp.getId())
-                .gpid(extData != null ? extData.getPbAdSlot() : null)
-                .consentRequired(isConsentRequired)
-                .consentString(consentString)
-                .usPrivacySignal(usPrivacy)
-                .instantPlayCapable(canBrowserAutoPlayVideo)
-                .iframe(extImpSharethrough.getIframe())
-                .height(size.getHeight())
-                .width(size.getWidth())
-                .theTradeDeskUserId(ttdUid)
-                .sharethroughUserId(buyeruid)
-                .body(body)
+    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        return BidderUtil.isValidPrice(initialBidFloorPrice)
+                ? convertBidFloor(initialBidFloorPrice, bidRequest)
+                : initialBidFloorPrice;
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
+        try {
+            final BigDecimal convertedPrice = currencyConversionService
+                    .convertCurrency(bidFloorPrice.getValue(),
+                            bidRequest,
+                            bidFloorPrice.getCurrency(),
+                            DEFAULT_BID_CURRENCY);
+
+            return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+        } catch (PreBidException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private BidRequest modifyRequest(Imp imp,
+                                     BidRequest bidRequest,
+                                     ExtImpSharethrough extImpSharethrough,
+                                     Price bidFloorPrice) {
+        return bidRequest.toBuilder()
+                .bcat(extImpSharethrough.getBcat())
+                .badv(extImpSharethrough.getBadv())
+                .imp(Collections.singletonList(modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice)))
+                .source(updateSource(bidRequest.getSource()))
                 .build();
     }
 
-    /**
-     * Make Headers for request.
-     */
-    private MultiMap makeHeaders(Device device, String page) {
-        final MultiMap headers = HttpUtil.headers()
-                .add("Origin", requestUtil.getHost(page))
-                .add("Referer", page);
-        final String ip = device.getIp();
-        if (ip != null) {
-            headers.add("X-Forwarded-For", ip);
-        }
-
-        final String ua = device.getUa();
-        if (ua != null) {
-            headers.add("User-Agent", ua);
-        }
-        return headers;
+    private static Imp modifyImp(Imp imp, String pKey, Price bidFloorPrice) {
+        return imp.toBuilder()
+                .tagid(pKey)
+                .bidfloor(bidFloorPrice.getValue())
+                .bidfloorcur(bidFloorPrice.getCurrency())
+                .build();
     }
 
-    /**
-     * Make {@link HttpRequest} from uri and headers.
-     */
-    private HttpRequest<SharethroughRequestBody> makeHttpRequest(
-            MultiMap headers, Date date, StrUriParameters strUriParameter, List<BidderError> errors) {
+    private Source updateSource(Source source) {
+        return source != null
+                ? source.toBuilder().ext(createExtSource()).build()
+                : Source.builder().ext(createExtSource()).build();
+    }
 
-        final String uri;
-        try {
-            uri = SharethroughUriBuilderUtil.buildSharethroughUrl(
-                    endpointUrl, SUPPLY_ID, VERSION, DATE_FORMAT.format(date), strUriParameter);
-        } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return null;
-        }
+    private ExtSource createExtSource() {
+        final ExtSource extSource = ExtSource.of(null);
+        extSource.addProperty("str", TextNode.valueOf(ADAPTER_VERSION));
+        extSource.addProperty("version", TextNode.valueOf(prebidVersionProvider.getNameVersionRecord()));
+        return extSource;
+    }
 
-        final SharethroughRequestBody body = strUriParameter.getBody();
-
-        return HttpRequest.<SharethroughRequestBody>builder()
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
+        return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(uri)
-                .headers(headers)
-                .body(mapper.encodeToBytes(body))
-                .payload(body)
+                .uri(endpointUrl)
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .body(mapper.encodeToBytes(request))
                 .build();
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<SharethroughRequestBody> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final String responseBody = httpCall.getResponse().getBody();
-            final ExtImpSharethroughResponse sharethroughBid = mapper.mapper().readValue(responseBody,
-                    ExtImpSharethroughResponse.class);
-            return Result.withValues(toBidderBid(responseBody, sharethroughBid, httpCall.getRequest()));
-        } catch (IOException | IllegalArgumentException e) {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final Video videoType = bidRequest.getImp().get(0).getVideo();
+            return Result.withValues(extractBids(bidResponse, videoType));
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    /**
-     * Converts {@link ExtImpSharethroughResponse} to {@link List} of {@link BidderBid}.
-     */
-    private List<BidderBid> toBidderBid(String responseBody, ExtImpSharethroughResponse sharethroughBid,
-                                        HttpRequest<SharethroughRequestBody> request) {
-        if (sharethroughBid.getCreatives().isEmpty()) {
-            throw new IllegalArgumentException("No creative provided");
+    private static List<BidderBid> extractBids(BidResponse bidResponse, Video videoType) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
         }
+        return bidsFromResponse(bidResponse, videoType);
+    }
 
-        final StrUriParameters strUriParameters = SharethroughUriBuilderUtil
-                .buildSharethroughUrlParameters(request.getUri());
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, Video videoType) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> BidderBid.of(bid, resolvedBidType(videoType), bidResponse.getCur()))
+                .collect(Collectors.toList());
+    }
 
-        final Date date = BooleanUtils.toBoolean(request.getPayload().getTest()) ? TEST_TIME : new Date();
-        final String adMarkup = SharethroughMarkupUtil.getAdMarkup(responseBody, sharethroughBid, strUriParameters,
-                date);
-
-        final ExtImpSharethroughCreative creative = sharethroughBid.getCreatives().get(0);
-        return Collections.singletonList(
-                BidderBid.of(
-                        Bid.builder()
-                                .adid(sharethroughBid.getAdserverRequestId())
-                                .id(sharethroughBid.getBidId())
-                                .impid(strUriParameters.getBidID())
-                                .price(creative.getCpm())
-                                .cid(creative.getMetadata().getCampaignKey())
-                                .crid(creative.getMetadata().getCreativeKey())
-                                .dealid(creative.getMetadata().getDealId())
-                                .adm(adMarkup)
-                                .h(strUriParameters.getHeight())
-                                .w(strUriParameters.getWidth())
-                                .build(),
-                        DEFAULT_BID_TYPE,
-                        DEFAULT_BID_CURRENCY));
+    private static BidType resolvedBidType(Video videoType) {
+        return videoType != null ? BidType.video : DEFAULT_BID_TYPE;
     }
 }
