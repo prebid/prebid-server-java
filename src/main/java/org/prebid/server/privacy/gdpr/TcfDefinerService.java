@@ -51,8 +51,8 @@ public class TcfDefinerService {
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
-    private static final String GDPR_ZERO = "0";
-    private static final String GDPR_ONE = "1";
+    private static final String GDPR_DISABLED = "0";
+    private static final String GDPR_ENABLED = "1";
 
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
@@ -187,7 +187,7 @@ public class TcfDefinerService {
         if (consentStringMeansInScope && consentIsValid) {
             return Future.succeededFuture(
                     TcfContext.builder()
-                            .gdpr(GDPR_ONE)
+                            .gdpr(GDPR_ENABLED)
                             .consentString(consentString)
                             .consent(consent)
                             .isConsentValid(true)
@@ -205,7 +205,7 @@ public class TcfDefinerService {
                             .consent(consent)
                             .isConsentValid(consentIsValid)
                             .ipAddress(effectiveIpAddress)
-                            .warnings(gdpr.equals(GDPR_ZERO) ? Collections.emptyList() : parsingWarnings)
+                            .warnings(gdpr.equals(GDPR_DISABLED) ? Collections.emptyList() : parsingWarnings)
                             .build());
         }
 
@@ -276,7 +276,7 @@ public class TcfDefinerService {
     private String gdprFromGeo(Boolean inEea) {
         return inEea == null
                 ? gdprDefaultValue
-                : inEea ? GDPR_ONE : GDPR_ZERO;
+                : inEea ? GDPR_ENABLED : GDPR_DISABLED;
     }
 
     private Boolean isCountryInEea(String country) {
@@ -356,7 +356,7 @@ public class TcfDefinerService {
     }
 
     private static boolean inScope(TcfContext tcfContext) {
-        return Objects.equals(tcfContext.getGdpr(), GDPR_ONE);
+        return Objects.equals(tcfContext.getGdpr(), GDPR_ENABLED);
     }
 
     /**
