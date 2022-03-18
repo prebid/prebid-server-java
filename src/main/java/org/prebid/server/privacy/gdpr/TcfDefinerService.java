@@ -51,8 +51,8 @@ public class TcfDefinerService {
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
-    private static final String GDPR_ZERO = "0";
-    private static final String GDPR_ONE = "1";
+    private static final String GDPR_DISABLED = "0";
+    private static final String GDPR_ENABLED = "1";
 
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
@@ -179,6 +179,7 @@ public class TcfDefinerService {
         final String consentString = privacy.getConsentString();
         final TCStringParsingResult consentStringParsingResult = parseConsentString(consentString, requestLogInfo);
         final TCString consent = consentStringParsingResult.getResult();
+        final List<String> parsingWarnings = consentStringParsingResult.getWarnings();
 
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
         final boolean consentIsValid = isConsentValid(consent);
@@ -186,7 +187,7 @@ public class TcfDefinerService {
         if (consentStringMeansInScope && consentIsValid) {
             return Future.succeededFuture(
                     TcfContext.builder()
-                            .gdpr(GDPR_ONE)
+                            .gdpr(GDPR_ENABLED)
                             .consentString(consentString)
                             .consent(consent)
                             .isConsentValid(true)
@@ -197,10 +198,6 @@ public class TcfDefinerService {
 
         final String gdpr = privacy.getGdpr();
         if (StringUtils.isNotEmpty(gdpr)) {
-            final List<String> warnings = gdpr.equals("0")
-                    ? Collections.emptyList()
-                    : consentStringParsingResult.getWarnings();
-
             return Future.succeededFuture(
                     TcfContext.builder()
                             .gdpr(gdpr)
@@ -208,7 +205,7 @@ public class TcfDefinerService {
                             .consent(consent)
                             .isConsentValid(consentIsValid)
                             .ipAddress(effectiveIpAddress)
-                            .warnings(warnings)
+                            .warnings(gdpr.equals(GDPR_DISABLED) ? Collections.emptyList() : parsingWarnings)
                             .build());
         }
 
@@ -237,7 +234,7 @@ public class TcfDefinerService {
         }
 
         // use default
-        return Future.succeededFuture(defaultTcfContext(consentString, consent, effectiveIpAddress));
+        return Future.succeededFuture(defaultTcfContext(consentString, consent, effectiveIpAddress, parsingWarnings));
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
@@ -279,7 +276,7 @@ public class TcfDefinerService {
     private String gdprFromGeo(Boolean inEea) {
         return inEea == null
                 ? gdprDefaultValue
-                : inEea ? GDPR_ONE : GDPR_ZERO;
+                : inEea ? GDPR_ENABLED : GDPR_DISABLED;
     }
 
     private Boolean isCountryInEea(String country) {
@@ -299,13 +296,21 @@ public class TcfDefinerService {
     }
 
     private TcfContext defaultTcfContext(String consentString, TCString consent, String ipAddress) {
+        return defaultTcfContext(consentString, consent, ipAddress, Collections.emptyList());
+    }
+
+    private TcfContext defaultTcfContext(String consentString,
+                                         TCString consent,
+                                         String ipAddress,
+                                         List<String> warnings) {
+
         return TcfContext.builder()
                 .gdpr(gdprDefaultValue)
                 .consentString(consentString)
                 .consent(consent)
                 .isConsentValid(isConsentValid(consent))
                 .ipAddress(ipAddress)
-                .warnings(Collections.emptyList())
+                .warnings(warnings)
                 .build();
     }
 
@@ -351,7 +356,7 @@ public class TcfDefinerService {
     }
 
     private static boolean inScope(TcfContext tcfContext) {
-        return Objects.equals(tcfContext.getGdpr(), GDPR_ONE);
+        return Objects.equals(tcfContext.getGdpr(), GDPR_ENABLED);
     }
 
     /**
