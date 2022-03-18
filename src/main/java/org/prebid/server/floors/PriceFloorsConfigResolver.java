@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.EnrichingApplicationSettings;
 import org.prebid.server.settings.model.Account;
@@ -66,6 +67,10 @@ public class PriceFloorsConfigResolver {
         } catch (PreBidException e) {
             final String message =
                     String.format("Account with id '%s' has invalid config: %s", account.getId(), e.getMessage());
+            final String accountId = ObjectUtil.getIfNotNull(account, Account::getId);
+            if (StringUtils.isNotBlank(accountId)) {
+                metrics.updateAlertsConfigFailed(account.getId(), MetricName.price_floors);
+            }
             conditionalLogger.error(message, 0.01d);
         }
 
