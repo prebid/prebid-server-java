@@ -13,8 +13,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -191,15 +189,15 @@ public class AmpRequestFactory {
         final ConsentType specifiedConsentType = ConsentType.from(httpRequest.getQueryParams().get(CONSENT_TYPE_PARAM));
         final CaseInsensitiveMultiMap queryParams = httpRequest.getQueryParams();
 
-        final String consentStringFromConsentParam = queryParams.get(CONSENT_PARAM);
-        final String consentStringFromGdprConsentParam = queryParams.get(GDPR_CONSENT_PARAM);
+        final String consentParam = queryParams.get(CONSENT_PARAM);
+        final String gdprConsentParam = queryParams.get(GDPR_CONSENT_PARAM);
 
-        return StringUtils.isNotBlank(consentStringFromConsentParam)
-                ? makeConsentParam(consentStringFromConsentParam, CONSENT_PARAM, specifiedConsentType)
-                : makeConsentParam(consentStringFromGdprConsentParam, GDPR_CONSENT_PARAM, specifiedConsentType);
+        return StringUtils.isNotBlank(consentParam)
+                ? toConsentParam(consentParam, CONSENT_PARAM, specifiedConsentType)
+                : toConsentParam(gdprConsentParam, GDPR_CONSENT_PARAM, specifiedConsentType);
     }
 
-    private static ConsentParam makeConsentParam(String consent, String fromParam, ConsentType specifiedConsentType) {
+    private static ConsentParam toConsentParam(String consent, String fromParam, ConsentType specifiedConsentType) {
         return ConsentParam.of(
                 consent,
                 fromParam,
@@ -214,7 +212,7 @@ public class AmpRequestFactory {
         if (consentParam.getSpecifiedType() == ConsentType.UNKNOWN) {
             errors.add("Invalid consent_type param passed");
         }
-        if (!consentParam.isSupported() && consentParam.isConsentStringPresent()) {
+        if (!consentParam.isValid() && consentParam.isConsentStringPresent()) {
             errors.add("Amp request parameter " + consentParam.getSourceParam()
                     + " has invalid format: " + consentParam.getConsentString());
         }
@@ -237,7 +235,7 @@ public class AmpRequestFactory {
     }
 
     private static User createUser(ConsentParam consentParam, String addtlConsent) {
-        final String consent = consentParam.canBeTreatedAsTcf() ? consentParam.getConsentString() : null;
+        final String consent = consentParam.isTcfCompatible() ? consentParam.getConsentString() : null;
         if (StringUtils.isAllBlank(addtlConsent, consent)) {
             return null;
         }
@@ -255,7 +253,7 @@ public class AmpRequestFactory {
     }
 
     private static Regs createRegs(ConsentParam consentParam, Integer gdpr) {
-        final String usPrivacy = consentParam.canBeTreatedAsCcpa() ? consentParam.getConsentString() : null;
+        final String usPrivacy = consentParam.isCcpaCompatible() ? consentParam.getConsentString() : null;
 
         return gdpr != null || usPrivacy != null
                 ? Regs.of(null, ExtRegs.of(gdpr, usPrivacy))
@@ -717,25 +715,23 @@ public class AmpRequestFactory {
 
         ConsentType specifiedType;
 
-        @Getter(AccessLevel.NONE)
         boolean isTcf;
 
-        @Getter(AccessLevel.NONE)
         boolean isCcpa;
 
-        public boolean canBeTreatedAsTcf() {
+        public boolean isTcfCompatible() {
             final boolean typeSpecifiedAsTcf =
                     specifiedType == ConsentType.TCF_V1 || specifiedType == ConsentType.TCF_V2;
 
             return (isConsentStringPresent() && typeSpecifiedAsTcf) || isTcf;
         }
 
-        public boolean canBeTreatedAsCcpa() {
+        public boolean isCcpaCompatible() {
             return (isConsentStringPresent() && specifiedType == ConsentType.CCPA) || isCcpa;
         }
 
-        public boolean isSupported() {
-            return canBeTreatedAsTcf() || canBeTreatedAsCcpa();
+        public boolean isValid() {
+            return isTcfCompatible() || isCcpaCompatible();
         }
 
         public boolean isConsentStringPresent() {

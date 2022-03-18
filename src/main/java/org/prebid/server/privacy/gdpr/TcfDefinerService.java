@@ -205,7 +205,7 @@ public class TcfDefinerService {
                             .consent(consent)
                             .isConsentValid(consentIsValid)
                             .ipAddress(effectiveIpAddress)
-                            .warnings(gdpr.equals("0") ? Collections.emptyList() : parsingWarnings)
+                            .warnings(gdpr.equals(GDPR_ZERO) ? Collections.emptyList() : parsingWarnings)
                             .build());
         }
 
