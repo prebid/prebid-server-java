@@ -31,7 +31,6 @@ import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +53,6 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<Imp> validImps = new ArrayList<>();
         try {
             validateImp(bidRequest.getImp());
         } catch (PreBidException e) {
@@ -64,37 +62,36 @@ public class TelariaBidder implements Bidder<BidRequest> {
         final String publisherId = getPublisherId(bidRequest);
         String seatCode = null;
         ExtImpTelaria extImp = null;
-        final Imp imp = bidRequest.getImp().get(0);
+        Imp modifyImp = bidRequest.getImp().get(0);
 
         try {
-            extImp = parseImpExt(imp);
+            extImp = parseImpExt(modifyImp);
             seatCode = extImp.getSeatCode();
-            validImps.add(updateImp(imp, extImp, publisherId));
+            modifyImp = updateImp(modifyImp, extImp, publisherId);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
+        final BidRequest outgoingRequest = updateBidRequest(bidRequest, extImp, seatCode, modifyImp);
+        return Result.withValue(makeHttpRequest(outgoingRequest));
+    }
 
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
-
-        if (extImp != null && extImp.getExtra() != null) {
-            requestBuilder.ext(mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra())));
-        }
-
-        if (bidRequest.getSite() != null) {
-            requestBuilder.site(modifySite(bidRequest.getSite(), seatCode));
-        } else if (bidRequest.getApp() != null) {
-            requestBuilder.app(modifyApp(bidRequest.getApp(), seatCode));
-        }
-
-        final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(headers(bidRequest))
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build());
+                .payload(bidRequest)
+                .body(mapper.encodeToBytes(bidRequest))
+                .build();
+    }
+
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpTelaria extImp, String seatCode, Imp modifyImp) {
+        return bidRequest.toBuilder()
+                .ext(modifyExt(extImp))
+                .site(modifySite(bidRequest.getSite(), seatCode))
+                .app(modifyApp(bidRequest.getApp(), seatCode))
+                .imp(Collections.singletonList(modifyImp))
+                .build();
     }
 
     private static void validateImp(List<Imp> imps) {
@@ -138,12 +135,22 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private ExtRequest modifyExt(ExtImpTelaria extImp) {
+        return extImp != null
+                ? mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra()))
+                : null;
+    }
+
     private static Site modifySite(Site site, String seatCode) {
-        return site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build();
+        return site != null
+                ? site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build()
+                : null;
     }
 
     private static App modifyApp(App app, String seatCode) {
-        return app.toBuilder().publisher(createPublisher(app.getPublisher(), seatCode)).build();
+        return app != null
+                ? app.toBuilder().publisher(createPublisher(app.getPublisher(), seatCode)).build()
+                : null;
     }
 
     private static Publisher createPublisher(Publisher publisher, String seatCode) {
