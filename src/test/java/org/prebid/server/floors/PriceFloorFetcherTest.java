@@ -191,7 +191,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(1L), any());
+        verify(vertx).setTimer(eq(1000L), any());
         verify(vertx).setTimer(eq(1700000L), any());
     }
 
@@ -208,7 +208,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(1L), any());
+        verify(vertx).setTimer(eq(1000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
     }
 

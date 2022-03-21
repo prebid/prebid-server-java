@@ -281,9 +281,9 @@ public class PriceFloorFetcher {
         final Long effectiveCacheTtl =
                 ObjectUtils.defaultIfNull(
                         ObjectUtil.getIfNotNull(testingProperties, PriceFloorTestingProperties::getMinMaxAgeSec),
-                        TimeUnit.SECONDS.toMillis(cacheTtl));
+                        cacheTtl);
 
-        return vertx.setTimer(effectiveCacheTtl, id -> fetchedData.remove(accountId));
+        return vertx.setTimer(TimeUnit.SECONDS.toMillis(effectiveCacheTtl), id -> fetchedData.remove(accountId));
     }
 
     private Future<ResponseCacheInfo> recoverFromFailedFetching(Throwable throwable,
@@ -320,8 +320,8 @@ public class PriceFloorFetcher {
         final long periodicTime =
                 ObjectUtils.defaultIfNull(
                         ObjectUtil.getIfNotNull(testingProperties, PriceFloorTestingProperties::getMinPeriodSec),
-                        TimeUnit.SECONDS.toMillis(accountPeriodicTimeSec));
-        vertx.setTimer(periodicTime, ignored -> periodicFetch(accountId));
+                        accountPeriodicTimeSec);
+        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), ignored -> periodicFetch(accountId));
 
         return priceFloorRules;
     }
