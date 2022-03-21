@@ -11,6 +11,7 @@ import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
@@ -70,7 +71,7 @@ public class FpdResolver {
                 .keywords(getFirstNotNull(getString(fpdUser, "keywords"), resultUser.getKeywords()))
                 .gender(getFirstNotNull(getString(fpdUser, "gender"), resultUser.getGender()))
                 .yob(getFirstNotNull(getInteger(fpdUser, "yob"), resultUser.getYob()))
-                .data(resolveUserData(fpdUser, resultUser))
+                .data(getFirstNotNull(getFpdUserData(fpdUser), resultUser.getData()))
                 .ext(resolvedExtUser)
                 .build();
     }
@@ -91,11 +92,11 @@ public class FpdResolver {
                 : resultData.isEmpty() ? null : ExtUser.builder().data(resultData).build();
     }
 
-    private List<Data> resolveUserData(ObjectNode fpdUser, User originUser) {
+    private List<Data> getFpdUserData(ObjectNode fpdUser) {
         final ArrayNode fpdUserDataNode = getValueFromJsonNode(
                 fpdUser, DATA, node -> (ArrayNode) node, JsonNode::isArray);
 
-        return getFirstNotNull(toList(fpdUserDataNode, USER_DATA_TYPE_REFERENCE), originUser.getData());
+        return toList(fpdUserDataNode, USER_DATA_TYPE_REFERENCE);
     }
 
     public App resolveApp(App originApp, ObjectNode fpdApp) {
