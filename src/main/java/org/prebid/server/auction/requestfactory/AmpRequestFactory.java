@@ -82,7 +82,7 @@ public class AmpRequestFactory {
 
     private static final int NO_LIMIT_SPLIT_MODE = -1;
     private static final String AMP_CHANNEL = "amp";
-    private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
+    private static final String ENDPOINT = Endpoint.OPENRTB2_AMP.value();
 
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
@@ -125,7 +125,7 @@ public class AmpRequestFactory {
         final String body = routingContext.getBodyAsString();
 
         final AuctionContext initialAuctionContext = ortb2RequestFactory.createAuctionContext(
-                Endpoint.openrtb2_amp, MetricName.amp);
+                Endpoint.OPENRTB2_AMP, MetricName.AMP);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(initialAuctionContext, httpRequest)

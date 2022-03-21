@@ -135,7 +135,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
+        given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.AMP))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -1489,7 +1489,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.openrtb2_amp), eq(MetricName.amp));
+        verify(ortb2RequestFactory).createAuctionContext(eq(Endpoint.OPENRTB2_AMP), eq(MetricName.AMP));
     }
 
     @Test

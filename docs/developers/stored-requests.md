@@ -138,7 +138,7 @@ For example, assume the following `stored-requests/{id}.json`:
     "ext": {
       "prebid": {
         "targeting": {
-          "pricegranularity": "low"
+          "pricegranularity": "LOW"
         }
       }
     }
@@ -175,7 +175,7 @@ will produce the same auction as if the HTTP request had been:
   "ext": {
     "prebid": {
       "targeting": {
-        "pricegranularity": "low"
+        "pricegranularity": "LOW"
       }
     }
   }

@@ -189,7 +189,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final String accountId = "account";
-        final MetricName requestType = MetricName.openrtb2web;
+        final MetricName requestType = MetricName.OPENRTB2_WEB;
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
@@ -245,7 +245,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .build();
@@ -258,7 +258,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext, "ip-masked"));
 
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull());
+                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.OPENRTB2_WEB), any(), isNull());
     }
 
     @Test
@@ -322,7 +322,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
         given(implicitParametersExtractor
                 .ipFrom(any(CaseInsensitiveMultiMap.class), any())).willReturn(singletonList("ip"));
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.V4));
 
         final TcfContext tcfContext = TcfContext.builder()
                 .gdpr("1")
@@ -342,9 +342,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.setuid, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.SETUID, null, accountId);
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), eq("ip"), isNull(), eq(MetricName.setuid), eq(expectedRequestLogInfo), isNull());
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.SETUID), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -356,7 +356,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.V4));
 
         final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
                 .gdpr(1)
@@ -382,9 +382,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.cookiesync, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.COOKIESYNC, null, accountId);
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), eq("ip"), isNull(), eq(MetricName.cookiesync), eq(expectedRequestLogInfo), isNull());
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.COOKIESYNC), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -491,7 +491,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                         .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
                                         .build()))
                         .build())
-                .requestTypeMetric(MetricName.openrtb2app)
+                .requestTypeMetric(MetricName.OPENRTB2_APP)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)
@@ -539,7 +539,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.builder()
                         .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(true).build()))
                         .build())
-                .requestTypeMetric(MetricName.openrtb2app)
+                .requestTypeMetric(MetricName.OPENRTB2_APP)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)
@@ -1618,13 +1618,13 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // then
         verify(metrics).updatePrivacyCcpaMetrics(eq(false), eq(false));
         verify(metrics).updateAuctionTcfMetrics(
-                eq(BIDDER_NAME), eq(MetricName.openrtb2web), eq(true), eq(true), eq(false), eq(false));
+                eq(BIDDER_NAME), eq(MetricName.OPENRTB2_WEB), eq(true), eq(true), eq(false), eq(false));
     }
 
     private AuctionContext auctionContext(BidRequest bidRequest, PrivacyContext privacyContext) {
         return AuctionContext.builder()
                 .account(Account.builder().build())
-                .requestTypeMetric(MetricName.openrtb2web)
+                .requestTypeMetric(MetricName.OPENRTB2_WEB)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)

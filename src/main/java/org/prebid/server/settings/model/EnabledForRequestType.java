@@ -29,13 +29,13 @@ public class EnabledForRequestType {
             return null;
         }
         switch (requestType) {
-            case openrtb2web:
+            case OPENRTB2_WEB:
                 return pbjs;
-            case openrtb2app:
+            case OPENRTB2_APP:
                 return app;
-            case amp:
+            case AMP:
                 return amp;
-            case video:
+            case VIDEO:
                 return video;
             default:
                 return null;
