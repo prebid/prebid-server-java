@@ -19,7 +19,7 @@ public class AccountAnalyticsConfig {
     }
 
     @JsonProperty("auction-events")
-    Map<String, Boolean> auctionEvents;
+    AccountAuctionEventConfig auctionEvents;
 
     Map<String, ObjectNode> modules;
 

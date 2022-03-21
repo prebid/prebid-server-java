@@ -92,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.vast.VastModifier;
@@ -2082,12 +2083,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsIfEventsAreEnabledAndAccountSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2308,12 +2311,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsIfAccountDoesNotSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
