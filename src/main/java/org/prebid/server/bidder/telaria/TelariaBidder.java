@@ -86,10 +86,16 @@ public class TelariaBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpTelaria extImp, String seatCode, Imp modifyImp) {
-        return bidRequest.toBuilder()
+        final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
+
+        if (bidRequest.getSite() != null) {
+            bidRequestBuilder.site(modifySite(bidRequest.getSite(), seatCode));
+        } else if (bidRequest.getApp() != null) {
+            bidRequestBuilder.app(modifyApp(bidRequest.getApp(), seatCode));
+        }
+
+        return bidRequestBuilder
                 .ext(modifyExt(extImp))
-                .site(modifySite(bidRequest.getSite(), seatCode))
-                .app(modifyApp(bidRequest.getApp(), seatCode))
                 .imp(Collections.singletonList(modifyImp))
                 .build();
     }
@@ -142,15 +148,11 @@ public class TelariaBidder implements Bidder<BidRequest> {
     }
 
     private static Site modifySite(Site site, String seatCode) {
-        return site != null
-                ? site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build()
-                : null;
+        return site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build();
     }
 
     private static App modifyApp(App app, String seatCode) {
-        return app != null
-                ? app.toBuilder().publisher(createPublisher(app.getPublisher(), seatCode)).build()
-                : null;
+        return app.toBuilder().publisher(createPublisher(app.getPublisher(), seatCode)).build();
     }
 
     private static Publisher createPublisher(Publisher publisher, String seatCode) {
