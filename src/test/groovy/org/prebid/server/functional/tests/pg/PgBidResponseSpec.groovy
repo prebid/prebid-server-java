@@ -62,7 +62,7 @@ class PgBidResponseSpec extends BasePgSpec {
 
         then: "Bidder response is invalid"
         def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
-        def bidId = bidResponse.firstBid.id
+        def bidId = bidResponse.seatbid[0].bid[0].id
 
         assert bidderErrors?.size() == 1
         assert bidderErrors[0].message ==~
@@ -91,7 +91,7 @@ class PgBidResponseSpec extends BasePgSpec {
 
         then: "Bidder response is invalid"
         def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
-        def bidId = bidResponse.firstBid.id
+        def bidId = bidResponse.seatbid[0].bid[0].id
 
         assert bidderErrors?.size() == 1
         assert bidderErrors[0].message ==~ /BidId `$bidId` validation messages:.* Warning: / +

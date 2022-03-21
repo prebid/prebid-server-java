@@ -114,7 +114,7 @@ class PgDealsOnlySpec extends BasePgSpec {
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)
-        def bidId = bidResponse.firstBid.id
+        def bidId = bidResponse.seatbid[0].bid[0].id
 
         assert bidErrors?.size() == 1
         assert bidErrors[0].code == 5
@@ -150,7 +150,7 @@ class PgDealsOnlySpec extends BasePgSpec {
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)
-        def bidId = bidResponse.firstBid.id
+        def bidId = bidResponse.seatbid[0].bid[0].id
 
         assert bidErrors?.size() == 1
         assert bidErrors[0].code == 5
