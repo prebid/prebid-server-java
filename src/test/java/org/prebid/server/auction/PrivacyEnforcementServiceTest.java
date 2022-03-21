@@ -145,14 +145,16 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .gdpr("1")
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -181,18 +183,20 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .gdpr("1")
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final String accountId = "account";
-        final MetricName requestType = MetricName.OPENRTB2_WEB;
+        final MetricName requestType = MetricName.openrtb2web;
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty(accountId))
                 .requestTypeMetric(requestType)
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -205,7 +209,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(requestType, referer, accountId);
         verify(tcfDefinerService).resolveTcfContext(
                 eq(privacy), isNull(), isNull(), isNull(), same(requestType),
-                eq(expectedRequestLogInfo), isNull(), any());
+                eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -233,15 +237,17 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .ipAddress("ip-masked")
                 .inEea(false)
                 .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
-                .requestTypeMetric(MetricName.OPENRTB2_WEB)
+                .requestTypeMetric(MetricName.openrtb2web)
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -252,8 +258,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext, "ip-masked"));
 
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.OPENRTB2_WEB),
-                any(), isNull(), any());
+                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull());
     }
 
     @Test
@@ -266,7 +271,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .build())
                 .build();
         given(ipAddressHelper.anonymizeIpv6(any())).willReturn("ip-masked");
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().build()));
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
@@ -278,7 +283,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any(), any());
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any());
     }
 
     @Test
@@ -289,7 +294,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .ipv6("ipv6")
                         .build())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().build()));
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
@@ -301,7 +306,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any(), any());
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any());
     }
 
     @Test
@@ -317,7 +322,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
         given(implicitParametersExtractor
                 .ipFrom(any(CaseInsensitiveMultiMap.class), any())).willReturn(singletonList("ip"));
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.V4));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()
                 .gdpr("1")
@@ -337,9 +342,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.EMPTY, 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.SETUID, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.setuid, null, accountId);
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), eq("ip"), isNull(), eq(MetricName.SETUID), eq(expectedRequestLogInfo), isNull());
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.setuid), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -351,7 +356,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
         given(implicitParametersExtractor.ipFrom(eq(headers), eq("host"))).willReturn(singletonList("ip"));
-        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.V4));
+        given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final CookieSyncRequest cookieSyncRequest = CookieSyncRequest.builder()
                 .gdpr(1)
@@ -377,9 +382,9 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent", Ccpa.of("1YYY"), 0);
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext));
 
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.COOKIESYNC, null, accountId);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.cookiesync, null, accountId);
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), eq("ip"), isNull(), eq(MetricName.COOKIESYNC), eq(expectedRequestLogInfo), isNull());
+                eq(privacy), eq("ip"), isNull(), eq(MetricName.cookiesync), eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -486,7 +491,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                         .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
                                         .build()))
                         .build())
-                .requestTypeMetric(MetricName.OPENRTB2_APP)
+                .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)
@@ -534,7 +539,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.builder()
                         .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(true).build()))
                         .build())
-                .requestTypeMetric(MetricName.OPENRTB2_APP)
+                .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)
@@ -1613,13 +1618,13 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         // then
         verify(metrics).updatePrivacyCcpaMetrics(eq(false), eq(false));
         verify(metrics).updateAuctionTcfMetrics(
-                eq(BIDDER_NAME), eq(MetricName.OPENRTB2_WEB), eq(true), eq(true), eq(false), eq(false));
+                eq(BIDDER_NAME), eq(MetricName.openrtb2web), eq(true), eq(true), eq(false), eq(false));
     }
 
     private AuctionContext auctionContext(BidRequest bidRequest, PrivacyContext privacyContext) {
         return AuctionContext.builder()
                 .account(Account.builder().build())
-                .requestTypeMetric(MetricName.OPENRTB2_WEB)
+                .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(bidRequest)
                 .timeout(timeout)
                 .privacyContext(privacyContext)

@@ -5,6 +5,9 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.geolocation.model.GeoInfo;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Internal class for holding TCF information.
  */
@@ -26,7 +29,9 @@ public class TcfContext {
 
     String ipAddress;
 
+    List<String> warnings;
+
     public static TcfContext empty() {
-        return builder().build();
+        return builder().warnings(Collections.emptyList()).build();
     }
 }

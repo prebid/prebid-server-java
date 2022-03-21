@@ -102,7 +102,6 @@ public class PrivacyEnforcementService {
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
-        final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 
@@ -115,15 +114,21 @@ public class PrivacyEnforcementService {
         final RequestLogInfo requestLogInfo = requestLogInfo(requestType, bidRequest, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                        privacy,
-                        alpha2CountryCode,
-                        effectiveIpAddress,
-                        accountGdpr,
-                        requestType,
-                        requestLogInfo,
-                        timeout,
-                        debugWarnings)
+                privacy,
+                alpha2CountryCode,
+                effectiveIpAddress,
+                accountGdpr,
+                requestType,
+                requestLogInfo,
+                timeout)
+                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
+    }
+
+    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
+        debugWarnings.addAll(tcfContext.getWarnings());
+
+        return tcfContext;
     }
 
     private String resolveAlpha2CountryCode(Device device) {
@@ -157,10 +162,10 @@ public class PrivacyEnforcementService {
         final String ipAddress = resolveIpFromRequest(httpRequest);
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
         final String accountId = account.getId();
-        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.SETUID, null, accountId);
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.setuid, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                        privacy, ipAddress, accountGdpr, MetricName.SETUID, requestLogInfo, timeout)
+                privacy, ipAddress, accountGdpr, MetricName.setuid, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -173,10 +178,10 @@ public class PrivacyEnforcementService {
         final String ipAddress = resolveIpFromRequest(httpRequest);
         final AccountGdprConfig accountGdpr = accountGdprConfig(account);
         final String accountId = account.getId();
-        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.COOKIESYNC, null, accountId);
+        final RequestLogInfo requestLogInfo = requestLogInfo(MetricName.cookiesync, null, accountId);
 
         return tcfDefinerService.resolveTcfContext(
-                        privacy, ipAddress, accountGdpr, MetricName.COOKIESYNC, requestLogInfo, timeout)
+                privacy, ipAddress, accountGdpr, MetricName.cookiesync, requestLogInfo, timeout)
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext));
     }
 
@@ -193,7 +198,7 @@ public class PrivacyEnforcementService {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        if (Objects.equals(requestType, MetricName.OPENRTB2_WEB)) {
+        if (Objects.equals(requestType, MetricName.openrtb2web)) {
             final Site site = bidRequest != null ? bidRequest.getSite() : null;
             final String refUrl = site != null ? site.getRef() : null;
             return RequestLogInfo.of(requestType, refUrl, accountId);
@@ -400,10 +405,10 @@ public class PrivacyEnforcementService {
                                                                                        Account account) {
 
         return tcfDefinerService.resultForBidderNames(
-                        Collections.unmodifiableSet(bidders),
-                        VendorIdResolver.of(aliases, bidderCatalog),
-                        tcfContext,
-                        accountGdprConfig(account))
+                Collections.unmodifiableSet(bidders),
+                VendorIdResolver.of(aliases, bidderCatalog),
+                tcfContext,
+                accountGdprConfig(account))
                 .map(tcfResponse -> mapTcfResponseToEachBidder(tcfResponse, bidders));
     }
 

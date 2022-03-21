@@ -81,9 +81,10 @@ public class AmxBidder implements Bidder<BidRequest> {
                 }
 
                 final String adUnitId = extImpAmx.getAdUnitId();
-                if (StringUtils.isNotBlank(adUnitId)) {
-                    modifiedImps.add(imp.toBuilder().tagid(adUnitId).build());
-                }
+                final Imp modifiedImp = StringUtils.isNotBlank(adUnitId)
+                        ? imp.toBuilder().tagid(adUnitId).build()
+                        : imp;
+                modifiedImps.add(modifiedImp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }

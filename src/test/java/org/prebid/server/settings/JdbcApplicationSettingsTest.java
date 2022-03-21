@@ -26,6 +26,7 @@ import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -223,6 +224,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
 
         // then
         final Async async = context.async();
+        final AccountAuctionEventConfig expectedEventsConfig = AccountAuctionEventConfig.builder().build();
+        expectedEventsConfig.addEvent("amp", true);
         future.onComplete(context.asyncAssertSuccess(account -> {
             assertThat(account).isEqualTo(Account.builder()
                     .id("1001")
@@ -245,7 +248,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .build(),
                             null))
                     .analytics(AccountAnalyticsConfig.of(
-                            singletonMap("amp", true),
+                            expectedEventsConfig,
                             singletonMap(
                                     "some-analytics",
                                     mapper.createObjectNode()
