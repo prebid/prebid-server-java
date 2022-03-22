@@ -11,7 +11,6 @@ import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
