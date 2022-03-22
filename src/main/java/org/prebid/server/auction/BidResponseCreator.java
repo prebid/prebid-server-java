@@ -1332,8 +1332,9 @@ public class BidResponseCreator {
             if (type != null) {
                 responseAsset.getImg().setType(type);
             } else {
-                throw new PreBidException(String.format("Response has an Image asset with ID:%s present that doesn't "
-                        + "exist in the request", responseAsset.getId()));
+                final Integer assetId = responseAsset.getId();
+                throw new PreBidException(String.format("Response has an Image asset with ID:'%s' present that doesn't "
+                        + "exist in the request", assetId != null ? assetId : StringUtils.EMPTY));
             }
         }
         if (responseAsset.getData() != null) {
@@ -1348,11 +1349,11 @@ public class BidResponseCreator {
         }
     }
 
-    private static com.iab.openrtb.request.Asset getAssetById(int assetId,
+    private static com.iab.openrtb.request.Asset getAssetById(Integer assetId,
                                                               List<com.iab.openrtb.request.Asset> requestAssets) {
 
         return requestAssets.stream()
-                .filter(asset -> asset.getId() == assetId)
+                .filter(asset -> Objects.equals(assetId, asset.getId()))
                 .findFirst()
                 .orElse(com.iab.openrtb.request.Asset.EMPTY);
     }
