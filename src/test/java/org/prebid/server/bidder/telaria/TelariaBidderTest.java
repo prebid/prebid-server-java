@@ -366,8 +366,7 @@ public class TelariaBidderTest extends VertxTest {
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("312"))));
+                mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
         final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
