@@ -834,6 +834,65 @@ public class StoredRequestProcessorTest extends VertxTest {
     }
 
     @Test
+    public void processStoredRequestsShouldUpdateAccountRequestRejectedByInvalidStoredRequestMetrics() {
+        // when
+        storedRequestProcessor.processStoredRequests("accountId", givenBidRequest(request -> request.ext(
+                ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredRequestMetrics("accountId");
+    }
+
+    @Test
+    public void processStoredRequestsShouldUpdateAccountRequestRejectedByInvalidStoredImpMetrics() {
+        // when
+        storedRequestProcessor.processStoredRequests("accountId", givenBidRequest(request -> request.imp(
+                singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtImp.of(
+                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build(),
+                                        null)))
+                                .build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredImpMetrics("accountId");
+    }
+
+    @Test
+    public void processAmpRequestsShouldUpdateAccountRequestRejectedByInvalidStoredRequestMetrics() {
+        // given
+        given(applicationSettings.getAmpStoredData(any(), anySet(), anySet(), any()))
+                .willReturn(Future.succeededFuture(
+                        StoredDataResult.of(emptyMap(), emptyMap(), singletonList("Error."))));
+
+        // when
+        storedRequestProcessor.processAmpRequest("accountId", "123", givenBidRequest(request -> request.ext(
+                ExtRequest.of(ExtRequestPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build()))));
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredRequestMetrics("accountId");
+    }
+
+    @Test
+    public void videoStoredDataResultShouldUpdateAccountRequestRejectedByInvalidStoredImpMetrics() {
+        // when
+        storedRequestProcessor.videoStoredDataResult(
+                "accountId",
+                singletonList(
+                        Imp.builder()
+                                .ext(mapper.valueToTree(ExtImp.of(
+                                        ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of(null)).build(),
+                                        null)))
+                                .build()),
+                emptyList(),
+                null);
+
+        // then
+        verify(metrics).updateAccountRequestRejectedByInvalidStoredImpMetrics("accountId");
+    }
+
+
+    @Test
     public void impToStoredVideoJsonShouldReturnExpectedVideoStoredDataResult() throws JsonProcessingException {
         // given
         final Imp imp1 = givenImp(impBuilder -> impBuilder.id("id1").ext(
