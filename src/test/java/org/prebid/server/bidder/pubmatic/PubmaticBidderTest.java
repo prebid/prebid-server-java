@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -85,6 +86,44 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetBidfloorIfImpExtKadfloorIsInvalid() {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpPubmatic.builder().kadfloor(null).build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsNull();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBidfloorIfImpExtKadfloorIsValid() {
+        // given
+        final ObjectNode extImp = mapper.valueToTree(ExtPrebid.of(null,
+                ExtImpPubmatic.builder().kadfloor("12.5").build()));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(extImp));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(12.5));
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
