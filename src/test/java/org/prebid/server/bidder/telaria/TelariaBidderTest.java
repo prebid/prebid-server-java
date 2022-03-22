@@ -357,6 +357,29 @@ public class TelariaBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnProperImpidFromBidRequestImpId() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("312").video(Video.builder().build()).build()))
+                .build();
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("312"))));
+
+        // when
+        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getImpid)
+                .containsExactly("312");
+    }
+
     private static BidRequest givenBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             UnaryOperator<Imp.ImpBuilder> impCustomizer) {
