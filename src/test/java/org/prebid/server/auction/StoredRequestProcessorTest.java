@@ -444,8 +444,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Stored request processing failed: " +
-                        "Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -627,8 +627,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Stored request processing failed: " +
-                        "Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
     }
 
     @Test
@@ -697,8 +697,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Stored request processing failed: " +
-                        "Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: "
+                        + "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -890,7 +890,6 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         verify(metrics).updateAccountRequestRejectedByInvalidStoredImpMetrics("accountId");
     }
-
 
     @Test
     public void impToStoredVideoJsonShouldReturnExpectedVideoStoredDataResult() throws JsonProcessingException {
