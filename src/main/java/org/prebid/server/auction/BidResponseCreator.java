@@ -34,6 +34,7 @@ import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.DebugContext;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -85,9 +86,11 @@ import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.LineItemUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.vast.VastModifier;
 
@@ -1383,9 +1386,12 @@ public class BidResponseCreator {
 
     private static boolean eventsEnabledForChannel(AuctionContext auctionContext) {
         final AccountAnalyticsConfig analyticsConfig = auctionContext.getAccount().getAnalytics();
-        final Map<String, Boolean> channelConfig = ObjectUtils.defaultIfNull(
-                analyticsConfig != null ? analyticsConfig.getAuctionEvents() : null,
-                AccountAnalyticsConfig.fallbackAuctionEvents());
+        final AccountAuctionEventConfig accountAuctionEventConfig =
+                ObjectUtil.getIfNotNull(analyticsConfig, AccountAnalyticsConfig::getAuctionEvents);
+        final Map<String, Boolean> accountAuctionEvents =
+                ObjectUtil.getIfNotNull(accountAuctionEventConfig, AccountAuctionEventConfig::getEvents);
+        final Map<String, Boolean> channelConfig =
+                ObjectUtils.defaultIfNull(accountAuctionEvents, AccountAnalyticsConfig.fallbackAuctionEvents());
 
         final String channelFromRequest = channelFromRequest(auctionContext.getBidRequest());
 
@@ -1401,7 +1407,16 @@ public class BidResponseCreator {
         final ExtRequestPrebid prebid = ext != null ? ext.getPrebid() : null;
         final ExtRequestPrebidChannel channel = prebid != null ? prebid.getChannel() : null;
 
-        return channel != null ? channel.getName() : null;
+        return channel != null ? recogniseChannelName(channel.getName()) : null;
+    }
+
+    // TODO: remove alias resolving after transition period
+    private static String recogniseChannelName(String channelName) {
+        if (StringUtils.equalsIgnoreCase("pbjs", channelName)) {
+            return Ortb2ImplicitParametersResolver.WEB_CHANNEL;
+        }
+
+        return channelName;
     }
 
     private static boolean eventsAllowedByRequest(AuctionContext auctionContext) {
