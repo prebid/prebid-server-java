@@ -80,7 +80,8 @@ public class StoredRequestProcessor {
 
     public Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
         return processStoredRequestsInternal(accountId, bidRequest)
-                .recover(cause -> updateMetricsOnFailureAndRecover(accountId, cause));
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
     private Future<BidRequest> processStoredRequestsInternal(String accountId, BidRequest bidRequest) {
@@ -113,7 +114,8 @@ public class StoredRequestProcessor {
 
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         return processAmpRequestInternal(accountId, ampRequestId, bidRequest)
-                .recover(cause -> updateMetricsOnFailureAndRecover(accountId, cause));
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
     private Future<BidRequest> processAmpRequestInternal(String accountId, String ampRequestId, BidRequest bidRequest) {
@@ -132,7 +134,8 @@ public class StoredRequestProcessor {
                                                         Timeout timeout) {
 
         return videoStoredDataResultInternal(accountId, imps, errors, timeout)
-                .recover(cause -> updateMetricsOnFailureAndRecover(accountId, cause));
+                .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
+                .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
     private Future<VideoStoredDataResult> videoStoredDataResultInternal(String accountId,
@@ -154,18 +157,17 @@ public class StoredRequestProcessor {
                 .map(storedDataResult -> makeVideoStoredDataResult(storedDataResult, storedIdToImpId, errors));
     }
 
-    private <T> Future<T> updateMetricsOnFailureAndRecover(String accountId, Throwable cause) {
-        updateInvalidStoredResultMetrics(accountId, cause);
-        return Future.failedFuture(new InvalidRequestException(
-                String.format("Stored request processing failed: %s", cause.getMessage())));
-    }
-
     private void updateInvalidStoredResultMetrics(String accountId, Throwable cause) {
         if (cause instanceof InvalidStoredRequestException) {
             metrics.updateAccountRequestRejectedByInvalidStoredRequestMetrics(accountId);
         } else if (cause instanceof InvalidStoredImpException) {
             metrics.updateAccountRequestRejectedByInvalidStoredImpMetrics(accountId);
         }
+    }
+
+    private static <T> Future<T> stripToInvalidRequestException(Throwable cause) {
+        return Future.failedFuture(new InvalidRequestException(
+                String.format("Stored request processing failed: %s", cause.getMessage())));
     }
 
     private void updateStoredResultMetrics(StoredDataResult storedDataResult,
