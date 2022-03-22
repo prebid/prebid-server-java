@@ -421,7 +421,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't parse Json for stored request with id 123");
+                .hasMessage("Stored request processing failed: Can't parse Json for stored request with id 123");
     }
 
     @Test
@@ -444,7 +444,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: " +
+                        "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
@@ -462,7 +463,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -513,7 +514,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -536,7 +537,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("No config found for id: 123");
+                .hasMessage("Stored request processing failed: No config found for id: 123");
     }
 
     @Test
@@ -607,7 +608,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Id is not found in storedRequest");
+                .hasMessage("Stored request processing failed: Id is not found in storedRequest");
     }
 
     @Test
@@ -626,7 +627,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: " +
+                        "Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize");
     }
 
     @Test
@@ -648,7 +650,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Stored request fetching failed: Error during file fetching");
+                .hasMessage("Stored request processing failed: Error during file fetching");
     }
 
     @Test
@@ -671,7 +673,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessage("Can't parse Json for stored request with id 123");
+                .hasMessage("Stored request processing failed: Can't parse Json for stored request with id 123");
     }
 
     @Test
@@ -695,7 +697,8 @@ public class StoredRequestProcessorTest extends VertxTest {
         assertThat(bidRequestFuture.failed()).isTrue();
         assertThat(bidRequestFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
-                .hasMessageStartingWith("Can't convert merging result for id 123: Cannot deserialize");
+                .hasMessageStartingWith("Stored request processing failed: " +
+                        "Can't convert merging result for id 123: Cannot deserialize");
     }
 
     @Test
