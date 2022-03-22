@@ -237,7 +237,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 metrics,
                 clock);
 
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(givenBidRequest(identity())));
 
         // when
@@ -518,7 +518,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(bidRequest));
 
         given(applicationSettings.getAccountById(any(), any()))
@@ -548,7 +548,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .publisher(Publisher.builder().id(accountId).build())
                         .build()));
 
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
 
         final Account fetchedAccount = Account.builder().id(accountId).status(AccountStatus.active).build();
@@ -563,7 +563,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
         assertThat(result.result()).isEqualTo(fetchedAccount);
@@ -578,7 +578,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .site(Site.builder()
                         .publisher(Publisher.builder().id("bad_acc").build()).build()));
 
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(mergedBidRequest));
 
         // when
@@ -589,7 +589,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
         verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
@@ -619,7 +619,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 clock);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException("error")));
 
         // when
@@ -630,7 +630,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
         verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();
@@ -641,7 +641,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     public void shouldFetchAccountFromStoredAndReturnEmptyAccountIfStoredLookupIsFailed() {
         // given
         final BidRequest receivedBidRequest = givenBidRequest(identity());
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.failedFuture(new RuntimeException("error")));
 
         // when
@@ -652,7 +652,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        verify(storedRequestProcessor).processStoredRequests("", receivedBidRequest);
+        verify(storedRequestProcessor).processAuctionRequest("", receivedBidRequest);
         verifyNoInteractions(applicationSettings);
 
         assertThat(result.failed()).isTrue();

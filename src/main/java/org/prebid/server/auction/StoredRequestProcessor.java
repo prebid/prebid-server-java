@@ -78,13 +78,13 @@ public class StoredRequestProcessor {
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Future<BidRequest> processStoredRequests(String accountId, BidRequest bidRequest) {
-        return processStoredRequestsInternal(accountId, bidRequest)
+    public Future<BidRequest> processAuctionRequest(String accountId, BidRequest bidRequest) {
+        return processAuctionStoredRequest(accountId, bidRequest)
                 .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
                 .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
-    private Future<BidRequest> processStoredRequestsInternal(String accountId, BidRequest bidRequest) {
+    private Future<BidRequest> processAuctionStoredRequest(String accountId, BidRequest bidRequest) {
         final Map<BidRequest, String> bidRequestToStoredRequestId;
         final Map<Imp, String> impToStoredRequestId;
         try {
@@ -113,12 +113,12 @@ public class StoredRequestProcessor {
     }
 
     public Future<BidRequest> processAmpRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
-        return processAmpRequestInternal(accountId, ampRequestId, bidRequest)
+        return processAmpStoredRequest(accountId, ampRequestId, bidRequest)
                 .onFailure(cause -> updateInvalidStoredResultMetrics(accountId, cause))
                 .recover(StoredRequestProcessor::stripToInvalidRequestException);
     }
 
-    private Future<BidRequest> processAmpRequestInternal(String accountId, String ampRequestId, BidRequest bidRequest) {
+    private Future<BidRequest> processAmpStoredRequest(String accountId, String ampRequestId, BidRequest bidRequest) {
         final Future<StoredDataResult> ampStoredDataFuture = applicationSettings.getAmpStoredData(
                         accountId, Collections.singleton(ampRequestId), Collections.emptySet(), timeout(bidRequest))
                 .onSuccess(storedDataResult -> updateStoredResultMetrics(

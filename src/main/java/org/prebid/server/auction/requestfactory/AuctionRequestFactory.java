@@ -165,7 +165,7 @@ public class AuctionRequestFactory {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
-        return storedRequestProcessor.processStoredRequests(account.getId(), bidRequest)
+        return storedRequestProcessor.processAuctionRequest(account.getId(), bidRequest)
                 .map(resolvedBidRequest ->
                         paramsResolver.resolve(resolvedBidRequest, httpRequest, timeoutResolver, ENDPOINT))
 

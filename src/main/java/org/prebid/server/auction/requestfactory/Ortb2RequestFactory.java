@@ -274,7 +274,7 @@ public class Ortb2RequestFactory {
         final String accountId = accountIdFrom(bidRequest);
         return StringUtils.isNotBlank(accountId) || !isLookupStoredRequest
                 ? Future.succeededFuture(accountId)
-                : storedRequestProcessor.processStoredRequests(accountId, bidRequest)
+                : storedRequestProcessor.processAuctionRequest(accountId, bidRequest)
                 .map(this::accountIdFrom);
     }
 
