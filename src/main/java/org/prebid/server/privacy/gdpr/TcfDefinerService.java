@@ -203,14 +203,15 @@ public class TcfDefinerService {
         if (country != null) {
             return Future.succeededFuture(contextBuilder.gdpr(gdprFromGeo(inEea)).inEea(inEea).build());
         }
+
+        final TcfContext context = contextBuilder.build();
         if (ipAddress != null && geoLocationService != null) {
-            final TcfContext context = contextBuilder.build();
             return geoLocationService.lookup(effectiveIpAddress, timeout)
                     .map(geoInfo -> updateMetricsAndEnrichWithGeo(geoInfo, context))
                     .recover(error -> logError(error, context));
         }
 
-        return Future.succeededFuture(contextBuilder.build());
+        return Future.succeededFuture(context);
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
