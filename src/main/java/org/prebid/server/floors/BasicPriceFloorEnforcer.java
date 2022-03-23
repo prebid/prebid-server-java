@@ -125,6 +125,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids);
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
+        final List<BidderError> warnings = new ArrayList<>(seatBid.getErrors());
 
         final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
         final PriceFloorRules floors = extractFloors(auctionParticipation);
@@ -142,7 +143,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
-                errors.add(BidderError.generic(
+                warnings.add(BidderError.generic(
                         String.format("Bid with id '%s' was rejected by floor enforcement: "
                                 + "price %s is below the floor %s", bid.getId(), price, floor)));
 
@@ -152,11 +153,15 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
         }
 
-        if (bidderBids.size() == updatedBidderBids.size() && seatBid.getErrors().size() == errors.size()) {
+        if (bidderBids.size() == updatedBidderBids.size()
+                && seatBid.getErrors().size() == errors.size()
+                && seatBid.getWarnings().size() == warnings.size()) {
+
             return auctionParticipation;
         }
 
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors);
+        final BidderSeatBid bidderSeatBid =
+                BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors, warnings);
         return auctionParticipation.with(bidderResponse.with(bidderSeatBid));
     }
 

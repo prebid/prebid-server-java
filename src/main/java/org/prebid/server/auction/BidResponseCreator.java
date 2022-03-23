@@ -391,7 +391,8 @@ public class BidResponseCreator {
             final BidderSeatBidInfo bidderSeatBidInfo = BidderSeatBidInfo.of(
                     bidInfos,
                     seatBid.getHttpCalls(),
-                    seatBid.getErrors());
+                    seatBid.getErrors(),
+                    seatBid.getWarnings());
 
             result.add(BidderResponseInfo.of(bidder, bidderSeatBidInfo, bidderResponse.getResponseTime()));
         }
@@ -743,7 +744,7 @@ public class BidResponseCreator {
                 bidderResponseInfos, auctionContext, cacheResult, debugEnabled);
         final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(
                 bidderResponseInfos, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
-        final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(auctionContext);
+        final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(bidderResponseInfos, auctionContext);
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
@@ -945,6 +946,18 @@ public class BidResponseCreator {
     }
 
     /**
+     * Returns a map with bidder name as a key and list of {@link ExtBidderError}s as a value.
+     */
+    private static Map<String, List<ExtBidderError>> extractBidderWarnings(
+            Collection<BidderResponseInfo> bidderResponses) {
+
+        return bidderResponses.stream()
+                .filter(bidderResponse -> CollectionUtils.isNotEmpty(bidderResponse.getSeatBid().getWarnings()))
+                .collect(Collectors.toMap(BidderResponseInfo::getBidder,
+                        bidderResponse -> errorsDetails(bidderResponse.getSeatBid().getWarnings())));
+    }
+
+    /**
      * Maps a list of {@link BidderError} to a list of {@link ExtBidderError}s.
      */
     private static List<ExtBidderError> errorsDetails(List<BidderError> errors) {
@@ -1035,8 +1048,12 @@ public class BidResponseCreator {
         }
     }
 
-    private static Map<String, List<ExtBidderError>> toExtBidderWarnings(AuctionContext auctionContext) {
-        final Map<String, List<ExtBidderError>> warnings = new HashMap<>(extractContextWarnings(auctionContext));
+    private static Map<String, List<ExtBidderError>> toExtBidderWarnings(List<BidderResponseInfo> bidderResponses,
+                                                                         AuctionContext auctionContext) {
+        final Map<String, List<ExtBidderError>> warnings = new HashMap<>();
+
+        warnings.putAll(extractContextWarnings(auctionContext));
+        warnings.putAll(extractBidderWarnings(bidderResponses));
 
         return warnings.isEmpty() ? null : warnings;
     }

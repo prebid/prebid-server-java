@@ -287,7 +287,7 @@ public class BasicPriceFloorEnforcerTest {
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
-                .flatExtracting(BidderSeatBid::getBids, BidderSeatBid::getErrors)
+                .flatExtracting(BidderSeatBid::getBids, BidderSeatBid::getWarnings)
                 .containsExactly(
                         singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
