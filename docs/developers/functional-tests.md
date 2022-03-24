@@ -6,14 +6,14 @@ And [MockServer](https://www.mock-server.com/) for mocking external services.
 
 ## Getting Started
 
-- Install [Docker](https://docs.docker.com/engine/install/ubuntu/)
+- Install [Docker](https://docs.docker.com/engine/install/)
 - Set launchContainers system property to 'true'
 
 ### Prepare PBS image
 
 `mvn clean -B package -DskipUnitTests=true docker:build` - to build image
 
-> Don't forget to rebuild image for manual test start (after change in code)
+> Don't forget to rebuild image for manual test start (after change in dev code)
 
 ### Run integration tests
 
@@ -57,7 +57,7 @@ In order to obtain the debug port you need to use `getMappedPort(8000)` based on
 
 Every container expose random port which you can see `docker ps` - running containers. (add flag `-a` to see exited containers)
 
-You can observe logs inside contUsernameainer `docker logs <container_id>`. (You don't need to write all id, just use 2-3 symbols)
+You can observe logs inside container `docker logs <container_id>`. (You don't need to write all id, just use 2-3 symbols)
 
 #### NetworkServiceContainer
 

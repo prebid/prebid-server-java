@@ -5,8 +5,9 @@ import org.prebid.server.functional.testcontainers.PbsConfig
 import org.testcontainers.containers.GenericContainer
 import org.testcontainers.containers.wait.strategy.Wait
 
-class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
+import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
+class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
     public static final int PORT = 8080
     public static final int DEBUG_PORT = 8000
