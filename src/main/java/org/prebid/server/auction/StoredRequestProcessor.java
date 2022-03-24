@@ -167,7 +167,7 @@ public class StoredRequestProcessor {
 
     private static <T> Future<T> stripToInvalidRequestException(Throwable cause) {
         return Future.failedFuture(new InvalidRequestException(
-                String.format("Stored request processing failed: %s", cause.getMessage())));
+                "Stored request processing failed: " + cause.getMessage()));
     }
 
     private void updateStoredResultMetrics(StoredDataResult storedDataResult,
@@ -365,8 +365,8 @@ public class StoredRequestProcessor {
         try {
             extImp = mapper.mapper().treeToValue(imp.getExt(), ExtImp.class);
         } catch (JsonProcessingException e) {
-            throw new InvalidStoredImpException(String.format(
-                    "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
+            throw new InvalidStoredImpException(
+                    "Incorrect Imp extension format for Imp with id " + imp.getId() + ": " + e.getMessage());
         }
 
         final ExtStoredRequest extStoredRequest = ObjectUtil.getIfNotNull(

@@ -294,13 +294,13 @@ public class Ortb2RequestFactory {
                                         HttpRequestContext httpRequest,
                                         String accountId) {
 
-        final Future<Account> accountResponse = StringUtils.isBlank(accountId)
+        final Future<Account> accountFuture = StringUtils.isBlank(accountId)
                 ? responseForEmptyAccount(httpRequest)
                 : applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive,
                         exception -> accountFallback(exception, accountId, httpRequest));
 
-        return accountResponse
+        return accountFuture
                 .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
     }
 

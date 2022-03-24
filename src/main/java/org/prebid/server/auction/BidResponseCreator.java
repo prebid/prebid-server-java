@@ -1157,8 +1157,8 @@ public class BidResponseCreator {
                 final Boolean echoVideoAttrs = options != null ? options.getEchoVideoAttrs() : null;
                 return BooleanUtils.toBoolean(echoVideoAttrs);
             } catch (JsonProcessingException e) {
-                throw new InvalidRequestException(String.format(
-                        "Incorrect Imp extension format for Imp with id %s: %s", imp.getId(), e.getMessage()));
+                throw new InvalidRequestException(
+                        "Incorrect Imp extension format for Imp with id " + imp.getId() + ": " + e.getMessage());
             }
         }
         return false;
