@@ -85,7 +85,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarnings() {
+    public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarningsWhenInGdprScope() {
         // given
         final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
         given(privacyExtractor.validPrivacyFrom(any(), any()))
@@ -93,8 +93,12 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
                 .willReturn(emptyPrivacy);
 
+        final TcfContext tcfContext = TcfContext.builder()
+                .inGdprScope(true)
+                .warnings(singletonList("Error"))
+                .build();
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfContext.builder().warnings(singletonList("Error")).build()));
+                .willReturn(Future.succeededFuture(tcfContext));
 
         final AuctionContext auctionContext = givenAuctionContext(
                 contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext(null)));
@@ -104,6 +108,29 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
         // then
         assertThat(auctionContext.getDebugWarnings()).containsExactly("Error");
+    }
+
+    @Test
+    public void contextFromShouldNotAddTcfExtractionWarningsToAuctionDebugWarningsWhenNotInGdprScope() {
+        // given
+        final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
+        given(privacyExtractor.validPrivacyFrom(any(), any()))
+                .willReturn(emptyPrivacy);
+        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
+                .willReturn(emptyPrivacy);
+
+        final TcfContext tcfContext = TcfContext.builder().warnings(singletonList("Error")).build();
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(tcfContext));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext(null)));
+
+        // when
+        ampPrivacyContextFactory.contextFrom(auctionContext);
+
+        // then
+        assertThat(auctionContext.getDebugWarnings()).isEmpty();
     }
 
     @Test
