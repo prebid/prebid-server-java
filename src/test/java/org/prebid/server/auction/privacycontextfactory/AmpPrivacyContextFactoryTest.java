@@ -85,7 +85,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     }
 
     @Test
-    public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarnings() {
+    public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarningsWhenInGdprScope() {
         // given
         final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
         given(privacyExtractor.validPrivacyFrom(any(), any()))
