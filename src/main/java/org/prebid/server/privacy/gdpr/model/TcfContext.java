@@ -11,17 +11,17 @@ import java.util.List;
 /**
  * Internal class for holding TCF information.
  */
-@Builder
 @Value
+@Builder(toBuilder = true)
 public class TcfContext {
 
-    String gdpr;
+    boolean inGdprScope;
 
     String consentString;
 
     TCString consent;
 
-    Boolean isConsentValid;
+    boolean consentValid;
 
     GeoInfo geoInfo;
 
