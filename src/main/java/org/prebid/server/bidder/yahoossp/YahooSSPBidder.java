@@ -93,14 +93,6 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest modifyRequest(BidRequest request, Imp imp, ExtImpYahooSSP extImpYahooSSP) {
-        final Banner banner = imp.getBanner();
-        final Imp.ImpBuilder impBuilder = imp.toBuilder()
-                .tagid(extImpYahooSSP.getPos());
-
-        if (banner != null) {
-            preprocessBanner(impBuilder, banner);
-        }
-
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         final Site site = request.getSite();
@@ -112,11 +104,19 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
         }
 
         return requestBuilder
-                .imp(Collections.singletonList(impBuilder.build()))
+                .imp(Collections.singletonList(modifyImp(imp, extImpYahooSSP)))
                 .build();
     }
 
-    private static void preprocessBanner(Imp.ImpBuilder impBuilder, Banner banner) {
+    private static Imp modifyImp(Imp imp, ExtImpYahooSSP extImpYahooSSP) {
+        final Banner banner = imp.getBanner();
+        return imp.toBuilder()
+                .tagid(extImpYahooSSP.getPos())
+                .banner(banner != null ? modifyBanner(imp.getBanner()) : null)
+                .build();
+    }
+
+    private static void validateBanner(Banner banner) {
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
         final boolean hasBannerWidthAndHeight = bannerWidth != null && bannerHeight != null;
@@ -125,13 +125,15 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format(
                     "Invalid sizes provided for Banner %sx%s", bannerWidth, bannerHeight));
         }
-
-        if (!hasBannerWidthAndHeight) {
-            impBuilder.banner(modifyBanner(banner));
-        }
     }
 
     private static Banner modifyBanner(Banner banner) {
+        validateBanner(banner);
+
+        if (banner.getH() != null && banner.getW() != null) {
+            return banner;
+        }
+
         final List<Format> bannerFormats = banner.getFormat();
         if (CollectionUtils.isEmpty(bannerFormats)) {
             throw new PreBidException("No sizes provided for Banner");
@@ -192,9 +194,17 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(bid -> checkBid(bid.getImpid(), imps))
-                .map(bid -> BidderBid.of(bid, getBidType(bid, imps), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .map(bid -> makeBidderBid(bid, imps, bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
+        final BidType bidType = getBidType(bid, imps);
+        return bidType != null
+                ? BidderBid.of(bid, bidType, currency)
+                : null;
     }
 
     private static boolean checkBid(String bidImpId, List<Imp> imps) {
@@ -214,8 +224,9 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 } else if (imp.getVideo() != null) {
                     return BidType.video;
                 }
+                return null;
             }
         }
-        return BidType.banner;
+        throw new PreBidException(String.format("Unknown ad unit code '%s'", bid.getImpid()));
     }
 }
