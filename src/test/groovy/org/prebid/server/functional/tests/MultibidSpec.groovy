@@ -23,7 +23,9 @@ class MultibidSpec extends BaseSpec {
 
         and: "Default basic bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap { price = bidResponse.seatbid.first().bid.first().price - 0.1 }
+        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first().id).tap {
+            price = bidResponse.seatbid.first().bid.first().price - 0.1
+        }
         bidResponse.seatbid.first().bid.add(anotherBid)
 
         and: "Set bidder response"
@@ -48,7 +50,7 @@ class MultibidSpec extends BaseSpec {
 
         and: "Default basic bid"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first()).tap { price = bidResponse.seatbid.first().bid.first().price - 0.1 }
+        def anotherBid = Bid.getDefaultBid(bidRequest.imp.first().id).tap { price = bidResponse.seatbid.first().bid.first().price - 0.1 }
         bidResponse.seatbid.first().bid.add(anotherBid)
 
         and: "Set bidder response"

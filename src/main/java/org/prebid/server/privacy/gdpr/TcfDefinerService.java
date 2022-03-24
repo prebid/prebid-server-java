@@ -203,7 +203,7 @@ public class TcfDefinerService {
 
         final String gdpr = privacy.getGdpr();
         if (StringUtils.isNotEmpty(gdpr)) {
-            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope((inScopeOfGdpr(gdpr))).build());
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(gdpr)).build());
         }
 
         if (country != null) {
