@@ -1,0 +1,52 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "bidfloor": 150,
+      "bidfloorcur": "USD",
+      "ext": {
+        "aceex": {
+          "accountid": "accountid"
+        }
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "12001",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "floors": {
+        "floorMin": 100,
+        "floorMinCur": "USD",
+        "enabled": true
+      },
+      "bidadjustmentfactors": {
+        "mediatypes": {
+          "banner": {
+            "aceex": 0.5
+          }
+        }
+      }
+    }
+  }
+}
