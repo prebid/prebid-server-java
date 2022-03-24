@@ -220,7 +220,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, vendorConsent, null, null), "london", null,
+                Privacy.of("1", vendorConsent, null, null), "london", null,
                 null, MetricName.setuid, null, null);
 
         // then

@@ -38,4 +38,8 @@ public class TcfContext {
     public TcfContext withInGdprScope(boolean inGdprScope) {
         return toBuilder().inGdprScope(inGdprScope).build();
     }
+
+    public TcfContext withoutWarnings() {
+        return toBuilder().warnings(Collections.emptyList()).build();
+    }
 }
