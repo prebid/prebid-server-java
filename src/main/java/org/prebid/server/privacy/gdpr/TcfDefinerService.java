@@ -146,7 +146,7 @@ public class TcfDefinerService {
         final GeoInfo geoInfo = tcfContext.getGeoInfo();
         final String country = geoInfo != null ? geoInfo.getCountry() : null;
 
-        if (!inScope(tcfContext)) {
+        if (!tcfContext.isInGdprScope()) {
             return allowAllTcfResponseCreator.apply(country);
         }
 
@@ -182,36 +182,37 @@ public class TcfDefinerService {
 
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
         final Boolean inEea = isCountryInEea(country);
-        final String gdpr = privacy.getGdpr();
 
-        final TcfContext.TcfContextBuilder contextBuilder =
-                TcfContext.builder()
-                        .gdpr(gdprDefaultValue)
-                        .consentString(consentString)
-                        .consent(consent)
-                        .isConsentValid(consentValid)
-                        .inEea(inEea)
-                        .warnings(consentStringParsingResult.getWarnings())
-                        .ipAddress(effectiveIpAddress);
+        final TcfContext defaultContext = TcfContext.builder()
+                .inGdprScope(inScope(gdprDefaultValue))
+                .consentString(consentString)
+                .consent(consent)
+                .consentValid(consentValid)
+                .inEea(inEea)
+                .ipAddress(effectiveIpAddress)
+                .warnings(consentStringParsingResult.getWarnings())
+                .build();
 
         if (consentStringMeansInScope && consentValid) {
-            return Future.succeededFuture(contextBuilder.gdpr(GDPR_ENABLED).build());
-        }
-        if (StringUtils.isNotEmpty(gdpr)) {
-            return Future.succeededFuture(contextBuilder.gdpr(gdpr).build());
-        }
-        if (country != null) {
-            return Future.succeededFuture(contextBuilder.gdpr(gdprFromGeo(inEea)).inEea(inEea).build());
+            return Future.succeededFuture(defaultContext.withInGdprScope(inScope(GDPR_ENABLED)));
         }
 
-        final TcfContext context = contextBuilder.build();
+        final String gdpr = privacy.getGdpr();
+        if (StringUtils.isNotEmpty(gdpr)) {
+            return Future.succeededFuture(defaultContext.withInGdprScope(inScope(gdpr)));
+        }
+
+        if (country != null) {
+            return Future.succeededFuture(defaultContext.withInGdprScope(inScope(gdprFromGeo(inEea))));
+        }
+
         if (ipAddress != null && geoLocationService != null) {
             return geoLocationService.lookup(effectiveIpAddress, timeout)
-                    .map(geoInfo -> updateMetricsAndEnrichWithGeo(geoInfo, context))
-                    .recover(error -> logError(error, context));
+                    .map(geoInfo -> updateMetricsAndEnrichWithGeo(geoInfo, defaultContext))
+                    .recover(error -> logError(error, defaultContext));
         }
 
-        return Future.succeededFuture(context);
+        return Future.succeededFuture(defaultContext);
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
@@ -239,7 +240,7 @@ public class TcfDefinerService {
 
         return tcfContext.toBuilder()
                 .geoInfo(geoInfo)
-                .gdpr(gdprFromGeo(inEea))
+                .inGdprScope(inScope(gdprFromGeo(inEea)))
                 .inEea(inEea)
                 .build();
     }
@@ -265,7 +266,7 @@ public class TcfDefinerService {
     }
 
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {
-        if (inScope(tcfContext)) {
+        if (tcfContext.isInGdprScope()) {
             metrics.updatePrivacyTcfGeoMetric(tcfContext.getConsent().getVersion(), tcfContext.getInEea());
         }
 
@@ -305,8 +306,8 @@ public class TcfDefinerService {
                 .collect(Collectors.toMap(Function.identity(), ignored -> PrivacyEnforcementAction.allowAll()));
     }
 
-    private static boolean inScope(TcfContext tcfContext) {
-        return Objects.equals(tcfContext.getGdpr(), GDPR_ENABLED);
+    private static boolean inScope(String gdpr) {
+        return Objects.equals(gdpr, GDPR_ENABLED);
     }
 
     /**

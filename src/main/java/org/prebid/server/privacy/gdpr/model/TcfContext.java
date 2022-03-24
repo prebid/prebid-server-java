@@ -15,13 +15,13 @@ import java.util.List;
 @Builder(toBuilder = true)
 public class TcfContext {
 
-    String gdpr;
+    boolean inGdprScope;
 
     String consentString;
 
     TCString consent;
 
-    Boolean isConsentValid;
+    boolean consentValid;
 
     GeoInfo geoInfo;
 
@@ -33,5 +33,9 @@ public class TcfContext {
 
     public static TcfContext empty() {
         return builder().warnings(Collections.emptyList()).build();
+    }
+
+    public TcfContext withInGdprScope(boolean inGdprScope) {
+        return toBuilder().inGdprScope(inGdprScope).build();
     }
 }

@@ -91,7 +91,9 @@ public class AmpPrivacyContextFactory {
     }
 
     private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
-        debugWarnings.addAll(tcfContext.getWarnings());
+        if (tcfContext.isInGdprScope()) {
+            debugWarnings.addAll(tcfContext.getWarnings());
+        }
 
         return tcfContext;
     }
