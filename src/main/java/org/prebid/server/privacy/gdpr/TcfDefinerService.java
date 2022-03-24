@@ -50,7 +50,6 @@ public class TcfDefinerService {
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
-    private static final String GDPR_DISABLED = "0";
     private static final String GDPR_ENABLED = "1";
 
     private final boolean gdprEnabled;
