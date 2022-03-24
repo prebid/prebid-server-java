@@ -94,9 +94,13 @@ public class TcfDefinerService {
                                                 RequestLogInfo requestLogInfo,
                                                 Timeout timeout) {
 
-        return !isGdprEnabled(accountGdprConfig, requestType)
+        final Future<TcfContext> tcfContextFuture = !isGdprEnabled(accountGdprConfig, requestType)
                 ? Future.succeededFuture(TcfContext.empty())
-                : toTcfContext(privacy, country, ipAddress, requestLogInfo, timeout).map(this::updateTcfGeoMetrics);
+                : prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout);
+
+        return tcfContextFuture
+                .map(this::postProcessTcfContext)
+                .map(this::updateTcfGeoMetrics);
     }
 
     /**
@@ -167,16 +171,6 @@ public class TcfDefinerService {
                 ? enabledForRequestType.isEnabledFor(requestType)
                 : null;
         return ObjectUtils.firstNonNull(enabledForType, accountGdprEnabled, gdprEnabled);
-    }
-
-    private Future<TcfContext> toTcfContext(Privacy privacy,
-                                            String country,
-                                            String ipAddress,
-                                            RequestLogInfo requestLogInfo,
-                                            Timeout timeout) {
-
-        return prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout)
-                .map(this::postProcessTcfContext);
     }
 
     private Future<TcfContext> prepareTcfContext(Privacy privacy,
