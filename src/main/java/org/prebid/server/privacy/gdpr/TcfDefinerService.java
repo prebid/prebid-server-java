@@ -30,6 +30,7 @@ import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -187,7 +188,7 @@ public class TcfDefinerService {
         final Boolean inEea = isCountryInEea(country);
 
         final TcfContext defaultContext = TcfContext.builder()
-                .inGdprScope(inScopeFromGdpr(gdprDefaultValue))
+                .inGdprScope(inScopeOfGdpr(gdprDefaultValue))
                 .consentString(consentString)
                 .consent(consent)
                 .consentValid(consentValid)
@@ -197,16 +198,16 @@ public class TcfDefinerService {
                 .build();
 
         if (consentStringMeansInScope && consentValid) {
-            return Future.succeededFuture(defaultContext.withInGdprScope(true));
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(true).build());
         }
 
         final String gdpr = privacy.getGdpr();
         if (StringUtils.isNotEmpty(gdpr)) {
-            return Future.succeededFuture(defaultContext.withInGdprScope(inScopeFromGdpr(gdpr)));
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope((inScopeOfGdpr(gdpr))).build());
         }
 
         if (country != null) {
-            return Future.succeededFuture(defaultContext.withInGdprScope(inScopeFromEea(inEea)));
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(inEea)).build());
         }
 
         if (ipAddress != null && geoLocationService != null) {
@@ -240,7 +241,7 @@ public class TcfDefinerService {
     private TcfContext updateMetricsAndEnrichWithGeo(GeoInfo geoInfo, TcfContext tcfContext) {
         metrics.updateGeoLocationMetric(true);
         final Boolean inEea = isCountryInEea(geoInfo.getCountry());
-        final boolean inScope = inScopeFromEea(inEea);
+        final boolean inScope = inScopeOfGdpr(inEea);
 
         return tcfContext.toBuilder()
                 .geoInfo(geoInfo)
@@ -273,7 +274,7 @@ public class TcfDefinerService {
 
     private TcfContext postProcessTcfContext(TcfContext tcfContext) {
         return !tcfContext.isInGdprScope() && !tcfContext.getWarnings().isEmpty()
-                ? tcfContext.withoutWarnings()
+                ? tcfContext.toBuilder().warnings(Collections.emptyList()).build()
                 : tcfContext;
     }
 
@@ -310,12 +311,12 @@ public class TcfDefinerService {
                 .collect(Collectors.toMap(Function.identity(), ignored -> PrivacyEnforcementAction.allowAll()));
     }
 
-    private static boolean inScopeFromGdpr(String gdpr) {
+    private static boolean inScopeOfGdpr(String gdpr) {
         return Objects.equals(gdpr, GDPR_ENABLED);
     }
 
-    private boolean inScopeFromEea(Boolean inEea) {
-        return BooleanUtils.toBooleanDefaultIfNull(inEea, inScopeFromGdpr(gdprDefaultValue));
+    private boolean inScopeOfGdpr(Boolean inEea) {
+        return BooleanUtils.toBooleanDefaultIfNull(inEea, inScopeOfGdpr(gdprDefaultValue));
     }
 
     /**

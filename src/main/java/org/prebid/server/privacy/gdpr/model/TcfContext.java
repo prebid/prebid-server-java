@@ -34,12 +34,4 @@ public class TcfContext {
     public static TcfContext empty() {
         return builder().warnings(Collections.emptyList()).build();
     }
-
-    public TcfContext withInGdprScope(boolean inGdprScope) {
-        return toBuilder().inGdprScope(inGdprScope).build();
-    }
-
-    public TcfContext withoutWarnings() {
-        return toBuilder().warnings(Collections.emptyList()).build();
-    }
 }
