@@ -30,6 +30,7 @@ import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -175,6 +176,16 @@ public class TcfDefinerService {
                                             RequestLogInfo requestLogInfo,
                                             Timeout timeout) {
 
+        return prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout)
+                .map(this::postProcessTcfContext);
+    }
+
+    private Future<TcfContext> prepareTcfContext(Privacy privacy,
+                                                 String country,
+                                                 String ipAddress,
+                                                 RequestLogInfo requestLogInfo,
+                                                 Timeout timeout) {
+
         final String consentString = privacy.getConsentString();
         final TCStringParsingResult consentStringParsingResult = parseConsentString(consentString, requestLogInfo);
         final TCString consent = consentStringParsingResult.getResult();
@@ -237,10 +248,11 @@ public class TcfDefinerService {
     private TcfContext updateMetricsAndEnrichWithGeo(GeoInfo geoInfo, TcfContext tcfContext) {
         metrics.updateGeoLocationMetric(true);
         final Boolean inEea = isCountryInEea(geoInfo.getCountry());
+        final boolean inScope = inScope(gdprFromGeo(inEea));
 
         return tcfContext.toBuilder()
                 .geoInfo(geoInfo)
-                .inGdprScope(inScope(gdprFromGeo(inEea)))
+                .inGdprScope(inScope)
                 .inEea(inEea)
                 .build();
     }
@@ -268,6 +280,14 @@ public class TcfDefinerService {
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {
         if (tcfContext.isInGdprScope()) {
             metrics.updatePrivacyTcfGeoMetric(tcfContext.getConsent().getVersion(), tcfContext.getInEea());
+        }
+
+        return tcfContext;
+    }
+
+    private TcfContext postProcessTcfContext(TcfContext tcfContext) {
+        if (!tcfContext.isInGdprScope() && !tcfContext.getWarnings().isEmpty()) {
+            return tcfContext.toBuilder().warnings(Collections.emptyList()).build();
         }
 
         return tcfContext;

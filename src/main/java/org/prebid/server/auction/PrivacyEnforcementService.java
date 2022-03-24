@@ -126,9 +126,7 @@ public class PrivacyEnforcementService {
     }
 
     private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
-        if (tcfContext.isInGdprScope()) {
-            debugWarnings.addAll(tcfContext.getWarnings());
-        }
+        debugWarnings.addAll(tcfContext.getWarnings());
 
         return tcfContext;
     }
