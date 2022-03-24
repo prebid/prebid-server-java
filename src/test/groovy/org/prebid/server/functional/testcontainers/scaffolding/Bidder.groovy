@@ -5,6 +5,10 @@ import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.request.auction.Banner
+import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Format
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
@@ -60,9 +64,15 @@ class Bidder extends NetworkScaffolding {
         def requestString = request.bodyAsString
         def jsonNode = mapper.toJsonNode(requestString)
         def id = jsonNode.get("id").asText()
-        def imp = jsonNode.get("imp")
-        def impIds = imp.collect { it.get("id").asText() } as List<String>
-        def response = BidResponse.getDefaultBidResponse(id, impIds)
+        def impNode = jsonNode.get("imp")
+        def imps = impNode.collect {
+            def formatNode = it.get("banner") != null ? it.get("banner").get("format") : null
+            new Imp(id: it.get("id").asText(),
+                    banner: formatNode != null
+                            ? new Banner(format: [new Format(w: formatNode.first().get("w").asInt(), h: formatNode.first().get("h").asInt())])
+                            : null)}
+        def bidRequest = new BidRequest(id: id, imp: imps)
+        def response = BidResponse.getDefaultBidResponse(bidRequest)
         mapper.encode(response)
     }
 }
