@@ -1,9 +1,11 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
@@ -43,9 +45,10 @@ class CacheSpec extends BaseSpec {
         bidRequest.enableCache()
 
         and: "Default basic bid with banner creative"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        def adm = PBSUtils.randomString
-        bidResponse.seatbid[0].bid[0].adm = adm
+        def asset = new Asset(id: PBSUtils.randomNumber)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [asset])
+        }
 
         and: "Set bidder response"
         bidder.setResponse(bidRequest.id, bidResponse)
@@ -57,6 +60,7 @@ class CacheSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
 
         then: "prebid_cache.creative_size.json should be update"
+        def adm = bidResponse.seatbid[0].bid[0].getAdm()
         def creativeSize = adm.bytes.length
         assert metrics["prebid_cache.creative_size.json"] == creativeSize
         assert metrics["prebid_cache.requests.ok"] == initialValue + 1

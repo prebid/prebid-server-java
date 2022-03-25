@@ -18,7 +18,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first()))
+        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
 
         and: "One of the bids has dealid"
         bidResponse.seatbid.first().bid.first().dealid = PBSUtils.randomNumber
@@ -51,7 +51,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first()))
+        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
 
         and: "Both of the bids have dealid"
         bidResponse.seatbid.first().bid.each { it.dealid = PBSUtils.randomNumber }
@@ -78,7 +78,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first()))
+        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
 
         and: "Set price for bids"
         def winningBidPrice = bidResponse.seatbid.first().bid.first().price + 1
@@ -107,7 +107,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first()))
+        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
 
         and: "Both of the bids have dealid"
         bidResponse.seatbid.first().bid.each { it.dealid = PBSUtils.randomNumber }
@@ -134,7 +134,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first()))
+        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
 
         and: "One of the bids has dealid"
         bidResponse.seatbid.first().bid.first().dealid = PBSUtils.randomNumber

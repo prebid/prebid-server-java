@@ -1,7 +1,11 @@
 package org.prebid.server.functional.model.response.auction
 
+import com.fasterxml.jackson.annotation.JsonGetter
+import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Imp
+import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Bid {
@@ -12,7 +16,7 @@ class Bid {
     String nurl
     String burl
     String lurl
-    String adm
+    Adm adm
     String adid
     List<String> adomain
     String bundle
@@ -33,16 +37,26 @@ class Bid {
     Integer exp
     BidExt ext
 
-    static Bid getDefaultBid(Imp imp) {
-        getDefaultBid(imp.id)
+    static List<Bid> getDefaultBids(List<Imp> imps) {
+        imps.collect { getDefaultBid(it.id) }
     }
 
     static Bid getDefaultBid(String impId) {
         new Bid().tap {
             id = UUID.randomUUID()
             impid = impId
-            price = 1.23
+            price = PBSUtils.randomPrice
             crid = 1
         }
+    }
+
+    @JsonGetter("adm")
+    String getAdm() {
+        Dependencies.objectMapperWrapper.encode(adm)
+    }
+
+    @JsonSetter("adm")
+    void getAdm(String adm) {
+        this.adm = Dependencies.objectMapperWrapper.decode(adm, Adm)
     }
 }

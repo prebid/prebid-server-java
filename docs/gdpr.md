@@ -40,3 +40,5 @@ which could be used by the host company to provide its own implementation, as we
 MaxMind GeoLite2 Country database(available from [https://www.maxmind.com](https://www.maxmind.com) and included in this product)
 and GeoIP2 Java API. The database file gets downloaded automatically from MaxMind web page during project packing
 by Maven Download Plugin.
+
+Description of Geo location service configuration can be found [here](https://github.com/prebid/prebid-server-java/blob/1e3d209fbdbaf112f5c4535e9aa18c3974170991/docs/config-app.md#geo-location).
