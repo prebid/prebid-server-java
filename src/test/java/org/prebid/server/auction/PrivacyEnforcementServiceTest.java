@@ -142,7 +142,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .warnings(emptyList())
@@ -180,7 +180,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .warnings(emptyList())
@@ -231,7 +231,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.maskIpv4(any())).willReturn("ip-masked");
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .ipAddress("ip-masked")
@@ -325,7 +325,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();
@@ -365,7 +365,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();
