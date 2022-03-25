@@ -4,7 +4,7 @@ import javax.persistence.AttributeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.Dependencies
 
-class StoredResponseConfigTypeConverter implements AttributeConverter<BidResponse, String> {
+class StoredBidResponseConfigTypeConverter implements AttributeConverter<BidResponse, String> {
 
     @Override
     String convertToDatabaseColumn(BidResponse bidResponse) {

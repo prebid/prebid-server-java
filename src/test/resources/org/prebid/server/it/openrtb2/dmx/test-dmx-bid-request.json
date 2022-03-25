@@ -47,7 +47,6 @@
   },
   "user": {
     "ext": {
-      "consent": "consentValue",
       "eids": [
         {
           "source": "adserver.org",

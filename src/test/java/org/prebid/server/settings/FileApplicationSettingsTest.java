@@ -13,6 +13,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
@@ -140,6 +141,8 @@ public class FileApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(account.succeeded()).isTrue();
+        final AccountAuctionEventConfig expectedEventsConfig = AccountAuctionEventConfig.builder().build();
+        expectedEventsConfig.addEvent("amp", true);
         assertThat(account.result()).isEqualTo(Account.builder()
                 .id("123")
                 .status(AccountStatus.active)
@@ -168,7 +171,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                 .build(),
                         null))
                 .analytics(AccountAnalyticsConfig.of(
-                        singletonMap("amp", true),
+                        expectedEventsConfig,
                         singletonMap(
                                 "some-analytics",
                                 mapper.createObjectNode()

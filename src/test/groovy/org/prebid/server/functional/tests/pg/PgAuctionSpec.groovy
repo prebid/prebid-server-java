@@ -76,7 +76,7 @@ class PgAuctionSpec extends BasePgSpec {
         and: "Seat bid corresponds to the request seat bid"
         assert auctionResponse.seatbid?.size() == bidRequest.imp.size()
         def seatBid = auctionResponse.seatbid[0]
-        assert seatBid.seat == GENERIC.value
+        assert seatBid.seat == GENERIC
 
         assert seatBid.bid?.size() == 1
 

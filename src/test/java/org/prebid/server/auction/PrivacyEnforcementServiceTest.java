@@ -142,17 +142,19 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -178,11 +180,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final String accountId = "account";
@@ -193,6 +196,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.empty(accountId))
                 .requestTypeMetric(requestType)
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -205,7 +209,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(requestType, referer, accountId);
         verify(tcfDefinerService).resolveTcfContext(
                 eq(privacy), isNull(), isNull(), isNull(), same(requestType),
-                eq(expectedRequestLogInfo), isNull(), any());
+                eq(expectedRequestLogInfo), isNull());
     }
 
     @Test
@@ -227,14 +231,15 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.maskIpv4(any())).willReturn("ip-masked");
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .ipAddress("ip-masked")
                 .inEea(false)
                 .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                .warnings(emptyList())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(tcfContext));
 
         final AuctionContext auctionContext = AuctionContext.builder()
@@ -242,6 +247,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.empty("account"))
                 .requestTypeMetric(MetricName.openrtb2web)
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build();
 
         // when
@@ -252,7 +258,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         FutureAssertion.assertThat(privacyContext).succeededWith(PrivacyContext.of(privacy, tcfContext, "ip-masked"));
 
         verify(tcfDefinerService).resolveTcfContext(
-                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull(), any());
+                eq(privacy), isNull(), eq("ip-masked"), isNull(), same(MetricName.openrtb2web), any(), isNull());
     }
 
     @Test
@@ -265,7 +271,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .build())
                 .build();
         given(ipAddressHelper.anonymizeIpv6(any())).willReturn("ip-masked");
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().build()));
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
@@ -277,7 +283,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any(), any());
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ip-masked"), any(), any(), any(), any());
     }
 
     @Test
@@ -288,7 +294,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .ipv6("ipv6")
                         .build())
                 .build();
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().build()));
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
@@ -300,7 +306,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         privacyEnforcementService.contextFromBidRequest(auctionContext);
 
         // then
-        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any(), any());
+        verify(tcfDefinerService).resolveTcfContext(any(), any(), eq("ipv6"), any(), any(), any(), any());
     }
 
     @Test
@@ -319,7 +325,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         given(ipAddressHelper.toIpAddress(anyString())).willReturn(IpAddress.of("ip", IpAddress.IP.v4));
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();
@@ -359,7 +365,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .build();
 
         final TcfContext tcfContext = TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consentString("consent")
                 .consent(TCStringEmpty.create())
                 .build();

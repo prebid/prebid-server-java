@@ -1363,8 +1363,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getErrors)
                 .containsOnly(
-                        BidderError.generic("bid validation warning"),
-                        BidderError.generic("bid validation error"));
+                        BidderError.invalidBid("BidId `bidId1` validation messages: Error: bid validation error."
+                                + " Warning: bid validation warning"));
     }
 
     @Test
@@ -1400,7 +1400,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getErrors)
-                .containsOnly(BidderError.generic("bid validation warning"));
+                .containsOnly(BidderError.invalidBid(
+                        "BidId `bidId1` validation messages: Warning: bid validation warning"));
     }
 
     @Test

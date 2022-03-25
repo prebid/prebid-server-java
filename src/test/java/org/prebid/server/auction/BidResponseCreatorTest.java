@@ -92,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.vast.VastModifier;
@@ -1139,6 +1140,126 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnEmptyAssetIfNoRelatedNativeAssetFound() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(null)
+                        .img(ImageObject.builder().type(null).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id(IMP_ID)
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(null).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .price(BigDecimal.ONE)
+                .impid(IMP_ID)
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1)))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                        .result();
+
+        // then
+
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .isEqualTo(Map.of("bidder1", singletonList(ExtBidderError.of(3,
+                        "Response has an Image asset with ID:'123' present that doesn't exist in the request"))));
+    }
+
+    @Test
+    public void shouldReturnEmptyAssetIfIdIsNotPresentRelatedNativeAssetFound() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(123)
+                        .img(ImageObject.builder().type(null).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id(IMP_ID)
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(null)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(null).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .price(BigDecimal.ONE)
+                .impid(IMP_ID)
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1)))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                        .result();
+
+        // then
+
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .isEqualTo(Map.of("bidder1", singletonList(ExtBidderError.of(3,
+                        "Response has an Image asset with ID:'' present that doesn't exist in the request"))));
+    }
+
+    @Test
     public void shouldReturnEmptyAssetIfDataTypeIsEmpty() throws JsonProcessingException {
         // given
         final Request nativeRequest = Request.builder()
@@ -2082,12 +2203,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsIfEventsAreEnabledAndAccountSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2308,12 +2431,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsIfAccountDoesNotSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
