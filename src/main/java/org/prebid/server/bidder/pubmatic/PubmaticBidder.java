@@ -173,7 +173,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private BigDecimal resolveBidFloor(String kadfloor) {
         return StringUtils.isNotBlank(kadfloor)
-                ? new BigDecimal(kadfloor)
+                ? new BigDecimal(StringUtils.trim(kadfloor))
                 : null;
     }
 
