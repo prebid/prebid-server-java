@@ -207,15 +207,6 @@ public class YahooSSPBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private static boolean checkBid(String bidImpId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(bidImpId)) {
-                return imp.getBanner() != null || imp.getVideo() != null;
-            }
-        }
-        throw new PreBidException(String.format("Unknown ad unit code '%s'", bidImpId));
-    }
-
     private static BidType getBidType(Bid bid, List<Imp> imps) {
         for (Imp imp : imps) {
             if (imp.getId().equals(bid.getImpid())) {
