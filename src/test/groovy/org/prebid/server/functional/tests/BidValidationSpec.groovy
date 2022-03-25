@@ -160,7 +160,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first())
+        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first().id)
 
         and: "One of the bids is invalid"
         def invalidBid = bidResponse.seatbid.first().bid.first()
@@ -189,5 +189,26 @@ class BidValidationSpec extends BaseSpec {
         0                             | null
         null                          | PBSUtils.randomNumber
         null                          | null
+    }
+
+    def "PBS should update 'adapter.generic.requests.bid_validation' metric when bid validation error appears"() {
+        given: "Initial 'adapter.generic.requests.bid_validation' metric value"
+        def initialMetricValue = getCurrentMetricValue("adapter.generic.requests.bid_validation")
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Set invalid bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].impid = PBSUtils.randomNumber as String
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Sending auction request to PBS"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid validation metric value is incremented"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 }

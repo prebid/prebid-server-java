@@ -61,9 +61,12 @@ class PgBidResponseSpec extends BasePgSpec {
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder response is invalid"
-        def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
-        assert bidderError?.size() == 1
-        assert bidderError[0].message.startsWith("Bid \"${bidResponse.seatbid[0].bid[0].id}\" has no corresponding imp in request")
+        def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+
+        assert bidderErrors?.size() == 1
+        assert bidderErrors[0].message ==~
+                /BidId `$bidId` validation messages:.* Error: Bid \"$bidId\" has no corresponding imp in request.*/
     }
 
     def "PBS should invalidate bidder response when deal id doesn't match to the bid request deal id"() {
@@ -87,9 +90,12 @@ class PgBidResponseSpec extends BasePgSpec {
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder response is invalid"
-        def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
-        assert bidderError?.size() == 1
-        assert bidderError[0].message.startsWith("WARNING: Bid \"${bidResponse.seatbid[0].bid[0].id}\" has 'dealid' not present in corresponding imp in request.")
+        def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+
+        assert bidderErrors?.size() == 1
+        assert bidderErrors[0].message ==~ /BidId `$bidId` validation messages:.* Warning: / +
+                /WARNING: Bid "$bidId" has 'dealid' not present in corresponding imp in request.*/
     }
 
     def "PBS should invalidate bidder response when non-matched to the bid request size is returned"() {
@@ -120,10 +126,12 @@ class PgBidResponseSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.responseInvalidated?.size() == plansResponse.lineItems.size()
 
         and: "PBS invalidated response as unmatched by size"
-        def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
-        assert bidderError?.size() == 1
-        assert bidderError[0].message == "Bid \"$bid.id\" has 'w' and 'h' not supported by " +
-                "corresponding imp in request. Bid dimensions: '${bid.w}x$bid.h', formats in imp: '${impFormat.w}x$impFormat.h'"
+        def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
+
+        assert bidderErrors?.size() == 1
+        assert bidderErrors[0].message ==~ /BidId `$bid.id` validation messages:.* Error: / +
+                /Bid "$bid.id" has 'w' and 'h' not supported by corresponding imp in request\. / +
+                /Bid dimensions: '${bid.w}x$bid.h', formats in imp: '${impFormat.w}x$impFormat.h'.*/
     }
 
     def "PBS should invalidate bidder response when non-matched to the PBS line item size response is returned"() {
@@ -158,9 +166,11 @@ class PgBidResponseSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.responseInvalidated?.size() == plansResponse.lineItems.size()
 
         and: "PBS invalidated response as not matched by size"
-        def bidderError = auctionResponse.ext?.errors?.get(GENERIC)
-        assert bidderError?.size() == 1
-        assert bidderError[0].message == "Bid \"$bid.id\" has 'w' and 'h' not matched to Line Item. " +
-                "Bid dimensions: '${bid.w}x$bid.h', Line Item sizes: '${lineItemSize.w}x$lineItemSize.h'"
+        def bidderErrors = auctionResponse.ext?.errors?.get(GENERIC)
+
+        assert bidderErrors?.size() == 1
+        assert bidderErrors[0].message ==~ /BidId `$bid.id` validation messages:.* Error: / +
+                /Bid "$bid.id" has 'w' and 'h' not matched to Line Item\. / +
+                /Bid dimensions: '${bid.w}x$bid.h', Line Item sizes: '${lineItemSize.w}x$lineItemSize.h'.*/
     }
 }
