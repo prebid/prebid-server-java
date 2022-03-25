@@ -51,8 +51,7 @@ public class TcfDefinerService {
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
-    private static final String GDPR_ZERO = "0";
-    private static final String GDPR_ONE = "1";
+    private static final String GDPR_ENABLED = "1";
 
     private final boolean gdprEnabled;
     private final String gdprDefaultValue;
@@ -95,9 +94,13 @@ public class TcfDefinerService {
                                                 RequestLogInfo requestLogInfo,
                                                 Timeout timeout) {
 
-        return !isGdprEnabled(accountGdprConfig, requestType)
+        final Future<TcfContext> tcfContextFuture = !isGdprEnabled(accountGdprConfig, requestType)
                 ? Future.succeededFuture(TcfContext.empty())
-                : toTcfContext(privacy, country, ipAddress, requestLogInfo, timeout).map(this::updateTcfGeoMetrics);
+                : prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout);
+
+        return tcfContextFuture
+                .map(this::postProcessTcfContext)
+                .map(this::updateTcfGeoMetrics);
     }
 
     /**
@@ -147,7 +150,7 @@ public class TcfDefinerService {
         final GeoInfo geoInfo = tcfContext.getGeoInfo();
         final String country = geoInfo != null ? geoInfo.getCountry() : null;
 
-        if (!inScope(tcfContext)) {
+        if (!tcfContext.isInGdprScope()) {
             return allowAllTcfResponseCreator.apply(country);
         }
 
@@ -170,74 +173,50 @@ public class TcfDefinerService {
         return ObjectUtils.firstNonNull(enabledForType, accountGdprEnabled, gdprEnabled);
     }
 
-    private Future<TcfContext> toTcfContext(Privacy privacy,
-                                            String country,
-                                            String ipAddress,
-                                            RequestLogInfo requestLogInfo,
-                                            Timeout timeout) {
+    private Future<TcfContext> prepareTcfContext(Privacy privacy,
+                                                 String country,
+                                                 String ipAddress,
+                                                 RequestLogInfo requestLogInfo,
+                                                 Timeout timeout) {
 
         final String consentString = privacy.getConsentString();
         final TCStringParsingResult consentStringParsingResult = parseConsentString(consentString, requestLogInfo);
         final TCString consent = consentStringParsingResult.getResult();
+        final boolean consentValid = isConsentValid(consent);
 
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
-        final boolean consentIsValid = isConsentValid(consent);
+        final Boolean inEea = isCountryInEea(country);
 
-        if (consentStringMeansInScope && consentIsValid) {
-            return Future.succeededFuture(
-                    TcfContext.builder()
-                            .gdpr(GDPR_ONE)
-                            .consentString(consentString)
-                            .consent(consent)
-                            .isConsentValid(true)
-                            .ipAddress(effectiveIpAddress)
-                            .warnings(Collections.emptyList())
-                            .build());
+        final TcfContext defaultContext = TcfContext.builder()
+                .inGdprScope(inScopeOfGdpr(gdprDefaultValue))
+                .consentString(consentString)
+                .consent(consent)
+                .consentValid(consentValid)
+                .inEea(inEea)
+                .ipAddress(effectiveIpAddress)
+                .warnings(consentStringParsingResult.getWarnings())
+                .build();
+
+        if (consentStringMeansInScope && consentValid) {
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(true).build());
         }
 
         final String gdpr = privacy.getGdpr();
         if (StringUtils.isNotEmpty(gdpr)) {
-            final List<String> warnings = gdpr.equals("0")
-                    ? Collections.emptyList()
-                    : consentStringParsingResult.getWarnings();
-
-            return Future.succeededFuture(
-                    TcfContext.builder()
-                            .gdpr(gdpr)
-                            .consentString(consentString)
-                            .consent(consent)
-                            .isConsentValid(consentIsValid)
-                            .ipAddress(effectiveIpAddress)
-                            .warnings(warnings)
-                            .build());
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(gdpr)).build());
         }
 
-        // from country
         if (country != null) {
-            final Boolean inEea = isCountryInEea(country);
-
-            return Future.succeededFuture(TcfContext.builder()
-                    .gdpr(gdprFromGeo(inEea))
-                    .consentString(consentString)
-                    .consent(consent)
-                    .isConsentValid(consentIsValid)
-                    .inEea(inEea)
-                    .ipAddress(effectiveIpAddress)
-                    .warnings(consentStringParsingResult.getWarnings())
-                    .build());
+            return Future.succeededFuture(defaultContext.toBuilder().inGdprScope(inScopeOfGdpr(inEea)).build());
         }
 
-        // from geo location
         if (ipAddress != null && geoLocationService != null) {
             return geoLocationService.lookup(effectiveIpAddress, timeout)
-                    .map(resolvedGeoInfo -> tcfContextFromGeo(
-                            resolvedGeoInfo, consentString, consent, effectiveIpAddress))
-                    .otherwise(exception -> updateGeoFailedMetricAndReturnDefaultTcfContext(
-                            exception, consentString, consent, effectiveIpAddress));
+                    .map(geoInfo -> updateMetricsAndEnrichWithGeo(geoInfo, defaultContext))
+                    .recover(error -> logError(error, defaultContext));
         }
 
-        // use default
-        return Future.succeededFuture(defaultTcfContext(consentString, consent, effectiveIpAddress));
+        return Future.succeededFuture(defaultContext);
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
@@ -259,62 +238,44 @@ public class TcfDefinerService {
         return isConsentValid(consent) && consent.getVersion() == 2 && !consent.getSpecialFeatureOptIns().contains(1);
     }
 
-    private TcfContext tcfContextFromGeo(GeoInfo geoInfo, String consentString, TCString consent, String ipAddress) {
+    private TcfContext updateMetricsAndEnrichWithGeo(GeoInfo geoInfo, TcfContext tcfContext) {
         metrics.updateGeoLocationMetric(true);
-
         final Boolean inEea = isCountryInEea(geoInfo.getCountry());
+        final boolean inScope = inScopeOfGdpr(inEea);
 
-        return TcfContext.builder()
-                .gdpr(gdprFromGeo(inEea))
-                .consentString(consentString)
-                .consent(consent)
-                .isConsentValid(isConsentValid(consent))
+        return tcfContext.toBuilder()
                 .geoInfo(geoInfo)
+                .inGdprScope(inScope)
                 .inEea(inEea)
-                .ipAddress(ipAddress)
-                .warnings(Collections.emptyList())
                 .build();
     }
 
-    private String gdprFromGeo(Boolean inEea) {
-        return inEea == null
-                ? gdprDefaultValue
-                : inEea ? GDPR_ONE : GDPR_ZERO;
+    private Future<TcfContext> logError(Throwable error, TcfContext tcfContext) {
+        final String message = String.format("Geolocation lookup failed: %s", error.getMessage());
+        logger.warn(message);
+        logger.debug(message, error);
+
+        metrics.updateGeoLocationMetric(false);
+
+        return Future.succeededFuture(tcfContext);
     }
 
     private Boolean isCountryInEea(String country) {
         return country != null ? eeaCountries.contains(country) : null;
     }
 
-    private TcfContext updateGeoFailedMetricAndReturnDefaultTcfContext(
-            Throwable exception, String consentString, TCString consent, String ipAddress) {
-
-        final String message = String.format("Geolocation lookup failed: %s", exception.getMessage());
-        logger.warn(message);
-        logger.debug(message, exception);
-
-        metrics.updateGeoLocationMetric(false);
-
-        return defaultTcfContext(consentString, consent, ipAddress);
-    }
-
-    private TcfContext defaultTcfContext(String consentString, TCString consent, String ipAddress) {
-        return TcfContext.builder()
-                .gdpr(gdprDefaultValue)
-                .consentString(consentString)
-                .consent(consent)
-                .isConsentValid(isConsentValid(consent))
-                .ipAddress(ipAddress)
-                .warnings(Collections.emptyList())
-                .build();
-    }
-
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {
-        if (inScope(tcfContext)) {
+        if (tcfContext.isInGdprScope()) {
             metrics.updatePrivacyTcfGeoMetric(tcfContext.getConsent().getVersion(), tcfContext.getInEea());
         }
 
         return tcfContext;
+    }
+
+    private TcfContext postProcessTcfContext(TcfContext tcfContext) {
+        return !tcfContext.isInGdprScope() && !tcfContext.getWarnings().isEmpty()
+                ? tcfContext.toBuilder().warnings(Collections.emptyList()).build()
+                : tcfContext;
     }
 
     private <T> Future<TcfResponse<T>> createAllowAllTcfResponse(Set<T> keys, String country) {
@@ -350,8 +311,12 @@ public class TcfDefinerService {
                 .collect(Collectors.toMap(Function.identity(), ignored -> PrivacyEnforcementAction.allowAll()));
     }
 
-    private static boolean inScope(TcfContext tcfContext) {
-        return Objects.equals(tcfContext.getGdpr(), GDPR_ONE);
+    private static boolean inScopeOfGdpr(String gdpr) {
+        return Objects.equals(gdpr, GDPR_ENABLED);
+    }
+
+    private boolean inScopeOfGdpr(Boolean inEea) {
+        return BooleanUtils.toBooleanDefaultIfNull(inEea, inScopeOfGdpr(gdprDefaultValue));
     }
 
     /**

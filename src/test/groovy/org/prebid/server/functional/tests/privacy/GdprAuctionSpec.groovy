@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.privacy.BogusConsent
@@ -14,13 +15,14 @@ import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
 @PBSTest
 class GdprAuctionSpec extends PrivacyBaseSpec {
 
-    def setupSpec(){
+    def setupSpec() {
         cacheVendorList()
     }
 
@@ -194,7 +196,37 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                        new AccountGdprConfig(enabled: false)]
     }
 
-    private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig){
+    def "PBS should recognise 'web' and 'pbjs' as the same channel when privacy.gdpr config is defined in account"() {
+        given: "BidRequest with channel: #requestChannel, gdpr"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+        def bidRequest = getGdprBidRequest(validConsentString).tap {
+            ext.prebid.channel = new Channel(name: requestChannel)
+        }
+
+        and: "Save account config #accountChannel = true with into DB"
+        def gdprConfig = new AccountGdprConfig(enabled: false, channelEnabled: [(accountChannel): true])
+        def account = getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo == maskGeo(bidRequest)
+
+        where:
+        requestChannel | accountChannel
+        WEB            | WEB
+        WEB            | PBJS
+        PBJS           | WEB
+        PBJS           | PBJS
+    }
+
+    private Account getAccountWithGdpr(String accountId, AccountGdprConfig gdprConfig) {
         def privacy = new AccountPrivacyConfig(gdpr: gdprConfig)
         def accountConfig = new AccountConfig(privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
