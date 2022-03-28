@@ -30,7 +30,6 @@ import org.prebid.server.settings.model.GdprConfig;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -98,9 +97,7 @@ public class TcfDefinerService {
                 ? Future.succeededFuture(TcfContext.empty())
                 : prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout);
 
-        return tcfContextFuture
-                .map(this::postProcessTcfContext)
-                .map(this::updateTcfGeoMetrics);
+        return tcfContextFuture.map(this::updateTcfGeoMetrics);
     }
 
     /**
@@ -270,12 +267,6 @@ public class TcfDefinerService {
         }
 
         return tcfContext;
-    }
-
-    private TcfContext postProcessTcfContext(TcfContext tcfContext) {
-        return !tcfContext.isInGdprScope() && !tcfContext.getWarnings().isEmpty()
-                ? tcfContext.toBuilder().warnings(Collections.emptyList()).build()
-                : tcfContext;
     }
 
     private <T> Future<TcfResponse<T>> createAllowAllTcfResponse(Set<T> keys, String country) {
