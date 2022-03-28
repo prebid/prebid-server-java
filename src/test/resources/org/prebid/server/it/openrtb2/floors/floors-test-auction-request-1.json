@@ -11,7 +11,6 @@
       "bidfloorcur": "USD",
       "ext": {
         "generic": {
-          "exampleProperty": "exampleProperty"
         }
       }
     }
@@ -30,7 +29,21 @@
   "ext": {
     "prebid": {
       "floors": {
-        "enabled": true
+        "enabled": true,
+        "data": {
+          "modelGroups": [
+            {
+              "modelWeight": 100,
+              "values": {
+                "*|banner|300x250": 7,
+                "*|banner|*": 10,
+                "*|banner|320x250": 12,
+                "*|video|320x250": 3,
+                "*|video|640x480": 4
+              }
+            }
+          ]
+        }
       },
       "bidadjustmentfactors": {
         "mediatypes": {

@@ -7,12 +7,10 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor" : 300,
-      "bidfloorcur" : "USD",
+      "bidfloor": 300,
+      "bidfloorcur": "USD",
       "ext": {
-        "bidder": {
-          "exampleProperty": "exampleProperty"
-        }
+        "bidder": {}
       }
     }
   ],
@@ -58,6 +56,20 @@
       },
       "floors": {
         "enabled": true,
+        "data": {
+          "modelGroups": [
+            {
+              "modelWeight": 100,
+              "values": {
+                "*|banner|300x250": 7,
+                "*|banner|*": 10,
+                "*|banner|320x250": 12,
+                "*|video|320x250": 3,
+                "*|video|640x480": 4
+              }
+            }
+          ]
+        },
         "fetchStatus": "inprogress",
         "location": "request"
       }

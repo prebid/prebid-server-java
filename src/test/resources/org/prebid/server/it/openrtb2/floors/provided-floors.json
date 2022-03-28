@@ -2,7 +2,13 @@
   "data": {
     "modelGroups": [
       {
-        "modelWeight": 1,
+        "modelWeight": 0,
+        "schema": {
+          "delimiter": "|",
+          "fields": [
+            "mediaType"
+          ]
+        },
         "values": {
           "video": 2,
           "banner": 10,
@@ -10,15 +16,19 @@
         }
       },
       {
-        "modelWeight": 2,
+        "modelWeight": 1000,
+        "schema": {
+          "fields": [
+            "mediaType"
+          ]
+        },
         "values": {
-          "banner": 10
-        }
-      },
-      {
-        "modelWeight": 100,
-        "values": {
-          "banner": 7
+          "*|banner|300x250": 700,
+          "*|banner|*": 1000,
+          "*|banner|320x250": 1200,
+          "*|video|320x250": 300,
+          "*|video|640x480": 400,
+          "banner": 100
         }
       }
     ]
