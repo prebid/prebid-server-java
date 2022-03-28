@@ -209,7 +209,8 @@ public class CurrencyConversionService implements Initializable {
                             effectiveBidCurrency, adServerCurrency));
         }
 
-        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+        return price.multiply(conversionRate)
+                .setScale(DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
     }
 
     private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
