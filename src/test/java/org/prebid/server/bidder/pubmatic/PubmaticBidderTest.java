@@ -89,9 +89,11 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldNotSetBidfloorIfImpExtKadfloorIsInvalid() {
+    public void makeHttpRequestsShouldNotUpdateBidfloorIfImpExtKadfloorIsInvalid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpKadfloor(null)));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .bidfloor(BigDecimal.TEN)
+                .ext(givenExtImpWithKadfloor("invalid")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -101,14 +103,14 @@ public class PubmaticBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
-                .containsNull();
+                .containsExactly(BigDecimal.TEN);
         assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnBidfloorIfImpExtKadfloorIsValid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpKadfloor("12.5")));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("12.5")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -125,7 +127,7 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnBidfloorIfImpExtKadfloorIsValidAndResolvedWhitespace() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpKadfloor("  12.5  ")));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("  12.5  ")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -970,7 +972,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
     }
 
-    private ObjectNode givenExtImpKadfloor(String kadfloor) {
+    private ObjectNode givenExtImpWithKadfloor(String kadfloor) {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpPubmatic.builder().kadfloor(kadfloor).build()));
     }
 

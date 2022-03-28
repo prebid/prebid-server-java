@@ -164,17 +164,23 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(banner != null ? assignSizesIfMissing(banner) : null)
                 .ext(!keywordsNode.isEmpty() ? keywordsNode : null)
-                .bidfloor(resolveBidFloor(impExtBidder.getKadfloor()))
+                .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
                 .audio(null);
 
         return enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner)
                 .build();
     }
 
-    private BigDecimal resolveBidFloor(String kadfloor) {
-        return StringUtils.isNotBlank(kadfloor)
-                ? new BigDecimal(StringUtils.trim(kadfloor))
-                : null;
+    private BigDecimal resolveBidFloor(String kadfloor, BigDecimal existingFloor) {
+        if (StringUtils.isBlank(kadfloor)) {
+            return existingFloor;
+        }
+
+        try {
+            return new BigDecimal(StringUtils.trim(kadfloor));
+        } catch (NumberFormatException e) {
+            return existingFloor;
+        }
     }
 
     private static Imp.ImpBuilder enrichWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {
