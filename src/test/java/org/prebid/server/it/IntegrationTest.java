@@ -95,8 +95,6 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
-        WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
-                .willReturn(aResponse().withBody(jsonFrom("floors/provided-floors.json"))));
     }
 
     static RequestSpecification spec(int port) {

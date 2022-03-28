@@ -18,14 +18,14 @@
           }
         }
       ],
-      "seat": "aceex",
+      "seat": "generic",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "aceex": "{{ aceex.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

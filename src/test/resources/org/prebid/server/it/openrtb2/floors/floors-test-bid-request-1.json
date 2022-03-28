@@ -7,11 +7,11 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor": 300,
-      "bidfloorcur": "USD",
+      "bidfloor" : 300,
+      "bidfloorcur" : "USD",
       "ext": {
         "bidder": {
-          "accountid": "accountid"
+          "exampleProperty": "exampleProperty"
         }
       }
     }
@@ -46,7 +46,7 @@
       "bidadjustmentfactors": {
         "mediatypes": {
           "banner": {
-            "aceex": 0.5
+            "generic": 0.5
           }
         }
       },
@@ -57,22 +57,9 @@
         "endpoint": "/openrtb2/auction"
       },
       "floors": {
-        "floorMin": 1000,
-        "floorProvider": "",
-        "skipRate": 0,
-        "data": {
-          "skipRate": 0,
-          "modelGroups": [
-            {
-              "values": {
-                "banner": 10
-              }
-            }
-          ]
-        },
         "enabled": true,
-        "fetchStatus": "success",
-        "location": "fetch"
+        "fetchStatus": "inprogress",
+        "location": "request"
       }
     }
   }

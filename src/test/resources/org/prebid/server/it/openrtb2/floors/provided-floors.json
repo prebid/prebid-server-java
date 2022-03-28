@@ -1,0 +1,26 @@
+{
+  "data": {
+    "modelGroups": [
+      {
+        "modelWeight": 1,
+        "values": {
+          "video": 2,
+          "banner": 10,
+          "audio": 5
+        }
+      },
+      {
+        "modelWeight": 2,
+        "values": {
+          "banner": 10
+        }
+      },
+      {
+        "modelWeight": 100,
+        "values": {
+          "banner": 7
+        }
+      }
+    ]
+  }
+}

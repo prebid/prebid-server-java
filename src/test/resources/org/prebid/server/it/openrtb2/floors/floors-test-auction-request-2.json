@@ -10,21 +10,15 @@
       "bidfloor": 150,
       "bidfloorcur": "USD",
       "ext": {
-        "aceex": {
-          "accountid": "accountid"
+        "generic": {
+          "exampleProperty": "exampleProperty"
         }
       }
     }
   ],
   "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com",
     "publisher": {
-      "id": "12001",
-      "domain": "example.com"
-    },
-    "ext": {
-      "amp": 0
+      "id": "12001"
     }
   },
   "tmax": 5000,
@@ -36,14 +30,12 @@
   "ext": {
     "prebid": {
       "floors": {
-        "floorMin": 100,
-        "floorMinCur": "USD",
         "enabled": true
       },
       "bidadjustmentfactors": {
         "mediatypes": {
           "banner": {
-            "aceex": 0.5
+            "generic": 0.5
           }
         }
       }
