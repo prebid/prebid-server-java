@@ -170,7 +170,7 @@ public class CurrencyConversionService implements Initializable {
      * Throws {@link PreBidException} in case conversion is not possible.
      */
     public BigDecimal convertCurrency(BigDecimal price, BidRequest bidRequest, String fromCurrency, String toCurrency) {
-        return convertCurrency(price, currencyRates(bidRequest), fromCurrency, toCurrency, usepbsrates(bidRequest));
+        return convertCurrency(price, currencyRates(bidRequest), toCurrency, fromCurrency, usepbsrates(bidRequest));
     }
 
     /**
@@ -184,8 +184,9 @@ public class CurrencyConversionService implements Initializable {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
         final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
+        final String effectiveAdServerCurrency = adServerCurrency != null ? adServerCurrency : DEFAULT_BID_CURRENCY;
 
-        if (Objects.equals(adServerCurrency, effectiveBidCurrency)) {
+        if (Objects.equals(effectiveAdServerCurrency, effectiveBidCurrency)) {
             return price;
         }
 
@@ -201,16 +202,15 @@ public class CurrencyConversionService implements Initializable {
         }
 
         final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates, secondPriorityRates,
-                adServerCurrency, effectiveBidCurrency);
+                effectiveAdServerCurrency, effectiveBidCurrency);
 
         if (conversionRate == null) {
             throw new PreBidException(
                     String.format("Unable to convert from currency %s to desired ad server currency %s",
-                            effectiveBidCurrency, adServerCurrency));
+                            effectiveBidCurrency, effectiveAdServerCurrency));
         }
 
-        return price.multiply(conversionRate)
-                .setScale(DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
     }
 
     private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {

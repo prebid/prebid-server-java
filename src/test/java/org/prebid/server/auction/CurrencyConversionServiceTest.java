@@ -139,7 +139,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, null);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.200));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.205));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 BigDecimal.ONE, givenBidRequestWithCurrencies(null, false), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
     }
 
     @Test
@@ -220,7 +220,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, true), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
     }
 
     @Test
@@ -234,7 +234,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, USD);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.600));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.588));
     }
 
     @Test
@@ -270,7 +270,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyConversionService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), EUR, GBP))
-                .withMessage("Unable to convert from currency GBP to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency EUR to desired ad server currency GBP");
     }
 
     @Test
@@ -279,7 +279,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), USD, EUR))
-                .withMessage("Unable to convert from currency EUR to desired ad server currency USD");
+                .withMessage("Unable to convert from currency USD to desired ad server currency EUR");
     }
 
     @Test
@@ -297,7 +297,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(requestConversionRates, false), EUR, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency EUR to desired ad server currency AUD");
     }
 
     @Test
@@ -312,7 +312,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency UAH to desired ad server currency AUD");
     }
 
     @Test
@@ -327,7 +327,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency UAH to desired ad server currency AUD");
     }
 
     @SuppressWarnings("unchecked")
