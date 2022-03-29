@@ -41,7 +41,7 @@ LIMIT 1
             "settings.database.account-query"            : DB_ACCOUNT_QUERY,
             "settings.database.stored-requests-query"    : "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, reqid, requestData, 'imp' as dataType FROM stored_requests WHERE reqid IN (%IMP_ID_LIST%)",
             "settings.database.amp-stored-requests-query": "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)",
-            "settings.database.stored-responses-query"   : "SELECT resid, responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)"
+            "settings.database.stored-responses-query"   : "SELECT resid, COALESCE(storedAuctionResponse, storedBidResponse) as responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)"
     ]
 
     PrebidServerContainer(Map<String, String> config) {

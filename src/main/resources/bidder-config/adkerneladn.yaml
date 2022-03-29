@@ -1,6 +1,6 @@
 adapters:
   adkerneladn:
-    endpoint: http://{{Host}}/rtbpub?account={{PublisherID}}
+    endpoint: https://pbs2.adksrv.com/rtbpub?account={{PublisherID}}
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:

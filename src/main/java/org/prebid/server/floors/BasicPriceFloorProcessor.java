@@ -9,6 +9,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
@@ -108,15 +109,45 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
                                                PriceFloorRules providerFloors) {
 
-        final Boolean floorsEnabled = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
+        final Boolean floorsEnabledByRequest = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
+        final PriceFloorEnforcement floorsRequestEnforcement =
+                ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnforcement);
+        final Integer enforceRate =
+                ObjectUtil.getIfNotNull(floorsRequestEnforcement, PriceFloorEnforcement::getEnforceRate);
 
-        if (floorsEnabled != null) {
+        if (floorsEnabledByRequest != null || enforceRate != null) {
+            final Boolean floorsEnabledByProvider =
+                    ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
+            final PriceFloorEnforcement floorsProviderEnforcement =
+                    ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnforcement);
+
             return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
-                    .enabled(requestFloors.getEnabled())
+                    .enabled(resolveFloorsEnabled(floorsEnabledByRequest, floorsEnabledByProvider))
+                    .enforcement(resolveFloorsEnforcement(floorsProviderEnforcement, enforceRate))
                     .build();
         }
 
         return providerFloors;
+    }
+
+    private static Boolean resolveFloorsEnabled(Boolean enabledByRequest, Boolean enabledByProvider) {
+        if (Boolean.FALSE.equals(enabledByRequest) || Boolean.FALSE.equals(enabledByProvider)) {
+            return false;
+        }
+
+        return ObjectUtils.defaultIfNull(enabledByRequest, enabledByProvider);
+    }
+
+    private static PriceFloorEnforcement resolveFloorsEnforcement(PriceFloorEnforcement providerEnforcement,
+                                                                  Integer enforceRate) {
+
+        if (enforceRate == null) {
+            return providerEnforcement;
+        }
+
+        return (providerEnforcement != null ? providerEnforcement.toBuilder() : PriceFloorEnforcement.builder())
+                .enforceRate(enforceRate)
+                .build();
     }
 
     private static PriceFloorRules createFloorsFrom(PriceFloorRules floors,

@@ -7,8 +7,10 @@ import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
-import org.prebid.server.functional.model.db.typeconverter.StoredResponseConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.StoredAuctionResponseConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.StoredBidResponseConfigTypeConverter
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.SeatBid
 
 import static javax.persistence.GenerationType.IDENTITY
 
@@ -23,7 +25,10 @@ class StoredResponse {
     Integer id
     @Column(name = "resid")
     String resid
-    @Column(name = "responseData")
-    @Convert(converter = StoredResponseConfigTypeConverter)
-    BidResponse responseData
+    @Column(name = "storedAuctionResponse")
+    @Convert(converter = StoredAuctionResponseConfigTypeConverter)
+    SeatBid storedAuctionResponse
+    @Column(name = "storedBidResponse")
+    @Convert(converter = StoredBidResponseConfigTypeConverter)
+    BidResponse storedBidResponse
 }

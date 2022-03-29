@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
@@ -122,7 +123,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 givenAccount(identity()),
                 givenBidRequest(
                         identity(),
-                        givenFloors(floors -> floors.enabled(true).floorMin(BigDecimal.ZERO))));
+                        givenFloors(floors -> floors
+                                .enabled(true)
+                                .enforcement(PriceFloorEnforcement.builder().enforcePbs(false).enforceRate(100).build())
+                                .floorMin(BigDecimal.ZERO))));
 
         final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
@@ -134,6 +138,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .enforcement(PriceFloorEnforcement.builder().enforceRate(100).build())
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));

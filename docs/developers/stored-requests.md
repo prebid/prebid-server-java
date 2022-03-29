@@ -190,7 +190,7 @@ If a Stored BidRequest includes Imps with their own Stored Request IDs, then the
 
 ## Alternate backends
 
-Stored Requests do not need to be saved to files. Other backends are supported with different 
+Stored Requests do not need to be saved to files. Other backends are supported with different
 [configuration options](../config.md).
 
 ### Database backend
@@ -240,7 +240,7 @@ Conceptually, Stored Request data is managed by the following components in the 
 **SettingsCache**: Duplicates data which the ApplicationSettings _could_ find so that it can be accessed more quickly.
 **CacheNotificationListener**: Provides interface apply changes to Stored Request data.
 
-ApplicationSettings and methods of updating Stored Request data at runtime can also be chosen 
+ApplicationSettings and methods of updating Stored Request data at runtime can also be chosen
 in the the app config.
 At least one ApplicationSettings is _required_ to make use of Stored Requests.
 

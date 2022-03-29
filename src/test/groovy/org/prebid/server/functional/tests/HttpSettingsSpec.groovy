@@ -18,6 +18,8 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 @PBSTest
 class HttpSettingsSpec extends BaseSpec {
 // Check that PBS actually applied account config only possible by relying on side effects.
@@ -43,7 +45,7 @@ class HttpSettingsSpec extends BaseSpec {
         then: "Response should contain basic fields"
         assert response.id
         assert response.seatbid?.size() == 1
-        assert response.seatbid.first().seat == "generic"
+        assert response.seatbid.first().seat == GENERIC
         assert response.seatbid?.first()?.bid?.size() == 1
 
         and: "There should be only one call to bidder"
