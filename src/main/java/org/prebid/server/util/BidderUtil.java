@@ -18,6 +18,10 @@ public class BidderUtil {
         return isValidPrice(price.getValue()) && StringUtils.isNotBlank(price.getCurrency());
     }
 
+    public static boolean isNotEqualsIgnoreCase(String impBidFloorCur, String bidderCurrency) {
+        return !StringUtils.equalsIgnoreCase(impBidFloorCur, bidderCurrency);
+    }
+
     public static boolean shouldConvertBidFloor(Price price, String bidderCurrency) {
         return isValidPrice(price)
                 && !StringUtils.equals(price.getCurrency(), bidderCurrency);
