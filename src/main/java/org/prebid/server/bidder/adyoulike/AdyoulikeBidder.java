@@ -8,6 +8,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -47,6 +48,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
     public AdyoulikeBidder(String endpointUrl,
                            CurrencyConversionService currencyConversionService,
                            JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
@@ -98,7 +100,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
         return BidderUtil.isValidPrice(initialBidFloorPrice)
-                && BidderUtil.isNotEqualsIgnoreCase(initialBidFloorPrice.getCurrency(), BIDDER_CURRENCY)
+                && !StringUtils.equalsIgnoreCase(initialBidFloorPrice.getCurrency(), BIDDER_CURRENCY)
                 ? convertBidFloor(initialBidFloorPrice, imp.getId(), bidRequest)
                 : initialBidFloorPrice;
     }
