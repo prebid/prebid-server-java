@@ -5,7 +5,7 @@ individuals.
 
 ## Automated code style check
 
-The [pom.xml](../pom.xml) is configured to enforce a coding style defined in [checkstyle.xml](../checkstyle.xml) when
+The [pom.xml](../../pom.xml) is configured to enforce a coding style defined in [checkstyle.xml](../../checkstyle.xml) when
 maven `validate` phase executed.
 
 ## Formatting

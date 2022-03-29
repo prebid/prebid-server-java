@@ -32,7 +32,7 @@ class SmokeSpec extends BaseSpec {
         then: "Response should contain basic fields"
         assert response.id == bidRequest.id
         assert response.seatbid?.size() == 1
-        assert response.seatbid[0]?.seat == "generic"
+        assert response.seatbid[0]?.seat == GENERIC
         assert response.seatbid[0]?.bid?.size() == 1
         assert response.seatbid[0]?.bid[0]?.impid == bidRequest.imp[0].id
 

@@ -84,7 +84,7 @@ public class FpdResolverTest extends VertxTest {
                 .language("language")
                 .customdata("customdata")
                 .geo(Geo.builder().country("country").build())
-                .data(Collections.singletonList(Data.builder().id("id").build()))
+                .data(Collections.singletonList(Data.builder().id("fpdid").build()))
                 .ext(ExtUser.builder().data(mapper.createObjectNode()
                         .set("geo", mapper.createObjectNode().put("country", "fpdcountry"))).build())
                 .build());

@@ -13,4 +13,8 @@ public class Privacy {
     Ccpa ccpa;
 
     Integer coppa;
+
+    public Privacy withoutConsent() {
+        return Privacy.of(gdpr, "", ccpa, coppa);
+    }
 }

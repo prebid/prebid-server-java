@@ -102,7 +102,6 @@ class PgDealsOnlySpec extends BasePgSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidResponse.seatbid[0].bid[0].dealid = null
         bidder.setResponse(bidRequest.id, bidResponse)
-        def bidResponseId = bidResponse.seatbid[0].bid[0].id
 
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
@@ -115,9 +114,12 @@ class PgDealsOnlySpec extends BasePgSpec {
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+
         assert bidErrors?.size() == 1
-        assert bidErrors[0].code == 999
-        assert bidErrors[0].message == "Bid \"$bidResponseId\" missing required field 'dealid'"
+        assert bidErrors[0].code == 5
+        assert bidErrors[0].message ==~ /BidId `$bidId` validation messages:.* Error: / +
+                /Bid "$bidId" missing required field 'dealid'.*/
     }
 
     def "PBS should add dealsonly flag when it is not specified and pgdealsonly flag is set to true"() {
@@ -133,7 +135,6 @@ class PgDealsOnlySpec extends BasePgSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidResponse.seatbid[0].bid[0].dealid = null
         bidder.setResponse(bidRequest.id, bidResponse)
-        def bidResponseId = bidResponse.seatbid[0].bid[0].id
 
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
@@ -149,9 +150,12 @@ class PgDealsOnlySpec extends BasePgSpec {
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)
+        def bidId = bidResponse.seatbid[0].bid[0].id
+
         assert bidErrors?.size() == 1
-        assert bidErrors[0].code == 999
-        assert bidErrors[0].message == "Bid \"$bidResponseId\" missing required field 'dealid'"
+        assert bidErrors[0].code == 5
+        assert bidErrors[0].message ==~ /BidId `$bidId` validation messages:.* Error: / +
+                /Bid "$bidId" missing required field 'dealid'.*/
     }
 
     def "PBS shouldn't return an error when bidder dealsonly flag is set to true, no available PG line items and bid response misses 'dealid' field"() {
