@@ -15,4 +15,5 @@ public class ExtImpAdot {
 
     @JsonProperty("placementId")
     String placementId;
+    String publisherPath;
 }
