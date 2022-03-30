@@ -107,7 +107,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "privacy: {"
                         + "gdpr: {"
                         + "enabled: true,"
-                        + "integration-enabled: {"
+                        + "channel-enabled: {"
                         + "amp: true,"
                         + "web: true,"
                         + "video: true,"
