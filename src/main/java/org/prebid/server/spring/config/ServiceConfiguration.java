@@ -36,6 +36,7 @@ import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
+import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -507,6 +508,12 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
+    BidderMediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
     HttpBidderRequester httpBidderRequester(
             HttpClient httpClient,
             @Autowired(required = false) BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory,
@@ -589,6 +596,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
             DebugResolver debugResolver,
+            @Autowired(required = false) BidderMediaTypeProcessor bidderMediaTypeProcessor,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -611,6 +619,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
+                bidderMediaTypeProcessor,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,

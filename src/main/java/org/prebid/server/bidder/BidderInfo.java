@@ -3,6 +3,7 @@ package org.prebid.server.bidder;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
 
@@ -34,8 +35,8 @@ public class BidderInfo {
                                     String endpoint,
                                     String aliasOf,
                                     String maintainerEmail,
-                                    List<String> appMediaTypes,
-                                    List<String> siteMediaTypes,
+                                    List<MediaType> appMediaTypes,
+                                    List<MediaType> siteMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
                                     boolean ccpaEnforced,
@@ -54,7 +55,7 @@ public class BidderInfo {
                 modifyingVastXmlAllowed);
     }
 
-    private static PlatformInfo platformInfo(List<String> mediaTypes) {
+    private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {
         return mediaTypes != null ? new PlatformInfo(mediaTypes) : null;
     }
 
@@ -73,10 +74,10 @@ public class BidderInfo {
     }
 
     @Value
-    private static class PlatformInfo {
+    public static class PlatformInfo {
 
         @JsonProperty("mediaTypes")
-        List<String> mediaTypes;
+        List<MediaType> mediaTypes;
     }
 
     @Value

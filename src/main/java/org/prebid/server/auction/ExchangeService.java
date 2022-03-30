@@ -36,6 +36,7 @@ import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -156,6 +157,7 @@ public class ExchangeService {
     private final FpdResolver fpdResolver;
     private final SchainResolver schainResolver;
     private final DebugResolver debugResolver;
+    private final BidderMediaTypeProcessor bidderMediaTypeProcessor;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -177,6 +179,7 @@ public class ExchangeService {
                            FpdResolver fpdResolver,
                            SchainResolver schainResolver,
                            DebugResolver debugResolver,
+                           BidderMediaTypeProcessor bidderMediaTypeProcessor,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -201,6 +204,7 @@ public class ExchangeService {
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.schainResolver = Objects.requireNonNull(schainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
+        this.bidderMediaTypeProcessor = bidderMediaTypeProcessor;
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -1198,7 +1202,16 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        return httpBidderRequester.requestBids(bidder, bidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+        final BidderRequest modifiedBidderRequest = bidderMediaTypeProcessor != null
+                ? bidderMediaTypeProcessor.process(bidderRequest, resolvedBidderName, auctionContext)
+                : bidderRequest;
+
+        if (modifiedBidderRequest == null) {
+            return Future.succeededFuture(BidderResponse.of(bidderName, BidderSeatBid.empty(), 0));
+        }
+
+        return httpBidderRequester.requestBids(
+                        bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
@@ -1321,8 +1334,8 @@ public class ExchangeService {
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
         final String validationErrors = Stream.concat(
-                validationResult.getErrors().stream().map(message -> "Error: " + message),
-                validationResult.getWarnings().stream().map(message -> "Warning: " + message))
+                        validationResult.getErrors().stream().map(message -> "Error: " + message),
+                        validationResult.getWarnings().stream().map(message -> "Warning: " + message))
                 .collect(Collectors.joining(". "));
 
         final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
