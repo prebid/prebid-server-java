@@ -6,7 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 300,
+          "price": 8.399,
           "adid": "2068416",
           "cid": "8048",
           "crid": "24080",
@@ -14,7 +14,8 @@
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 600
+            "origbidcpm": 13,
+            "origbidcur":"GBP"
           }
         }
       ],

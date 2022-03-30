@@ -4,7 +4,6 @@
       {
         "modelWeight": 0,
         "schema": {
-          "delimiter": "|",
           "fields": [
             "mediaType"
           ]
@@ -17,18 +16,17 @@
       },
       {
         "modelWeight": 1000,
+        "currency": "NZD",
         "schema": {
           "fields": [
-            "mediaType"
+            "domain","mediaType", "size"
           ]
         },
         "values": {
-          "*|banner|300x250": 700,
-          "*|banner|*": 1000,
-          "*|banner|320x250": 1200,
-          "*|video|320x250": 300,
-          "*|video|640x480": 400,
-          "banner": 100
+          "*|banner|*": 1,
+          "*|banner|320x250": 2,
+          "*|video|320x250": 3,
+          "*|video|640x480": 4
         }
       }
     ]

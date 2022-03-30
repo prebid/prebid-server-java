@@ -7,7 +7,7 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor": 150,
+      "bidfloor": 4,
       "bidfloorcur": "USD",
       "ext": {
         "generic": {
@@ -29,7 +29,7 @@
   "ext": {
     "prebid": {
       "floors": {
-        "enabled": true
+        "floorMinCur": "NZD"
       },
       "bidadjustmentfactors": {
         "mediatypes": {

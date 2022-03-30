@@ -7,7 +7,7 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor": 300,
+      "bidfloor": 8,
       "bidfloorcur": "USD",
       "ext": {
         "bidder": {}
@@ -54,10 +54,10 @@
       "pbs": {
         "endpoint": "/openrtb2/auction"
       },
-      "floors" : {
-        "enabled" : true,
-        "fetchStatus" : "inprogress",
-        "location" : "request"
+      "floors": {
+        "fetchStatus": "inprogress",
+        "location": "request",
+        "floorMinCur": "NZD"
       }
     }
   }

@@ -7,14 +7,14 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor": 200,
-      "bidfloorcur": "USD",
+      "bidfloor": 4,
+      "bidfloorcur": "NZD",
       "ext": {
         "prebid": {
           "floors": {
-            "floorRule": "banner",
-            "floorRuleValue": 100,
-            "floorValue": 200
+            "floorRule": "*|banner|320x250",
+            "floorRuleValue" : 2,
+            "floorValue" : 4
           }
         },
         "bidder": {}
@@ -65,24 +65,24 @@
         "data": {
           "modelGroups": [
             {
+              "currency" : "NZD",
               "modelWeight": 1000,
               "schema": {
                 "fields": [
-                  "mediaType"
+                  "domain",
+                  "mediaType",
+                  "size"
                 ]
               },
               "values": {
-                "*|banner|300x250": 700,
-                "*|banner|*": 1000,
-                "*|banner|320x250": 1200,
-                "*|video|320x250": 300,
-                "*|video|640x480": 400,
-                "banner": 100
+                "*|banner|*": 1,
+                "*|banner|320x250": 2,
+                "*|video|320x250": 3,
+                "*|video|640x480": 4
               }
             }
           ]
         },
-        "enabled": true,
         "fetchStatus": "success",
         "location": "fetch"
       }
