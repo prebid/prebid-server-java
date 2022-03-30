@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.grid.model;
+package org.prebid.server.bidder.grid.model.request;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
