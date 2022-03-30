@@ -160,7 +160,7 @@ class BidValidationSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first().id)
+        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "One of the bids is invalid"
         def invalidBid = bidResponse.seatbid.first().bid.first()
