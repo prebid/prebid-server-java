@@ -124,7 +124,8 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params())
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "win"));
+                        .add("t", "win")
+                        .add("vtype", "start"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -140,6 +141,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("bidder", "bidder")
                 .add("ts", "invalid"));
@@ -159,6 +161,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params())
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
                         .add("t", "win")
+                        .add("vtype", "start")
                         .add("b", "bidId"));
 
         // when
@@ -175,6 +178,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "invalid"));
@@ -193,6 +197,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "b")
@@ -212,6 +217,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "b")
@@ -232,6 +238,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId"));
 
@@ -253,6 +260,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId"));
 
@@ -279,6 +287,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId"));
 
@@ -296,6 +305,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId");
         final HttpRequestContext expectedHttpContext = HttpRequestContext.builder()
@@ -316,6 +326,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("l", "lineItemId")
                 .add("a", "accountId"));
@@ -340,6 +351,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("l", "lineItemId")
                 .add("a", "accountId")
@@ -366,6 +378,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("l", "lineItemId")
                 .add("a", "accountId"));
@@ -426,6 +439,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("x", "0"));
@@ -449,6 +463,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("x", "0"));
@@ -472,6 +487,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "i"));
@@ -499,6 +515,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId"));
 
@@ -521,6 +538,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("bidder", "bidder")
@@ -541,6 +559,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // then
         final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("bidder", "bidder")
@@ -568,6 +587,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         given(httpRequest.params())
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
                         .add("t", "win")
+                        .add("vtype", "start")
                         .add("b", "bidId")
                         .add("a", "accountId")
                         .add("l", "lineItemId"));
@@ -588,6 +608,7 @@ public class NotificationEventHandlerTest extends VertxTest {
 
         final CaseInsensitiveMultiMap.Builder queryParams = CaseInsensitiveMultiMap.builder()
                 .add("t", "win")
+                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("l", "lineItemId");

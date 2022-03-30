@@ -37,7 +37,8 @@ public class EventUtilTest {
     public void validateTypeShouldFailWhenTypeIsMissing() {
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateType(routingContext))
-                .withMessage("Type 't' is required query parameter. Possible values are win and imp, but was null");
+                .withMessage("Type 't' is required query parameter. "
+                        + "Possible values are [win, imp, vast], but was null");
     }
 
     @Test
@@ -48,7 +49,8 @@ public class EventUtilTest {
 
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateType(routingContext))
-                .withMessage("Type 't' is required query parameter. Possible values are win and imp, but was invalid");
+                .withMessage("Type 't' is required query parameter. "
+                        + "Possible values are [win, imp, vast], but was invalid");
     }
 
     @Test
@@ -71,6 +73,84 @@ public class EventUtilTest {
         // when and then
         assertThatCode(() -> EventUtil.validateType(routingContext))
                 .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateTypeShouldSucceedWhenTypeIsVast() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("t", "vast"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateVTypeShouldSucceedWhenVTypeIsStart() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "start"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateVType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateVTypeShouldSucceedWhenVTypeIsFirstQuartile() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "firstQuartile"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateVType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateVTypeShouldSucceedWhenVTypeIsMidPoint() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "midPoint"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateVType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateVTypeShouldSucceedWhenVTypeIsThirdQuartile() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "thirdQuartile"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateVType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateVTypeShouldSucceedWhenVTypeIsComplete() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "complete"));
+
+        // when and then
+        assertThatCode(() -> EventUtil.validateVType(routingContext))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void validateTypeShouldFailWhenVTypeIsInvalid() {
+        // given
+        given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("vtype", "invalid"));
+
+        // when and then
+        assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateVType(routingContext))
+                .withMessage("Type 'vtype' is required query parameter. Possible values are "
+                        + "[start, firstQuartile, midPoint, thirdQuartile, complete], but was invalid");
     }
 
     @Test

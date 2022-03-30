@@ -5,6 +5,7 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 public class EventUtil {
@@ -14,8 +15,10 @@ public class EventUtil {
     // Required  query string parameters
 
     private static final String TYPE_PARAMETER = "t";
+    private static final String V_TYPE_PARAMETER = "vtype";
     private static final String WIN_TYPE = "win";
     private static final String IMP_TYPE = "imp";
+    private static final String VAST_TYPE = "vast";
 
     private static final String BID_ID_PARAMETER = "b";
     private static final String ACCOUNT_ID_PARAMETER = "a";
@@ -39,15 +42,33 @@ public class EventUtil {
 
     private static final String LINE_ITEM_ID_PARAMETER = "l";
 
+    private static final List<String> POSSIBLE_TYPES = List.of(WIN_TYPE, IMP_TYPE, VAST_TYPE);
+    private static final List<String> POSSIBLE_V_TYPES = List.of(EventRequest.VastType.START.toString(),
+            EventRequest.VastType.FIRST_QUARTILE.toString(),
+            EventRequest.VastType.MID_POINT.toString(),
+            EventRequest.VastType.THIRD_QUARTILE.toString(),
+            EventRequest.VastType.COMPLETE.toString());
+
     private EventUtil() {
     }
 
     public static void validateType(RoutingContext routingContext) {
         final String type = routingContext.request().params().get(TYPE_PARAMETER);
-        if (ObjectUtils.notEqual(type, IMP_TYPE) && ObjectUtils.notEqual(type, WIN_TYPE)) {
+        final boolean isNotEqual = POSSIBLE_TYPES.stream().allMatch(element -> ObjectUtils.notEqual(element, type));
+        if (isNotEqual) {
             throw new IllegalArgumentException(String.format(
-                    "Type '%s' is required query parameter. Possible values are %s and %s, but was %s",
-                    TYPE_PARAMETER, WIN_TYPE, IMP_TYPE, type));
+                    "Type '%s' is required query parameter. Possible values are %s, but was %s",
+                    TYPE_PARAMETER, POSSIBLE_TYPES, type));
+        }
+    }
+
+    public static void validateVType(RoutingContext routingContext) {
+        final String vType = routingContext.request().params().get(V_TYPE_PARAMETER);
+        final boolean isNotEqual = POSSIBLE_V_TYPES.stream().allMatch(element -> ObjectUtils.notEqual(element, vType));
+        if (isNotEqual) {
+            throw new IllegalArgumentException(String.format(
+                    "Type '%s' is required query parameter. Possible values are %s, but was %s",
+                    V_TYPE_PARAMETER, POSSIBLE_V_TYPES, vType));
         }
     }
 

@@ -30,9 +30,11 @@ public class EventRequest {
 
     String lineItemId;
 
+    VastType vType;
+
     public enum Type {
 
-        win, imp
+        win, imp, VAST
     }
 
     public enum Format {
@@ -43,5 +45,29 @@ public class EventRequest {
     public enum Analytics {
 
         enabled, disabled
+    }
+
+    public enum VastType {
+
+        START("start"),
+        FIRST_QUARTILE("firstQuartile"),
+        MID_POINT("midPoint"),
+        THIRD_QUARTILE("thirdQuartile"),
+        COMPLETE("complete");
+
+        private final String name;
+
+        VastType() {
+            this.name = name();
+        }
+
+        VastType(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 }

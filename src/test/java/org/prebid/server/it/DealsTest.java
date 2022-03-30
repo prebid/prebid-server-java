@@ -187,6 +187,7 @@ public class DealsTest extends VertxTest {
         // when
         final Response eventResponse = given(SPEC)
                 .queryParam("t", "win")
+                .queryParam("vtype", "start")
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
                 .queryParam("l", "lineItem1")

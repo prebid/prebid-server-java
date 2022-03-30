@@ -91,6 +91,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     public void handle(RoutingContext routingContext) {
         try {
             EventUtil.validateType(routingContext);
+            EventUtil.validateVType(routingContext);
             EventUtil.validateBidId(routingContext);
             EventUtil.validateTimestamp(routingContext);
             EventUtil.validateFormat(routingContext);
