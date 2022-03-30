@@ -13,6 +13,7 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
@@ -28,7 +29,7 @@ class HttpSettingsSpec extends BaseSpec {
     HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(pbsServiceFactory.httpSettings())
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
 
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
