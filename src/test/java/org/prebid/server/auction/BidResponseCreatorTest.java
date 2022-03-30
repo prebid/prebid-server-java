@@ -3025,9 +3025,13 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldPopulateExtensionResponseDebugAndDeepDebugLogIfEnabled() {
         // given
+        final DeepDebugLog deepDebugLog = DeepDebugLog.create(true, clock);
+        deepDebugLog.add("line-item-id-1", pacing, () -> "test-1");
+        deepDebugLog.add("line-item-id-2", targeting, () -> "test-2");
+        deepDebugLog.add("", targeting, () -> "test-3");
         final AuctionContext auctionContext = givenAuctionContext(
                 givenBidRequest(givenImp()),
-                builder -> builder.deepDebugLog(givenDeepDebugLog()));
+                builder -> builder.deepDebugLog(deepDebugLog));
 
         final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -3177,7 +3181,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .build()))
                 .build();
 
-        String bidder1 = "bidder1";
+        final String bidder1 = "bidder1";
         final List<BidderResponse> bidderResponses = List.of(BidderResponse.of(bidder1,
                 givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
 
@@ -3216,7 +3220,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .adm(adm)
                 .build();
 
-        String bidder1 = "bidder1";
+        final String bidder1 = "bidder1";
         final List<BidderResponse> bidderResponses = List.of(BidderResponse.of(bidder1,
                 givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
 
@@ -3377,11 +3381,12 @@ public class BidResponseCreatorTest extends VertxTest {
                 .includebidderkeys(true)
                 .build();
 
+        final TxnLog txnLog = TxnLog.create();
+        txnLog.lineItemsSentToBidder();
+
         final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
-                identity(),
-                extBuilder -> extBuilder.targeting(targeting),
-                givenImp()),
-                auctionContextBuilder -> auctionContextBuilder.txnLog(givenTxnLog()));
+                        identity(), extBuilder -> extBuilder.targeting(targeting), givenImp()),
+                auctionContextBuilder -> auctionContextBuilder.txnLog(txnLog));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
@@ -3444,12 +3449,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .hasMessageStartingWith("Error decoding bidRequest.prebid.targeting.pricegranularity: "
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request"
                         + ".ExtGranularityRange");
-    }
-
-    private static TxnLog givenTxnLog() {
-        final TxnLog txnLog = TxnLog.create();
-        txnLog.lineItemsSentToBidder();
-        return txnLog;
     }
 
     private AuctionContext givenAuctionContext(BidRequest bidRequest,
@@ -3609,14 +3608,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 truncateAttrChars,
                 clock,
                 jacksonMapper);
-    }
-
-    private DeepDebugLog givenDeepDebugLog() {
-        final DeepDebugLog deepDebugLog = DeepDebugLog.create(true, clock);
-        deepDebugLog.add("line-item-id-1", pacing, () -> "test-1");
-        deepDebugLog.add("line-item-id-2", targeting, () -> "test-2");
-        deepDebugLog.add("", targeting, () -> "test-3");
-        return deepDebugLog;
     }
 
     private static String toTargetingByKey(Bid bid, String targetingKey) {
