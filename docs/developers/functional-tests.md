@@ -43,9 +43,9 @@ Functional tests need to have name template **.\*Spec.groovy**
 
 **Properties:**
 
-`launchContainers` - responsible for starting the MockServer and the MySQLContainer container. Default value is false.
+`launchContainers` - responsible for starting the MockServer and the MySQLContainer container. Default value is false to not launch containers for unit tests.
 `max.containers.count` - maximum number of simultaneously running PBS containers. Default value is 2.
-`skipFunctionalTests` - allow to skip funtional tests. Default value is false to not launch containers for unit tests.
+`skipFunctionalTests` - allow to skip funtional tests. Default value is false.
 `skipUnitTests` - allow to skip unit tests. Default value is false.
 
 **Debug:**
