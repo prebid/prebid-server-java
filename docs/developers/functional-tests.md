@@ -2,6 +2,7 @@
 
 Main language: Groovy. Project functional tests use [Spock](https://spockframework.org/) as a main testing framework.
 Also used [Docker](https://www.docker.com/) for running PBS and other services.
+[Testcontainers](https://www.testcontainers.org/) is used as provider of lightweight, throwaway instances of PBS, MySQLContainer, MockServerContainer containers.
 And [MockServer](https://www.mock-server.com/) for mocking external services.
 
 ## Getting Started
@@ -44,7 +45,7 @@ Functional tests need to have name template **.\*Spec.groovy**
 
 `launchContainers` - responsible for starting the MockServer and the MySQLContainer container. Default value is false.
 `max.containers.count` - maximum number of simultaneously running PBS containers. Default value is 2.
-`skipFunctionalTests` - allow to skip funtional tests. Default value is false.
+`skipFunctionalTests` - allow to skip funtional tests. Default value is false to not launch containers for unit tests.
 `skipUnitTests` - allow to skip unit tests. Default value is false.
 
 **Debug:**

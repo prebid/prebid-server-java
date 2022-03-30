@@ -28,8 +28,12 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                        .forStatusCode(200))
         withDebug()
         withNetwork(Dependencies.network)
-        def commonConfig = [:] << DEFAULT_ENV << PbsConfig.defaultBiddersConfig << PbsConfig.metricConfig <<
-                PbsConfig.adminEndpointConfig << PbsConfig.bidderConfig << PbsConfig.prebidCacheConfig
+        def commonConfig = [:] << DEFAULT_ENV
+                << PbsConfig.defaultBiddersConfig
+                << PbsConfig.metricConfig
+                << PbsConfig.adminEndpointConfig
+                << PbsConfig.bidderConfig
+                << PbsConfig.prebidCacheConfig
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
         withConfig(customConfig)
