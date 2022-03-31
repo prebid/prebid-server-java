@@ -83,6 +83,10 @@ public class BidderMediaTypeProcessor {
         final Set<MediaType> impMediaTypes = getMediaTypes(imp);
         final Set<MediaType> unsupportedMediaTypes = SetUtils.difference(impMediaTypes, supportedMediaTypes);
 
+        if (unsupportedMediaTypes.isEmpty()) {
+            return imp;
+        }
+
         if (impMediaTypes.equals(unsupportedMediaTypes)) {
             errors.add("Imp " + imp.getId() + " does not have a supported media type for the " + bidderName
                     + "and has been removed from the request for this bidder");
