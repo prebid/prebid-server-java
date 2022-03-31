@@ -7,9 +7,16 @@
         "w": 320,
         "h": 250
       },
-      "bidfloor": 8,
-      "bidfloorcur": "USD",
+      "bidfloor": 4,
+      "bidfloorcur": "NZD",
       "ext": {
+        "prebid": {
+          "floors": {
+            "floorRule": "www.example.com|banner|320x250",
+            "floorRuleValue": 2,
+            "floorValue": 4
+          }
+        },
         "bidder": {}
       }
     }
@@ -55,9 +62,33 @@
         "endpoint": "/openrtb2/auction"
       },
       "floors": {
+        "data": {
+          "modelGroups": [
+            {
+              "currency": "NZD",
+              "modelWeight": 1000,
+              "schema": {
+                "fields": [
+                  "domain",
+                  "mediaType",
+                  "size"
+                ]
+              },
+              "values": {
+                "*|banner|*": 10,
+                "*|banner|320x250": 8,
+                "*|*|320x250": 6,
+                "www.example.com|*|320x250": 4,
+                "www.example.com|banner|320x250": 2,
+                "www.example.com|banner|*": 1,
+                "*|video|*": 800,
+                "*|video|640x480": 333
+              }
+            }
+          ]
+        },
         "fetchStatus": "inprogress",
-        "location": "request",
-        "floorMinCur": "NZD"
+        "location": "request"
       }
     }
   }

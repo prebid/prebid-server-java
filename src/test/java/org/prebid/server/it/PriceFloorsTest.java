@@ -1,5 +1,6 @@
 package org.prebid.server.it;
 
+import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import org.json.JSONException;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
 @TestPropertySource("floors-application.properties")
@@ -24,19 +26,17 @@ public class PriceFloorsTest extends IntegrationTest {
 
     @Test
     public void auctionFloorsTest() throws IOException, JSONException {
-        // for both tests
         // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
 
-        // first run
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .inScenario("Price Floors Test")
                 .whenScenarioStateIs(STARTED)
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json")))
-                .willSetStateTo("Run 1 passed"));
+                .willSetStateTo("Floors from request"));
 
         // when
         final Response firstResponse = responseFor("openrtb2/floors/floors-test-auction-request-1.json",
@@ -46,20 +46,20 @@ public class PriceFloorsTest extends IntegrationTest {
         assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json", firstResponse, singletonList("generic"));
 
-        // second run
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+        final StubMapping stubMapping = WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .inScenario("Price Floors Test")
-                .whenScenarioStateIs("Run 1 passed")
+                .whenScenarioStateIs("Floors from request")
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json")))
-                .willSetStateTo("Run 2 passed"));
+                .willSetStateTo("Floors from provider"));
 
         // when
         final Response secondResponse = responseFor("openrtb2/floors/floors-test-auction-request-2.json",
                 Endpoint.openrtb2_auction);
 
         // then
+        assertThat(stubMapping.getNewScenarioState()).isEqualTo("Floors from provider");
         assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json", secondResponse, singletonList("generic"));
     }
