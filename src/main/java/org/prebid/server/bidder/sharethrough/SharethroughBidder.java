@@ -42,20 +42,20 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     private static final String ADAPTER_VERSION = "10.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
-
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointUrl;
-    private final PrebidVersionProvider prebidVersionProvider;
     private final CurrencyConversionService currencyConversionService;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public SharethroughBidder(String endpointUrl,
                               CurrencyConversionService currencyConversionService,
                               PrebidVersionProvider prebidVersionProvider,
                               JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
@@ -170,20 +170,20 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, videoType);
+        return bidsFromResponse(bidResponse, resolveBidType(videoType));
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, Video videoType) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidType bidType) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolvedBidType(videoType), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolvedBidType(Video videoType) {
+    private static BidType resolveBidType(Video videoType) {
         return videoType != null ? BidType.video : DEFAULT_BID_TYPE;
     }
 }
