@@ -3,6 +3,7 @@ package org.prebid.server.spring.config.bidder.model;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum MediaType {
+
     BANNER,
     VIDEO,
     AUDIO,

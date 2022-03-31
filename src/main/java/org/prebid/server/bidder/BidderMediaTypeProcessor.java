@@ -24,11 +24,10 @@ public class BidderMediaTypeProcessor {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
-    public BidderRequest process(BidderRequest bidderRequest,
-                                 String supportedBidderName,
-                                 AuctionContext auctionContext) {
+    public BidRequest process(BidRequest bidRequest,
+                              String supportedBidderName,
+                              AuctionContext auctionContext) {
 
-        final BidRequest bidRequest = bidderRequest.getBidRequest();
         final List<String> errors = auctionContext.getPrebidErrors();
 
         final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, supportedBidderName);
@@ -37,12 +36,8 @@ public class BidderMediaTypeProcessor {
             return null;
         }
 
-        final BidRequest modifiedBidRequest = processBidRequest(
+        return processBidRequest(
                 bidRequest, supportedMediaTypes, errors, supportedBidderName);
-
-        return modifiedBidRequest != null
-                ? bidderRequest.with(modifiedBidRequest)
-                : null;
     }
 
     private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String supportedBidderName) {
@@ -126,6 +121,8 @@ public class BidderMediaTypeProcessor {
             case NATIVE:
                 impBuilder.xNative(null);
                 break;
+            default:
+                throw new IllegalArgumentException("Invalid media type");
         }
     }
 }

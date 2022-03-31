@@ -1202,16 +1202,17 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        final BidderRequest modifiedBidderRequest = bidderMediaTypeProcessor != null
-                ? bidderMediaTypeProcessor.process(bidderRequest, resolvedBidderName, auctionContext)
-                : bidderRequest;
+        final BidRequest bidRequest = bidderRequest.getBidRequest();
+        final BidRequest modifiedBidRequest = bidderMediaTypeProcessor != null
+                ? bidderMediaTypeProcessor.process(bidRequest, resolvedBidderName, auctionContext)
+                : bidRequest;
 
-        if (modifiedBidderRequest == null) {
+        if (modifiedBidRequest == null) {
             return Future.succeededFuture(BidderResponse.of(bidderName, BidderSeatBid.empty(), 0));
         }
 
         return httpBidderRequester.requestBids(
-                        bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+                        bidder, bidderRequest.with(modifiedBidRequest), timeout, requestHeaders, debugEnabledForBidder)
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
