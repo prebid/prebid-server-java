@@ -139,7 +139,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, null);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.205));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.200));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 BigDecimal.ONE, givenBidRequestWithCurrencies(null, false), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
     }
 
     @Test
@@ -220,7 +220,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, true), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
     }
 
     @Test
@@ -234,7 +234,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, USD);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.588));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.600));
     }
 
     @Test
@@ -258,7 +258,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(emptyMap(), false), USD, null);
 
         // then
-        assertThat(price.compareTo(BigDecimal.ONE)).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.ONE)).isZero();
     }
 
     @Test
