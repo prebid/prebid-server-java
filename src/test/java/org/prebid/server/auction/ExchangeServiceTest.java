@@ -47,6 +47,7 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -211,6 +212,9 @@ public class ExchangeServiceTest extends VertxTest {
 
     @Mock
     private DebugResolver debugResolver;
+
+    @Mock
+    private BidderMediaTypeProcessor bidderMediaTypeProcessor;
 
     @Mock
     private HttpBidderRequester httpBidderRequester;
@@ -3893,6 +3897,55 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
                 .flatExtracting(BidderSeatBid::getBids).isEmpty();
+    }
+
+    @Test
+    public void shouldResponseWithEmptySeatBidIfBidderNotSupportProvidedMeiaTypes() {
+        // given
+        final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
+        final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
+
+        given(bidderMediaTypeProcessor.process(any(), anyString(), any())).willReturn(null);
+        given(bidResponseCreator.create(
+                argThat(argument -> argument.get(0)
+                        .getBidderResponse()
+                        .equals(BidderResponse.of("bidder1", BidderSeatBid.empty(), 0))),
+                any(),
+                any(),
+                any()))
+                .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
+
+        exchangeService = new ExchangeService(
+                100,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsProcessor,
+                privacyEnforcementService,
+                fpdResolver,
+                schainResolver,
+                debugResolver,
+                bidderMediaTypeProcessor,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager);
+
+        // when
+        final Future<AuctionContext> result = exchangeService.holdAuction(auctionContext);
+
+        // then
+        assertThat(result.result())
+                .extracting(AuctionContext::getBidResponse)
+                .isEqualTo(BidResponse.builder().id("uniqId").build());
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {

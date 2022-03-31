@@ -5,7 +5,6 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.util.ObjectUtil;
 
