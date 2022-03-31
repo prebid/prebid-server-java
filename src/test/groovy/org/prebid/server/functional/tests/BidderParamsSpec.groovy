@@ -1,12 +1,10 @@
 package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -24,6 +22,9 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -41,7 +42,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain httpcalls"
-        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
 
         and: "Response should not contain error"
         assert !response.ext?.errors
@@ -196,7 +197,7 @@ class BidderParamsSpec extends BaseSpec {
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic(firstParam: firstParam)
 
         and: "Set bidderParam to bidRequest"
-        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [firstParam: PBSUtils.randomNumber]]
+        bidRequest.ext.prebid.bidderParams = [(GENERIC): [firstParam: PBSUtils.randomNumber]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -231,7 +232,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Set bidderParam to bidRequest"
         def secondParam = PBSUtils.randomNumber
-        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [secondParam: secondParam]]
+        bidRequest.ext.prebid.bidderParams = [(GENERIC): [secondParam: secondParam]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -367,16 +368,11 @@ class BidderParamsSpec extends BaseSpec {
         assert response.targeting.isEmpty()
     }
 
-    @PendingFeature
-    def "PBS should emit error when validate-media-types = true and site-media-types is empty in bidder config"() {
+    def "PBS should emit error when filter-imp-media-type = true and #configMediaType is empty in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "true",
-                                                       "adapters.generic.meta-info.site-media-types"    : ""])
-
-        and: "Default basic BidRequest with zoneId = null"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite
-        }
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"                     : "true",
+                 ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -385,42 +381,20 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
 
         and: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
-                ["Site for bidder is not supported, request will be skipped"]
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message == ["generic does not support any media types"]
+
+        where:
+        configMediaType    | bidRequest
+        "app-media-types"  | BidRequest.getDefaultBidRequest(APP)
+        "site-media-types" | BidRequest.getDefaultBidRequest(SITE)
     }
 
-    @PendingFeature
-    def "PBS should emit error when validate-media-types not specified and site-media-types is empty in bidder config"() {
+    def "PBS should not validate request when filter-imp-media-type = false and #configMediaType is empty in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.site-media-types": ""])
-
-        and: "Default basic BidRequest with zoneId = null"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite
-        }
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain empty seatbid"
-        assert response.seatbid.isEmpty()
-
-        and: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
-                ["Site for bidder is not supported, request will be skipped"]
-    }
-
-    def "PBS should not validate request when validate-media-types = false and site-media-types is empty in bidder config"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "false",
-                                                       "adapters.generic.meta-info.site-media-types"    : ""])
-
-        and: "Default basic BidRequest with zoneId = null"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite
-        }
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"                     : "false",
+                 ("adapters.generic.meta-info.${configMediaType}".toString()): ""])
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -430,60 +404,21 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Response should not contain error"
         assert !response.ext?.errors
+
+        where:
+        configMediaType    | bidRequest
+        "app-media-types"  | BidRequest.getDefaultBidRequest(APP)
+        "site-media-types" | BidRequest.getDefaultBidRequest(SITE)
     }
 
-    @PendingFeature
-    def "PBS should emit error when validate-media-types = true and app-media-types is empty in bidder config"() {
+// TODO  Critical error while running the auction: null
+    def "PBS should emit error when filter-imp-media-type = true and request contains media type that is not configured in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "true",
-                                                       "adapters.generic.meta-info.app-media-types"     : ""])
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "true",
+                 "adapters.generic.meta-info.site-media-types": "native"])
 
-        and: "Default basic BidRequest with zoneId = null"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site = null
-            app = App.defaultApp
-        }
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain empty seatbid"
-        assert response.seatbid.isEmpty()
-
-        and: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
-                ["App for bidder is not supported, request will be skipped"]
-    }
-
-    def "PBS should not validate request when validate-media-types = false and app-media-types is empty in bidder config"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "false",
-                                                       "adapters.generic.meta-info.app-media-types"     : ""])
-
-        and: "Default basic BidRequest with zoneId = null"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            site = null
-            app = App.defaultApp
-        }
-
-        when: "PBS processes auction request"
-        def response = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Response should contain seatbid"
-        assert response.seatbid
-
-        and: "Response should not contain error"
-        assert !response.ext?.errors
-    }
-
-    @PendingFeature
-    def "PBS should emit error when validate-media-types = true and request contains media type that is not configured in bidder config"() {
-        given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "true",
-                                                       "adapters.generic.meta-info.site-media-types"    : "native"])
-
-        and: "Default basic BidRequest with zoneId = null"
+        and: "Default basic BidRequest with banner, native"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite
             imp[0].banner = Banner.defaultBanner
@@ -504,12 +439,13 @@ class BidderParamsSpec extends BaseSpec {
                 ["Imp with id ${bidRequest.imp[0].id} uses banner, but this bidder doesn't this type" as String]
     }
 
-    def "PBS should not validate request when validate-media-types = false and request contains only media type that is not configured in bidder config"() {
+    def "PBS should not validate request when filter-imp-media-type = false and request contains only media type that is not configured in bidder config"() {
         given: "Pbs config"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.meta-info.validate-media-types": "false",
-                                                       "adapters.generic.meta-info.site-media-types"    : "native"])
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "false",
+                 "adapters.generic.meta-info.site-media-types": "native"])
 
-        and: "Default basic BidRequest with zoneId = null"
+        and: "Default basic BidRequest with banner, native"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite
             imp[0].banner = Banner.defaultBanner
@@ -526,5 +462,66 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Response should not contain error"
         assert !response.ext?.errors
+    }
+
+    def "PBS should emit error for request with multiple impressions when filter-imp-media-type = true, one of imp doesn't contain supported media type"() {
+        given: "Pbs config"
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "true",
+                 "adapters.generic.meta-info.site-media-types": "native,video"])
+
+        and: "Default basic BidRequest with banner, native"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite
+            imp << Imp.defaultImpression
+            imp.first().banner = Banner.defaultBanner
+            imp.last().nativeObj = Native.defaultNative
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove banner imp from bidder request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp.size() == 1
+        assert bidderRequest.imp[0].nativeObj
+
+        and: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $GENERIC.value and" +
+                         " has been removed from the request for this bidder" as String]
+
+        and: "seatbid should not be empty"
+        assert !response.seatbid.isEmpty()
+    }
+
+    def "PBS should return empty seatBit when filter-imp-media-type = true, request.imp doesn't contain supported media type"() {
+        given: "Pbs config"
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "true",
+                 "adapters.generic.meta-info.site-media-types": "native,video"])
+
+        and: "Default basic BidRequest with banner"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite
+            imp.first().banner = Banner.defaultBanner
+        }
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should not call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 0
+
+        and: "Response should contain errors"
+        assert response.ext?.errors[PREBID]*.code == [999, 999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $GENERIC.value and" +
+                         " has been removed from the request for this bidder" as String,
+                "Bid request contains 0 impressions after filtering for $GENERIC.value" as String]
+
+        and: "seatbid should be empty"
+        assert response.seatbid.isEmpty()
     }
 }
