@@ -24,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adot.ExtImpAdot;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -57,10 +58,8 @@ public class AdotBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
 
         final Imp firstImp = bidRequest.getImp().get(0);
-        final ExtImpAdot extImpAdot = parseImpExt(firstImp);
-        final String publisherPath = extImpAdot != null
-                ? extImpAdot.getPublisherPath() != null ? extImpAdot.getPublisherPath() : ""
-                : "";
+        final String publisherPath = StringUtils.defaultString(
+                ObjectUtil.getIfNotNull(parseImpExt(firstImp), ExtImpAdot::getPublisherPath));
 
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
@@ -157,5 +156,4 @@ public class AdotBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Wrong Adot bid ext in bid with id : %s", bid.getId()));
         }
     }
-
 }
