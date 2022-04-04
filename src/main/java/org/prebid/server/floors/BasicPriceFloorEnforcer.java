@@ -3,6 +3,8 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
@@ -19,6 +21,9 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
@@ -34,13 +39,18 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
+    private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorResolver.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final Integer ENFORCE_RATE_MIN = 0;
     private static final Integer ENFORCE_RATE_MAX = 100;
 
     private final CurrencyConversionService currencyConversionService;
+    private final Metrics metrics;
 
-    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService) {
+    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService, Metrics metrics) {
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
@@ -192,8 +202,16 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
             return convertIfRequired(imp.getBidfloor(), imp.getBidfloorcur(), bidderBidRequest, bidRequest);
         } catch (PreBidException e) {
+            final String logMessage =
+                    String.format("Price floors enforcement failed for request id: %s, reason: %s",
+                            bidRequest.getId(),
+                            e.getMessage());
+            logger.debug(logMessage);
+            conditionalLogger.error(logMessage, 0.01d);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
             errors.add(BidderError.badServerResponse(
                     String.format("Price floors enforcement failed: %s", e.getMessage())));
+
             return null;
         }
     }

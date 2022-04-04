@@ -496,6 +496,15 @@ public class MetricsTest {
     }
 
     @Test
+    public void updatePriceFloorGeneralErrorsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
     public void updateAlertsConfigMetricsShouldCreateMetricsAsExpected() {
         // when
         metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
