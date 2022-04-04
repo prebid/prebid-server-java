@@ -36,7 +36,7 @@ class PbsServiceFactory {
         }
     }
 
-    static PrebidServerContainer getContainer(Map<String, String> config) {
+    private static PrebidServerContainer getContainer(Map<String, String> config) {
         containers.get(config)
     }
 

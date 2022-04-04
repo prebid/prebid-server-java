@@ -1392,7 +1392,7 @@ public class ExchangeService {
         final BigDecimal price = bid.getPrice();
 
         final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
+                price, bidRequest, StringUtils.stripToNull(bidCurrency), adServerCurrency);
 
         final BigDecimal priceAdjustmentFactor =
                 bidAdjustmentForBidder(bidderResponse.getBidder(), bidRequest, bidderBid);
