@@ -101,10 +101,10 @@ public class YandexBidder implements Bidder<BidRequest> {
         if (imp.getBanner() != null) {
             return imp.toBuilder().banner(makeBanner(imp.getBanner())).build();
         }
-        if (imp.getXNative() != null || imp.getVideo() != null) {
+        if (imp.getXNative() != null) {
             return imp;
         }
-        throw new PreBidException(String.format("Yandex only supports banner, native and video types. "
+        throw new PreBidException(String.format("Yandex only supports banner and native types. "
                 + "Ignoring imp id=%s", imp.getId()));
     }
 

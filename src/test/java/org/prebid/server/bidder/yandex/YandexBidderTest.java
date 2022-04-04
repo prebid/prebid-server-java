@@ -34,7 +34,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class YandexBidderTest extends VertxTest {
@@ -182,13 +181,6 @@ public class YandexBidderTest extends VertxTest {
                                         ExtPrebid.of(
                                                 null,
                                                 ExtImpYandex.of(123456, 8))
-                                )).build(),
-                        Imp.builder()
-                                .video(Video.builder().build()).id("323")
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                null,
-                                                ExtImpYandex.of(123456, 9))
                                 )).build()))
                 .build();
 
@@ -196,7 +188,7 @@ public class YandexBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = yandexBidder.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(
-                BidderError.badInput("Yandex only supports banner, native and video types. Ignoring imp id=123")
+                BidderError.badInput("Yandex only supports banner and native types. Ignoring imp id=123")
         );
     }
 
@@ -351,19 +343,17 @@ public class YandexBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerAndNativeAndVideo() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerAndNative() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(asList(Imp.builder().xNative(Native.builder().build()).id("123").build(),
-                                Imp.builder().video(Video.builder().build()).id("124").build(),
                                 Imp.builder().banner(Banner.builder().build()).id("321").build()))
                         .build(),
                 mapper.writeValueAsString(BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
                                 .bid(asList(Bid.builder().impid("123").build(),
-                                        Bid.builder().impid("124").build(),
                                         Bid.builder().impid("321").build()))
                                 .build()))
                         .build()));
@@ -375,7 +365,6 @@ public class YandexBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"),
-                        BidderBid.of(Bid.builder().impid("124").build(), video, "USD"),
                         BidderBid.of(Bid.builder().impid("321").build(), banner, "USD"));
     }
 }
