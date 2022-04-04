@@ -26,13 +26,8 @@ import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -40,7 +35,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -576,26 +570,6 @@ public class RequestContextTest extends VertxTest {
         final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "hockey")));
         final RequestContext context = new RequestContext(
                 request(r -> r.app(app(a -> a.ext(extApp)))),
-                imp(identity()),
-                txnLog,
-                jacksonMapper);
-
-        // when and then
-        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
-    }
-
-    @Test
-    public void lookupStringShouldReturnSiteFirstPartyDataFromExt() {
-        // given
-        final TargetingCategory category = new TargetingCategory(
-                TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(singletonList(
-                        ExtRequestPrebidBidderConfig.of(emptyList(), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
-                .build());
-        final RequestContext context = new RequestContext(
-                request(r -> r.ext(ext)),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
