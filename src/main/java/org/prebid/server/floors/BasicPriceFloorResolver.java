@@ -34,6 +34,8 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
@@ -78,12 +80,15 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private final CurrencyConversionService currencyConversionService;
     private final CountryCodeMapper countryCodeMapper;
+    private final Metrics metrics;
 
     public BasicPriceFloorResolver(CurrencyConversionService currencyConversionService,
-                                   CountryCodeMapper countryCodeMapper) {
+                                   CountryCodeMapper countryCodeMapper,
+                                   Metrics metrics) {
 
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     @Override
@@ -482,6 +487,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                             currentCurrency, desiredCurrency);
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
         }
 
         return null;

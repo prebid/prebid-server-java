@@ -121,6 +121,10 @@ public class Metrics extends UpdatableMetrics {
         return priceFloorsMetrics.computeIfAbsent("fetch", priceFloorsMetricsCreator);
     }
 
+    PriceFloorMetrics forPriceFloorGeneralErrors() {
+        return priceFloorsMetrics.computeIfAbsent("general", priceFloorsMetricsCreator);
+    }
+
     AlertsConfigMetrics configFailedForAccount(String accountId) {
         return alertsMetrics.computeIfAbsent(accountId, alertsMetricsCreator);
     }
@@ -310,6 +314,10 @@ public class Metrics extends UpdatableMetrics {
 
     public void updatePriceFloorFetchMetric(MetricName result) {
         forPriceFloorFetch().incCounter(result);
+    }
+
+    public void updatePriceFloorGeneralAlertsMetric(MetricName result) {
+        forPriceFloorGeneralErrors().incCounter(result);
     }
 
     public void updateAlertsConfigFailed(String accountId, MetricName metricName) {

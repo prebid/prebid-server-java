@@ -27,6 +27,8 @@ import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
 import org.prebid.server.geolocation.CountryCodeMapper;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
@@ -44,6 +46,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class BasicPriceFloorResolverTest extends VertxTest {
@@ -55,12 +58,14 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     private CurrencyConversionService currencyConversionService;
     @Mock
     private CountryCodeMapper countryCodeMapper;
+    @Mock
+    private Metrics metrics;
 
     private BasicPriceFloorResolver priceFloorResolver;
 
     @Before
     public void setUp() {
-        priceFloorResolver = new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper);
+        priceFloorResolver = new BasicPriceFloorResolver(currencyConversionService, countryCodeMapper, metrics);
     }
 
     @Test
@@ -1103,6 +1108,12 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 .willThrow(new PreBidException("Some message"));
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("potential desktop type").build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .floors(PriceFloorRules.builder()
+                                        .floorMin(BigDecimal.ONE)
+                                        .floorMinCur("UNKNOWN")
+                                        .build())
+                        .build()))
                 .build();
 
         // when and then
@@ -1118,6 +1129,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .h(250)
                         .build()))))
                 .isEqualTo(PriceFloorResult.of("desktop|banner|300x250", BigDecimal.ONE, BigDecimal.ONE, "EUR"));
+        verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
     }
 
     @Test

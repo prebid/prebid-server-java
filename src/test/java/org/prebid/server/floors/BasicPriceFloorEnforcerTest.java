@@ -20,6 +20,8 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
@@ -50,12 +52,14 @@ public class BasicPriceFloorEnforcerTest {
 
     @Mock
     private CurrencyConversionService currencyConversionService;
+    @Mock
+    private Metrics metrics;
 
     private BasicPriceFloorEnforcer priceFloorEnforcer;
 
     @Before
     public void setUp() {
-        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService);
+        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService, metrics);
     }
 
     @Test
@@ -436,7 +440,7 @@ public class BasicPriceFloorEnforcerTest {
         // then
         verify(currencyConversionService)
                 .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("USD"), eq("EUR"));
-
+        verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
