@@ -249,7 +249,10 @@ For `console` backend type available next options:
 - `metrics.console.interval` - interval in seconds between successive sending metrics.
 
 For `prometheus` backend type available next options:
-- `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+- `metrics.prometheus.enabled` - if equals to `true` then prometheus reporter will be started
+- `metrics.prometheus.port` - prometheus reporter port
+- `metrics.prometheus.namespace` - optional namespace prefix for metrics
+- `metrics.prometheus.subsystem` - optional subsystem prefix for metrics
 
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.
