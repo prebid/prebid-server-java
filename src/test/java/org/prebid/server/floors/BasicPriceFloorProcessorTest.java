@@ -11,6 +11,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -49,12 +50,18 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     private PriceFloorFetcher priceFloorFetcher;
     @Mock
     private PriceFloorResolver floorResolver;
+    @Mock
+    private CurrencyConversionService conversionService;
 
     private BasicPriceFloorProcessor priceFloorProcessor;
 
     @Before
     public void setUp() {
-        priceFloorProcessor = new BasicPriceFloorProcessor(priceFloorFetcher, floorResolver, jacksonMapper);
+        priceFloorProcessor = new BasicPriceFloorProcessor(
+                priceFloorFetcher,
+                floorResolver,
+                conversionService,
+                jacksonMapper);
     }
 
     @Test
@@ -126,9 +133,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         givenFloors(floors -> floors
                                 .enabled(true)
                                 .enforcement(PriceFloorEnforcement.builder().enforcePbs(false).enforceRate(100).build())
-                                .floorMin(BigDecimal.ZERO))));
+                                .floorMin(BigDecimal.ONE))));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
+        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ZERO));
         given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
 
         // when

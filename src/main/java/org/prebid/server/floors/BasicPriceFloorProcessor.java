@@ -7,7 +7,10 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.bidder.model.Price;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -23,8 +26,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -41,14 +46,16 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
+    private final CurrencyConversionService conversionService;
     private final JacksonMapper mapper;
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
-                                    JacksonMapper mapper) {
+                                    CurrencyConversionService conversionService, JacksonMapper mapper) {
 
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
+        this.conversionService = Objects.requireNonNull(conversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -106,28 +113,81 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
     }
 
-    private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
-                                               PriceFloorRules providerFloors) {
+    private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
+                                        PriceFloorRules providerFloors) {
 
         final Boolean floorsEnabledByRequest = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
         final PriceFloorEnforcement floorsRequestEnforcement =
                 ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnforcement);
         final Integer enforceRate =
                 ObjectUtil.getIfNotNull(floorsRequestEnforcement, PriceFloorEnforcement::getEnforceRate);
+        final Price floorMinPrice = resolveFloorMinPrice(requestFloors, providerFloors);
 
-        if (floorsEnabledByRequest != null || enforceRate != null) {
+        if (floorsEnabledByRequest != null || enforceRate != null || floorMinPrice != null) {
             final Boolean floorsEnabledByProvider =
                     ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
             final PriceFloorEnforcement floorsProviderEnforcement =
                     ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnforcement);
 
             return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
+                    .floorMinCur(ObjectUtil.getIfNotNull(floorMinPrice, Price::getCurrency))
+                    .floorMin(ObjectUtil.getIfNotNull(floorMinPrice, Price::getValue))
                     .enabled(resolveFloorsEnabled(floorsEnabledByRequest, floorsEnabledByProvider))
                     .enforcement(resolveFloorsEnforcement(floorsProviderEnforcement, enforceRate))
                     .build();
         }
 
         return providerFloors;
+    }
+
+    private Price resolveFloorMinPrice(PriceFloorRules requestFloors,
+                                       PriceFloorRules providerFloors) {
+        final String requestDataCurrency =
+                ObjectUtil.getIfNotNull(
+                        ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getData), PriceFloorData::getCurrency);
+        final String requestFloorMinCur =
+                ObjectUtils.firstNonNull(ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getFloorMinCur),
+                        requestDataCurrency);
+        final BigDecimal requestFloorMin = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getFloorMin);
+
+        final String providerFloorMinCur =
+                ObjectUtil.getIfNotNull(
+                        ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getData), PriceFloorData::getCurrency);
+        final BigDecimal providerFloorMin = ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getFloorMin);
+
+        if (StringUtils.isNotBlank(requestFloorMinCur)) {
+            if (BidderUtil.isValidPrice(requestFloorMin)) {
+                return Price.of(requestFloorMinCur, requestFloorMin);
+            } else if (BidderUtil.isValidPrice(providerFloorMin)) {
+                if (StringUtils.equals(providerFloorMinCur, requestFloorMinCur)) {
+                    return Price.of(requestFloorMinCur, providerFloorMin);
+                }
+
+                return Price.of(
+                        requestFloorMinCur,
+                        conversionService.convertCurrency(providerFloorMin,
+                                Collections.emptyMap(),
+                                providerFloorMinCur,
+                                requestFloorMinCur,
+                                false));
+            }
+        }
+
+        if (StringUtils.isNotBlank(providerFloorMinCur)) {
+            if (BidderUtil.isValidPrice(requestFloorMin)) {
+                return Price.of(
+                        requestFloorMinCur,
+                        conversionService.convertCurrency(requestFloorMin,
+                                Collections.emptyMap(),
+                                requestFloorMinCur,
+                                providerFloorMinCur,
+                                false));
+            }
+
+            return Price.of(requestFloorMinCur, providerFloorMin);
+        }
+
+        return Price.of(null, ObjectUtils.firstNonNull(requestFloorMin, providerFloorMin));
     }
 
     private static Boolean resolveFloorsEnabled(Boolean enabledByRequest, Boolean enabledByProvider) {

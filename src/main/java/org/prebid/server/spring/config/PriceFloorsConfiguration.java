@@ -79,9 +79,10 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                                  PriceFloorResolver floorResolver,
+                                                 CurrencyConversionService conversionService,
                                                  JacksonMapper mapper) {
 
-        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, mapper);
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, conversionService, mapper);
     }
 
     @Bean
