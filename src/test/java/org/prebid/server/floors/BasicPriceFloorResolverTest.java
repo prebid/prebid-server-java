@@ -1128,7 +1128,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .w(300)
                         .h(250)
                         .build()))))
-                .isEqualTo(PriceFloorResult.of("desktop|banner|300x250", BigDecimal.ONE, BigDecimal.ONE, "EUR"));
+                .isNull();
         verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
     }
 

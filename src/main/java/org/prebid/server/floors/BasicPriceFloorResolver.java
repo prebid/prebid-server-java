@@ -125,7 +125,18 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 ? modelGroupCurrency
                 : getDataCurrency(bidRequest);
 
-        return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
+        try {
+            return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
+        } catch (PreBidException e) {
+            final String logMessage =
+                    String.format("Error occurred while resolving floor for imp: %s, cause: %s",
+                            imp.getId(), e.getMessage());
+            logger.debug(logMessage);
+            conditionalLogger.error(logMessage, 0.01d);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+        }
+
+        return null;
     }
 
     private List<List<String>> createRuleKey(PriceFloorSchema schema,
@@ -479,18 +490,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                        String currentCurrency,
                                        String desiredCurrency) {
 
-        try {
-            return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
-        } catch (PreBidException e) {
-            final String logMessage =
-                    String.format("Could not convert price floor currency %s to desired currency %s",
-                            currentCurrency, desiredCurrency);
-            logger.debug(logMessage);
-            conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
-        }
-
-        return null;
+        return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
     }
 
     private static Price roundPrice(Price price) {
