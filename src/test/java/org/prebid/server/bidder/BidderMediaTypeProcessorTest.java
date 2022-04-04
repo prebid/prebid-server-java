@@ -62,7 +62,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
 
         //then
         assertThat(result).isNull();
-        assertThatContainsExactlyErrors(BIDDER + " does not support any media types");
+        assertThatContainsExactlyErrors("Bidder " + BIDDER + " does not support any media types");
     }
 
     @Test

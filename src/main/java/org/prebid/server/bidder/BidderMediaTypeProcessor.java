@@ -31,7 +31,7 @@ public class BidderMediaTypeProcessor {
 
         final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, supportedBidderName);
         if (supportedMediaTypes.isEmpty()) {
-            errors.add(supportedBidderName + " does not support any media types");
+            errors.add("Bidder " + supportedBidderName + " does not support any media types");
             return null;
         }
 
