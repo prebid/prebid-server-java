@@ -6,7 +6,6 @@ import org.prebid.server.deals.targeting.RequestContext;
 import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -32,9 +31,7 @@ public class InStrings extends In<String> {
 
     private List<String> lookupIntegerAsString(RequestContext context) {
         final List<Integer> actualValue = context.lookupInteger(category).getValues();
-        return !actualValue.isEmpty()
-                ? actualValue.stream().map(Object::toString).collect(Collectors.toList())
-                : Collections.emptyList();
+        return actualValue.stream().map(Object::toString).collect(Collectors.toList());
     }
 
     private static List<String> toLowerCase(List<String> values) {
