@@ -38,7 +38,9 @@
         <commons-math3.version>3.6.1</commons-math3.version>
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
-        <jackson.version>2.13.0</jackson.version>
+        <jackson.version>2.13.2</jackson.version>
+        <!--TODO: Replace this with jackson.version after dependencies update-->
+        <jackson.databind.version>2.13.2.2</jackson.databind.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
@@ -51,7 +53,7 @@
         <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
-        <logback.version>1.2.8</logback.version>
+        <logback.version>1.2.9</logback.version>
         <log4j.version>2.17.1</log4j.version>
 
         <!-- test dependencies versions -->
@@ -206,7 +208,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
+            <version>${jackson.databind.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

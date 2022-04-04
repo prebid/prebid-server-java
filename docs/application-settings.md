@@ -278,7 +278,7 @@ example:
   "privacy": {
     "ccpa": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
           "web": true,
           "amp": false,
           "app": true,
@@ -287,7 +287,7 @@ example:
     },
     "gdpr": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
         "video": true,
         "web": true,
         "app": true,

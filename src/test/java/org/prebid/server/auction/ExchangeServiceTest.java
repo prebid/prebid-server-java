@@ -2780,8 +2780,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any());
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), any(), eq("CUR1"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), any(), eq("CUR2"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("CUR1"), any());
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("CUR2"), any());
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -2815,7 +2815,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(20);
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), eq("BAD"), eq("CUR")))
+        given(currencyService.convertCurrency(any(), any(), eq("CUR"), eq("BAD")))
                 .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency BAD"));
 
         // when
@@ -2824,8 +2824,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any());
-        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("BAD"), eq("USD"));
-        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("BAD"), eq("CUR"));
+        verify(currencyService).convertCurrency(eq(firstBidderPrice), eq(bidRequest), eq("USD"), eq("BAD"));
+        verify(currencyService).convertCurrency(eq(secondBidderPrice), eq(bidRequest), eq("CUR"), eq("BAD"));
 
         assertThat(argumentCaptor.getValue()).hasSize(2);
 
@@ -2870,7 +2870,7 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any());
-        verify(currencyService).convertCurrency(eq(bidderPrice), eq(bidRequest), eq("CUR1"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(bidderPrice), eq(bidRequest), eq("USD"), eq("CUR1"));
 
         assertThat(argumentCaptor.getValue()).hasSize(1);
 
@@ -2907,7 +2907,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(10.0);
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
-        given(currencyService.convertCurrency(any(), any(), any(), eq("USD"))).willReturn(bidder3Price);
+        given(currencyService.convertCurrency(any(), any(), eq("USD"), any())).willReturn(bidder3Price);
 
         // when
         exchangeService.holdAuction(givenRequestContext(bidRequest));
@@ -2915,8 +2915,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> argumentCaptor = ArgumentCaptor.forClass(List.class);
         verify(bidResponseCreator).create(argumentCaptor.capture(), any(), any(), any());
-        verify(currencyService).convertCurrency(eq(bidder1Price), eq(bidRequest), eq("USD"), eq("EUR"));
-        verify(currencyService).convertCurrency(eq(bidder2Price), eq(bidRequest), eq("USD"), eq("GBP"));
+        verify(currencyService).convertCurrency(eq(bidder1Price), eq(bidRequest), eq("EUR"), eq("USD"));
+        verify(currencyService).convertCurrency(eq(bidder2Price), eq(bidRequest), eq("GBP"), eq("USD"));
         verify(currencyService).convertCurrency(eq(bidder3Price), eq(bidRequest), eq("USD"), eq("USD"));
         verifyNoMoreInteractions(currencyService);
 

@@ -20,9 +20,9 @@ import spock.lang.Specification
 abstract class BaseSpec extends Specification {
 
     protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
+    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
+    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
