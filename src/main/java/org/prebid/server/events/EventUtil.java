@@ -2,11 +2,12 @@ package org.prebid.server.events;
 
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.List;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class EventUtil {
 
@@ -42,20 +43,15 @@ public class EventUtil {
 
     private static final String LINE_ITEM_ID_PARAMETER = "l";
 
-    private static final List<String> POSSIBLE_TYPES = List.of(WIN_TYPE, IMP_TYPE, VAST_TYPE);
-    private static final List<String> POSSIBLE_V_TYPES = List.of(EventRequest.VastType.START.toString(),
-            EventRequest.VastType.FIRST_QUARTILE.toString(),
-            EventRequest.VastType.MID_POINT.toString(),
-            EventRequest.VastType.THIRD_QUARTILE.toString(),
-            EventRequest.VastType.COMPLETE.toString());
+    private static final Set<String> POSSIBLE_TYPES = stringValues(EventRequest.Type.class);
+    private static final Set<String> POSSIBLE_V_TYPES = stringValues(EventRequest.VastType.class);
 
     private EventUtil() {
     }
 
     public static void validateType(RoutingContext routingContext) {
         final String type = routingContext.request().params().get(TYPE_PARAMETER);
-        final boolean isNotEqual = POSSIBLE_TYPES.stream().allMatch(element -> ObjectUtils.notEqual(element, type));
-        if (isNotEqual) {
+        if (!POSSIBLE_TYPES.contains(type)) {
             throw new IllegalArgumentException(String.format(
                     "Type '%s' is required query parameter. Possible values are %s, but was %s",
                     TYPE_PARAMETER, POSSIBLE_TYPES, type));
@@ -64,8 +60,7 @@ public class EventUtil {
 
     public static void validateVType(RoutingContext routingContext) {
         final String vType = routingContext.request().params().get(V_TYPE_PARAMETER);
-        final boolean isNotEqual = POSSIBLE_V_TYPES.stream().allMatch(element -> ObjectUtils.notEqual(element, vType));
-        if (isNotEqual) {
+        if (!POSSIBLE_V_TYPES.contains(vType)) {
             throw new IllegalArgumentException(String.format(
                     "Type '%s' is required query parameter. Possible values are %s, but was %s",
                     V_TYPE_PARAMETER, POSSIBLE_V_TYPES, vType));
@@ -224,5 +219,11 @@ public class EventUtil {
 
     private static String nameValueAsQueryString(String name, String value) {
         return "&" + name + "=" + value;
+    }
+
+    private static <E extends Enum<E>> Set<String> stringValues(Class<E> enumeration) {
+        return EnumSet.allOf(enumeration).stream()
+                .map(Enum::toString)
+                .collect(Collectors.toSet());
     }
 }

@@ -34,7 +34,7 @@ public class EventRequest {
 
     public enum Type {
 
-        win, imp, VAST
+        win, imp, vast
     }
 
     public enum Format {
@@ -56,10 +56,6 @@ public class EventRequest {
         COMPLETE("complete");
 
         private final String name;
-
-        VastType() {
-            this.name = name();
-        }
 
         VastType(String name) {
             this.name = name;

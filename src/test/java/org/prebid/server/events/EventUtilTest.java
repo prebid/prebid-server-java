@@ -38,7 +38,7 @@ public class EventUtilTest {
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateType(routingContext))
                 .withMessage("Type 't' is required query parameter. "
-                        + "Possible values are [win, imp, vast], but was null");
+                        + "Possible values are [vast, win, imp], but was null");
     }
 
     @Test
@@ -50,7 +50,7 @@ public class EventUtilTest {
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateType(routingContext))
                 .withMessage("Type 't' is required query parameter. "
-                        + "Possible values are [win, imp, vast], but was invalid");
+                        + "Possible values are [vast, win, imp], but was invalid");
     }
 
     @Test
@@ -150,7 +150,7 @@ public class EventUtilTest {
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateVType(routingContext))
                 .withMessage("Type 'vtype' is required query parameter. Possible values are "
-                        + "[start, firstQuartile, midPoint, thirdQuartile, complete], but was invalid");
+                        + "[midPoint, firstQuartile, start, thirdQuartile, complete], but was invalid");
     }
 
     @Test
