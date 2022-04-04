@@ -21,11 +21,11 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringRunner.class)
-@TestPropertySource("floors-application.properties")
+@TestPropertySource(properties = {"price-floors.enabled=true"})
 public class PriceFloorsTest extends IntegrationTest {
 
     @Test
-    public void auctionFloorsTest() throws IOException, JSONException {
+    public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
