@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -27,11 +26,6 @@ import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -270,30 +264,10 @@ public class RequestContext {
     }
 
     private <T> LookupResult<T> getSiteFirstPartyData(String path, Function<JsonNode, T> valueExtractor) {
-        return LookupResult.of(ListUtils.union(
-                listOfNonNulls(
-                        impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
-                        siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
-                        appReader.readFromExt(bidRequest.getApp(), path, valueExtractor)),
-                getFirstPartyDataFromRequestExt(path, valueExtractor)));
-    }
-
-    private <T> List<T> getFirstPartyDataFromRequestExt(String path, Function<JsonNode, T> valueExtractor) {
-        final List<ExtRequestPrebidBidderConfig> bidderConfigs = getIfNotNull(
-                getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid), ExtRequestPrebid::getBidderconfig);
-
-        return CollectionUtils.emptyIfNull(bidderConfigs).stream()
-                .filter(Objects::nonNull)
-                .map(ExtRequestPrebidBidderConfig::getConfig)
-                .filter(Objects::nonNull)
-                .map(ExtBidderConfig::getOrtb2)
-                .filter(Objects::nonNull)
-                .map(ExtBidderConfigOrtb::getSite)
-                .filter(Objects::nonNull)
-                .map(siteNode -> siteNode.at("/ext/data" + toJsonPointer(path)))
-                .map(valueExtractor)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        return lookupResult(
+                impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
+                siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
+                appReader.readFromExt(bidRequest.getApp(), path, valueExtractor));
     }
 
     private List<String> getSegments(TargetingCategory category) {
