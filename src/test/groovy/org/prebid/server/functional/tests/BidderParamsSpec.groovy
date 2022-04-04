@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
@@ -17,8 +18,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.PendingFeature
-import spock.lang.Unroll
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
@@ -275,32 +274,31 @@ class BidderParamsSpec extends BaseSpec {
         assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
     }
 
-    @PendingFeature
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
         given: "BidRequest with bad bidder datatype"
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp << Imp.defaultImpression
             imp[0].ext.prebid.bidder.generic.exampleProperty = PBSUtils.randomNumber
         }
 
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder should be dropped"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+        then: "PBS should not fail the entire auction"
+        assert response.seatbid[0].bid.size() == 1
+
+        and: "PBS should call bidder"
+        assert bidder.getRequestCount(bidRequest.id) == 1
+
+        and: "Bidder with invalid params should be dropped"
+        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
-
-        and: "PBS should not call bidder"
-        assert bidder.getRequestCount(bidRequest.id) == 0
-
-        and: "seatbid should be empty"
-        assert response.seatbid.isEmpty()
     }
 
-    @PendingFeature
     def "PBS should reject bidder when bidder params from stored request doesn't satisfy json-schema for auction request"() {
         given: "BidRequest with stored request, without imp"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -321,10 +319,10 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 
@@ -335,7 +333,6 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
     }
 
-    @PendingFeature
     def "PBS should reject bidder when bidder params from stored request doesn't satisfy json-schema for amp request"() {
         given: "AmpRequest with bad bidder datatype"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -352,10 +349,10 @@ class BidderParamsSpec extends BaseSpec {
         def response = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder should be dropped"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [999, 999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["WARNING: request.imp[0].ext.prebid.bidder.generic was dropped with a reason: " +
-                         "request.imp[0].ext.prebid.bidder.generic failed validation" +
+                         "request.imp[0].ext.prebid.bidder.generic failed validation.\n" +
                          "\$.exampleProperty: integer found, string expected",
                  "WARNING: request.imp[0].ext must contain at least one valid bidder"]
 

@@ -5,20 +5,23 @@ import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.geolocation.model.GeoInfo;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Internal class for holding TCF information.
  */
-@Builder
 @Value
+@Builder(toBuilder = true)
 public class TcfContext {
 
-    String gdpr;
+    boolean inGdprScope;
 
     String consentString;
 
     TCString consent;
 
-    Boolean isConsentValid;
+    boolean consentValid;
 
     GeoInfo geoInfo;
 
@@ -26,7 +29,9 @@ public class TcfContext {
 
     String ipAddress;
 
+    List<String> warnings;
+
     public static TcfContext empty() {
-        return builder().build();
+        return builder().warnings(Collections.emptyList()).build();
     }
 }

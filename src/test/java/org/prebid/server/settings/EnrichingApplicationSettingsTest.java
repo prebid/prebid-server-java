@@ -81,7 +81,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 "{\"auction\": {\"banner-cache-ttl\": 100},"
-                        + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"integration-enabled\": {\"web\": false}}}}",
+                        + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
                 jsonMerger);
 

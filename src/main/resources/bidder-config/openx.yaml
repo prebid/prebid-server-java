@@ -12,8 +12,13 @@ adapters:
       supported-vendors:
       vendor-id: 69
     usersync:
-      url: https://rtb.openx.net/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
-      redirect-url: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
+      url: https://u.openx.net/w/1.0/cm?id=891039ac-a916-42bb-a651-4be9e3b201da&ph=a3aece0c-9e80-4316-8deb-faf804779bd1&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+      redirectUrl: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={OPENX_ID}
+      type: iframe
+      supportCors: false
       cookie-family-name: openx
-      type: redirect
-      support-cors: false
+      secondary:
+        url: https://rtb.openx.net/sync/prebid?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&r=
+        redirect-url: /setuid?bidder=openx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
+        type: redirect
+        support-cors: false

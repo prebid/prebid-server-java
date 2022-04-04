@@ -103,11 +103,17 @@ public class VideoRequestFactory {
                 Endpoint.openrtb2_video, MetricName.video);
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
-                .compose(httpRequest -> createBidRequest(httpRequest)
-                        .map(bidRequestWithErrors -> populatePodErrors(
-                                bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
-                        .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
-                                initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
+                .compose(httpRequest ->
+                        createBidRequest(httpRequest)
+
+                                .compose(bidRequest ->
+                                        validateRequest(bidRequest, initialAuctionContext.getDebugWarnings()))
+
+                                .map(bidRequestWithErrors -> populatePodErrors(
+                                        bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
+
+                                .map(bidRequestWithErrors -> ortb2RequestFactory.enrichAuctionContext(
+                                        initialAuctionContext, httpRequest, bidRequestWithErrors.getData(), startTime)))
 
                 .compose(auctionContext -> ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(auctionContext)
                         .map(auctionContext::with))
@@ -162,11 +168,10 @@ public class VideoRequestFactory {
         }
 
         final Set<String> podConfigIds = podConfigIds(bidRequestVideo);
+        final String accountId = accountIdFrom(bidRequestVideo);
 
-        return storedRequestProcessor.processVideoRequest(
-                        accountIdFrom(bidRequestVideo), storedRequestId, podConfigIds, bidRequestVideo)
-                .map(bidRequestToErrors
-                        -> fillImplicitParametersAndValidate(httpRequest, bidRequestToErrors, debugEnabled));
+        return storedRequestProcessor.processVideoRequest(accountId, storedRequestId, podConfigIds, bidRequestVideo)
+                .map(bidRequestToErrors -> fillImplicitParameters(httpRequest, bidRequestToErrors, debugEnabled));
     }
 
     private AuctionContext updateContextWithDebugLog(AuctionContext auctionContext) {
@@ -272,16 +277,23 @@ public class VideoRequestFactory {
         return returnObject;
     }
 
-    private WithPodErrors<BidRequest> fillImplicitParametersAndValidate(HttpRequestContext httpRequest,
-                                                                        WithPodErrors<BidRequest> bidRequestToErrors,
-                                                                        boolean debugEnabled) {
-        final BidRequest bidRequest = bidRequestToErrors.getData();
-        BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
-        if (debugEnabled) {
-            updatedBidRequest = updatedBidRequest.toBuilder().test(1).build();
-        }
-        final BidRequest validBidRequest = ortb2RequestFactory.validateRequest(updatedBidRequest);
+    private WithPodErrors<BidRequest> fillImplicitParameters(HttpRequestContext httpRequest,
+                                                             WithPodErrors<BidRequest> bidRequestToErrors,
+                                                             boolean debugEnabled) {
 
-        return WithPodErrors.of(validBidRequest, bidRequestToErrors.getPodErrors());
+        final BidRequest bidRequest = bidRequestToErrors.getData();
+        final BidRequest updatedBidRequest = paramsResolver.resolve(bidRequest, httpRequest, timeoutResolver, ENDPOINT);
+        final BidRequest updatedWithDebugBidRequest = debugEnabled
+                ? updatedBidRequest.toBuilder().test(1).build()
+                : updatedBidRequest;
+
+        return WithPodErrors.of(updatedWithDebugBidRequest, bidRequestToErrors.getPodErrors());
+    }
+
+    private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
+                                                              List<String> warnings) {
+
+        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), warnings)
+                .map(bidRequest -> requestWithPodErrors);
     }
 }

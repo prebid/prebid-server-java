@@ -8,8 +8,8 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
@@ -60,7 +60,7 @@ public class VideoHandler implements Handler<RoutingContext> {
     public VideoHandler(VideoRequestFactory videoRequestFactory,
                         VideoResponseFactory videoResponseFactory,
                         ExchangeService exchangeService,
-                       CacheService cacheService, AnalyticsReporterDelegator analyticsDelegator,
+                        CacheService cacheService, AnalyticsReporterDelegator analyticsDelegator,
                         Metrics metrics,
                         Clock clock,
                         PrebidVersionProvider prebidVersionProvider,

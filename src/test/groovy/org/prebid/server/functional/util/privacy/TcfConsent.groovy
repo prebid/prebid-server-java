@@ -9,6 +9,8 @@ class TcfConsent implements ConsentString {
 
     private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
     private static final Integer VENDOR_LIST_VERSION = vendorListVersion
+    public static final Integer RUBICON_VENDOR_ID = 52
+    public static final Integer GENERIC_VENDOR_ID = RUBICON_VENDOR_ID
 
     private final TCStringEncoder.Builder tcStringEncoder
 
@@ -69,6 +71,11 @@ class TcfConsent implements ConsentString {
 
         Builder setVendorConsent(List<Integer> vendorConsent) {
             tcStringEncoder.addVendorConsent(BitSetIntIterable.from(vendorConsent))
+            this
+        }
+
+        Builder addVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
+            tcStringEncoder.addVendorLegitimateInterest(BitSetIntIterable.from(vendorLegitimateInterest))
             this
         }
 

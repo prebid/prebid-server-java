@@ -27,6 +27,7 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -42,6 +43,7 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
@@ -236,7 +238,7 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
-            @Autowired(required = false) DealsProcessor dealsProcessor,
+            @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
             Clock clock) {
 
@@ -253,7 +255,7 @@ public class ServiceConfiguration {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 countryCodeMapper,
                 clock);
     }
@@ -306,7 +308,7 @@ public class ServiceConfiguration {
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
-                                        PrivacyEnforcementService privacyEnforcementService,
+                                        AmpPrivacyContextFactory ampPrivacyContextFactory,
                                         TimeoutResolver auctionTimeoutResolver,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper) {
@@ -318,7 +320,7 @@ public class ServiceConfiguration {
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
-                privacyEnforcementService,
+                ampPrivacyContextFactory,
                 auctionTimeoutResolver,
                 debugResolver,
                 mapper);
@@ -582,6 +584,7 @@ public class ServiceConfiguration {
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
+            DealsProcessor dealsProcessor,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
@@ -603,6 +606,7 @@ public class ServiceConfiguration {
                 expectedCacheTimeMs,
                 bidderCatalog,
                 storedResponseProcessor,
+                dealsProcessor,
                 privacyEnforcementService,
                 fpdResolver,
                 schainResolver,
@@ -680,6 +684,19 @@ public class ServiceConfiguration {
                 countryCodeMapper,
                 ccpaEnforce,
                 lmtEnforce);
+    }
+
+    @Bean
+    AmpPrivacyContextFactory ampPrivacyContextFactory(PrivacyExtractor privacyExtractor,
+                                                      TcfDefinerService tcfDefinerService,
+                                                      IpAddressHelper ipAddressHelper,
+                                                      CountryCodeMapper countryCodeMapper) {
+
+        return new AmpPrivacyContextFactory(
+                privacyExtractor,
+                tcfDefinerService,
+                ipAddressHelper,
+                countryCodeMapper);
     }
 
     @Bean

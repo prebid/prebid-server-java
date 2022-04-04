@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
@@ -307,7 +308,7 @@ public class CacheService {
                                 CacheTtl accountCacheTtl,
                                 boolean isVideoBid) {
 
-        final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
+        final Bid bid = bidInfo.getBid();
         final Integer bidTtl = bid.getExp();
         final Imp correspondingImp = bidInfo.getCorrespondingImp();
         final Integer impTtl = correspondingImp != null ? correspondingImp.getExp() : null;
@@ -466,7 +467,7 @@ public class CacheService {
                                                       EventsContext eventsContext) {
 
         final BidInfo bidInfo = cacheBid.getBidInfo();
-        final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
+        final Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
         final String eventUrl =
@@ -494,7 +495,7 @@ public class CacheService {
      */
     private CachedCreative createXmlPutObjectOpenrtb(CacheBid cacheBid, String requestId, String hbCacheId) {
         final BidInfo bidInfo = cacheBid.getBidInfo();
-        final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
+        final Bid bid = bidInfo.getBid();
         final String vastXml = bid.getAdm();
 
         final String customCacheKey = resolveCustomCacheKey(hbCacheId, bidInfo.getCategory());
@@ -583,17 +584,17 @@ public class CacheService {
     /**
      * Creates a map with bids as a key and {@link CacheInfo} as a value from obtained UUIDs.
      */
-    private static Map<com.iab.openrtb.response.Bid, CacheInfo> toResultMap(List<CacheBid> cacheBids,
-                                                                            List<CacheBid> cacheVideoBids,
-                                                                            List<String> uuids,
-                                                                            String hbCacheId) {
+    private static Map<Bid, CacheInfo> toResultMap(List<CacheBid> cacheBids,
+                                                   List<CacheBid> cacheVideoBids,
+                                                   List<String> uuids,
+                                                   String hbCacheId) {
 
-        final Map<com.iab.openrtb.response.Bid, CacheInfo> result = new HashMap<>(uuids.size());
+        final Map<Bid, CacheInfo> result = new HashMap<>(uuids.size());
 
         // here we assume "videoBids" is a sublist of "bids"
         // so, no need for a separate loop on "videoBids" if "bids" is not empty
         if (!cacheBids.isEmpty()) {
-            final List<com.iab.openrtb.response.Bid> videoBids = cacheVideoBids.stream()
+            final List<Bid> videoBids = cacheVideoBids.stream()
                     .map(CacheBid::getBidInfo)
                     .map(BidInfo::getBid)
                     .collect(Collectors.toList());
@@ -602,7 +603,7 @@ public class CacheService {
             for (int i = 0; i < bidsSize; i++) {
                 final CacheBid cacheBid = cacheBids.get(i);
                 final BidInfo bidInfo = cacheBid.getBidInfo();
-                final com.iab.openrtb.response.Bid bid = bidInfo.getBid();
+                final Bid bid = bidInfo.getBid();
                 final Integer ttl = cacheBid.getTtl();
 
                 // determine uuid for video bid

@@ -28,7 +28,7 @@ import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsPopulator;
 import org.prebid.server.deals.model.DeepDebugLog;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -75,7 +75,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -112,7 +111,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private HookStageExecutor hookStageExecutor;
     @Mock
-    private DealsProcessor dealsProcessor;
+    private DealsPopulator dealsPopulator;
     @Mock
     private CountryCodeMapper countryCodeMapper;
 
@@ -157,7 +156,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
 
-        given(dealsProcessor.populateDealsInfo(any()))
+        given(dealsPopulator.populate(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
         target = new Ortb2RequestFactory(
@@ -171,7 +170,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 countryCodeMapper,
                 clock);
     }
@@ -190,7 +189,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 countryCodeMapper,
                 clock);
 
@@ -227,7 +226,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 countryCodeMapper,
                 clock);
 
@@ -569,7 +568,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsProcessor,
+                dealsPopulator,
                 countryCodeMapper,
                 clock);
 
@@ -755,10 +754,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
-        // when and then
-        assertThatExceptionOfType(InvalidRequestException.class)
-                .isThrownBy(() -> target.validateRequest(bidRequest))
-                .withMessage("error");
+        // when
+        final Future<BidRequest> result = target.validateRequest(bidRequest, new ArrayList<>());
+
+        // then
+        assertThat(result).isFailed();
+        assertThat(result.cause())
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("error");
 
         verify(requestValidator).validate(bidRequest);
     }
@@ -771,7 +774,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest);
+        final BidRequest result = target.validateRequest(bidRequest, new ArrayList<>()).result();
 
         // then
         verify(requestValidator).validate(bidRequest);

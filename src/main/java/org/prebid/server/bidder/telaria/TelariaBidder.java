@@ -31,11 +31,11 @@ import org.prebid.server.proto.openrtb.ext.request.telaria.ExtImpTelaria;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class TelariaBidder implements Bidder<BidRequest> {
 
@@ -53,7 +53,6 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<Imp> validImps = new ArrayList<>();
         try {
             validateImp(bidRequest.getImp());
         } catch (PreBidException e) {
@@ -62,37 +61,43 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
         final String publisherId = getPublisherId(bidRequest);
         String seatCode = null;
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder();
         ExtImpTelaria extImp = null;
-        for (Imp imp : bidRequest.getImp()) {
-            try {
-                extImp = parseImpExt(imp);
-                seatCode = extImp.getSeatCode();
-                validImps.add(updateImp(imp, extImp, publisherId));
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
-            }
+        Imp modifyImp = bidRequest.getImp().get(0);
+
+        try {
+            extImp = parseImpExt(modifyImp);
+            seatCode = extImp.getSeatCode();
+            modifyImp = updateImp(modifyImp, extImp, publisherId);
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
+        final BidRequest outgoingRequest = updateBidRequest(bidRequest, extImp, seatCode, modifyImp);
+        return Result.withValue(makeHttpRequest(outgoingRequest));
+    }
 
-        if (extImp != null && extImp.getExtra() != null) {
-            requestBuilder.ext(mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra())));
-        }
-
-        if (bidRequest.getSite() != null) {
-            requestBuilder.site(modifySite(bidRequest.getSite(), seatCode));
-        } else if (bidRequest.getApp() != null) {
-            requestBuilder.app(modifyApp(bidRequest.getApp(), seatCode));
-        }
-
-        final BidRequest outgoingRequest = requestBuilder.imp(validImps).build();
-
-        return Result.withValue(HttpRequest.<BidRequest>builder()
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
+        return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(headers(bidRequest))
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build());
+                .payload(bidRequest)
+                .body(mapper.encodeToBytes(bidRequest))
+                .build();
+    }
+
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpTelaria extImp, String seatCode, Imp modifyImp) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = bidRequest.toBuilder();
+
+        if (bidRequest.getSite() != null) {
+            bidRequestBuilder.site(modifySite(bidRequest.getSite(), seatCode));
+        } else if (bidRequest.getApp() != null) {
+            bidRequestBuilder.app(modifyApp(bidRequest.getApp(), seatCode));
+        }
+
+        return bidRequestBuilder
+                .ext(modifyExt(extImp))
+                .imp(Collections.singletonList(modifyImp))
+                .build();
     }
 
     private static void validateImp(List<Imp> imps) {
@@ -136,6 +141,12 @@ public class TelariaBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    private ExtRequest modifyExt(ExtImpTelaria extImp) {
+        return extImp != null
+                ? mapper.fillExtension(ExtRequest.empty(), TelariaRequestExt.of(extImp.getExtra()))
+                : null;
+    }
+
     private static Site modifySite(Site site, String seatCode) {
         return site.toBuilder().publisher(createPublisher(site.getPublisher(), seatCode)).build();
     }
@@ -169,29 +180,37 @@ public class TelariaBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.withValues(extractBids(bidResponse, bidRequest));
         } catch (PreBidException | DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
+        return bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
         final List<Bid> bids = firstSeatBid.getBid();
+        final List<Imp> imps = bidRequest.getImp();
 
         if (CollectionUtils.isEmpty(bids)) {
             return Collections.emptyList();
         }
-        return bids.stream()
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.video, bidResponse.getCur()))
+
+        return IntStream.range(0, bids.size())
+                .filter(i -> bids.get(i) != null)
+                .filter(i -> i < imps.size())
+                .mapToObj(i -> makeBidderBid(bids.get(i), bidResponse, imps.get(i)))
                 .collect(Collectors.toList());
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, BidResponse bidResponse, Imp imp) {
+        final Bid modifyBid = bid.toBuilder().impid(imp.getId()).build();
+        return BidderBid.of(modifyBid, BidType.video, bidResponse.getCur());
     }
 }

@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.adot;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -21,20 +22,23 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adot.ExtImpAdot;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint{PUBLISHER_PATH}.com";
 
     private AdotBidder adotBidder;
 
@@ -66,6 +70,67 @@ public class AdotBidderTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .containsExactly(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnCorrectUrlWhenResolvedExtImpAndPublisherPath() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint/publisherPath.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotChangeUrlWhenNotResolvedPublisherPath() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenImpExtAdot(null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnNullIfNotResolvedExtImp() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(null));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotChangeUrlWhenExtImpNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.createObjectNode().put("placementId", 12)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com");
     }
 
     @Test
@@ -169,12 +234,33 @@ public class AdotBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(givenBid("native"), xNative, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .nurl("nurl:${AUCTION_PRICE}")
+                                .adm("adm:${AUCTION_PRICE}")
+                                .price(BigDecimal.TEN))));
+
+        // when
+        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm)
+                .containsExactly(tuple("nurl:10", "adm:10"));
+    }
+
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -184,10 +270,15 @@ public class AdotBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("firstImp")
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdot.of(true, "placementId")))))
+                        .id("firstImp")
+                        .banner(Banner.builder().build())
+                        .ext(givenImpExtAdot("/publisherPath")))
                 .build();
+    }
+
+    private static ObjectNode givenImpExtAdot(String publisherPath) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpAdot.of(true,
+                "placementId", publisherPath)));
     }
 
     private static BidResponse givenBidResponse(String bidExtMediaType) {
@@ -195,6 +286,15 @@ public class AdotBidderTest extends VertxTest {
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(givenBid(bidExtMediaType)))
+                        .build()))
+                .build();
+    }
+
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidBuilder) {
+        return BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidBuilder.apply(Bid.builder()
+                                .ext(mapper.valueToTree(AdotBidExt.of(AdotExtAdot.of("native"))))).build()))
                         .build()))
                 .build();
     }
