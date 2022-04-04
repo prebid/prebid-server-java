@@ -7,7 +7,7 @@ import groovy.transform.ToString
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
-class Request {
+class NativeRequest {
 
     String ver
     Integer context
@@ -21,13 +21,13 @@ class Request {
     List<EventTracker> eventTrackers
     Integer privacy
 
-    static Request getRequest() {
-        new Request().tap {
+    static NativeRequest getNativeRequest() {
+        new NativeRequest().tap {
             context = 1
             plcmtType = 1
-            it.addAsset(Asset.assetTitle)
-            it.addAsset(Asset.assetImg)
-            it.addAsset(Asset.assetData)
+            it.addAsset(Asset.titleAsset)
+            it.addAsset(Asset.imgAsset)
+            it.addAsset(Asset.dataAsset)
         }
     }
 

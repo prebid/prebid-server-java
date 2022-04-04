@@ -13,7 +13,7 @@ class Asset {
     AssetVideo video
     AssetData data
 
-    static Asset getAssetTitle() {
+    static Asset getTitleAsset() {
         new Asset().tap {
             id = 1
             required = 1
@@ -21,7 +21,7 @@ class Asset {
         }
     }
 
-    static Asset getAssetImg() {
+    static Asset getImgAsset() {
         new Asset().tap {
             id = 2
             required = 1
@@ -29,7 +29,7 @@ class Asset {
         }
     }
 
-    static Asset getAssetData() {
+    static Asset getDataAsset() {
         new Asset().tap {
             id = 3
             required = 1

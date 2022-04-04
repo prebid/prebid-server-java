@@ -8,13 +8,13 @@ import org.prebid.server.functional.testcontainers.Dependencies
 @ToString(includeNames = true, ignoreNulls = true)
 class Native {
 
-    Request request
+    NativeRequest request
     String ver
     List<Integer> api
     List<Integer> battr
 
     static Native getDefaultNative(){
-        new Native(request: Request.request)
+        new Native(request: NativeRequest.nativeRequest)
     }
 
     @JsonGetter("request")
@@ -24,7 +24,7 @@ class Native {
 
     @JsonSetter("request")
     void getRequest(String request) {
-        this.request = Dependencies.objectMapperWrapper.decode(request, Request)
+        this.request = Dependencies.objectMapperWrapper.decode(request, NativeRequest)
     }
 
 }
