@@ -1178,7 +1178,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveShouldReturnEffectiveFloorMinInProvidedCurrencyAndFloorMinMoreThanFloor() {
+    public void resolveShouldReturnConvertedFloorMinInProvidedCurrencyAndFloorMinMoreThanFloor() {
         // given
         when(currencyConversionService.convertCurrency(any(), any(), eq("EUR"), eq("GUF")))
                 .thenReturn(BigDecimal.TEN);
@@ -1202,7 +1202,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .currency("GUF")
                         .value("appDomain", BigDecimal.valueOf(5))
                         .build(), givenImp(identity())))
-                .isEqualTo(PriceFloorResult.of("appdomain", BigDecimal.valueOf(5), BigDecimal.ONE, "EUR"));
+                .isEqualTo(PriceFloorResult.of("appdomain", BigDecimal.valueOf(5), BigDecimal.TEN, "GUF"));
     }
 
     @Test

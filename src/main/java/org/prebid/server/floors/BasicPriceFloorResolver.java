@@ -465,7 +465,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             if (floorValue.compareTo(floorMinValue) > 0) {
                 resolvedPrice = roundPrice(effectiveFloor);
             } else {
-                resolvedPrice = roundPrice(effectiveFloorMin);
+                resolvedPrice = roundPrice(convertedFloorMin);
             }
         } else {
             resolvedPrice = roundPrice(ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin));
