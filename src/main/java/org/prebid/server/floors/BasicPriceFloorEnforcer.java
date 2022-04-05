@@ -199,8 +199,9 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
             }
 
-            final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
-            return convertIfRequired(imp.getBidfloor(), imp.getBidfloorcur(), bidderBidRequest, bidRequest);
+            final Imp imp = correspondingImp(bidderBid.getBid(), bidRequest.getImp());
+            final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
+            return convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), bidRequestCurrency);
         } catch (PreBidException e) {
             final String logMessage =
                     String.format("Price floors enforcement failed for request id: %s, reason: %s",
@@ -231,12 +232,20 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
 
-        if (resolvedFloorCurrency != null && !resolvedFloorCurrency.equals(bidRequestCurrency)) {
+        return convertCurrency(floor, bidRequest, resolvedFloorCurrency, bidRequestCurrency);
+    }
+
+    private BigDecimal convertCurrency(BigDecimal floor,
+                                       BidRequest bidRequest,
+                                       String fromCurrency,
+                                       String toCurrency) {
+
+        if (fromCurrency != null && !fromCurrency.equals(toCurrency)) {
             return currencyConversionService.convertCurrency(
                     floor,
                     bidRequest,
-                    resolvedFloorCurrency,
-                    bidRequestCurrency);
+                    fromCurrency,
+                    toCurrency);
         }
 
         return floor;
