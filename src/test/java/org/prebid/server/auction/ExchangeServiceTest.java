@@ -3909,7 +3909,8 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
         given(mediaTypeProcessor.process(any(), anyString()))
-                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))));
+                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
+                        BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
                 argThat(argument -> argument.get(0)
                         .getBidderResponse()

@@ -1204,9 +1204,8 @@ public class ExchangeService {
 
         final long startTime = clock.millis();
 
-        final BidRequest bidRequest = bidderRequest.getBidRequest();
         final MediaTypeProcessingResult mediaTypeProcessingResult =
-                mediaTypeProcessor.process(bidRequest, resolvedBidderName);
+                mediaTypeProcessor.process(bidderRequest.getBidRequest(), resolvedBidderName);
 
         if (mediaTypeProcessingResult.isRejected()) {
             final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
@@ -1217,7 +1216,8 @@ public class ExchangeService {
 
         final BidderRequest modifiedBidderRequest = bidderRequest.with(mediaTypeProcessingResult.getBidRequest());
 
-        return httpBidderRequester.requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+        return httpBidderRequester
+                .requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),
