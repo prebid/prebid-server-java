@@ -315,7 +315,6 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         updateLineItemsAndWait()
 
         when: "Auction is happened"
-        println()
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS had PG auction"
