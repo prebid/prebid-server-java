@@ -36,6 +36,9 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -47,7 +50,6 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -214,7 +216,7 @@ public class ExchangeServiceTest extends VertxTest {
     private DebugResolver debugResolver;
 
     @Mock
-    private BidderMediaTypeProcessor bidderMediaTypeProcessor;
+    private MediaTypeProcessor mediaTypeProcessor;
 
     @Mock
     private HttpBidderRequester httpBidderRequester;
@@ -328,7 +330,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                null,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -629,7 +631,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                null,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -2570,7 +2572,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                null,
+                new NoOpMediaTypeProcessor(),
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,
@@ -3900,17 +3902,24 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldResponseWithEmptySeatBidIfBidderNotSupportProvidedMeiaTypes() {
+    public void shouldResponseWithEmptySeatBidIfBidderNotSupportProvidedMediaTypes() {
         // given
         final Imp imp = givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"));
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        given(bidderMediaTypeProcessor.process(any(), anyString(), any())).willReturn(null);
+        given(mediaTypeProcessor.process(any(), anyString()))
+                .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
                 argThat(argument -> argument.get(0)
                         .getBidderResponse()
-                        .equals(BidderResponse.of("bidder1", BidderSeatBid.empty(), 0))),
+                        .equals(BidderResponse.of(
+                                "bidder1",
+                                BidderSeatBid.of(
+                                        Collections.emptyList(),
+                                        Collections.emptyList(),
+                                        Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
+                                0))),
                 any(),
                 any(),
                 any()))
@@ -3925,7 +3934,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                bidderMediaTypeProcessor,
+                mediaTypeProcessor,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyService,

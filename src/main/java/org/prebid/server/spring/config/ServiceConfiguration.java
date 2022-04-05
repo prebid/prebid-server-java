@@ -27,6 +27,9 @@ import org.prebid.server.auction.WinningBidComparatorFactory;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -36,7 +39,6 @@ import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
-import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
@@ -509,8 +511,18 @@ public class ServiceConfiguration {
 
     @Bean
     @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
-    BidderMediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
+    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
         return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "auction.filter-imp-media-type",
+            name = "enabled",
+            havingValue = "false",
+            matchIfMissing = true)
+    MediaTypeProcessor noOpMediaTypeProcessor() {
+        return new NoOpMediaTypeProcessor();
     }
 
     @Bean
@@ -596,7 +608,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SchainResolver schainResolver,
             DebugResolver debugResolver,
-            @Autowired(required = false) BidderMediaTypeProcessor bidderMediaTypeProcessor,
+            MediaTypeProcessor mediaTypeProcessor,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -619,7 +631,7 @@ public class ServiceConfiguration {
                 fpdResolver,
                 schainResolver,
                 debugResolver,
-                bidderMediaTypeProcessor,
+                mediaTypeProcessor,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,

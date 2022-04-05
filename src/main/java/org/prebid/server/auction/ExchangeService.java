@@ -23,8 +23,11 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -36,7 +39,6 @@ import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.bidder.BidderMediaTypeProcessor;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
@@ -157,7 +159,7 @@ public class ExchangeService {
     private final FpdResolver fpdResolver;
     private final SchainResolver schainResolver;
     private final DebugResolver debugResolver;
-    private final BidderMediaTypeProcessor bidderMediaTypeProcessor;
+    private final MediaTypeProcessor mediaTypeProcessor;
     private final HttpBidderRequester httpBidderRequester;
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
@@ -179,7 +181,7 @@ public class ExchangeService {
                            FpdResolver fpdResolver,
                            SchainResolver schainResolver,
                            DebugResolver debugResolver,
-                           BidderMediaTypeProcessor bidderMediaTypeProcessor,
+                           MediaTypeProcessor mediaTypeProcessor,
                            HttpBidderRequester httpBidderRequester,
                            ResponseBidValidator responseBidValidator,
                            CurrencyConversionService currencyService,
@@ -204,7 +206,7 @@ public class ExchangeService {
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.schainResolver = Objects.requireNonNull(schainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
-        this.bidderMediaTypeProcessor = bidderMediaTypeProcessor;
+        this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
         this.httpBidderRequester = Objects.requireNonNull(httpBidderRequester);
         this.responseBidValidator = Objects.requireNonNull(responseBidValidator);
         this.currencyService = Objects.requireNonNull(currencyService);
@@ -1203,16 +1205,23 @@ public class ExchangeService {
         final long startTime = clock.millis();
 
         final BidRequest bidRequest = bidderRequest.getBidRequest();
-        final BidRequest modifiedBidRequest = bidderMediaTypeProcessor != null
-                ? bidderMediaTypeProcessor.process(bidRequest, resolvedBidderName, auctionContext)
-                : bidRequest;
+        final MediaTypeProcessingResult mediaTypeProcessingResult =
+                mediaTypeProcessor.process(bidRequest, resolvedBidderName);
 
-        if (modifiedBidRequest == null) {
-            return Future.succeededFuture(BidderResponse.of(bidderName, BidderSeatBid.empty(), 0));
+        if (mediaTypeProcessingResult.isRejected()) {
+            final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
+                    Collections.emptyList(), Collections.emptyList(), mediaTypeProcessingResult.getErrors());
+
+            return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
-        return httpBidderRequester.requestBids(
-                        bidder, bidderRequest.with(modifiedBidRequest), timeout, requestHeaders, debugEnabledForBidder)
+        final BidderRequest modifiedBidderRequest = bidderRequest.with(mediaTypeProcessingResult.getBidRequest());
+
+        return httpBidderRequester.requestBids(bidder, modifiedBidderRequest, timeout, requestHeaders, debugEnabledForBidder)
+                .map(seatBid -> BidderSeatBid.of(
+                        seatBid.getBids(),
+                        seatBid.getHttpCalls(),
+                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getErrors())))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 

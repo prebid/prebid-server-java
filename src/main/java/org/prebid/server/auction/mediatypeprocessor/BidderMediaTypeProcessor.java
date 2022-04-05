@@ -1,13 +1,17 @@
-package org.prebid.server.bidder;
+package org.prebid.server.auction.mediatypeprocessor;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
-import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
+import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 import org.prebid.server.util.ObjectUtil;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -15,7 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BidderMediaTypeProcessor {
+public class BidderMediaTypeProcessor implements MediaTypeProcessor {
 
     private final BidderCatalog bidderCatalog;
 
@@ -23,20 +27,20 @@ public class BidderMediaTypeProcessor {
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
     }
 
-    public BidRequest process(BidRequest bidRequest,
-                              String supportedBidderName,
-                              AuctionContext auctionContext) {
-
-        final List<String> errors = auctionContext.getPrebidErrors();
-
+    @Override
+    public MediaTypeProcessingResult process(BidRequest bidRequest, String supportedBidderName) {
         final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, supportedBidderName);
         if (supportedMediaTypes.isEmpty()) {
-            errors.add("Bidder " + supportedBidderName + " does not support any media types");
-            return null;
+            return MediaTypeProcessingResult.rejected(Collections.singletonList(
+                    BidderError.badInput("Bidder does not support any media types.")));
         }
 
-        return processBidRequest(
-                bidRequest, supportedMediaTypes, errors, supportedBidderName);
+        final List<BidderError> errors = new ArrayList<>();
+        final BidRequest modifiedBidRequest = processBidRequest(bidRequest, supportedMediaTypes, errors);
+
+        return modifiedBidRequest != null
+                ? MediaTypeProcessingResult.succeeded(modifiedBidRequest, errors)
+                : MediaTypeProcessingResult.rejected(errors);
     }
 
     private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String supportedBidderName) {
@@ -59,27 +63,22 @@ public class BidderMediaTypeProcessor {
 
     private BidRequest processBidRequest(BidRequest bidRequest,
                                          Set<MediaType> supportedMediaTypes,
-                                         List<String> errors,
-                                         String bidderName) {
+                                         List<BidderError> errors) {
 
         final List<Imp> modifiedImps = bidRequest.getImp().stream()
-                .map(imp -> processImp(imp, supportedMediaTypes, errors, bidderName))
+                .map(imp -> processImp(imp, supportedMediaTypes, errors))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
         if (modifiedImps.isEmpty()) {
-            errors.add("Bid request contains 0 impressions after filtering for " + bidderName);
+            errors.add(BidderError.badInput("Bid request contains 0 impressions after filtering."));
             return null;
         }
 
         return bidRequest.toBuilder().imp(modifiedImps).build();
     }
 
-    private static Imp processImp(Imp imp,
-                                  Set<MediaType> supportedMediaTypes,
-                                  List<String> errors,
-                                  String bidderName) {
-
+    private static Imp processImp(Imp imp, Set<MediaType> supportedMediaTypes, List<BidderError> errors) {
         final Set<MediaType> impMediaTypes = getMediaTypes(imp);
         final Set<MediaType> unsupportedMediaTypes = SetUtils.difference(impMediaTypes, supportedMediaTypes);
 
@@ -88,8 +87,8 @@ public class BidderMediaTypeProcessor {
         }
 
         if (impMediaTypes.equals(unsupportedMediaTypes)) {
-            errors.add("Imp " + imp.getId() + " does not have a supported media type for the " + bidderName
-                    + "and has been removed from the request for this bidder");
+            errors.add(BidderError.badInput("Imp " + imp.getId() + " does not have a supported media type "
+                    + "and has been removed from the request for this bidder."));
 
             return null;
         }
