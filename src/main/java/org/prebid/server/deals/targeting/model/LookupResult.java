@@ -11,6 +11,8 @@ public class LookupResult<T> {
 
     private static final LookupResult<Object> EMPTY = LookupResult.of(Collections.emptyList());
 
+    List<T> values;
+
     @SuppressWarnings("unchecked")
     public static <T> LookupResult<T> empty() {
         return (LookupResult<T>) EMPTY;
@@ -19,8 +21,6 @@ public class LookupResult<T> {
     public static <T> LookupResult<T> ofValue(T value) {
         return LookupResult.of(Collections.singletonList(value));
     }
-
-    List<T> values;
 
     public boolean anyMatch(Predicate<T> matcher) {
         return values.stream().anyMatch(matcher);
