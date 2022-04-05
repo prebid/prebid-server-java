@@ -9,4 +9,6 @@ class ImpExtContextData {
     List<String> keywords
     Integer buyerid
     List<Integer> buyerids
+    String pbadslot
+    ImpExtContextDataAdServer adserver
 }
