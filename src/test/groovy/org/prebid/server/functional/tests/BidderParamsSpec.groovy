@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import io.qameta.allure.Issue
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
@@ -22,7 +23,6 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
@@ -42,7 +42,7 @@ class BidderParamsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain httpcalls"
-        assert response.ext?.debug?.httpcalls[GENERIC.value]
+        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
 
         and: "Response should not contain error"
         assert !response.ext?.errors
@@ -197,7 +197,7 @@ class BidderParamsSpec extends BaseSpec {
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic(firstParam: firstParam)
 
         and: "Set bidderParam to bidRequest"
-        bidRequest.ext.prebid.bidderParams = [(GENERIC): [firstParam: PBSUtils.randomNumber]]
+        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [firstParam: PBSUtils.randomNumber]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -232,7 +232,7 @@ class BidderParamsSpec extends BaseSpec {
 
         and: "Set bidderParam to bidRequest"
         def secondParam = PBSUtils.randomNumber
-        bidRequest.ext.prebid.bidderParams = [(GENERIC): [secondParam: secondParam]]
+        bidRequest.ext.prebid.bidderParams = [(BidderName.GENERIC): [secondParam: secondParam]]
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -381,8 +381,8 @@ class BidderParamsSpec extends BaseSpec {
         assert response.seatbid.isEmpty()
 
         and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message == ["generic does not support any media types"]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.message == ["Bidder does not support any media types."]
 
         where:
         configMediaType    | bidRequest
@@ -434,8 +434,8 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.nativeObj
 
         and: "Response should contain error"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Imp with id ${bidRequest.imp[0].id} uses banner, but this bidder doesn't this type" as String]
     }
 
@@ -463,7 +463,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should not contain error"
         assert !response.ext?.errors
     }
-
+// TODO  Critical error while running the auction: null
     def "PBS should emit error for request with multiple impressions when filter-imp-media-type = true, one of imp doesn't contain supported media type"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(
@@ -487,8 +487,8 @@ class BidderParamsSpec extends BaseSpec {
         assert bidderRequest.imp[0].nativeObj
 
         and: "Response should contain error"
-        assert response.ext?.errors[PREBID]*.code == [999]
-        assert response.ext?.errors[PREBID]*.message ==
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
                 ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $GENERIC.value and" +
                          " has been removed from the request for this bidder" as String]
 
@@ -515,11 +515,11 @@ class BidderParamsSpec extends BaseSpec {
         assert bidder.getRequestCount(bidRequest.id) == 0
 
         and: "Response should contain errors"
-        assert response.ext?.errors[PREBID]*.code == [999, 999]
-        assert response.ext?.errors[PREBID]*.message ==
-                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $GENERIC.value and" +
-                         " has been removed from the request for this bidder" as String,
-                "Bid request contains 0 impressions after filtering for $GENERIC.value" as String]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2, 2]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
+                ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from " +
+                         "the request for this bidder.",
+                 "Bid request contains 0 impressions after filtering."]
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
