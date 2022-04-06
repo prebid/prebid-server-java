@@ -1,14 +1,17 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -190,5 +193,27 @@ class AuctionSpec extends BaseSpec {
         DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
         null            | DEFAULT_TIMEOUT    | getRandomTimeout()
         null            | null               | DEFAULT_TIMEOUT
+    }
+
+    def "PBS should update account.<account-id>.requests.rejected.invalid-account metric when account is inactive"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = new Account(uuid: accountId, status: INACTIVE)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 401
+        assert exception.responseBody == "Account ${accountId} is inactive"
+
+        and: "account.<account-id>.requests.rejected.invalid-account metric should be updated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["account.${accountId}.requests.rejected.invalid-account" as String] == 1
     }
 }
