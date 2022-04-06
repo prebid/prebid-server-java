@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrou
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
@@ -134,8 +135,16 @@ public class SharethroughBidder implements Bidder<BidRequest> {
 
     private Source updateSource(Source source) {
         return source != null
-                ? source.toBuilder().ext(createExtSource()).build()
+                ? source.toBuilder()
+                .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::updateExtSource, this::createExtSource))
+                .build()
                 : Source.builder().ext(createExtSource()).build();
+    }
+
+    private ExtSource updateExtSource(ExtSource ext) {
+        ext.addProperty("str", TextNode.valueOf(ADAPTER_VERSION));
+        ext.addProperty("version", TextNode.valueOf(prebidVersionProvider.getNameVersionRecord()));
+        return ext;
     }
 
     private ExtSource createExtSource() {
