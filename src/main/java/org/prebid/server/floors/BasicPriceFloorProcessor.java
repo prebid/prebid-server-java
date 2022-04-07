@@ -51,7 +51,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
-                                    CurrencyConversionService conversionService, JacksonMapper mapper) {
+                                    CurrencyConversionService conversionService,
+                                    JacksonMapper mapper) {
 
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
@@ -166,7 +167,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
                 return Price.of(
                         requestFloorMinCur,
-                        conversionService.convertCurrency(providerFloorMin,
+                        conversionService.convertCurrency(
+                                providerFloorMin,
                                 Collections.emptyMap(),
                                 providerFloorMinCur,
                                 requestFloorMinCur,
@@ -178,7 +180,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             if (BidderUtil.isValidPrice(requestFloorMin)) {
                 return Price.of(
                         requestFloorMinCur,
-                        conversionService.convertCurrency(requestFloorMin,
+                        conversionService.convertCurrency(
+                                requestFloorMin,
                                 Collections.emptyMap(),
                                 requestFloorMinCur,
                                 providerFloorMinCur,
@@ -192,7 +195,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private static Boolean resolveFloorsEnabled(Boolean enabledByRequest, Boolean enabledByProvider) {
-        if (Boolean.FALSE.equals(enabledByRequest) || Boolean.FALSE.equals(enabledByProvider)) {
+        if (BooleanUtils.isFalse(enabledByRequest) || BooleanUtils.isFalse(enabledByProvider)) {
             return false;
         }
 
@@ -362,7 +365,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         try {
             priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, warnings);
         } catch (IllegalStateException e) {
-            errors.add(String.format("Cannot resolve bid floor, error: %s", e.getMessage()));
+            errors.add("Cannot resolve bid floor, error: " + e.getMessage());
             return imp;
         }
 

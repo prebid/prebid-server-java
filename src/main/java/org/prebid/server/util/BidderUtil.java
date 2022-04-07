@@ -63,7 +63,7 @@ public class BidderUtil {
             final BigDecimal convertedPriceValue = floor.setScale(4, RoundingMode.HALF_EVEN).stripTrailingZeros();
 
             return convertedPriceValue.scale() < 0
-                    ? convertedPriceValue.setScale(0, RoundingMode.UNNECESSARY)
+                    ? convertedPriceValue.setScale(0, RoundingMode.HALF_EVEN)
                     : convertedPriceValue;
         }
 

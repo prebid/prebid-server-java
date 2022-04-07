@@ -42,7 +42,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
-    ExtRequestBidadjustmentfactors bidadjustmentfactors;
+    ExtRequestBidAdjustmentFactors bidadjustmentfactors;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.currency

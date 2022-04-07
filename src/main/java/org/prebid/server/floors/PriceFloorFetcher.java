@@ -317,11 +317,11 @@ public class PriceFloorFetcher {
                                                              String accountId) {
         final long accountPeriodicTimeSec =
                 ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
-        final long periodicTime =
+        final long periodicTimeSec =
                 ObjectUtils.defaultIfNull(
                         ObjectUtil.getIfNotNull(testingProperties, PriceFloorTestingProperties::getMinPeriodSec),
                         accountPeriodicTimeSec);
-        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTime), ignored -> periodicFetch(accountId));
+        vertx.setTimer(TimeUnit.SECONDS.toMillis(periodicTimeSec), ignored -> periodicFetch(accountId));
 
         return priceFloorRules;
     }
