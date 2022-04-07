@@ -196,7 +196,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest with bidFloor, bidFloorCur"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].bidFloor = 0.8
-            imp[0].bidFloorCur = "USD"
+            imp[0].bidFloorCur = USD
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"

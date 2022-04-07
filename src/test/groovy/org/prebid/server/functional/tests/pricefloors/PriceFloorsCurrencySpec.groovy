@@ -8,13 +8,14 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 
-import java.math.RoundingMode
-
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
+import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
+import static org.prebid.server.functional.model.request.auction.Location.FETCH
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
 
@@ -48,8 +49,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain bidFloor, bidFloorCur from floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
         }
     }
 
@@ -130,28 +131,27 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond floorMin"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == getRoundedFloorValue(convertedMinFloorValue)
-            imp[0]?.bidFloorCur == floorProviderCur
+            imp[0].bidFloor == getRoundedFloorValue(convertedMinFloorValue)
+            imp[0].bidFloorCur == floorProviderCur
             ext?.prebid?.floors?.floorMin == floorMin
             ext?.prebid?.floors?.floorMinCur == requestFloorMinCur
         }
     }
-// TODO If the currency conversion service is unavailable, PBS transmits the data from request, but at the same time indicates
-//"location": "fetch",
-//"fetchStatus": "success",
+
     def "PBS should not update bidFloor, bidFloorCur for signalling when currency conversion is not available"() {
         given: "Pbs config with disabled conversion"
         def pbsService = pbsServiceFactory.getService(floorsConfig +
                 ["currency-converter.external-rates.enabled": "false"])
 
         and: "BidRequest with floorMinCur"
+        def requestFloorCur = USD
         def floorMin = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             cur = [EUR]
             imp[0].bidFloor = floorMin
-            imp[0].bidFloorCur = USD
+            imp[0].bidFloorCur = requestFloorCur
             ext.prebid.floors.floorMin = floorMin
-            ext.prebid.floors.floorMinCur = USD
+            ext.prebid.floors.floorMinCur = requestFloorCur
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -159,9 +159,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response with a currency different from the floorMinCur"
+        def floorsProviderCur = EUR
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
-            data.modelGroups[0].currency = EUR
+            data.modelGroups[0].currency = floorsProviderCur
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -177,6 +178,12 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                 ["Unable to convert from currency $bidRequest.ext.prebid.floors.floorMinCur to desired ad server" +
                          " currency ${floorsResponse.data.modelGroups[0].currency}" as String]
 
+        and: "PBS should log a warning"
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Error occurred while resolving floor for imp: ${bidRequest.imp[0].id}, cause: Unable "+
+                "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur" as String]
+
         and: "Metric #GENERAL_ERROR_METRIC should be update"
         def metrics = pbsService.sendCollectedMetricsRequest()
         assert metrics[GENERAL_ERROR_METRIC] == 1
@@ -184,9 +191,12 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Bidder request should contain bidFloor, bidFloorCur from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorMin
-            imp[0]?.bidFloorCur == bidRequest.ext.prebid.floors.floorMinCur
-            !imp[0]?.ext?.prebid?.floors
+            imp[0].bidFloor == floorMin
+            imp[0].bidFloorCur == bidRequest.ext.prebid.floors.floorMinCur
+            !imp[0].ext?.prebid?.floors
+
+            ext?.prebid?.floors?.location == FETCH
+            ext?.prebid?.floors?.fetchStatus == SUCCESS
         }
     }
 
@@ -208,8 +218,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain bidFloor, bidFloorCur from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorCur
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorCur
             ext?.prebid?.floors?.fetchStatus == NONE
         }
 
@@ -272,8 +282,8 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain bidFloor, bidFloorCur from floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorCur
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorCur
         }
 
         and: "PBS should suppress bids lower than floorRuleValue"
@@ -281,18 +291,17 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.price } == [convertedFloorValueEur]
         assert response.cur == bidRequest.cur[0]
     }
-//TODO In this case, there are no errors in the response and
-//"location": "fetch",
-//"fetchStatus": "success",
+
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified UNKNOWN"() {
         given: "BidRequest with floorMinCur"
+        def requestFloorCur = USD
         def floorMin = PBSUtils.randomFloorValue
         def bidRequest = bidRequestWithFloors.tap {
             cur = [EUR]
             imp[0].bidFloor = floorMin
-            imp[0].bidFloorCur = USD
+            imp[0].bidFloorCur = requestFloorCur
             ext.prebid.floors.floorMin = floorMin
-            ext.prebid.floors.floorMinCur = USD
+            ext.prebid.floors.floorMinCur = requestFloorCur
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -300,10 +309,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response with a currency different from the floorMinCur"
-        def floorCur = BOGUS
+        def floorsProviderCur = BOGUS
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
-            data.modelGroups[0].currency = floorCur
+            data.modelGroups[0].currency = floorsProviderCur
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -314,10 +323,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should log a warning"
-        assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message ==
-                ["Unable to convert from currency $floorCur to desired ad server currency "+
-                "${floorsResponse.data.modelGroups[0].currency}" as String]
+        assert response.ext?.warnings[PREBID]*.code == [999]
+        assert response.ext?.warnings[PREBID]*.message ==
+                ["Error occurred while resolving floor for imp: ${bidRequest.imp[0].id}, cause: Unable "+
+                "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur" as String]
 
         and: "Metric #GENERAL_ERROR_METRIC should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
@@ -326,20 +335,9 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "Bidder request should contain bidFloor, bidFloorCur from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorMin
-            imp[0]?.bidFloorCur == bidRequest.ext.prebid.floors.floorMinCur
-            !imp[0]?.ext?.prebid?.floors
+            imp[0].bidFloor == floorMin
+            imp[0].bidFloorCur == bidRequest.ext.prebid.floors.floorMinCur
+            !imp[0].ext?.prebid?.floors
         }
-    }
-
-    private BigDecimal getPriceAfterCurrencyConversion(BigDecimal value, Currency currencyFrom, Currency currencyTo) {
-        def currencyRate = getCurrencyRate(currencyFrom, currencyTo)
-        def convertedValue = value * currencyRate
-        convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
-        def response = defaultPbsService.sendCurrencyRatesRequest()
-        response.rates[currencyFrom.value][currencyTo.value]
     }
 }

@@ -34,8 +34,9 @@ abstract class BaseSpec extends Specification {
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
 
-    protected static final int MIN_TIMEOUT = 5000
     protected static final int MAX_TIMEOUT = 6000
+    private static final int MIN_TIMEOUT = 5000
+    private static final int DEFAULT_TARGETING_PRECISION = 1
 
     def setupSpec() {
         prebidCache.setResponse()
@@ -68,6 +69,6 @@ abstract class BaseSpec extends Specification {
     }
 
     protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
-        "${value.setScale(1, DOWN)}0"
+        "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
     }
 }

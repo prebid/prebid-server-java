@@ -37,7 +37,7 @@ class Bidder extends NetworkScaffolding {
         request().withPath(AUCTION_ENDPOINT)
     }
 
-    HttpRequest getRequest(String requestMatchPath, String bidRequestId) {
+    protected HttpRequest getRequest(String requestMatchPath, String bidRequestId) {
         request().withPath(AUCTION_ENDPOINT)
                  .withBody(jsonPath("\$[?(@.$requestMatchPath == '$bidRequestId')]"))
     }
@@ -51,9 +51,6 @@ class Bidder extends NetworkScaffolding {
     }
 
     List<BidderRequest> getBidderRequests(String bidRequestId) {
-
-        getRecordedRequestsBody(bidRequestId).each { println "bidder request : "+ it
-        println "===="}
         getRecordedRequestsBody(bidRequestId).collect { mapper.decode(it, BidderRequest) }
     }
 

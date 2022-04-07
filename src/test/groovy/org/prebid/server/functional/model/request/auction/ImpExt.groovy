@@ -10,7 +10,6 @@ import org.prebid.server.functional.model.bidder.Rubicon
 class ImpExt {
 
     ImpExtPrebid prebid
-    ImpExtData data
     Generic generic
     @Deprecated
     Rubicon rubicon

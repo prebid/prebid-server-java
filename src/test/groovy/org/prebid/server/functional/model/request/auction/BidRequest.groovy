@@ -5,8 +5,6 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
-import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
-
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
@@ -49,7 +47,7 @@ class BidRequest {
         }
     }
 
-    private static BidRequest getDefaultRequest(DistributionChannel channel  = SITE, Imp imp) {
+    private static BidRequest getDefaultRequest(DistributionChannel channel = SITE, Imp imp) {
         new BidRequest().tap {
             it.addImp(imp)
             regs = Regs.defaultRegs

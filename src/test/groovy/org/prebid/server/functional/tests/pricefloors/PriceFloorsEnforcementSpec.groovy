@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
@@ -178,10 +179,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
     def "PBS should make PF enforcement when imp[].bidfloor/cur comes from request"() {
         given: "Default BidRequest with floors"
         def floorValue = PBSUtils.randomFloorValue
-        def bidRequest = bidRequestWithFloors.tap {
-            imp[0].bidFloor = floorValue
-            imp[0].bidFloorCur = USD
-        }
+        def floorCur = USD
+        def bidRequest = bidRequestClosure(floorValue, floorCur) as BidRequest
 
         and: "Account with disabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -194,7 +193,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
             seatbid.first().bid.first().price = floorValue
             seatbid.first().bid.last().price = floorValue - 0.1
-            cur = USD
+            cur = floorCur
         }
         bidder.setResponse(bidRequest.id, bidResponse)
 
@@ -203,6 +202,22 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should fetch data"
         assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
+
+         where:
+        bidRequestClosure << [{ BigDecimal floorValueObj, Currency floorCurObj -> bidRequestWithFloors.tap {
+            cur = [floorCurObj]
+            imp[0].bidFloor = PBSUtils.randomFloorValue
+            imp[0].bidFloorCur = floorCurObj
+            ext.prebid.floors.floorMin = floorValueObj
+            ext.prebid.floors.data.modelGroups[0].values = [(rule): floorValueObj]
+            ext.prebid.floors.data.modelGroups[0].currency = floorCurObj
+        } },
+           { BigDecimal floorValueObj, Currency floorCurObj -> bidRequestWithFloors.tap {
+            cur = [floorCurObj]
+            imp[0].bidFloor = floorValueObj
+            imp[0].bidFloorCur = floorCurObj
+            ext.prebid.floors = null
+        } }]
     }
 
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {

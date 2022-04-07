@@ -34,12 +34,9 @@ class StoredRequest {
         new StoredRequest(reqid: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
     }
 
-    static StoredRequest getDbStoredRequest(BidRequest bidRequest, BidRequest storedRequest) {
-        new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: bidRequest.site.publisher.id,
-                requestData: storedRequest)
-    }
-
-    static StoredRequest getDbStoredRequest(BidRequest bidRequest, String accountId, BidRequest storedRequest) {
+    static StoredRequest getDbStoredRequest(BidRequest bidRequest,
+                                            String accountId = bidRequest.site.publisher.id,
+                                            BidRequest storedRequest) {
         new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: accountId,
                 requestData: storedRequest)
     }

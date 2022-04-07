@@ -5,6 +5,8 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.Currency.USD
+
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
 class PriceFloorData {
@@ -18,7 +20,7 @@ class PriceFloorData {
 
     static PriceFloorData getPriceFloorData() {
         new PriceFloorData(floorProvider: PBSUtils.randomString,
-                currency: Currency.USD,
+                currency: USD,
                 floorsSchemaVersion: 2,
                 modelGroups: [ModelGroup.modelGroup])
     }

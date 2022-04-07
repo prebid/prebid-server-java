@@ -200,8 +200,8 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         where:
         targetingType  | impExtContextData
-        SFPD_BUYER_ID  | new ImpExtContextData(buyerid: integerTargetingValue)
-        SFPD_BUYER_IDS | new ImpExtContextData(buyerids: [integerTargetingValue])
+        SFPD_BUYER_ID  | new ImpExtContextData(buyerId: integerTargetingValue)
+        SFPD_BUYER_IDS | new ImpExtContextData(buyerIds: [integerTargetingValue])
     }
 
     def "PBS shouldn't throw a NPE for '#targetingType' when its Ext is absent and targeting Intersects matching type is selected"() {

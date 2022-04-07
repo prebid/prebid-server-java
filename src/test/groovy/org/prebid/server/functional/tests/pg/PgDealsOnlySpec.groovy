@@ -147,7 +147,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         assert initialBidderRequestCount + 1 == bidder.requestCount
 
         and: "PBS added dealsonly flag to the bidder request"
-        assert auctionResponse.ext?.debug?.resolvedrequest?.imp?.first()?.ext?.prebid?.bidder?.generic?.dealsOnly
+        assert auctionResponse.ext?.debug?.resolvedRequest?.imp?.first()?.ext?.prebid?.bidder?.generic?.dealsOnly
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)

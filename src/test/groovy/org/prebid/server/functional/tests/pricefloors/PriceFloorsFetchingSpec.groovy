@@ -58,7 +58,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should signal bids"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor
+        assert bidderRequest.imp[0].bidFloor
     }
 
     def "PBS should not activate floors feature when price-floors.enabled = false in #description config"() {
@@ -83,7 +83,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "PBS should no fetching, no signaling, no enforcing"
         assert floorsProvider.getRequestCount(bidRequest.app.publisher.id) == 0
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert !bidderRequest.imp[0]?.bidFloor
+        assert !bidderRequest.imp[0].bidFloor
 
         where:
         description | pbdConfigEnabled | accountConfigEnabled
@@ -96,7 +96,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def startTime = Instant.now()
 
         and: "Default BidRequest"
-        def bidRequest = bidRequestWithFloors
+        def bidRequest = BidRequest.defaultBidRequest
 
         and: "Account with enabled fetch, without fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
@@ -118,7 +118,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS should fall back to the startup configuration"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0]?.bidFloor == bidRequest.imp[0].bidFloor
+        assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
     }
 
     def "PBS should validate fetch.max-age-sec from account config"() {
@@ -302,7 +302,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request should contain bidFloor from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.imp[0]?.bidFloor == bidRequest.imp[0].bidFloor
+        assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
 
         where:
         fetch << [new PriceFloorsFetch(enabled: false, url: basicFetchUrl), new PriceFloorsFetch(url: basicFetchUrl)]
@@ -342,7 +342,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request should contain bidFloor from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         pbsConfigUseDynamicData | accountUseDynamicData
@@ -379,7 +379,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request should contain bidFloor from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == bidRequest.imp[0].bidFloor
+        assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
 
         where:
         pbsConfigUseDynamicData | accountUseDynamicData
@@ -499,7 +499,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Failed to parse price floor " +
@@ -541,7 +541,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules should contain " +
@@ -583,7 +583,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules values can't " +
@@ -628,7 +628,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules number " +
@@ -749,14 +749,14 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from stored request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.bidFloorCur == storedRequestModel.ext.prebid.floors.data.modelGroups[0].currency
+            imp[0].bidFloor == storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0].bidFloorCur == storedRequestModel.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule ==
+            imp[0].ext?.prebid?.floors?.floorRule ==
                     storedRequestModel.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue ==
+            imp[0].ext?.prebid?.floors?.floorRuleValue ==
                     storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.ext?.prebid?.floors?.floorValue ==
+            imp[0].ext?.prebid?.floors?.floorValue ==
                     storedRequestModel.ext.prebid.floors.data.modelGroups[0].values[rule]
 
             ext?.prebid?.floors?.location == REQUEST
@@ -794,13 +794,13 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
+            imp[0].bidFloor == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0].bidFloorCur == bidRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule ==
+            imp[0].ext?.prebid?.floors?.floorRule ==
                     bidRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0].ext?.prebid?.floors?.floorRuleValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0].ext?.prebid?.floors?.floorValue == bidRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
 
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
@@ -831,14 +831,14 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.bidFloorCur == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].currency
+            imp[0].bidFloor == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
+            imp[0].bidFloorCur == ampStoredRequest.ext.prebid.floors.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule ==
+            imp[0].ext?.prebid?.floors?.floorRule ==
                     ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue ==
+            imp[0].ext?.prebid?.floors?.floorRuleValue ==
                     ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
-            imp[0]?.ext?.prebid?.floors?.floorValue ==
+            imp[0].ext?.prebid?.floors?.floorValue ==
                     ampStoredRequest.ext.prebid.floors.data.modelGroups[0].values[rule]
 
             ext?.prebid?.floors?.location == REQUEST
@@ -879,12 +879,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
@@ -922,12 +922,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request should contain floors data from floors provider"
         def bidderRequest = bidder.getBidderRequests(ampStoredRequest.id).last()
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
 
-            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
@@ -1009,11 +1009,11 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
 
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
-            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
@@ -1121,11 +1121,11 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
 
         verifyAll(bidderRequest) {
-            imp[0]?.bidFloor == floorValue
-            imp[0]?.bidFloorCur == floorsResponse.data.modelGroups[0].currency
-            imp[0]?.ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
-            imp[0]?.ext?.prebid?.floors?.floorRuleValue == floorValue
-            imp[0]?.ext?.prebid?.floors?.floorValue == floorValue
+            imp[0].bidFloor == floorValue
+            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
+            imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS

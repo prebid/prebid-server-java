@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
@@ -29,20 +30,19 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 @PBSTest
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
+    public static final float FLOOR_MIN = 0.5
     public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
                                                             "settings.default-account-config": mapper.encode(defaultAccountConfigSettings)]
-    protected static final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
 
     protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
 
-    protected static final int DEFAULT_MODEL_WEIGHT = 1
-    protected static final int MAX_MODEL_WEIGHT = 1000000
-    public static final float FLOOR_MIN = 0.5
-    public static final int CURRENCY_CONVERSION_PRECISION = 3
+    private static final int DEFAULT_MODEL_WEIGHT = 1
+    private static final int MAX_MODEL_WEIGHT = 1000000
+    private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
-    private static final int DEFAULT_TARGETING_PRECISION = 1
 
     def setupSpec() {
         floorsProvider.setResponse()
@@ -105,29 +105,40 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
 
-    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest, BigDecimal expectedFloorValue) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest, BigDecimal expectedFloorValue) {
         PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }
 
-    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
         pbsService.sendAuctionRequest(bidRequest)
         Thread.sleep(1000)
     }
 
-    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest, BigDecimal expectedFloorValue) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest, BigDecimal expectedFloorValue) {
         PBSUtils.waitUntil({ pbsService.sendAmpRequest(ampRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }
 
-    protected static void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest) {
         pbsService.sendAmpRequest(ampRequest)
         Thread.sleep(1000)
     }
 
     protected BigDecimal getRoundedFloorValue(BigDecimal floorValue) {
         floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
+    }
+
+    protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value, Currency currencyFrom, Currency currencyTo) {
+        def currencyRate = getCurrencyRate(currencyFrom, currencyTo)
+        def convertedValue = value * currencyRate
+        convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
+    }
+
+    private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
+        def response = defaultPbsService.sendCurrencyRatesRequest()
+        response.rates[currencyFrom.value][currencyTo.value]
     }
 }

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-
 import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.DeviceType
@@ -8,7 +7,6 @@ import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
-import org.prebid.server.functional.model.request.auction.AdServer
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -16,7 +14,8 @@ import org.prebid.server.functional.model.request.auction.Channel
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.ImpExtData
+import org.prebid.server.functional.model.request.auction.ImpExtContextData
+import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.APP
@@ -107,7 +106,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Bidder request bidFloor should correspond to appropriate media type"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         delimiter << [".", "/"]
@@ -143,7 +142,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should consider rules file invalid when rules file contains an unrecognized dimension in the schema"() {
@@ -177,7 +176,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "PBS should pass bidFloor"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert !bidderRequest.imp[0]?.bidFloor
+        assert !bidderRequest.imp[0].bidFloor
         assert bidderRequest.ext?.prebid?.floors?.location == NO_DATA
         assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
 
@@ -217,7 +216,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should be rounded"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == getRoundedFloorValue(floorValue)
+        assert bidderRequest.imp[0].bidFloor == getRoundedFloorValue(floorValue)
     }
 
     def "PBS should choose correct rule when media type is defined in rules"() {
@@ -243,7 +242,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate media type"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == 0.6
+        assert bidderRequest.imp[0].bidFloor == 0.6
 
         where:
         bidRequest                       | bothFloorValue   | bannerFloorValue | videoFloorValue
@@ -287,7 +286,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
+        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
     }
 
     def "PBS should choose correct rule when size is defined in rules"() {
@@ -319,7 +318,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorsProviderFloorValue
+        assert bidderRequest.imp[0].bidFloor == floorsProviderFloorValue
 
         where:
         bidRequestClosure <<
@@ -362,7 +361,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
@@ -411,7 +410,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
@@ -452,7 +451,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String domainVal, String accountIdVal -> BidRequest.defaultBidRequest.tap {
@@ -494,7 +493,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should choose correct rule when channel is defined in rules"() {
@@ -526,7 +525,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should choose correct rule when gptSlot is defined in rules"() {
@@ -556,20 +555,20 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
         bidRequestClosure << [{ String gptSlotVal -> BidRequest.defaultBidRequest.tap {
-                                    imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: gptSlotVal))} },
+                                    imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: gptSlotVal))} },
                               { String gptSlotVal -> BidRequest.defaultBidRequest.tap {
-                                    imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal)} }]
+                                    imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: PBSUtils.randomString), pbAdSlot: gptSlotVal)} }]
     }
 
     def "PBS should choose correct rule when pbAdSlot is defined in rules"() {
         given: "BidRequest with domain"
         def pbAdSlot = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].ext.data = new ImpExtData(pbAdSlot: pbAdSlot)
+            imp[0].ext.data = new ImpExtContextData(pbAdSlot: pbAdSlot)
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -594,7 +593,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should choose correct rule when country is defined in rules"() {
@@ -626,7 +625,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should choose correct rule when devicetype is defined in rules"() {
@@ -658,7 +657,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == 0.8
+        assert bidderRequest.imp[0].bidFloor == 0.8
 
         where:
         deviceType            | phoneFloorValue  | tabletFloorValue | desktopFloorValue
@@ -707,7 +706,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should use data.modelGroups[].default when no matching rules are found"() {
@@ -735,7 +734,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to defaultFloor"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == floorValue
+        assert bidderRequest.imp[0].bidFloor == floorValue
     }
 
     def "PBS should choose correct rule based on full match when domain, mediaType, gptSlot are defined in rules"() {
@@ -745,7 +744,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def bidRequest =  BidRequest.defaultBidRequest.tap {
             site.domain = domain
             imp[0].banner = Banner.defaultBanner
-            imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: adSlot))
+            imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: adSlot))
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -764,7 +763,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule value"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == 0.06
+        assert bidderRequest.imp[0].bidFloor == 0.06
     }
 
    def "PBS should choose correct rule based on incomplete match when domain, mediaType, gptSlot are defined in rules"() {
@@ -774,7 +773,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def bidRequest =  BidRequest.defaultBidRequest.tap {
             site.domain = domain
             imp[0].banner = Banner.defaultBanner
-            imp[0].ext.data = new ImpExtData(adServer: new AdServer(name: "gam", adSlot: adSlot))
+            imp[0].ext.data = new ImpExtContextData(adServer: new ImpExtContextDataAdServer(name: "gam", adSlot: adSlot))
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -793,6 +792,6 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         then: "Bidder request bidFloor should correspond to appropriate rule value"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.imp[0]?.bidFloor == 0.04
+        assert bidderRequest.imp[0].bidFloor == 0.04
     }
 }

@@ -46,11 +46,6 @@ class PBSUtils {
         createTempFile(data, ".json")
     }
 
-//    static String getJsonStringFromFile(String file) throws IOException {
-//        def mapper = Dependencies.objectMapperWrapper
-//        return mapper.writeValueAsString(mapper.toJsonNode(PBSUtils.getResourceAsStream(file)));
-//    }
-
     static int getBytes(int kilobyte) {
         kilobyte * 1024
     }

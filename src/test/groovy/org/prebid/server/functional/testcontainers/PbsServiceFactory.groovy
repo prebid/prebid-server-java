@@ -3,7 +3,6 @@ package org.prebid.server.functional.testcontainers
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
-import org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.SystemProperties
 
@@ -42,7 +41,7 @@ class PbsServiceFactory {
     }
 
     static void stopContainers() {
-        def containers = containers.findAll { it.key != [:] && it.key != PriceFloorsBaseSpec.floorsConfig }
+        def containers = containers.findAll { it.key != [:] }
         remove(containers)
     }
 
