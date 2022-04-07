@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "bid_id",
-          "impid": "imp_id",
+          "impid": "imp_id:opa:banner",
           "price": 3.33,
           "adid": "adid001",
           "crid": "crid001",

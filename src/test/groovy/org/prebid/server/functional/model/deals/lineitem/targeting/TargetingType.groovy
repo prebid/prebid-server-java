@@ -15,6 +15,7 @@ enum TargetingType {
     DEVICE_TYPE("device.ext.deviceatlas.type"),
     DEVICE_OS("device.ext.deviceatlas.osfamily"),
     DEVICE_REGION("device.geo.ext.netacuity.region"),
+    DEVICE_METRO("device.geo.ext.netacuity.metro"),
     PAGE_POSITION("pos"),
     LOCATION("geo.distance"),
     BIDP("bidp."),

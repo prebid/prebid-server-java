@@ -2,7 +2,7 @@ adapters:
   synacormedia:
     endpoint: http://{{Host}}.technoratimedia.com/openrtb/bids/{{Host}}
     meta-info:
-      maintainer-email: eng-demand@synacor.com
+      maintainer-email: eng-demand@imds.tv
       app-media-types:
         - banner
         - video
@@ -12,7 +12,7 @@ adapters:
       supported-vendors:
       vendor-id: 0
     usersync:
-      url: https://sync.technoratimedia.com/services?srv=cs&pid=70&cb=
+      url: https://ad-cdn.technoratimedia.com/html/usersync.html?cb=
       redirect-url: /setuid?bidder=synacormedia&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[USER_ID]
       cookie-family-name: synacormedia
       type: iframe

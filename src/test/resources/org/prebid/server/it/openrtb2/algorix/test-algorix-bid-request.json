@@ -7,8 +7,21 @@
         "w": 300,
         "h": 250
       },
+      "video": {
+        "w": 320,
+        "h": 480,
+        "mimes": [
+          "video/mp4"
+        ],
+        "ext": {
+          "rewarded": 1
+        }
+      },
       "tagid": "123",
       "ext": {
+        "prebid": {
+          "is_rewarded_inventory": 1
+        },
         "bidder": {
           "sid": "testSid",
           "token": "testToken",

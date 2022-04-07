@@ -4,4 +4,5 @@ class BidExt {
 
     Prebid prebid
     BigDecimal origbidcpm
+    String origbidcur
 }

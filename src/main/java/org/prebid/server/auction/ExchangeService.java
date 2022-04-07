@@ -85,10 +85,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -108,6 +108,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.DealUtil;
 import org.prebid.server.util.LineItemUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
@@ -127,6 +128,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Executes an OpenRTB v2.5 Auction.
@@ -1033,7 +1035,7 @@ public class ExchangeService {
     private Source prepareSource(String bidder, BidRequest bidRequest) {
         final Source receivedSource = bidRequest.getSource();
 
-        final ExtRequestPrebidSchainSchain bidderSchain = schainResolver.resolveForBidder(bidder, bidRequest);
+        final ExtSourceSchain bidderSchain = schainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null) {
             return receivedSource;
@@ -1297,17 +1299,18 @@ public class ExchangeService {
             final ValidationResult validationResult =
                     responseBidValidator.validate(bid, bidderResponse.getBidder(), auctionContext, aliases);
 
-            if (validationResult.hasWarnings()) {
-                addAsBidderErrors(validationResult.getWarnings(), errors);
+            if (validationResult.hasWarnings() || validationResult.hasErrors()) {
+                errors.add(makeValidationBidderError(bid.getBid(), validationResult));
             }
 
             if (validationResult.hasErrors()) {
-                addAsBidderErrors(validationResult.getErrors(), errors);
                 maybeRecordInTxnLog(lineItemId, txnLog::lineItemsResponseInvalidated);
                 continue;
             }
 
-            validBids.add(bid);
+            if (!validationResult.hasErrors()) {
+                validBids.add(bid);
+            }
         }
 
         final BidderResponse resultBidderResponse = errors.isEmpty()
@@ -1316,8 +1319,14 @@ public class ExchangeService {
         return auctionParticipation.with(resultBidderResponse);
     }
 
-    private void addAsBidderErrors(List<String> messages, List<BidderError> errors) {
-        messages.stream().map(BidderError::generic).forEach(errors::add);
+    private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
+        final String validationErrors = Stream.concat(
+                validationResult.getErrors().stream().map(message -> "Error: " + message),
+                validationResult.getWarnings().stream().map(message -> "Warning: " + message))
+                .collect(Collectors.joining(". "));
+
+        final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
+        return BidderError.invalidBid("BidId `" + bidId + "` validation messages: " + validationErrors);
     }
 
     private static void maybeRecordInTxnLog(String lineItemId, Supplier<Set<String>> metricSupplier) {
@@ -1383,7 +1392,7 @@ public class ExchangeService {
         final BigDecimal price = bid.getPrice();
 
         final BigDecimal priceInAdServerCurrency = currencyService.convertCurrency(
-                price, bidRequest, adServerCurrency, StringUtils.stripToNull(bidCurrency));
+                price, bidRequest, StringUtils.stripToNull(bidCurrency), adServerCurrency);
 
         final BigDecimal priceAdjustmentFactor =
                 bidAdjustmentForBidder(bidderResponse.getBidder(), bidRequest, bidderBid);
@@ -1586,6 +1595,9 @@ public class ExchangeService {
                 break;
             case timeout:
                 errorMetric = MetricName.timeout;
+                break;
+            case invalid_bid:
+                errorMetric = MetricName.bid_validation;
                 break;
             case generic:
             default:

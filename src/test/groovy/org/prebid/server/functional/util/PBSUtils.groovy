@@ -11,6 +11,7 @@ import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
+import static java.math.RoundingMode.HALF_UP
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 import static org.awaitility.Awaitility.with
 
@@ -53,15 +54,16 @@ class PBSUtils {
         path
     }
 
-    static String getPropertyOrDefault(String property, String defaultValue) {
-        System.getProperty(property) ?: defaultValue
-    }
-
     static void waitUntil(Closure closure, long timeout = 1000, long pollInterval = 100) {
         with().pollDelay(0, MILLISECONDS)
               .pollInterval(pollInterval, MILLISECONDS)
               .await()
               .atMost(timeout, MILLISECONDS)
               .until(closure)
+    }
+
+    static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
+        BigDecimal.valueOf(getFractionalRandomNumber(min, max))
+                  .setScale(scale, HALF_UP)
     }
 }
