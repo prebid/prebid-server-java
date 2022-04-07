@@ -317,7 +317,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         priceFloorProcessor.enrichWithPriceFloors(auctionContext);
 
         // then
-        verify(floorResolver).resolve(any(), same(modelGroup), any());
+        verify(floorResolver).resolve(any(), same(modelGroup), any(), any());
     }
 
     @Test
@@ -335,7 +335,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(imps),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any())).willReturn(null);
+        given(floorResolver.resolve(any(), any(), any(), any())).willReturn(null);
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -358,7 +358,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(singletonList(givenImp(identity()))),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any()))
+        given(floorResolver.resolve(any(), any(), any(), any()))
                 .willReturn(PriceFloorResult.of("rule", BigDecimal.ONE, BigDecimal.TEN, "USD"));
 
         // when
@@ -392,7 +392,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         request -> request.imp(imps),
                         requestFloors));
 
-        given(floorResolver.resolve(any(), any(), any()))
+        given(floorResolver.resolve(any(), any(), any(), any()))
                 .willThrow(new IllegalStateException("error"));
 
         // when

@@ -64,13 +64,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final List<String> errors = auctionContext.getPrebidErrors();
+        final List<String> warnings = auctionContext.getDebugWarnings();
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
             return auctionContext;
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors);
+        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors, warnings);
 
         return auctionContext.with(updatedBidRequest);
     }
@@ -276,10 +277,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors, List<String> errors) {
+    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
+                                                  PriceFloorRules floors,
+                                                  List<String> errors,
+                                                  List<String> warnings) {
         final boolean skipFloors = shouldSkipFloors(floors);
 
-        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(floors, bidRequest, errors);
+        final List<Imp> imps = skipFloors
+                ? bidRequest.getImp()
+                : updateImpsWithFloors(floors, bidRequest, errors, warnings);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
 
         return bidRequest.toBuilder()
@@ -319,7 +325,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
-    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors, BidRequest bidRequest, List<String> errors) {
+    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors,
+                                           BidRequest bidRequest,
+                                           List<String> errors,
+                                           List<String> warnings) {
+
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
@@ -331,7 +341,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors))
+                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors, warnings))
                 .collect(Collectors.toList());
     }
 
@@ -345,11 +355,12 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private Imp updateImpWithFloors(Imp imp,
                                     PriceFloorModelGroup modelGroup,
                                     BidRequest bidRequest,
-                                    List<String> errors) {
+                                    List<String> errors,
+                                    List<String> warnings) {
 
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp);
+            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, warnings);
         } catch (IllegalStateException e) {
             errors.add(String.format("Cannot resolve bid floor, error: %s", e.getMessage()));
             return imp;

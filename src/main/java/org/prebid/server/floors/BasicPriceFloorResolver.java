@@ -96,7 +96,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     PriceFloorModelGroup modelGroup,
                                     Imp imp,
                                     ImpMediaType mediaType,
-                                    Format format) {
+                                    Format format,
+                                    List<String> warnings) {
 
         if (modelGroup == null) {
             return null;
@@ -131,6 +132,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             final String logMessage =
                     String.format("Error occurred while resolving floor for imp: %s, cause: %s",
                             imp.getId(), e.getMessage());
+            if (warnings != null) {
+                warnings.add(logMessage);
+            }
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
             metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
