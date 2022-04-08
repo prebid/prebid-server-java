@@ -103,7 +103,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
 
-        if (fetchResult != null && fetchStatus == FetchStatus.success) {
+        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.success) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRules());
             return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
@@ -113,6 +113,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
+    }
+
+    private static boolean shouldUseDynamicData(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+        final AccountPriceFloorsConfig floorsConfig =
+                ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+
+        return BooleanUtils.isNotFalse(
+                ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getUseDynamicData));
     }
 
     private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,

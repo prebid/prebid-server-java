@@ -124,6 +124,74 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
+    public void shouldNUseFloorsFromProviderIfUseDynamicDataIsNotPresent() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(null)),
+                givenBidRequest(
+                        identity(),
+                        null));
+
+        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractFloors(result))
+                .isEqualTo(givenFloors(floors -> floors
+                        .floorMin(BigDecimal.ONE)
+                        .fetchStatus(FetchStatus.success)
+                        .location(PriceFloorLocation.fetch)));
+    }
+
+    @Test
+    public void shouldNUseFloorsFromProviderIfUseDynamicDataIsTrue() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(true)),
+                givenBidRequest(
+                        identity(),
+                        null));
+
+        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractFloors(result))
+                .isEqualTo(givenFloors(floors -> floors
+                        .floorMin(BigDecimal.ONE)
+                        .fetchStatus(FetchStatus.success)
+                        .location(PriceFloorLocation.fetch)));
+    }
+
+    @Test
+    public void shouldNotUseFloorsFromProviderIfUseDynamicDataIsFalse() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(floorsConfig -> floorsConfig.useDynamicData(false)),
+                givenBidRequest(
+                        identity(),
+                        null));
+
+        final PriceFloorRules providerFloors = givenFloors(identity());
+        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractFloors(result))
+                .isEqualTo(givenFloors(floors -> floors
+                        .fetchStatus(FetchStatus.success)
+                        .location(PriceFloorLocation.noData)));
+    }
+
+    @Test
     public void shouldMergeProviderWithRequestFloors() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
