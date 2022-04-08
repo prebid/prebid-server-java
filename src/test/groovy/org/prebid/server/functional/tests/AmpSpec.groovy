@@ -11,7 +11,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
-import static java.math.RoundingMode.DOWN
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
@@ -170,7 +169,7 @@ class AmpSpec extends BaseSpec {
 
         then: "Response should contain information from stored response"
         def price = storedAuctionResponse.bid[0].price
-        assert response.targeting["hb_pb"] == "${price.setScale(1, DOWN)}0"
+        assert response.targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(price)
         assert response.targeting["hb_size"] == "${storedAuctionResponse.bid[0].w}x${storedAuctionResponse.bid[0].h}"
 
         and: "PBS not send request to bidder"
