@@ -207,7 +207,7 @@ class AmpSpec extends BaseSpec {
 
         assert bidderRequest.site?.page == ampRequest.curl
         assert bidderRequest.site?.publisher?.id == ampRequest.account.toString()
-        assert bidderRequest.imp[0]?.tagid == ampRequest.slot
+        assert bidderRequest.imp[0]?.tagId == ampRequest.slot
         assert bidderRequest.imp[0]?.banner?.format*.h == [ampRequest.h, msH]
         assert bidderRequest.imp[0]?.banner?.format*.w == [ampRequest.w, msW]
         assert bidderRequest.regs?.ext?.gdpr == (ampRequest.gdprApplies ? 1 : 0)
@@ -261,7 +261,7 @@ class AmpSpec extends BaseSpec {
 
         assert bidderRequest.site?.page == ampStoredRequest.site.page
         assert bidderRequest.site?.publisher?.id == ampStoredRequest.site.publisher.id
-        assert !bidderRequest.imp[0]?.tagid
+        assert !bidderRequest.imp[0]?.tagId
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr

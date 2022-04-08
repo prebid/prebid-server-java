@@ -14,6 +14,7 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.ExtPrebidPriceFloorEnforcement
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
@@ -247,6 +248,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response  with status code != 200"
         floorsProvider.setResponse(bidRequest.site.publisher.id, BAD_REQUEST_400)
 
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidResponse.seatbid.first().bid.first().price = requestFloorValue
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -280,6 +286,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
             config.auction.priceFloors.fetch.maxRules = 1
         }
         accountDao.save(account)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest)
+        bidResponse.seatbid.first().bid.first().price = requestFloorValue
+        bidder.setResponse(ampStoredRequest.id, bidResponse)
 
         when: "PBS processes amp request"
         def response = floorsPbsService.sendAmpRequest(ampRequest)
