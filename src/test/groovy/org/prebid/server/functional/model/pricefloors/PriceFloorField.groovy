@@ -16,7 +16,7 @@ enum PriceFloorField {
     GPT_SLOT("gptSlot"),
     PB_AD_SLOT("pbAdSlot"),
     COUNTRY("country"),
-    DEVICE_TYPE("devicetype"),
+    DEVICE_TYPE("deviceType"),
     BOGUS("bogus")
 
     @JsonValue
