@@ -472,7 +472,7 @@ class TargetingSpec extends BasePgSpec {
             imp = [Imp.defaultImpression.tap {
                 ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
                         adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
-                ext.data = new ImpExtContextData(pbAdslot: adSlot,
+                ext.data = new ImpExtContextData(pbAdSlot: adSlot,
                         adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
         }
