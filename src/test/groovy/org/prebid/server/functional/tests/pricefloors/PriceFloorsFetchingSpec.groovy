@@ -324,6 +324,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.app.publisher.id).tap {
             config.auction.priceFloors.fetch.enabled = true
+            config.auction.priceFloors.useDynamicData = accountUseDynamicData
         }
         accountDao.save(account)
 
@@ -349,6 +350,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         false                   | true
         true                    | true
         true                    | null
+        null                    | true
     }
 
     def "PBS should process floors from request when use-dynamic-data = false"() {
@@ -499,7 +501,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Failed to parse price floor " +
@@ -541,7 +543,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules should contain " +
@@ -583,7 +585,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules values can't " +
@@ -628,7 +630,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl+accountId)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl + accountId)
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor rules number " +
@@ -1142,7 +1144,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def floorMin = PBSUtils.randomFloorValue
         def floorMinCur = USD
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            ext.prebid.floors = new ExtPrebidFloors(floorMin: floorMin,floorMinCur: floorMinCur)
+            ext.prebid.floors = new ExtPrebidFloors(floorMin: floorMin, floorMinCur: floorMinCur)
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"

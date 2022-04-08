@@ -125,11 +125,6 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest) {
-        pbsService.sendAmpRequest(ampRequest)
-        Thread.sleep(1000)
-    }
-
     protected BigDecimal getRoundedFloorValue(BigDecimal floorValue) {
         floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
     }
