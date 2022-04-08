@@ -785,7 +785,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("desktop", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null)).isNull();
@@ -801,7 +801,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -818,7 +818,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -835,7 +835,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -852,7 +852,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("phone", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -869,7 +869,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -886,7 +886,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         final BigDecimal floorValue = priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue();
@@ -904,7 +904,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -921,7 +921,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("tablet", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -938,7 +938,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         // when and then
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.devicetype)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.deviceType)))
                         .value("desktop", BigDecimal.TEN)
                         .build(),
                 givenImp(identity()), null).getFloorValue())
@@ -956,7 +956,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|*|300x250", BigDecimal.ONE)
                         .value("*|banner|300x250", BigDecimal.ONE)
                         .value("desktop|banner|300x250", BigDecimal.TEN)
@@ -980,7 +980,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|*|300x250", BigDecimal.ONE)
                         .value("desktop|banner|*", BigDecimal.TEN)
                         .value("*|banner|300x250", BigDecimal.ONE)
@@ -1003,7 +1003,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|*|*", BigDecimal.ONE)
                         .value("*|banner|300x250", BigDecimal.TEN)
                         .build(),
@@ -1025,7 +1025,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("deSKtop|baNNer|300X250", BigDecimal.TEN)
                         .build(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
@@ -1046,7 +1046,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of(null,
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|banner|300x250", BigDecimal.TEN)
                         .build(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
@@ -1067,7 +1067,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of(null,
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("video|banner|300x250", BigDecimal.ONE)
                         .defaultFloor(BigDecimal.TEN)
                         .build(),
@@ -1092,7 +1092,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 PriceFloorModelGroup.builder()
                         .currency("EUR")
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|banner|300x250", BigDecimal.ONE)
                         .build(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
@@ -1122,7 +1122,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                 PriceFloorModelGroup.builder()
                         .currency("EUR")
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|banner|300x250", BigDecimal.ONE)
                         .build(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()
@@ -1144,7 +1144,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
         assertThat(priceFloorResolver.resolve(bidRequest,
                 PriceFloorModelGroup.builder()
                         .schema(PriceFloorSchema.of("|",
-                                List.of(PriceFloorField.devicetype, PriceFloorField.mediaType, PriceFloorField.size)))
+                                List.of(PriceFloorField.deviceType, PriceFloorField.mediaType, PriceFloorField.size)))
                         .value("desktop|banner|300x250", BigDecimal.ONE)
                         .build(),
                 givenImp(impBuilder -> impBuilder.banner(Banner.builder()

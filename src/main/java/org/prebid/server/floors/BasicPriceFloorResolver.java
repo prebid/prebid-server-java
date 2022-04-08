@@ -186,7 +186,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 return pbAdSlotFromImp(imp);
             case country:
                 return countryFromRequest(bidRequest);
-            case devicetype:
+            case deviceType:
                 return resolveDeviceTypeFromRequest(bidRequest);
             default:
                 throw new IllegalStateException("Unknown field type");

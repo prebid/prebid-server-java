@@ -9,7 +9,7 @@ import javax.validation.constraints.Min;
 @Validated
 @Data
 @NoArgsConstructor
-public class PriceFloorTestingProperties {
+public class PriceFloorDebugProperties {
 
     @Min(1)
     Long minMaxAgeSec;
