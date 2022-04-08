@@ -83,8 +83,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     static BidRequest getStoredRequestWithFloors(DistributionChannel channel = SITE) {
         channel == SITE
                 ? BidRequest.defaultStoredRequest.tap { ext.prebid.floors = ExtPrebidFloors.extPrebidFloors }
-                :
-                new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
+                : new BidRequest(ext: new BidRequestExt(prebid: new Prebid(debug: 1, floors: ExtPrebidFloors.extPrebidFloors)))
 
     }
 
@@ -105,7 +104,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest, BigDecimal expectedFloorValue) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
+                                            BidRequest bidRequest,
+                                            BigDecimal expectedFloorValue) {
         PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
@@ -116,7 +117,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         Thread.sleep(1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, AmpRequest ampRequest, BigDecimal expectedFloorValue) {
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
+                                            AmpRequest ampRequest,
+                                            BigDecimal expectedFloorValue) {
         PBSUtils.waitUntil({ pbsService.sendAmpRequest(ampRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)

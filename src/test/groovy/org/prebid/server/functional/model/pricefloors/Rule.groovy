@@ -21,7 +21,8 @@ class Rule {
     private String pbAdSlot
     private Country country
     private DeviceType deviceType
-// TODO add factory for delimiter
+
+    // TODO add factory for delimiter
     @JsonValue
     String getRule() {
         delimiter = delimiter ?: DEFAULT_DELIMITER

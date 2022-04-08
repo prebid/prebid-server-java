@@ -172,7 +172,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should log a warning"
+        then: "PBS should log an error"
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
         assert response.ext?.errors[ErrorType.GENERIC]*.message ==
                 ["Unable to convert from currency $bidRequest.ext.prebid.floors.floorMinCur to desired ad server" +

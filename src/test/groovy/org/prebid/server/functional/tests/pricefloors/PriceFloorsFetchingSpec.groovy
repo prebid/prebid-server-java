@@ -700,7 +700,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with Content-Length"
         def floorsResponse = PriceFloorRules.priceFloorRules
-        def responseSize = PBSUtils.getBytes(maxSize) + 100
+        def responseSize = convertKilobyteSizeToByte(maxSize) + 100
         floorsProvider.setResponse(accountId, floorsResponse, ["Content-Length": responseSize as String])
 
         when: "PBS processes auction request"
@@ -718,7 +718,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Response size " +
-                "$responseSize exceeded ${PBSUtils.getBytes(maxSize)} bytes limit")
+                "$responseSize exceeded ${convertKilobyteSizeToByte(maxSize)} bytes limit")
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
@@ -734,7 +734,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def storedRequestModel = bidRequestWithFloors
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, accountId, storedRequestModel)
+        def storedRequest = StoredRequest.getDbStoredRequest(bidRequest, storedRequestModel, accountId)
         storedRequestDao.save(storedRequest)
 
         and: "Account with disabled fetch in the DB"
@@ -1235,5 +1235,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where:
         invalidSkipRate << [-1, 101]
+    }
+
+    static int convertKilobyteSizeToByte(int kilobyteSize) {
+        kilobyteSize * 1024
     }
 }

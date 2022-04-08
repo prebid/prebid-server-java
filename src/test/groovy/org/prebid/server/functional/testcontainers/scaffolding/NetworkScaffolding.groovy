@@ -98,11 +98,8 @@ abstract class NetworkScaffolding {
                         .respond(response().withDelay(SECONDS, timeoutSec))
     }
 
-
     protected def getRequestAndResponse() {
-        mockServerClient.retrieveRecordedRequestsAndResponses(
-                request()
-        )
+        mockServerClient.retrieveRecordedRequestsAndResponses(request())
     }
 
     List<String> getRecordedRequestsBody(HttpRequest httpRequest) {

@@ -58,14 +58,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
             seatbid.first().bid.first().price = floorValue
         }
-        bidder.setResponse(bidder.getRequest("imp[0].ext.bidder.firstParam", bidderParam as String), bidResponse)
+        bidder.setResponse(bidder.getRequest(bidderParam as String, "imp[0].ext.bidder.firstParam"), bidResponse)
 
         and: "Bid response for generic bidder alias"
         def lowerPrice = floorValue - 0.1
         def aliasBidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
             seatbid.first().bid.first().price = lowerPrice
         }
-        bidder.setResponse(bidder.getRequest("imp[0].ext.bidder.firstParam", bidderAliasParam as String), aliasBidResponse)
+        bidder.setResponse(bidder.getRequest(bidderAliasParam as String, "imp[0].ext.bidder.firstParam"), aliasBidResponse)
 
         when: "PBS processes amp request"
         def response = floorsPbsService.sendAmpRequest(ampRequest)

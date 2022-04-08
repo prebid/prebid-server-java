@@ -35,9 +35,10 @@ class StoredRequest {
     }
 
     static StoredRequest getDbStoredRequest(BidRequest bidRequest,
-                                            String accountId = bidRequest.site.publisher.id,
-                                            BidRequest storedRequest) {
-        new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: accountId,
+                                            BidRequest storedRequest,
+                                            String accountId = bidRequest?.site?.publisher?.id) {
+        new StoredRequest(reqid: bidRequest?.ext?.prebid?.storedRequest?.id,
+                accountId: accountId,
                 requestData: storedRequest)
     }
 }

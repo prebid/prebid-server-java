@@ -26,7 +26,7 @@ class PBSUtils {
         getRandomNumber(min, max)
     }
 
-    static float getFractionalRandomNumber(float min = 0, int max = MAX_VALUE) {
+    static float getFractionalRandomNumber(float min = 0, float max = MAX_VALUE) {
         new Random().nextFloat() * (max - min) + min
     }
 
@@ -44,10 +44,6 @@ class PBSUtils {
     static Path createJsonFile(BidRequest bidRequest) {
         def data = Dependencies.objectMapperWrapper.encode(bidRequest)
         createTempFile(data, ".json")
-    }
-
-    static int getBytes(int kilobyte) {
-        kilobyte * 1024
     }
 
     static BigDecimal getRandomFloorValue() {
