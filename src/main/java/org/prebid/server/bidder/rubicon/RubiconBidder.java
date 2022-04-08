@@ -414,8 +414,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtRequest extRequest = bidRequest.getExt();
         final boolean isVideo = isVideo(imp);
 
-        final PriceFloorResult priceFloorResult =
-                resolvePriceFloors(bidRequest, imp, isVideo ? ImpMediaType.video : ImpMediaType.banner);
+        final PriceFloorResult priceFloorResult = isVideo ? resolvePriceFloors(bidRequest, imp) : null;
 
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
@@ -445,13 +444,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return builder.build();
     }
 
-    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp, ImpMediaType mediaType) {
+    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp) {
         final PriceFloorRules priceFloorRules = extractRequestFloors(bidRequest);
         final PriceFloorModelGroup modelGroup = priceFloorRules != null
                 ? extractFloorModelGroup(priceFloorRules)
                 : null;
 
-        return floorResolver.resolve(bidRequest, modelGroup, imp, mediaType, null);
+        return floorResolver.resolve(bidRequest, modelGroup, imp, ImpMediaType.video, null);
     }
 
     private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {

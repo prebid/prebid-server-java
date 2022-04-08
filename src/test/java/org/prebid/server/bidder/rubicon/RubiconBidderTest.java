@@ -2644,7 +2644,9 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFillImpExtWithFloors() {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
+
         when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .floors(givenFloors(floors -> floors.data(givenFloorData(
@@ -2652,6 +2654,50 @@ public class RubiconBidderTest extends VertxTest {
                                         givenModelGroup(UnaryOperator.identity())))))))
                         .build())),
                 builder -> builder.video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001)
+                        .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.TEN, BigDecimal.TEN))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillImpExtWithFloorsWhenBothVideoAndBanner() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
+
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                floorData -> floorData.modelGroups(singletonList(
+                                        givenModelGroup(UnaryOperator.identity())))))))
+                        .build())),
+                builder -> builder
+                        .video(Video.builder()
+                                .mimes(singletonList("mime"))
+                                .protocols(singletonList(1))
+                                .maxduration(10)
+                                .linearity(10)
+                                .api(singletonList(12))
+                                .build())
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().h(300).w(250).build()))
+                                .build()),
                 builder -> builder
                         .zoneId(4001)
                         .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
