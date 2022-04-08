@@ -39,7 +39,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
-    private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorResolver.class);
+    private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorEnforcer.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final int ENFORCE_RATE_MIN = 0;
