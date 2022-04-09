@@ -13,9 +13,9 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 import spock.lang.PendingFeature
 import spock.lang.Unroll
 
+import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 

@@ -2,8 +2,8 @@ package org.prebid.server.functional.model.response.auction
 
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 
