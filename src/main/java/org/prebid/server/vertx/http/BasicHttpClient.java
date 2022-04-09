@@ -6,7 +6,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
 import java.util.Objects;
@@ -27,21 +29,22 @@ public class BasicHttpClient implements HttpClient {
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, String body,
-                                              long timeoutMs) {
-        return request(method, url, headers, timeoutMs, body,
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                              String body, long timeoutMs, long maxResponseSize) {
+        return request(method, url, headers, timeoutMs, maxResponseSize, body,
                 (HttpClientRequest httpClientRequest) -> httpClientRequest.end(body));
     }
 
     @Override
-    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, byte[] body,
-                                              long timeoutMs) {
-        return request(method, url, headers, timeoutMs, body,
+    public Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                              byte[] body, long timeoutMs, long maxResponseSize) {
+        return request(method, url, headers, timeoutMs, maxResponseSize, body,
                 (HttpClientRequest httpClientRequest) -> httpClientRequest.end(Buffer.buffer(body)));
     }
 
-    private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers, long timeoutMs,
-                                                   T body, Consumer<HttpClientRequest> requestBodySetter) {
+    private <T> Future<HttpClientResponse> request(HttpMethod method, String url, MultiMap headers,
+                                                   long timeoutMs, long maxResponseSize, T body,
+                                                   Consumer<HttpClientRequest> requestBodySetter) {
         final Promise<HttpClientResponse> promise = Promise.promise();
 
         if (timeoutMs <= 0) {
@@ -61,7 +64,7 @@ public class BasicHttpClient implements HttpClient {
 
             httpClientRequest
                     .setFollowRedirects(true)
-                    .handler(response -> handleResponse(response, promise, timerId))
+                    .handler(response -> handleResponse(response, promise, timerId, maxResponseSize))
                     .exceptionHandler(exception -> failResponse(exception, promise, timerId));
 
             if (headers != null) {
@@ -91,7 +94,15 @@ public class BasicHttpClient implements HttpClient {
     }
 
     private void handleResponse(io.vertx.core.http.HttpClientResponse response,
-                                Promise<HttpClientResponse> promise, long timerId) {
+                                Promise<HttpClientResponse> promise, long timerId, long maxResponseSize) {
+        final String contentLength = response.getHeader(HttpHeaders.CONTENT_LENGTH);
+        final long responseBodySize = contentLength != null ? Long.parseLong(contentLength) : 0;
+        if (responseBodySize > maxResponseSize) {
+            failResponse(new PreBidException(String.format("Response size %d exceeded %d bytes limit",
+                    responseBodySize, maxResponseSize)), promise, timerId);
+            return;
+        }
+
         response
                 .bodyHandler(buffer -> successResponse(buffer.toString(), response, promise, timerId))
                 .exceptionHandler(exception -> failResponse(exception, promise, timerId));
