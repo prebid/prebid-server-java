@@ -16,7 +16,7 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
+import spock.lang.Ignore
 
 import static org.prebid.server.functional.model.ChannelType.APP
 import static org.prebid.server.functional.model.ChannelType.WEB
@@ -674,7 +674,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         PBSUtils.randomString | PBSUtils.randomFloorValue | PBSUtils.randomFloorValue | 0.8
     }
 
-    @PendingFeature
+    @Ignore
     def "PBS should choose no rule specifying deviceType when device is not present"() {
         given: "BidRequest without device.ua"
         def bidRequest = BidRequest.defaultBidRequest.tap {
