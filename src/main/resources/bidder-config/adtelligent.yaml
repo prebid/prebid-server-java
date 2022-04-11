@@ -35,15 +35,6 @@ adapters:
           url:
           redirect-url:
           cookie-family-name: streamkey
-      pgam:
-        endpoint: http://ghb.pgamssp.com/pbs/ortb
-        meta-info:
-          maintainer-email: ppatel@pgammedia.com
-          vendor-id: 0
-        usersync:
-          url:
-          redirect-url:
-          cookie-family-name: pgam
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
