@@ -194,7 +194,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
-        this.floorResolver = floorResolver;
+        this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
@@ -414,7 +414,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtRequest extRequest = bidRequest.getExt();
         final boolean isVideo = isVideo(imp);
 
-        final PriceFloorResult priceFloorResult = isVideo ? resolvePriceFloors(bidRequest, imp) : null;
+        final PriceFloorResult priceFloorResult =
+                resolvePriceFloors(bidRequest, imp, isVideo ? ImpMediaType.video : ImpMediaType.banner);
 
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
@@ -422,7 +423,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         makeImpExt(imp, extImpRubicon, site, app, extRequest, priceFloorResult)));
 
         final BigDecimal resolvedBidFloor = priceFloorResult != null
-                ? priceFloorResult.getFloorValue()
+                ? resolvePriceFloorBidFloor(imp, bidRequest, errors, priceFloorResult.getFloorValue())
                 : resolveBidFloor(imp, bidRequest, errors);
 
         if (resolvedBidFloor != null) {
@@ -444,13 +445,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return builder.build();
     }
 
-    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp) {
+    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp, ImpMediaType mediaType) {
         final PriceFloorRules priceFloorRules = extractRequestFloors(bidRequest);
         final PriceFloorModelGroup modelGroup = priceFloorRules != null
                 ? extractFloorModelGroup(priceFloorRules)
                 : null;
 
-        return floorResolver.resolve(bidRequest, modelGroup, imp, ImpMediaType.video, null);
+        return floorResolver.resolve(bidRequest, modelGroup, imp, mediaType, null);
     }
 
     private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {
@@ -486,6 +487,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private boolean isMetricSupported(Metric metric) {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
+    }
+
+    private BigDecimal resolvePriceFloorBidFloor(Imp imp,
+                                                 BidRequest bidRequest,
+                                                 List<BidderError> errors,
+                                                 BigDecimal floorValue) {
+
+        if (floorValue == null) {
+            return null;
+        }
+
+        final String resolvedBidFloorCurrency = resolveBidFloorCurrency(imp, bidRequest, errors);
+        return ObjectUtils.notEqual(resolvedBidFloorCurrency, XAPI_CURRENCY)
+                ? convertBidFloorCurrency(floorValue, resolvedBidFloorCurrency, imp, bidRequest)
+                : null;
     }
 
     private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest, List<BidderError> errors) {

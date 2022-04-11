@@ -2675,6 +2675,42 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldConvertBidFloor() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
+
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.ONE);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder
+                        .imp(singletonList(
+                                givenImp(impBuilder -> impBuilder
+                                        .id("1")
+                                        .video(Video.builder().build())
+                                        .bidfloor(BigDecimal.TEN).bidfloorcur("EUR"))))
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                        floorData -> floorData.modelGroups(singletonList(
+                                                givenModelGroup(UnaryOperator.identity())))))))
+                                .build())),
+                builder -> builder.video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor).doesNotContainNull()
+                .containsExactly(BigDecimal.ONE);
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillImpExtWithFloorsWhenBothVideoAndBanner() {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
