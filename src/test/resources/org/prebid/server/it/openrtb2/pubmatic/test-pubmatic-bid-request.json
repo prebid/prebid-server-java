@@ -44,10 +44,6 @@
     }
   },
   "ext": {
-    "acat": [
-      "testValue1",
-      "testValue2"
-    ],
     "wrapper": {
       "version": 1,
       "profile": 5123
