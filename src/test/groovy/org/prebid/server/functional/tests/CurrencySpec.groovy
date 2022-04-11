@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
@@ -8,15 +9,18 @@ import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversio
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.JPY
+import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 
 class CurrencySpec extends BaseSpec {
 
-    private static final String DEFAULT_CURRENCY = "USD"
+    private static final Currency DEFAULT_CURRENCY = USD
     private static final int PRICE_PRECISION = 3
-    private static final Map<String, Map<String, BigDecimal>> DEFAULT_CURRENCY_RATES = ["USD": ["EUR": 0.8872327211427558,
-                                                                                                "JPY": 114.12],
-                                                                                        "EUR": ["USD": 1.3429368029739777]]
+    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.8872327211427558,
+                                                                                                    (JPY): 114.12],
+                                                                                            (EUR): [(USD): 1.3429368029739777]]
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer, mapper).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
@@ -73,8 +77,8 @@ class CurrencySpec extends BaseSpec {
 
         where:
         requestCurrency || bidCurrency
-        "USD"           || "EUR"
-        "EUR"           || "USD"
+        USD             || EUR
+        EUR             || USD
     }
 
     def "PBS should use reverse currency conversion when direct conversion is not available"() {
@@ -97,25 +101,25 @@ class CurrencySpec extends BaseSpec {
 
         where:
         requestCurrency || bidCurrency
-        "USD"           || "JPY"
-        "JPY"           || "USD"
+        USD             || JPY
+        JPY             || USD
     }
 
     private static Map<String, String> getExternalCurrencyConverterConfig() {
-        ["auction.ad-server-currency"                          : DEFAULT_CURRENCY,
+        ["auction.ad-server-currency"                          : DEFAULT_CURRENCY as String,
          "currency-converter.external-rates.enabled"           : "true",
          "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
          "currency-converter.external-rates.default-timeout-ms": "4000",
          "currency-converter.external-rates.refresh-period-ms" : "900000"]
     }
 
-    private static BigDecimal convertCurrency(BigDecimal price, String fromCurrency, String toCurrency) {
+    private static BigDecimal convertCurrency(BigDecimal price, Currency fromCurrency, Currency toCurrency) {
         return (price * getConversionRate(fromCurrency, toCurrency)).setScale(PRICE_PRECISION, RoundingMode.HALF_EVEN)
     }
 
-    private static BigDecimal getConversionRate(String fromCurrency, String toCurrency) {
+    private static BigDecimal getConversionRate(Currency fromCurrency, Currency toCurrency) {
         def conversionRate
-        if (fromCurrency.equalsIgnoreCase(toCurrency)) {
+        if (fromCurrency == toCurrency) {
             conversionRate = 1
         } else if (fromCurrency in DEFAULT_CURRENCY_RATES) {
             conversionRate = DEFAULT_CURRENCY_RATES[fromCurrency][toCurrency]

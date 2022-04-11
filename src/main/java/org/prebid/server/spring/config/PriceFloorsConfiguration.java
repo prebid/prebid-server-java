@@ -12,7 +12,7 @@ import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
 import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.floors.PriceFloorResolver;
-import org.prebid.server.floors.model.PriceFloorTestingProperties;
+import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -34,7 +34,7 @@ public class PriceFloorsConfiguration {
             Vertx vertx,
             TimeoutFactory timeoutFactory,
             HttpClient httpClient,
-            PriceFloorTestingProperties testingProperties,
+            PriceFloorDebugProperties debugProperties,
             JacksonMapper mapper) {
 
         return new PriceFloorFetcher(
@@ -43,7 +43,7 @@ public class PriceFloorsConfiguration {
                 vertx,
                 timeoutFactory,
                 httpClient,
-                testingProperties,
+                debugProperties,
                 mapper);
     }
 
@@ -79,9 +79,10 @@ public class PriceFloorsConfiguration {
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorProcessor basicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                                  PriceFloorResolver floorResolver,
+                                                 CurrencyConversionService conversionService,
                                                  JacksonMapper mapper) {
 
-        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, mapper);
+        return new BasicPriceFloorProcessor(floorFetcher, floorResolver, conversionService, mapper);
     }
 
     @Bean
@@ -104,7 +105,7 @@ public class PriceFloorsConfiguration {
 
     @Bean
     @ConfigurationProperties(prefix = "price-floors")
-    PriceFloorTestingProperties priceFloorTestingProperties() {
-        return new PriceFloorTestingProperties();
+    PriceFloorDebugProperties priceFloorDebugProperties() {
+        return new PriceFloorDebugProperties();
     }
 }

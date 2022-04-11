@@ -46,7 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -199,7 +199,7 @@ public class RequestValidator {
         }
     }
 
-    private void validateBidAdjustmentFactors(ExtRequestBidadjustmentfactors adjustmentFactors,
+    private void validateBidAdjustmentFactors(ExtRequestBidAdjustmentFactors adjustmentFactors,
                                               Map<String, String> aliases) throws ValidationException {
 
         final Map<String, BigDecimal> bidderAdjustments = adjustmentFactors != null

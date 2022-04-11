@@ -79,7 +79,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
@@ -763,7 +763,6 @@ public class ExchangeService {
                 // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
                 .map(bidderPrivacyResult -> createAuctionParticipation(
                         bidderPrivacyResult,
-                        bidRequest,
                         impBidderToStoredBidResponse,
                         imps,
                         bidderToMultiBid,
@@ -805,14 +804,15 @@ public class ExchangeService {
      */
     private AuctionParticipation createAuctionParticipation(
             BidderPrivacyResult bidderPrivacyResult,
-            BidRequest bidRequest,
-            Map<String, Map<String, String>> impBidderToStoredBidResponse, List<Imp> imps,
+            Map<String, Map<String, String>> impBidderToStoredBidResponse,
+            List<Imp> imps,
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,
             BidderAliases bidderAliases,
             AuctionContext context) {
 
+        final BidRequest bidRequest = context.getBidRequest();
         final boolean blockedRequestByTcf = bidderPrivacyResult.isBlockedRequestByTcf();
         final boolean blockedAnalyticsByTcf = bidderPrivacyResult.isBlockedAnalyticsByTcf();
         final String bidder = bidderPrivacyResult.getRequestBidder();
@@ -1503,30 +1503,30 @@ public class ExchangeService {
                                                      BidRequest bidRequest,
                                                      BidderBid bidderBid) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestBidadjustmentfactors extBidadjustmentfactors = prebid != null
+        final ExtRequestBidAdjustmentFactors extBidAdjustmentFactors = prebid != null
                 ? prebid.getBidadjustmentfactors()
                 : null;
-        if (extBidadjustmentfactors == null) {
+        if (extBidAdjustmentFactors == null) {
             return null;
         }
         final ImpMediaType mediaType =
                 resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
-        return resolveBidAdjustmentFactor(extBidadjustmentfactors, mediaType, bidder);
+        return resolveBidAdjustmentFactor(extBidAdjustmentFactors, mediaType, bidder);
     }
 
-    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidadjustmentfactors extBidadjustmentfactors,
+    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidAdjustmentFactors extBidAdjustmentFactors,
                                                          ImpMediaType mediaType,
                                                          String bidder) {
         final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
-                extBidadjustmentfactors.getMediatypes();
+                extBidAdjustmentFactors.getMediatypes();
         final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
         final BigDecimal adjustmentFactorByMediaType =
                 adjustmentsByMediatypes != null ? adjustmentsByMediatypes.get(bidder) : null;
         if (adjustmentFactorByMediaType != null) {
             return adjustmentFactorByMediaType;
         }
-        return extBidadjustmentfactors.getAdjustments().get(bidder);
+        return extBidAdjustmentFactors.getAdjustments().get(bidder);
     }
 
     private static BigDecimal adjustPrice(BigDecimal priceAdjustmentFactor, BigDecimal price) {

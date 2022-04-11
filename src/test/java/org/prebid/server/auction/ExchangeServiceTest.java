@@ -98,7 +98,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
@@ -2727,7 +2727,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().impid("impId").price(BigDecimal.valueOf(2.0)).build()))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(10));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3087,7 +3087,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().impid("impId").price(BigDecimal.valueOf(2)).build()))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3118,7 +3118,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.video,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
@@ -3152,7 +3152,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.video,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
@@ -3186,7 +3186,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
@@ -3219,7 +3219,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(Collections.singletonMap(ImpMediaType.banner,
                         Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
@@ -3254,7 +3254,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder("bidder", bidder, givenSeatBid(singletonList(
                 givenBid(Bid.builder().impid("impId").price(BigDecimal.ONE).build()))));
 
-        final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder().build();
+        final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder().build();
         givenAdjustments.addFactor("some-other-bidder", BigDecimal.TEN);
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),

@@ -96,7 +96,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     PriceFloorModelGroup modelGroup,
                                     Imp imp,
                                     ImpMediaType mediaType,
-                                    Format format) {
+                                    Format format,
+                                    List<String> warnings) {
 
         if (modelGroup == null) {
             return null;
@@ -125,7 +126,21 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 ? modelGroupCurrency
                 : getDataCurrency(bidRequest);
 
-        return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
+        try {
+            return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
+        } catch (PreBidException e) {
+            final String logMessage =
+                    String.format("Error occurred while resolving floor for imp: %s, cause: %s",
+                            imp.getId(), e.getMessage());
+            if (warnings != null) {
+                warnings.add(logMessage);
+            }
+            logger.debug(logMessage);
+            conditionalLogger.error(logMessage, 0.01d);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+        }
+
+        return null;
     }
 
     private List<List<String>> createRuleKey(PriceFloorSchema schema,
@@ -146,12 +161,9 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                        ImpMediaType mediaType,
                                        Format format) {
 
-        final List<ImpMediaType> resolvedMediaTypes;
-        if (mediaType != null) {
-            resolvedMediaTypes = Collections.singletonList(mediaType);
-        } else {
-            resolvedMediaTypes = mediaTypesFromImp(imp);
-        }
+        final List<ImpMediaType> resolvedMediaTypes = mediaType != null
+                ? Collections.singletonList(mediaType)
+                : mediaTypesFromImp(imp);
 
         switch (field) {
             case siteDomain:
@@ -167,14 +179,14 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case mediaType:
                 return mediaTypeToRuleKey(resolvedMediaTypes);
             case size:
-                return sizeFromFormat(ObjectUtils.defaultIfNull(format, formatFromImp(imp, resolvedMediaTypes)));
+                return sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
             case gptSlot:
                 return gptAdSlotFromImp(imp);
             case pbAdSlot:
                 return pbAdSlotFromImp(imp);
             case country:
                 return countryFromRequest(bidRequest);
-            case devicetype:
+            case deviceType:
                 return resolveDeviceTypeFromRequest(bidRequest);
             default:
                 throw new IllegalStateException("Unknown field type");
@@ -273,43 +285,50 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return Collections.singletonList(impMediaType.toString());
     }
 
-    private static Format formatFromImp(Imp imp, List<ImpMediaType> mediaTypes) {
+    private static Format resolveFormatFromImp(Imp imp, List<ImpMediaType> mediaTypes) {
         if (CollectionUtils.isEmpty(mediaTypes) || CollectionUtils.size(mediaTypes) > 1) {
             return null;
         }
 
         final ImpMediaType mediaType = mediaTypes.get(0);
         if (mediaType == ImpMediaType.banner) {
-            final Banner banner = imp.getBanner();
-            final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
-
-            final int formatsSize = CollectionUtils.size(formats);
-            if (formatsSize == 1) {
-                return formats.get(0);
-            } else if (formatsSize > 1) {
-                return null;
-            }
-
-            final Integer bannerWidth = ObjectUtil.getIfNotNull(banner, Banner::getW);
-            final Integer bannerHeight = ObjectUtil.getIfNotNull(banner, Banner::getH);
-
-            return ObjectUtils.allNotNull(bannerWidth, bannerHeight)
-                    ? Format.builder().w(bannerWidth).h(bannerHeight).build()
-                    : null;
+            return resolveFormatFromBannerImp(imp);
         }
-
         if (mediaType == ImpMediaType.video) {
-            final Video video = imp.getVideo();
-
-            final Integer videoWidth = ObjectUtil.getIfNotNull(video, Video::getW);
-            final Integer videoHeight = ObjectUtil.getIfNotNull(video, Video::getH);
-
-            return ObjectUtils.allNotNull(videoWidth, videoHeight)
-                    ? Format.builder().w(videoWidth).h(videoHeight).build()
-                    : null;
+            return resolveFormatFromVideoImp(imp);
         }
 
         return null;
+    }
+
+    private static Format resolveFormatFromBannerImp(Imp imp) {
+        final Banner banner = imp.getBanner();
+        final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
+
+        final int formatsSize = CollectionUtils.size(formats);
+        if (formatsSize == 1) {
+            return formats.get(0);
+        } else if (formatsSize > 1) {
+            return null;
+        }
+
+        final Integer bannerWidth = ObjectUtil.getIfNotNull(banner, Banner::getW);
+        final Integer bannerHeight = ObjectUtil.getIfNotNull(banner, Banner::getH);
+
+        return ObjectUtils.allNotNull(bannerWidth, bannerHeight)
+                ? Format.builder().w(bannerWidth).h(bannerHeight).build()
+                : null;
+    }
+
+    private static Format resolveFormatFromVideoImp(Imp imp) {
+        final Video video = imp.getVideo();
+
+        final Integer videoWidth = ObjectUtil.getIfNotNull(video, Video::getW);
+        final Integer videoHeight = ObjectUtil.getIfNotNull(video, Video::getH);
+
+        return ObjectUtils.allNotNull(videoWidth, videoHeight)
+                ? Format.builder().w(videoWidth).h(videoHeight).build()
+                : null;
     }
 
     private static List<String> sizeFromFormat(Format size) {
@@ -454,7 +473,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             if (floorValue.compareTo(floorMinValue) > 0) {
                 resolvedPrice = roundPrice(effectiveFloor);
             } else {
-                resolvedPrice = roundPrice(effectiveFloorMin);
+                resolvedPrice = roundPrice(convertedFloorMin);
             }
         } else {
             resolvedPrice = roundPrice(ObjectUtils.defaultIfNull(effectiveFloor, effectiveFloorMin));
@@ -479,18 +498,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                        String currentCurrency,
                                        String desiredCurrency) {
 
-        try {
-            return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
-        } catch (PreBidException e) {
-            final String logMessage =
-                    String.format("Could not convert price floor currency %s to desired currency %s",
-                            currentCurrency, desiredCurrency);
-            logger.debug(logMessage);
-            conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
-        }
-
-        return null;
+        return currencyConversionService.convertCurrency(floor, bidRequest, currentCurrency, desiredCurrency);
     }
 
     private static Price roundPrice(Price price) {
