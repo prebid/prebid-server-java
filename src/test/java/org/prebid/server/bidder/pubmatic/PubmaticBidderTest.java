@@ -16,6 +16,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -90,9 +91,11 @@ public class PubmaticBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfBidRequestExtWrapperIsInvalid() {
         // given
-        final ObjectNode wrapperNode = mapper.createObjectNode()
-                .set("wrapper", mapper.createObjectNode().set("version", TextNode.valueOf("invalid")));
-        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(wrapperNode).build());
+        final ObjectNode pubmaticNode = mapper.createObjectNode();
+        pubmaticNode.set("pubmatic", mapper.createObjectNode()
+                .set("wrapper", mapper.createObjectNode()
+                        .set("version", TextNode.valueOf("invalid"))));
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
 
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
@@ -108,10 +111,16 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldUseWrapperFromBidRequestExtIfPresent() {
+    public void makeHttpRequestsShouldReturnBidRequestExtIfAcatFieldIsValidAndTrimWhitespace() {
         // given
+        final ObjectNode pubmaticNode = mapper.createObjectNode();
+        pubmaticNode.set("pubmatic", mapper.createObjectNode()
+                .set("acat", mapper.createArrayNode()
+                        .add("te st  -Va lue").add("test Value 1").add("  test Value  ")));
+
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenUpdatedBidRequestExt(1, 1)), identity(), identity());
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
@@ -121,7 +130,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenUpdatedBidRequestExt(1, 1));
+                .containsExactly(givenExtRequest());
     }
 
     @Test
@@ -919,10 +928,11 @@ public class PubmaticBidderTest extends VertxTest {
     }
 
     private static ExtRequest givenInitialBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
-        final ObjectNode wrapperNode = mapper.createObjectNode()
-                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
+        final ObjectNode pubmaticNode = mapper.createObjectNode()
+                .set("pubmatic", mapper.createObjectNode()
+                        .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion))));
 
-        return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(wrapperNode).build());
+        return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
     }
 
     private static ExtRequest givenUpdatedBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
@@ -930,6 +940,13 @@ public class PubmaticBidderTest extends VertxTest {
                 .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
         return jacksonMapper.fillExtension(ExtRequest.empty(), wrapperNode);
+    }
+
+    @NotNull
+    private ExtRequest givenExtRequest() {
+        final ExtRequest extRequest = ExtRequest.empty();
+        extRequest.addProperty("acat", mapper.createArrayNode().add("test-Value").add("testValue1").add("testValue"));
+        return extRequest;
     }
 
     private static BidRequest givenBidRequest(
