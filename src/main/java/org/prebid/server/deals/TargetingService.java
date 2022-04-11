@@ -63,9 +63,13 @@ public class TargetingService {
      * Accepts OpenRTB2 request and particular Imp object to evaluate Line Item targeting
      * definition against and returns whether it is matched or not.
      */
-    public boolean matchesTargeting(AuctionContext auctionContext, Imp imp, TargetingDefinition targetingDefinition) {
+    public boolean matchesTargeting(AuctionContext auctionContext,
+                                    Imp imp,
+                                    TargetingDefinition targetingDefinition,
+                                    String source) {
+
         final RequestContext requestContext = new RequestContext(
-                auctionContext.getBidRequest(), imp, auctionContext.getTxnLog(), mapper);
+                auctionContext.getBidRequest(), imp, source, auctionContext.getTxnLog(), mapper);
 
         return targetingDefinition.getRootExpression().matches(requestContext);
     }

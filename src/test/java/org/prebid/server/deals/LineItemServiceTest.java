@@ -795,7 +795,7 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(TargetingDefinition.of(context -> false));
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString())).willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
 
@@ -851,7 +851,7 @@ public class LineItemServiceTest extends VertxTest {
                 .willReturn(null);
         given(targetingService.parseTargetingDefinition(any(), eq("id2")))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString())).willAnswer(withEvaluatedTargeting());
 
         givenClock(now, now.plusMinutes(1));
 
@@ -1870,7 +1870,7 @@ public class LineItemServiceTest extends VertxTest {
     private void givenTargetingService() {
         given(targetingService.parseTargetingDefinition(any(), any()))
                 .willReturn(TargetingDefinition.of(context -> true));
-        given(targetingService.matchesTargeting(any(), any(), any())).willAnswer(withEvaluatedTargeting());
+        given(targetingService.matchesTargeting(any(), any(), any(), anyString())).willAnswer(withEvaluatedTargeting());
     }
 
     private Answer<Boolean> withEvaluatedTargeting() {

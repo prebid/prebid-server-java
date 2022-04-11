@@ -472,7 +472,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
         assertThat(txnLog.lineItemsMatchedDomainTargeting()).containsOnly("lineItemId");
     }
 
@@ -499,7 +499,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -525,7 +525,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -551,7 +551,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -576,7 +576,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -600,7 +600,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -627,7 +627,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -655,7 +655,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -682,7 +682,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -708,7 +708,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -735,7 +735,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -766,7 +766,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isTrue();
     }
 
     @Test
@@ -792,7 +792,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -817,7 +817,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -841,7 +841,7 @@ public class TargetingServiceTest extends VertxTest {
         final Imp imp = Imp.builder().build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -868,7 +868,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -896,7 +896,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -925,7 +925,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     @Test
@@ -951,7 +951,7 @@ public class TargetingServiceTest extends VertxTest {
                 .build();
 
         // when and then
-        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isFalse();
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition, null)).isFalse();
     }
 
     private static JsonNode jsonFrom(String file) throws IOException {

@@ -345,8 +345,8 @@ public class LineItemService {
             return false;
         }
 
-        final boolean matched = targetingService.matchesTargeting(auctionContext, imp,
-                lineItem.getTargetingDefinition());
+        final boolean matched = targetingService.matchesTargeting(
+                auctionContext, imp, lineItem.getTargetingDefinition(), lineItem.getSource());
         if (matched) {
             deepDebug(auctionContext, Category.targeting,
                     String.format("Line Item %s targeting matched imp with id %s", lineItemId, imp.getId()),

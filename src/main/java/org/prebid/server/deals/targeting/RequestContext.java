@@ -55,6 +55,7 @@ public class RequestContext {
 
     private final BidRequest bidRequest;
     private final Imp imp;
+    private final String source;
     private final TxnLog txnLog;
 
     private final AttributeReader<Imp> impReader;
@@ -64,9 +65,10 @@ public class RequestContext {
     private final AttributeReader<Site> siteReader;
     private final AttributeReader<App> appReader;
 
-    public RequestContext(BidRequest bidRequest, Imp imp, TxnLog txnLog, JacksonMapper mapper) {
+    public RequestContext(BidRequest bidRequest, Imp imp, String source, TxnLog txnLog, JacksonMapper mapper) {
         this.bidRequest = Objects.requireNonNull(bidRequest);
         this.imp = Objects.requireNonNull(imp);
+        this.source = source;
         this.txnLog = Objects.requireNonNull(txnLog);
 
         impReader = AttributeReader.forImp();
