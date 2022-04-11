@@ -2645,7 +2645,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
 
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2679,7 +2679,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
 
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.ONE);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -2715,7 +2715,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
 
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()

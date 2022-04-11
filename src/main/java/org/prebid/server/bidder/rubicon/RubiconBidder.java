@@ -413,9 +413,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Site site = bidRequest.getSite();
         final ExtRequest extRequest = bidRequest.getExt();
         final boolean isVideo = isVideo(imp);
+        final List<String> priceFloorsWarnings = new ArrayList<>();
 
         final PriceFloorResult priceFloorResult =
-                resolvePriceFloors(bidRequest, imp, isVideo ? ImpMediaType.video : ImpMediaType.banner);
+                resolvePriceFloors(bidRequest, imp, isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
 
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
@@ -442,16 +443,18 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .video(null);
         }
 
+        processWarnings(errors, priceFloorsWarnings);
+
         return builder.build();
     }
 
-    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp, ImpMediaType mediaType) {
+    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest, Imp imp, ImpMediaType mediaType, List<String> warnings) {
         final PriceFloorRules priceFloorRules = extractRequestFloors(bidRequest);
         final PriceFloorModelGroup modelGroup = priceFloorRules != null
                 ? extractFloorModelGroup(priceFloorRules)
                 : null;
 
-        return floorResolver.resolve(bidRequest, modelGroup, imp, mediaType, null);
+        return floorResolver.resolve(bidRequest, modelGroup, imp, mediaType, null, warnings);
     }
 
     private static PriceFloorRules extractRequestFloors(BidRequest bidRequest) {
@@ -1277,6 +1280,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .orElse(null);
         }
         return null;
+    }
+
+    private void processWarnings(List<BidderError> errors, List<String> priceFloorsWarnings) {
+        if (CollectionUtils.isNotEmpty(priceFloorsWarnings)) {
+            priceFloorsWarnings.forEach(warning -> errors.add(BidderError.badInput(warning)));
+        }
     }
 
     private Device makeDevice(Device device) {
