@@ -6,11 +6,11 @@
   "properties": {
     "cid": {
       "type": "string",
-      "description": "The customer id provided by Media.net."
+      "description": "The customer id provided by AAX."
     },
     "crid": {
       "type": "string",
-      "description": "The placement id provided by Media.net."
+      "description": "The placement id provided by AAX."
     }
   },
   "required": [
