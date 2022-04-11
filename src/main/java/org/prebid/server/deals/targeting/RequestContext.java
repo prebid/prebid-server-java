@@ -17,6 +17,7 @@ import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.deals.targeting.model.GeoLocation;
 import org.prebid.server.deals.targeting.model.LookupResult;
@@ -55,7 +56,8 @@ public class RequestContext {
 
     private final BidRequest bidRequest;
     private final Imp imp;
-    private final String source;
+    private final String bidder;
+    private final BidderAliases aliases;
     private final TxnLog txnLog;
 
     private final AttributeReader<Imp> impReader;
@@ -65,10 +67,17 @@ public class RequestContext {
     private final AttributeReader<Site> siteReader;
     private final AttributeReader<App> appReader;
 
-    public RequestContext(BidRequest bidRequest, Imp imp, String source, TxnLog txnLog, JacksonMapper mapper) {
+    public RequestContext(BidRequest bidRequest,
+                          Imp imp,
+                          String bidder,
+                          BidderAliases aliases,
+                          TxnLog txnLog,
+                          JacksonMapper mapper) {
+
         this.bidRequest = Objects.requireNonNull(bidRequest);
         this.imp = Objects.requireNonNull(imp);
-        this.source = source;
+        this.bidder = bidder;
+        this.aliases = Objects.requireNonNull(aliases);
         this.txnLog = Objects.requireNonNull(txnLog);
 
         impReader = AttributeReader.forImp();
