@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.auction.Format
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.ImpExtContextData
 import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdServer
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.APP
@@ -94,8 +95,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.first().price = floorValue
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
-       def response =  floorsPbsService.sendAuctionRequest(bidRequest)
+        def response =  floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should not contain errors, warnings"
         assert !response.ext?.warnings
@@ -170,6 +177,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
+
+        and: "Set bidder response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.first().price = floorValue
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response =  floorsPbsService.sendAuctionRequest(bidRequest)
