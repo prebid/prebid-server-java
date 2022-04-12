@@ -3968,6 +3968,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderSeatBid.of(
                                         Collections.emptyList(),
                                         Collections.emptyList(),
+                                        Collections.emptyList(),
                                         Collections.singletonList(BidderError.badInput("MediaTypeProcessor error."))),
                                 0))),
                 any(),
@@ -3993,6 +3994,8 @@ public class ExchangeServiceTest extends VertxTest {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
                 metrics,
                 clock,
                 jacksonMapper,

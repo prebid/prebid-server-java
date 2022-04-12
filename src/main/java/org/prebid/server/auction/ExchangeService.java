@@ -1253,7 +1253,10 @@ public class ExchangeService {
 
         if (mediaTypeProcessingResult.isRejected()) {
             final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
-                    Collections.emptyList(), Collections.emptyList(), mediaTypeProcessingResult.getErrors());
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    mediaTypeProcessingResult.getErrors());
 
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
@@ -1265,7 +1268,8 @@ public class ExchangeService {
                 .map(seatBid -> BidderSeatBid.of(
                         seatBid.getBids(),
                         seatBid.getHttpCalls(),
-                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getErrors())))
+                        seatBid.getErrors(),
+                        ListUtils.union(mediaTypeProcessingResult.getErrors(), seatBid.getWarnings())))
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(startTime)));
     }
 
@@ -1349,6 +1353,7 @@ public class ExchangeService {
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
+        final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
@@ -1386,7 +1391,7 @@ public class ExchangeService {
 
         final BidderResponse resultBidderResponse = errors.isEmpty()
                 ? bidderResponse
-                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors));
+                : bidderResponse.with(BidderSeatBid.of(validBids, seatBid.getHttpCalls(), errors, warnings));
         return auctionParticipation.with(resultBidderResponse);
     }
 

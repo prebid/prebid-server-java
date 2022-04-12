@@ -135,7 +135,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids);
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-        final List<BidderError> warnings = new ArrayList<>(seatBid.getErrors());
+        final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
         final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
         final PriceFloorRules floors = extractFloors(auctionParticipation);
