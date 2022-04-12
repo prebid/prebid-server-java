@@ -2677,7 +2677,7 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldConvertBidFloor() {
         // given
-        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "EUR");
 
         when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.ONE);
@@ -2688,7 +2688,8 @@ public class RubiconBidderTest extends VertxTest {
                                 givenImp(impBuilder -> impBuilder
                                         .id("1")
                                         .video(Video.builder().build())
-                                        .bidfloor(BigDecimal.TEN).bidfloorcur("EUR"))))
+                                        .bidfloor(BigDecimal.TEN)
+                                        .bidfloorcur("EUR"))))
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .floors(givenFloors(floors -> floors.data(givenFloorData(
                                         floorData -> floorData.modelGroups(singletonList(
@@ -2706,7 +2707,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
-                .extracting(Imp::getBidfloor).doesNotContainNull()
+                .extracting(Imp::getBidfloor)
                 .containsExactly(BigDecimal.ONE);
     }
 
