@@ -683,7 +683,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
         accountDao.save(account)
 
-        and: "Set Floors Provider response with model weights defined"
+        and: "Set Floors Provider response with wildcard deviceType rule"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
