@@ -363,7 +363,7 @@ class BidderParamsSpec extends BaseSpec {
         assert response.targeting.isEmpty()
     }
 
-    def "PBS should send server specific info to bidder when such was provided in request"() {
+    def "PBS should send server specific info to bidder when such is set in PBS config"() {
         given: "PBS with server info configuration"
         def serverDataCenter = PBSUtils.randomString
         def serverExternalUrl = "https://${PBSUtils.randomString}.com/"
