@@ -14,6 +14,7 @@ import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -27,6 +28,11 @@ import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -131,7 +137,9 @@ public class RequestContext {
                 return lookupResult(
                         impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToString));
             case userFirstPartyData:
-                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class);
+                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToString, String.class)
+                        .orElse(getFirstPartyDataFromRequestExt(
+                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToString));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToString);
             default:
@@ -163,7 +171,9 @@ public class RequestContext {
                 return lookupResult(
                         impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToInteger));
             case userFirstPartyData:
-                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class);
+                return userReader.read(bidRequest.getUser(), path, RequestContext::nodeToInteger, Integer.class)
+                        .orElse(getFirstPartyDataFromRequestExt(
+                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToInteger));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToInteger);
             default:
@@ -185,7 +195,9 @@ public class RequestContext {
                 return lookupResult(getSegments(category));
             case userFirstPartyData:
                 return lookupResult(
-                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfStrings));
+                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfStrings))
+                        .orElse(getFirstPartyDataFromRequestExt(
+                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToListOfStrings));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToListOfStrings);
             default:
@@ -203,7 +215,9 @@ public class RequestContext {
                         impReader.readFromExt(imp, EXT_PREBID_BIDDER + path, RequestContext::nodeToListOfIntegers));
             case userFirstPartyData:
                 return lookupResult(
-                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfIntegers));
+                        userReader.readFromExt(bidRequest.getUser(), path, RequestContext::nodeToListOfIntegers))
+                        .orElse(getFirstPartyDataFromRequestExt(
+                                ExtBidderConfigOrtb::getUser, path, RequestContext::nodeToListOfIntegers));
             case siteFirstPartyData:
                 return getSiteFirstPartyData(path, RequestContext::nodeToListOfIntegers);
             default:
@@ -274,11 +288,44 @@ public class RequestContext {
         return mediaTypes;
     }
 
+    private <T> List<T> getFirstPartyDataFromRequestExt(Function<ExtBidderConfigOrtb, ObjectNode> sourceExtractor,
+                                                        String path,
+                                                        Function<JsonNode, T> valueExtractor) {
+
+        final List<ExtRequestPrebidBidderConfig> bidderConfigs = getIfNotNull(
+                getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid), ExtRequestPrebid::getBidderconfig);
+
+        return CollectionUtils.emptyIfNull(bidderConfigs).stream()
+                .filter(this::validateBidderConfig)
+                .map(ExtRequestPrebidBidderConfig::getConfig)
+                .filter(Objects::nonNull)
+                .map(ExtBidderConfig::getOrtb2)
+                .filter(Objects::nonNull)
+                .map(sourceExtractor)
+                .filter(Objects::nonNull)
+                .map(siteNode -> siteNode.at("/ext/data" + toJsonPointer(path)))
+                .map(valueExtractor)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private boolean validateBidderConfig(ExtRequestPrebidBidderConfig bidderConfig) {
+        final List<String> bidders = getIfNotNull(bidderConfig, ExtRequestPrebidBidderConfig::getBidders);
+        return CollectionUtils.isNotEmpty(bidders) && containsBidderConsideringAliases(bidders);
+    }
+
+    private boolean containsBidderConsideringAliases(List<String> bidders) {
+        return bidders.contains(bidder)
+                || bidders.contains(aliases.resolveBidder(bidder))
+                || bidders.stream().map(aliases::resolveBidder).anyMatch(bidder::equals);
+    }
+
     private <T> LookupResult<T> getSiteFirstPartyData(String path, Function<JsonNode, T> valueExtractor) {
         return lookupResult(
                 impReader.readFromExt(imp, EXT_CONTEXT_DATA + path, valueExtractor),
                 siteReader.readFromExt(bidRequest.getSite(), path, valueExtractor),
-                appReader.readFromExt(bidRequest.getApp(), path, valueExtractor));
+                appReader.readFromExt(bidRequest.getApp(), path, valueExtractor))
+                .orElse(getFirstPartyDataFromRequestExt(ExtBidderConfigOrtb::getSite, path, valueExtractor));
     }
 
     private List<String> getSegments(TargetingCategory category) {

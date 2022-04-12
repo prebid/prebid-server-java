@@ -31,8 +31,13 @@ import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
+import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
@@ -44,6 +49,8 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 public class RequestContextTest extends VertxTest {
 
@@ -605,6 +612,79 @@ public class RequestContextTest extends VertxTest {
     }
 
     @Test
+    public void lookupStringShouldReturnUserFirstPartyDataFromExt() {
+        // given
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.userFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidder"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidder",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnUserFirstPartyDataFromExtConsideringAliases() {
+        // given
+        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
+
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.userFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidderAlias"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidder",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnUserFirstPartyDataFromExtConsideringAliasesInSource() {
+        // given
+        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
+
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.userFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidder"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                null, null, obj("ext", obj("data", obj("section", obj("sport", "hockey")))))))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidderAlias",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
     public void lookupStringShouldReturnSiteFirstPartyDataFromImpExt() {
         // given
         final TargetingCategory category = new TargetingCategory(
@@ -649,6 +729,79 @@ public class RequestContextTest extends VertxTest {
                 request(r -> r.app(app(a -> a.ext(extApp)))),
                 imp(identity()),
                 null,
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromExt() {
+        // given
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidder"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidder",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromExtConsideringAliases() {
+        // given
+        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
+
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidderAlias"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidder",
+                aliases,
+                txnLog,
+                jacksonMapper);
+
+        // when and then
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
+    }
+
+    @Test
+    public void lookupStringShouldReturnSiteFirstPartyDataFromExtConsideringAliasesInSource() {
+        // given
+        when(aliases.resolveBidder(eq("bidderAlias"))).thenReturn("bidder");
+
+        final TargetingCategory category = new TargetingCategory(
+                TargetingCategory.Type.siteFirstPartyData, "section.sport");
+        final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
+                .bidderconfig(singletonList(ExtRequestPrebidBidderConfig.of(
+                        singletonList("bidder"),
+                        ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
+                                obj("ext", obj("data", obj("section", obj("sport", "hockey")))), null, null)))))
+                .build());
+        final RequestContext context = new RequestContext(
+                request(r -> r.ext(ext)),
+                imp(identity()),
+                "bidderAlias",
                 aliases,
                 txnLog,
                 jacksonMapper);
