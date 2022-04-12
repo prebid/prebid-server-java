@@ -10,17 +10,17 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.grid.model.ExtImp;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.response.GridBidResponse;
+import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -198,57 +198,67 @@ public class GridBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            final GridBidResponse bidResponse =
+                    mapper.decodeValue(httpCall.getResponse().getBody(), GridBidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, GridBidResponse gridBidResponse) {
+        if (gridBidResponse == null || CollectionUtils.isEmpty(gridBidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidRequest, gridBidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, GridBidResponse gridBidResponse) {
+        return gridBidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
+                .map(GridSeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> toBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), gridBidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
-    private BidderBid toBidderBid(Bid bid, List<Imp> imps, String currency) {
-        final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bid)).build();
-        return BidderBid.of(modifiedBid, getBidMediaType(bid.getImpid(), imps), currency);
+    private BidderBid makeBidderBid(ObjectNode bidNode, List<Imp> imps, String currency) {
+        try {
+            final Bid bid = mapper.mapper().treeToValue(bidNode, Bid.class);
+            final Bid modifiedBid = bid.toBuilder().ext(modifyBidExt(bidNode)).build();
+
+            return BidderBid.of(modifiedBid, resolveBidType(bidNode, bid.getImpid(), imps), currency);
+        } catch (JsonProcessingException | IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
-    private ObjectNode modifyBidExt(Bid bid) {
-        final String demandSource = ObjectUtils.defaultIfNull(bid.getExt(), MissingNode.getInstance())
-                .at("/bidder/grid/demandSource").textValue();
-
+    private ObjectNode modifyBidExt(ObjectNode gridBid) {
+        final String demandSource = ObjectUtils.defaultIfNull(gridBid, MissingNode.getInstance())
+                .at("/ext/bidder/grid/demandSource")
+                .textValue();
         if (StringUtils.isEmpty(demandSource)) {
             return null;
         }
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode()
-                        .set("demandsource", TextNode.valueOf(demandSource)))
+                .meta(mapper.mapper().createObjectNode().set("demandsource", TextNode.valueOf(demandSource)))
                 .build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }
 
-    private static BidType getBidMediaType(String impId, List<Imp> imps) {
+    private static BidType resolveBidType(ObjectNode bidNode, String impId, List<Imp> imps) {
+        final BidType contentType = BidType.fromString(bidNode.at("/content_type").asText());
+        if (contentType != null) {
+            return contentType;
+        }
+
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
+                } else if (imp.getVideo() != null) {
                     return BidType.video;
                 }
                 throw new PreBidException(String.format("Unknown impression type for ID: %s", impId));

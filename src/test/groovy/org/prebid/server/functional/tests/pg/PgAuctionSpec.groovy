@@ -290,7 +290,7 @@ class PgAuctionSpec extends BasePgSpec {
         given: "Bid request with set bidder alias"
         def lineItemSource = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC.value], debug: 1)
+            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC], debug: 1)
             ext = new BidRequestExt(prebid: prebid)
         }
 

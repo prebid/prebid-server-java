@@ -34,8 +34,11 @@ class StoredRequest {
         new StoredRequest(reqid: ampRequest.tagId, accountId: ampRequest.account, requestData: bidRequest)
     }
 
-    static StoredRequest getDbStoredRequest(BidRequest bidRequest, BidRequest storedRequest) {
-        new StoredRequest(reqid: bidRequest.ext.prebid.storedRequest.id, accountId: bidRequest.site.publisher.id,
+    static StoredRequest getDbStoredRequest(BidRequest bidRequest,
+                                            BidRequest storedRequest,
+                                            String accountId = bidRequest?.site?.publisher?.id) {
+        new StoredRequest(reqid: bidRequest?.ext?.prebid?.storedRequest?.id,
+                accountId: accountId,
                 requestData: storedRequest)
     }
 }

@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -12,6 +11,8 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
+
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 @PBSTest
 class BidValidationSpec extends BaseSpec {
@@ -156,11 +157,11 @@ class BidValidationSpec extends BaseSpec {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = 1
-        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: BidderName.GENERIC.value, maxBids: 2)]
+        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first().id)
+        bidResponse.seatbid[0].bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "One of the bids is invalid"
         def invalidBid = bidResponse.seatbid.first().bid.first()

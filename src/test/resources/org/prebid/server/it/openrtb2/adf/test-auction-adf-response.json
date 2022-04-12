@@ -6,7 +6,7 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 11.393,
+          "price":  11.393,
           "adomain": [
           ],
           "crid": "test-creative-id-1",
@@ -22,7 +22,7 @@
         {
           "id": "bid_id_banner",
           "impid": "imp_id_banner",
-          "price": 11.393,
+          "price":  11.393,
           "adomain": [],
           "adm": "<html>",
           "crid": "test-creative-id-2",
