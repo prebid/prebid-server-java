@@ -686,17 +686,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response with model weights defined"
         def floorValue = PBSUtils.randomFloorValue
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            data.modelGroups[0].values = [(new Rule(mediaType: BANNER).rule): floorValue]
-            data.modelGroups[0].modelWeight = 1
-            data.modelGroups[1].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
-            data.modelGroups[1].values =
+            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
+            data.modelGroups[0].values =
                     [(new Rule(deviceType: PHONE).rule): floorValue + 0.1,
                      (new Rule(deviceType: TABLET).rule): floorValue + 0.2,
                      (new Rule(deviceType: DESKTOP).rule): floorValue + 0.3,
-                     (new Rule(deviceType: MULTIPLE).rule): floorValue + 0.4]
-             data.modelGroups[1].modelWeight = 2
+                     (new Rule(deviceType: MULTIPLE).rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -706,7 +701,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request with empty user agent header"
         floorsPbsService.sendAuctionRequest(bidRequest, ["User-Agent":""])
 
-        then: "Bidder request bidFloor should correspond to appropriate rule"
+        then: "Bidder request bidFloor should correspond to a wildcard rule"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
     }
