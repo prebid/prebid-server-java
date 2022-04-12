@@ -131,10 +131,13 @@ public class ColossusBidder implements Bidder<BidRequest> {
     private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
-                if (imp.getBanner() == null && imp.getVideo() != null) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
                     return BidType.video;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
                 }
-                return BidType.banner;
             }
         }
 
