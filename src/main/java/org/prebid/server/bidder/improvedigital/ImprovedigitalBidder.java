@@ -2,6 +2,7 @@ package org.prebid.server.bidder.improvedigital;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -22,11 +23,14 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +42,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpImprovedigital>> IMPROVEDIGITAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String CONSENT_PROVIDERS_SETTINGS_OUT_KEY = "consented_providers_settings";
+    private static final String CONSENTED_PROVIDERS_KEY = "consented_providers";
+    private static final String REGEX_SPLIT_STRING_BY_DOT = "\\.";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -51,6 +58,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+
         for (Imp imp : request.getImp()) {
             try {
                 parseAndValidateImpExt(imp);
@@ -65,6 +73,45 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         }
 
         return Result.withValues(httpRequests);
+    }
+
+    private ExtUser getAdditionalConsentProvidersUserExt(BidRequest request) {
+        if (request.getUser().getExt() == null) {
+            return null;
+        }
+        final ExtUser extUser = request.getUser().getExt();
+        final String consentedProviders = validateConsentedProvidersSettings(extUser.getConsentedProvidersSettings());
+
+        if (consentedProviders == null || StringUtils.isBlank(consentedProviders)) {
+            return null;
+        }
+
+        final String substringAfterTilde = StringUtils.substringAfterLast(consentedProviders, "~");
+        final Object[] arrayOfSplitString =
+                Arrays.stream(substringAfterTilde.split(REGEX_SPLIT_STRING_BY_DOT)).toArray();
+
+        final JsonNode consentProviderSettingJsonNode;
+
+        try {
+            consentProviderSettingJsonNode = customJsonNode(arrayOfSplitString);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        return mapper.fillExtension(extUser, consentProviderSettingJsonNode);
+    }
+
+    private JsonNode customJsonNode(Object[] arrayOfSplitString) {
+        return mapper.mapper().createObjectNode().set(CONSENT_PROVIDERS_SETTINGS_OUT_KEY,
+                mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY,
+                        mapper.mapper().convertValue(
+                                mapper.mapper().convertValue(arrayOfSplitString, Integer[].class), JsonNode.class)));
+    }
+
+    private static String validateConsentedProvidersSettings(ConsentedProvidersSettings consentedProvidersSettings) {
+        return consentedProvidersSettings != null && consentedProvidersSettings.getConsentedProviders() != null
+                ? consentedProvidersSettings.getConsentedProviders()
+                : null;
     }
 
     private void parseAndValidateImpExt(Imp imp) {
@@ -84,6 +131,10 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
+                .user(bidRequest.getUser() != null ? bidRequest.getUser().toBuilder()
+                        .ext(getAdditionalConsentProvidersUserExt(bidRequest))
+                        .build()
+                        : null)
                 .build();
 
         return HttpRequest.<BidRequest>builder()

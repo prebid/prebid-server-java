@@ -5,6 +5,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -21,6 +22,8 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 
 import java.util.List;
@@ -76,6 +79,92 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("123", "456");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldProperProcessConsentedProvidersSetting() {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90"))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                        .build()))
+                .user(User.builder().ext(extUser).build())
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtUser givenFillExtUser = jacksonMapper.fillExtension(extUser,
+                mapper.createObjectNode().set("consented_providers_settings",
+                        mapper.createObjectNode()
+                                .set("consented_providers", mapper.createArrayNode().add(10).add(20).add(90))));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsExactly(givenFillExtUser);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnNullIfConsentedProvidersSettingsIsEmpty() {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .consentedProvidersSettings(ConsentedProvidersSettings.of(null))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                        .build()))
+                .user(User.builder().ext(extUser).build())
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfCannotParseConsentedProviders() {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~a.fv.90"))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
+                        .build()))
+                .user(User.builder().ext(extUser).build())
+                .id("request_id")
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError
+                        .badInput("Cannot deserialize value of type `int` from String \"a\": not a valid `int` value\n"
+                                + " at [Source: UNKNOWN; byte offset: #UNKNOWN] (through reference chain: "
+                                + "java.lang.Object[][0])"));
     }
 
     @Test
