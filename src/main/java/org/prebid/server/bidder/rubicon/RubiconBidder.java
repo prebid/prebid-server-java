@@ -67,8 +67,6 @@ import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.PriceFloorResolver;
-import org.prebid.server.floors.model.PriceFloorData;
-import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
@@ -472,21 +470,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return floorResolver.resolve(
                 bidRequest,
-                extractFloorModelGroup(bidRequest),
+                extractFloorRules(bidRequest),
                 imp,
                 mediaType,
                 null,
                 warnings);
     }
 
-    private static PriceFloorModelGroup extractFloorModelGroup(BidRequest bidRequest) {
+    private static PriceFloorRules extractFloorRules(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
-        final PriceFloorRules floorRules = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
-
-        final PriceFloorData data = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getData);
-        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
-
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
     private List<Metric> makeMetrics(Imp imp) {

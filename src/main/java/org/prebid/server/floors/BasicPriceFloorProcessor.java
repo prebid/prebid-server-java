@@ -363,7 +363,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
-    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors,
+    private List<Imp> updateImpsWithFloors(PriceFloorRules effectiveFloors,
                                            BidRequest bidRequest,
                                            List<String> errors,
                                            List<String> warnings) {
@@ -372,14 +372,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
         final PriceFloorRules floors =
-                ObjectUtils.defaultIfNull(accountFloors, ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
+                ObjectUtils.defaultIfNull(effectiveFloors,
+                        ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors));
         final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floors);
         if (modelGroup == null) {
             return imps;
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors, warnings))
+                .map(imp -> updateImpWithFloors(imp, floors, bidRequest, errors, warnings))
                 .collect(Collectors.toList());
     }
 
@@ -391,14 +392,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     }
 
     private Imp updateImpWithFloors(Imp imp,
-                                    PriceFloorModelGroup modelGroup,
+                                    PriceFloorRules floorRules,
                                     BidRequest bidRequest,
                                     List<String> errors,
                                     List<String> warnings) {
 
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, warnings);
+            priceFloorResult = floorResolver.resolve(bidRequest, floorRules, imp, warnings);
         } catch (IllegalStateException e) {
             errors.add("Cannot resolve bid floor, error: " + e.getMessage());
             return imp;

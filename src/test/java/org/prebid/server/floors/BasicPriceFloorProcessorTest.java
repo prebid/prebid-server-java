@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Imp;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -36,7 +37,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -400,7 +400,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         priceFloorProcessor.enrichWithPriceFloors(auctionContext);
 
         // then
-        verify(floorResolver).resolve(any(), same(modelGroup), any(), any());
+        final ArgumentCaptor<PriceFloorRules> captor = ArgumentCaptor.forClass(PriceFloorRules.class);
+        verify(floorResolver).resolve(any(), captor.capture(), any(), any());
+        assertThat(captor.getValue())
+                .extracting(PriceFloorRules::getData)
+                .extracting(PriceFloorData::getModelGroups)
+                .isEqualTo(singletonList(modelGroup));
     }
 
     @Test
