@@ -12,20 +12,16 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     public static final int PORT = 8080
     public static final int DEBUG_PORT = 8000
     public static final int ADMIN_PORT = 8060
+    public static final int PROMETHEUS_PORT = 8070
     public static final String ADMIN_ENDPOINT_USERNAME = "admin"
     public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
     public static final String APP_WORKDIR = "/app/prebid-server/"
 
-    PrebidServerContainer(Map<String, String> config) {
-        this("prebid/prebid-server:latest", config)
-    }
+    private static final String PBS_DOCKER_IMAGE_NAME = "prebid/prebid-server:latest"
 
-    PrebidServerContainer(String dockerImage, Map<String, String> customConfig) {
-        super(dockerImage)
-        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT)
-        waitingFor(Wait.forHttp("/status")
-                       .forPort(PORT)
-                       .forStatusCode(200))
+    PrebidServerContainer(Map<String, String> customConfig) {
+        super(PBS_DOCKER_IMAGE_NAME)
+        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
         withDebug()
         withNetwork(Dependencies.network)
         def commonConfig = [:] << DEFAULT_ENV
@@ -37,6 +33,12 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
         withConfig(customConfig)
+    }
+
+    void withServiceStartWaiter() {
+        waitingFor(Wait.forHttp("/status")
+                       .forPort(PORT)
+                       .forStatusCode(200))
     }
 
     void withDebug() {
@@ -55,12 +57,20 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         getMappedPort(ADMIN_PORT)
     }
 
+    int getPrometheusPort() {
+        getMappedPort(PROMETHEUS_PORT)
+    }
+
     String getRootUri() {
         return "http://$host:$port"
     }
 
     String getAdminRootUri() {
         return "http://$host:$adminPort"
+    }
+
+    String getPrometheusRootUri() {
+        return "http://$host:$prometheusPort"
     }
 
     private static Map<String, String> normalizeProperties(Map<String, String> properties) {

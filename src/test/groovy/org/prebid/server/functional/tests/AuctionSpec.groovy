@@ -153,6 +153,7 @@ class AuctionSpec extends BaseSpec {
                  "auction.max-timeout-ms"    : MAX_TIMEOUT as String,
                  "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]).tap {
             withCopyFileToContainer(MountableFile.forHostPath(defaultRequest), APP_WORKDIR) }
+        pbsContainer.withServiceStartWaiter()
         pbsContainer.start()
         def pbsService = new PrebidServerService(pbsContainer, mapper)
 
