@@ -2,7 +2,7 @@ package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public enum BidAdjustmentMediaType {
+public enum ImpMediaType {
 
     banner,
     audio,

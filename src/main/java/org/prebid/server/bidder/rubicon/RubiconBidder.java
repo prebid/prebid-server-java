@@ -48,6 +48,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBidders;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBiddersBidder;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBiddersBidderDebug;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
@@ -65,6 +66,11 @@ import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.floors.PriceFloorResolver;
+import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorModelGroup;
+import org.prebid.server.floors.model.PriceFloorResult;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
@@ -76,6 +82,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpContextDataAdserver;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -85,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUidExt;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtUserTpIdRubicon;
@@ -168,6 +176,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
     private final CurrencyConversionService currencyConversionService;
+    private final PriceFloorResolver floorResolver;
     private final JacksonMapper mapper;
 
     private final MultiMap headers;
@@ -178,12 +187,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          List<String> supportedVendors,
                          boolean generateBidId,
                          CurrencyConversionService currencyConversionService,
+                         PriceFloorResolver floorResolver,
                          JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
         headers = headers(Objects.requireNonNull(xapiUsername), Objects.requireNonNull(xapiPassword));
@@ -401,19 +412,28 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
         final ExtRequest extRequest = bidRequest.getExt();
+        final boolean isVideo = isVideo(imp);
+        final List<String> priceFloorsWarnings = new ArrayList<>();
+
+        final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp,
+                isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
 
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
-                .ext(mapper.mapper().valueToTree(makeImpExt(imp, extImpRubicon, site, app, extRequest)));
+                .ext(mapper.mapper().valueToTree(
+                        makeImpExt(imp, extImpRubicon, site, app, extRequest, priceFloorResult)));
 
-        final BigDecimal resolvedBidFloor = resolveBidFloor(imp, bidRequest, errors);
+        final BigDecimal resolvedBidFloor = priceFloorResult != null
+                ? resolvePriceFloorBidFloor(imp, bidRequest, priceFloorResult, errors)
+                : resolveBidFloor(imp, bidRequest, errors);
+
         if (resolvedBidFloor != null) {
             builder
                     .bidfloorcur(XAPI_CURRENCY)
                     .bidfloor(resolvedBidFloor);
         }
 
-        if (isVideo(imp)) {
+        if (isVideo) {
             builder
                     .banner(null)
                     .video(makeVideo(imp, extImpRubicon.getVideo(), extImpPrebid, referer(site)));
@@ -423,7 +443,33 @@ public class RubiconBidder implements Bidder<BidRequest> {
                     .video(null);
         }
 
+        processWarnings(errors, priceFloorsWarnings);
+
         return builder.build();
+    }
+
+    private PriceFloorResult resolvePriceFloors(BidRequest bidRequest,
+                                                Imp imp,
+                                                ImpMediaType mediaType,
+                                                List<String> warnings) {
+
+        return floorResolver.resolve(
+                bidRequest,
+                extractFloorModelGroup(bidRequest),
+                imp,
+                mediaType,
+                null,
+                warnings);
+    }
+
+    private static PriceFloorModelGroup extractFloorModelGroup(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final PriceFloorRules floorRules = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+
+        final PriceFloorData data = ObjectUtil.getIfNotNull(floorRules, PriceFloorRules::getData);
+        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
+
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
     }
 
     private List<Metric> makeMetrics(Imp imp) {
@@ -449,6 +495,21 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
+    private BigDecimal resolvePriceFloorBidFloor(Imp imp,
+                                                 BidRequest bidRequest,
+                                                 PriceFloorResult floorResult,
+                                                 List<BidderError> errors) {
+        final BigDecimal floorValue = ObjectUtil.getIfNotNull(floorResult, PriceFloorResult::getFloorValue);
+        if (floorValue == null) {
+            return null;
+        }
+
+        final String floorCurrency = resolveCurrencyFromFloorResult(floorResult, bidRequest, imp, errors);
+        return ObjectUtils.notEqual(floorCurrency, XAPI_CURRENCY)
+                ? convertBidFloorCurrency(floorValue, floorCurrency, imp, bidRequest)
+                : null;
+    }
+
     private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
         final BigDecimal resolvedBidFloorPrice = resolveBidFloorPrice(imp);
         if (resolvedBidFloorPrice == null) {
@@ -468,6 +529,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static String resolveBidFloorCurrency(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
         final String bidFloorCurrency = imp.getBidfloorcur();
+        if (StringUtils.isBlank(bidFloorCurrency)) {
+            if (isDebugEnabled(bidRequest)) {
+                errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
+                        imp.getId(), XAPI_CURRENCY)));
+            }
+            return XAPI_CURRENCY;
+        }
+        return bidFloorCurrency;
+    }
+
+    private static String resolveCurrencyFromFloorResult(PriceFloorResult floorResult,
+                                                         BidRequest bidRequest,
+                                                         Imp imp,
+                                                         List<BidderError> errors) {
+
+        final String bidFloorCurrency = floorResult.getCurrency();
         if (StringUtils.isBlank(bidFloorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
                 errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
@@ -507,9 +584,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                      ExtImpRubicon rubiconImpExt,
                                      Site site,
                                      App app,
-                                     ExtRequest extRequest) {
+                                     ExtRequest extRequest,
+                                     PriceFloorResult priceFloorResult) {
 
         final ExtImpContext context = extImpContext(imp);
+        final RubiconImpExtPrebid rubiconImpExtPrebid = priceFloorResult != null
+                ? makeRubiconExtPrebid(priceFloorResult)
+                : null;
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
                         rubiconImpExt.getZoneId(),
@@ -517,7 +598,20 @@ public class RubiconBidder implements Bidder<BidRequest> {
                         RubiconImpExtRpTrack.of("", "")),
                 mapVendorsNamesToUrls(imp.getMetric()),
                 getMaxBids(extRequest),
-                getGpid(imp.getExt()));
+                getGpid(imp.getExt()),
+                rubiconImpExtPrebid);
+    }
+
+    private ExtImpContext extImpContext(Imp imp) {
+        final JsonNode context = imp.getExt().get(FPD_CONTEXT_FIELD);
+        if (context == null || context.isNull()) {
+            return null;
+        }
+        try {
+            return mapper.mapper().convertValue(context, ExtImpContext.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage(), e);
+        }
     }
 
     private JsonNode makeTarget(Imp imp, ExtImpRubicon rubiconImpExt, Site site, App app, ExtImpContext context) {
@@ -532,16 +626,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return result.size() > 0 ? result : null;
     }
 
-    private ExtImpContext extImpContext(Imp imp) {
-        final JsonNode context = imp.getExt().get(FPD_CONTEXT_FIELD);
-        if (context == null || context.isNull()) {
-            return null;
-        }
-        try {
-            return mapper.mapper().convertValue(context, ExtImpContext.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
+    private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult) {
+        return RubiconImpExtPrebid.of(ExtImpPrebidFloors.of(
+                priceFloorResult.getFloorRule(),
+                priceFloorResult.getFloorRuleValue(),
+                priceFloorResult.getFloorValue()));
     }
 
     private void mergeFirstPartyDataFromSite(Site site, ObjectNode result) {
@@ -1212,6 +1301,12 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return null;
     }
 
+    private void processWarnings(List<BidderError> errors, List<String> priceFloorsWarnings) {
+        if (CollectionUtils.isNotEmpty(priceFloorsWarnings)) {
+            priceFloorsWarnings.forEach(warning -> errors.add(BidderError.badInput(warning)));
+        }
+    }
+
     private Device makeDevice(Device device) {
         return device == null ? null : device.toBuilder()
                 .ext(mapper.fillExtension(
@@ -1364,7 +1459,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 impExtRp.getTrack());
 
         return mapper.mapper().valueToTree(RubiconImpExt.of(modifiedImpExtRp, rubiconImpExt.getViewabilityvendors(),
-                getMaxBids(extRequest), adSlot));
+                getMaxBids(extRequest), adSlot, null));
     }
 
     private List<BidderBid> extractBids(BidRequest prebidRequest,

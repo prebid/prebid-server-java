@@ -142,8 +142,8 @@ class UserDetailsSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.httpcalls?.get(USER_SERVICE_NAME)?.size() == 1
 
         and: "Data from the user service response wasn't added to the bid request by PBS"
-        assert !auctionResponse.ext?.debug?.resolvedrequest?.user?.data
-        assert !auctionResponse.ext?.debug?.resolvedrequest?.user?.ext?.fcapids
+        assert !auctionResponse.ext?.debug?.resolvedRequest?.user?.data
+        assert !auctionResponse.ext?.debug?.resolvedRequest?.user?.ext?.fcapids
 
         cleanup:
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)

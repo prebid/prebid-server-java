@@ -1,6 +1,7 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -8,6 +9,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -30,6 +32,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
     @Mock
     private ApplicationSettings delegate;
+    @Mock
+    private PriceFloorsConfigResolver priceFloorsConfigResolver;
     private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);
 
     private EnrichingApplicationSettings enrichingApplicationSettings;
@@ -37,10 +41,17 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
+    @Before
+    public void setUp() {
+        given(priceFloorsConfigResolver.updateFloorsConfig(any()))
+                .willAnswer(invocation -> Future.succeededFuture(invocation.getArgument(0)));
+    }
+
     @Test
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
-        enrichingApplicationSettings = new EnrichingApplicationSettings(null, delegate, jsonMerger);
+        enrichingApplicationSettings =
+                new EnrichingApplicationSettings(null, delegate, priceFloorsConfigResolver, jsonMerger);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -61,6 +72,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 "{}",
                 delegate,
+                priceFloorsConfigResolver,
                 jsonMerger);
 
         final Account returnedAccount = Account.builder().build();
@@ -83,6 +95,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 "{\"auction\": {\"banner-cache-ttl\": 100},"
                         + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
+                priceFloorsConfigResolver,
                 jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
@@ -122,6 +135,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
+                priceFloorsConfigResolver,
                 jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
@@ -144,6 +158,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         enrichingApplicationSettings = new EnrichingApplicationSettings(
                 "{}",
                 delegate,
+                priceFloorsConfigResolver,
                 jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
