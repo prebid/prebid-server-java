@@ -68,7 +68,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final List<String> warnings = auctionContext.getDebugWarnings();
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
-            return auctionContext;
+            return auctionContext.with(disableFloorsForRequest(bidRequest));
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest);
@@ -79,6 +79,22 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private boolean isPriceFloorsDisabled(Account account, BidRequest bidRequest) {
         return isPriceFloorsDisabledForAccount(account) || isPriceFloorsDisabledForRequest(bidRequest);
+    }
+
+    private static BidRequest disableFloorsForRequest(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
+        final PriceFloorRules rules = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
+
+        final PriceFloorRules updatedRules = (rules != null ? rules.toBuilder() : PriceFloorRules.builder())
+                .enabled(false)
+                .build();
+        final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
+                .floors(updatedRules)
+                .build();
+
+        return bidRequest.toBuilder()
+                .ext(ExtRequest.of(updatedPrebid))
+                .build();
     }
 
     private static boolean isPriceFloorsDisabledForAccount(Account account) {

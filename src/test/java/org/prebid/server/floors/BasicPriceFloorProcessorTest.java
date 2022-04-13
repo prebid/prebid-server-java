@@ -65,7 +65,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldDoNothingIfPriceFloorsDisabledForAccount() {
+    public void shouldSetRulesEnabledFieldToFalseIfPriceFloorsDisabledForAccount() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(floorsConfig -> floorsConfig.enabled(false)),
@@ -79,11 +79,13 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         verifyNoInteractions(priceFloorFetcher);
 
-        assertThat(result).isSameAs(auctionContext);
+        assertThat(result)
+                .isEqualTo(auctionContext.with(givenBidRequest(
+                        identity(), PriceFloorRules.builder().enabled(false).build())));
     }
 
     @Test
-    public void shouldDoNothingIfPriceFloorsDisabledForRequest() {
+    public void shouldSetRulesEnabledFieldToFalseIfPriceFloorsDisabledForRequest() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(identity()),
@@ -97,7 +99,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         // then
         verifyNoInteractions(priceFloorFetcher);
 
-        assertThat(result).isSameAs(auctionContext);
+        assertThat(result)
+                .isEqualTo(auctionContext.with(givenBidRequest(
+                        identity(), PriceFloorRules.builder().enabled(false).build())));
     }
 
     @Test
