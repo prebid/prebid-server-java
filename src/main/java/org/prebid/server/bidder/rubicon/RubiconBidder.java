@@ -418,14 +418,31 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp,
                 isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
 
+        final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
+        final String ipfCurrency = ipfFloor != null
+                ? resolveCurrencyFromFloorResult(
+                ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getCurrency),
+                bidRequest,
+                imp,
+                errors)
+                : null;
+
         final Imp.ImpBuilder builder = imp.toBuilder()
                 .metric(makeMetrics(imp))
                 .ext(mapper.mapper().valueToTree(
-                        makeImpExt(imp, extImpRubicon, site, app, extRequest, priceFloorResult)));
+                        makeImpExt(
+                                imp,
+                                bidRequest,
+                                extImpRubicon,
+                                site,
+                                app,
+                                extRequest,
+                                ipfCurrency,
+                                priceFloorResult)));
 
-        final BigDecimal resolvedBidFloor = priceFloorResult != null
-                ? resolvePriceFloorBidFloor(imp, bidRequest, priceFloorResult, errors)
-                : resolveBidFloor(imp, bidRequest, errors);
+        final BigDecimal resolvedBidFloor = ipfFloor != null
+                ? convertToXAPICurrency(ipfFloor, ipfCurrency, imp, bidRequest)
+                : resolveBidFloorFromImp(imp, bidRequest, errors);
 
         if (resolvedBidFloor != null) {
             builder
@@ -495,31 +512,27 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return supportedVendors.contains(metric.getVendor()) && Objects.equals(metric.getType(), "viewability");
     }
 
-    private BigDecimal resolvePriceFloorBidFloor(Imp imp,
-                                                 BidRequest bidRequest,
-                                                 PriceFloorResult floorResult,
-                                                 List<BidderError> errors) {
-        final BigDecimal floorValue = ObjectUtil.getIfNotNull(floorResult, PriceFloorResult::getFloorValue);
-        if (floorValue == null) {
-            return null;
-        }
-
-        final String floorCurrency = resolveCurrencyFromFloorResult(floorResult, bidRequest, imp, errors);
-        return ObjectUtils.notEqual(floorCurrency, XAPI_CURRENCY)
-                ? convertBidFloorCurrency(floorValue, floorCurrency, imp, bidRequest)
-                : null;
-    }
-
-    private BigDecimal resolveBidFloor(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
+    private BigDecimal resolveBidFloorFromImp(Imp imp, BidRequest bidRequest, List<BidderError> errors) {
         final BigDecimal resolvedBidFloorPrice = resolveBidFloorPrice(imp);
         if (resolvedBidFloorPrice == null) {
             return null;
         }
 
-        final String resolvedBidFloorCurrency = resolveBidFloorCurrency(imp, bidRequest, errors);
-        return ObjectUtils.notEqual(resolvedBidFloorCurrency, XAPI_CURRENCY)
-                ? convertBidFloorCurrency(resolvedBidFloorPrice, resolvedBidFloorCurrency, imp, bidRequest)
-                : null;
+        return convertToXAPICurrency(
+                resolvedBidFloorPrice,
+                resolveBidFloorCurrency(imp, bidRequest, errors),
+                imp,
+                bidRequest);
+    }
+
+    private BigDecimal convertToXAPICurrency(BigDecimal value,
+                                             String fromCurrency,
+                                             Imp imp,
+                                             BidRequest bidRequest) {
+
+        return ObjectUtils.notEqual(fromCurrency, XAPI_CURRENCY)
+                ? convertBidFloorCurrency(value, fromCurrency, imp, bidRequest)
+                : value;
     }
 
     private static BigDecimal resolveBidFloorPrice(Imp imp) {
@@ -539,20 +552,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return bidFloorCurrency;
     }
 
-    private static String resolveCurrencyFromFloorResult(PriceFloorResult floorResult,
+    private static String resolveCurrencyFromFloorResult(String floorCurrency,
                                                          BidRequest bidRequest,
                                                          Imp imp,
                                                          List<BidderError> errors) {
 
-        final String bidFloorCurrency = floorResult.getCurrency();
-        if (StringUtils.isBlank(bidFloorCurrency)) {
+        if (StringUtils.isBlank(floorCurrency)) {
             if (isDebugEnabled(bidRequest)) {
-                errors.add(BidderError.badInput(String.format("Imp `%s` floor provided with no currency, assuming %s",
-                        imp.getId(), XAPI_CURRENCY)));
+                errors.add(BidderError.badInput(String.format("Ipf for imp `%s` provided floor with no currency, "
+                        + "assuming %s", imp.getId(), XAPI_CURRENCY)));
             }
             return XAPI_CURRENCY;
         }
-        return bidFloorCurrency;
+        return floorCurrency;
     }
 
     /**
@@ -581,15 +593,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private RubiconImpExt makeImpExt(Imp imp,
+                                     BidRequest bidRequest,
                                      ExtImpRubicon rubiconImpExt,
                                      Site site,
                                      App app,
                                      ExtRequest extRequest,
+                                     String ipfResolvedCurrency,
                                      PriceFloorResult priceFloorResult) {
 
         final ExtImpContext context = extImpContext(imp);
         final RubiconImpExtPrebid rubiconImpExtPrebid = priceFloorResult != null
-                ? makeRubiconExtPrebid(priceFloorResult)
+                ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
                 : null;
         return RubiconImpExt.of(
                 RubiconImpExtRp.of(
@@ -626,11 +640,14 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return result.size() > 0 ? result : null;
     }
 
-    private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult) {
+    private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,
+                                                     String currency,
+                                                     Imp imp,
+                                                     BidRequest bidRequest) {
         return RubiconImpExtPrebid.of(ExtImpPrebidFloors.of(
                 priceFloorResult.getFloorRule(),
-                priceFloorResult.getFloorRuleValue(),
-                priceFloorResult.getFloorValue()));
+                convertToXAPICurrency(priceFloorResult.getFloorRuleValue(), currency, imp, bidRequest),
+                convertToXAPICurrency(priceFloorResult.getFloorValue(), currency, imp, bidRequest)));
     }
 
     private void mergeFirstPartyDataFromSite(Site site, ObjectNode result) {

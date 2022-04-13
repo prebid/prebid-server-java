@@ -559,7 +559,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
-                .containsOnly(tuple(BigDecimal.ONE, null));
+                .containsOnly(tuple(BigDecimal.ONE, "USD"));
     }
 
     @Test
@@ -2643,8 +2643,9 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillImpExtWithFloors() {
         // given
-        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
-
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
         when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -2663,6 +2664,43 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getExt).doesNotContainNull()
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
+                                mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
+                                RubiconImpExtRpTrack.of("", "")), null, 1, null,
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE))));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAssumeDefaultIpfCurrencyAsUSD() {
+        // given
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, null);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .debug(1)
+                        .floors(givenFloors(floors -> floors.data(givenFloorData(
+                                floorData -> floorData.modelGroups(singletonList(
+                                        givenModelGroup(UnaryOperator.identity())))))))
+                        .build())),
+                builder -> builder.id("123").video(Video.builder().build()),
+                builder -> builder
+                        .zoneId(4001)
+                        .inventory(mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(
+                        BidderError.badInput("Ipf for imp `123` provided floor with no currency, assuming USD"));
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
@@ -2714,9 +2752,10 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillImpExtWithFloorsWhenBothVideoAndBanner() {
         // given
-        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "USD");
-
+        final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
         when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
+                .thenReturn(BigDecimal.ONE);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -2752,7 +2791,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconImpExt.of(RubiconImpExtRp.of(4001,
                                 mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
                                 RubiconImpExtRpTrack.of("", "")), null, 1, null,
-                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.TEN, BigDecimal.TEN))));
+                        RubiconImpExtPrebid.of(ExtImpPrebidFloors.of("video", BigDecimal.ONE, BigDecimal.ONE))));
     }
 
     @Test
