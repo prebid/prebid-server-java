@@ -329,7 +329,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(false)
-                        .skipRate(0)
+                        .skipRate(100)
                         .data(priceFloorData)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));
@@ -355,6 +355,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .data(priceFloorData)
+                        .skipRate(100)
                         .enabled(false)
                         .skipped(true)
                         .location(PriceFloorLocation.request)));

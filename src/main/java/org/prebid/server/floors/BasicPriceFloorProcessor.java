@@ -319,12 +319,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                                                   PriceFloorRules floors,
                                                   List<String> errors,
                                                   List<String> warnings) {
-        final boolean skipFloors = shouldSkipFloors(floors);
+
+        final Integer requestSkipRate = extractSkipRate(floors);
+        final boolean skipFloors = shouldSkipFloors(requestSkipRate);
 
         final List<Imp> imps = skipFloors
                 ? bidRequest.getImp()
                 : updateImpsWithFloors(floors, bidRequest, errors, warnings);
-        final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
+        final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, requestSkipRate, skipFloors);
 
         return bidRequest.toBuilder()
                 .imp(imps)
@@ -332,9 +334,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .build();
     }
 
-    private static boolean shouldSkipFloors(PriceFloorRules floors) {
-        final Integer skipRate = extractSkipRate(floors);
-
+    private static boolean shouldSkipFloors(Integer skipRate) {
         return skipRate != null && ThreadLocalRandom.current().nextInt(SKIP_RATE_MAX) < skipRate;
     }
 
@@ -430,25 +430,28 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static ExtRequest updateExtRequestWithFloors(BidRequest bidRequest,
                                                          PriceFloorRules floors,
+                                                         Integer skipRate,
                                                          boolean skipFloors) {
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
-                .floors(skipFloors ? skippedFloors(floors) : enabledFloors(floors))
+                .floors(skipFloors ? skippedFloors(floors, skipRate) : enabledFloors(floors, skipRate))
                 .build();
 
         return ExtRequest.of(updatedPrebid);
     }
 
-    private static PriceFloorRules enabledFloors(PriceFloorRules floors) {
+    private static PriceFloorRules enabledFloors(PriceFloorRules floors, Integer skipRate) {
         return floors.toBuilder()
+                .skipRate(skipRate)
                 .enabled(true)
                 .build();
     }
 
-    private static PriceFloorRules skippedFloors(PriceFloorRules floors) {
+    private static PriceFloorRules skippedFloors(PriceFloorRules floors, Integer skipRate) {
         return floors.toBuilder()
+                .skipRate(skipRate)
                 .enabled(false)
                 .skipped(true)
                 .build();
