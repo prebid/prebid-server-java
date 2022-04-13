@@ -15,6 +15,8 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
+import static org.prebid.server.functional.model.Currency.EUR
+import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
@@ -764,7 +766,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == storedRequestModel.ext.prebid.floors.floorMin
-            ext?.prebid?.floors?.floorProvider == storedRequestModel.ext.prebid.floors.floorProvider
+            ext?.prebid?.floors?.floorProvider == storedRequestModel.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == storedRequestModel.ext.prebid.floors.data
         }
 
@@ -807,7 +809,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == bidRequest.ext.prebid.floors.floorMin
-            ext?.prebid?.floors?.floorProvider == bidRequest.ext.prebid.floors.floorProvider
+            ext?.prebid?.floors?.floorProvider == bidRequest.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == bidRequest.ext.prebid.floors.data
         }
     }
@@ -846,7 +848,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == REQUEST
             ext?.prebid?.floors?.fetchStatus == NONE
             ext?.prebid?.floors?.floorMin == ampStoredRequest.ext.prebid.floors.floorMin
-            ext?.prebid?.floors?.floorProvider == ampStoredRequest.ext.prebid.floors.floorProvider
+            ext?.prebid?.floors?.floorProvider == ampStoredRequest.ext.prebid.floors.data.floorProvider
             ext?.prebid?.floors?.data == ampStoredRequest.ext.prebid.floors.data
         }
     }
@@ -891,7 +893,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse.data
@@ -934,7 +936,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse.data
@@ -1020,7 +1022,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse.data
@@ -1132,7 +1134,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
             ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
+            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
             ext?.prebid?.floors?.data == floorsResponse.data
@@ -1237,6 +1239,40 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where:
         invalidSkipRate << [-1, 101]
+    }
+
+    def "PBS should give preference to currency from modelGroups when signalling"() {
+        given: "Default BidRequest with floors"
+        def bidRequest = bidRequestWithFloors
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
+            floorMin = floorValue
+            data.modelGroups[0].values = [(rule): floorValue]
+            data.modelGroups[0].currency = modelGroupCurrency
+            data.currency = dataCurrency
+        }
+        floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(bidRequest)
+
+        when: "PBS processes auction request"
+        floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain bidFloorCur from floors provider according to priority"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloorCur == JPY
+
+        where:
+        modelGroupCurrency | dataCurrency
+        JPY                | EUR
+        null               | JPY
     }
 
     static int convertKilobyteSizeToByte(int kilobyteSize) {
