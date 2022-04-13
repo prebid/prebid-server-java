@@ -1121,7 +1121,6 @@ public class ExchangeService {
                                                            BidderAliases aliases,
                                                            Account account,
                                                            MetricName requestTypeMetric) {
-        //already has check on this
         auctionParticipations = auctionParticipations.stream()
                 .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
                 .collect(Collectors.toList());
@@ -1130,6 +1129,9 @@ public class ExchangeService {
         metrics.updateAccountRequestMetrics(account, requestTypeMetric);
 
         for (AuctionParticipation auctionParticipation : auctionParticipations) {
+            if (auctionParticipation.isRequestBlocked()) {
+                continue;
+            }
 
             final BidderRequest bidderRequest = auctionParticipation.getBidderRequest();
             final String bidder = aliases.resolveBidder(bidderRequest.getBidder());
@@ -1264,6 +1266,9 @@ public class ExchangeService {
     private AuctionParticipation validBidderResponse(AuctionParticipation auctionParticipation,
                                                      AuctionContext auctionContext,
                                                      BidderAliases aliases) {
+        if (auctionParticipation.isRequestBlocked()) {
+            return auctionParticipation;
+        }
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
@@ -1342,6 +1347,9 @@ public class ExchangeService {
      */
     private AuctionParticipation applyBidPriceChanges(AuctionParticipation auctionParticipation,
                                                       BidRequest bidRequest) {
+        if (auctionParticipation.isRequestBlocked()) {
+            return auctionParticipation;
+        }
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = bidderResponse.getSeatBid();

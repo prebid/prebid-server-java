@@ -837,15 +837,12 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder-test", bidder, givenEmptySeatBid());
 
-        final Map<String, Map<String, String>> givenMap = new HashMap<>();
-        givenMap.put("test-1-key", singletonMap("bidder-test", "test-second-value"));
-
         given(storedResponseProcessor.getStoredResponseResult(anyList(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredResponseResult.of(singletonList(
-                                givenImp("", impBuilder -> impBuilder.id("test-1-key"))),
+                                        givenImp("", impBuilder -> impBuilder.id("test-1-key"))),
                                 singletonList(SeatBid.builder().build()),
-                                givenMap)));
+                                singletonMap("test-1-key", singletonMap("bidder-test", "test-second-value")))));
 
         final BidderPrivacyResult bidderPrivacyResult = BidderPrivacyResult.builder()
                 .requestBidder("bidder-test")
@@ -3152,8 +3149,8 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.video,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3186,8 +3183,8 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.video,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3220,8 +3217,8 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("1234").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.video,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3254,8 +3251,8 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.video,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.video,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), impBuilder ->
@@ -3290,8 +3287,8 @@ public class ExchangeServiceTest extends VertxTest {
                 BidderBid.builder().type(audio).bid(givenBid(identity())).build())));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.banner,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
         final BidRequest bidRequest = givenBidRequest(singletonList(givenImp(singletonMap("bidder", 2), identity())),
@@ -3323,8 +3320,8 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()))));
 
         final ExtRequestBidadjustmentfactors givenAdjustments = ExtRequestBidadjustmentfactors.builder()
-                .mediatypes(new EnumMap<>(Collections.singletonMap(BidAdjustmentMediaType.banner,
-                        Collections.singletonMap("bidder", BigDecimal.valueOf(3.456)))))
+                .mediatypes(new EnumMap<>(singletonMap(BidAdjustmentMediaType.banner,
+                        singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
         givenAdjustments.addFactor("bidder", BigDecimal.valueOf(2.468));
 
@@ -3625,9 +3622,6 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldReturnProperBidResponseWithAppliedToIfResultImplAppliedToIsPresent() {
         // given
-        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
-
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
@@ -3639,32 +3633,34 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugContext(DebugContext.of(false, TraceLevel.verbose))
                 .build();
 
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
         // when
         final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
 
         // then
-        final BidResponse bidResponse = result.getBidResponse();
-        assertThat(bidResponse.getExt().getPrebid().getModules().getTrace().getStages())
-                .anySatisfy(stage -> assertThat(stage.getOutcomes())
-                        .anySatisfy(outcome -> assertThat(outcome.getGroups())
-                                .anySatisfy(group -> assertThat(group.getInvocationResults())
-                                        .anySatisfy(hook -> {
-                                            assertThat(hook.getDebugMessages())
-                                                    .containsOnly("debug message 1-1 1", "debug message 1-1 2");
-                                            assertThat(hook.getAnalyticsTags()).isEqualTo(
-                                                    ExtModulesTraceAnalyticsTags.of(singletonList(
-                                                            ExtModulesTraceAnalyticsActivity.of(
-                                                                    "some-activity",
-                                                                    "success",
-                                                                    singletonList(ExtModulesTraceAnalyticsResult.of(
-                                                                            "success",
-                                                                            mapper.createObjectNode(),
-                                                                            ExtModulesTraceAnalyticsAppliedTo.builder()
-                                                                                    .impIds(asList("impId1", "impId2"))
-                                                                                    .response(true)
-                                                                                    .request(null)
-                                                                                    .build()))))));
-                                        }))));
+        final ExtModulesTraceAnalyticsTags givenExtModulesTraceAnalyticsTags =
+                ExtModulesTraceAnalyticsTags.of(singletonList(
+                        ExtModulesTraceAnalyticsActivity.of(
+                                "some-activity",
+                                "success",
+                                singletonList(
+                                        ExtModulesTraceAnalyticsResult.of(
+                                        "success",
+                                        mapper.createObjectNode(),
+                                        ExtModulesTraceAnalyticsAppliedTo.builder()
+                                                .impIds(asList("impId1", "impId2"))
+                                                .response(true)
+                                                .request(null)
+                                                .build())))));
+
+        assertThat(result.getBidResponse().getExt().getPrebid().getModules().getTrace().getStages())
+                .flatExtracting(ExtModulesTraceStage::getOutcomes)
+                .flatExtracting(ExtModulesTraceStageOutcome::getGroups)
+                .flatExtracting(ExtModulesTraceGroup::getInvocationResults)
+                .extracting(ExtModulesTraceInvocationResult::getAnalyticsTags)
+                .contains(givenExtModulesTraceAnalyticsTags);
     }
 
     @Test
@@ -4064,18 +4060,24 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldThrowErrorIfCannotBeParsedImpExtPrebid() {
         // given
-        final Imp imp = Imp.builder()
-                .ext(mapper.valueToTree(singletonMap("prebid",
-                        doubleMap("options", "1", "bidder",
-                                singletonMap("bidderName",
-                                        doubleMap("test-host", "unknownHost", "publisher_id", "ps4"))))))
-                .build();
+        final String prebid = "prebid";
+        final String bidderKey = "bidder";
+        final String optionKey = "options";
+        final String bidderName = "bidderName";
+        final String optionValue = "1";
+        final Map<String, Map<String, String>> bidderValue =
+                singletonMap(bidderName, doubleMap("test-host", "unknownHost", "publisher_id", "ps4"));
+
+        final ObjectNode prebidJsonNodes = mapper.valueToTree(
+                singletonMap(prebid, doubleMap(optionKey, optionValue, bidderKey, bidderValue)));
+
+        final Imp imp = Imp.builder().ext(prebidJsonNodes).build();
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
-                        .requestBidder("bidderName")
+                        .requestBidder(bidderName)
                         .build())));
 
         // when
