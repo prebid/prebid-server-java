@@ -247,6 +247,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final PriceFloorData updatedFloorData = floorData != null ? updateFloorData(floorData) : null;
 
         return (floors != null ? floors.toBuilder() : PriceFloorRules.builder())
+                .floorProvider(resolveFloorProvider(floors))
                 .fetchStatus(fetchStatus)
                 .location(location)
                 .data(updatedFloorData)
@@ -303,6 +304,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
         return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
+    }
+
+    private static String resolveFloorProvider(PriceFloorRules rules) {
+        final PriceFloorData floorData = ObjectUtil.getIfNotNull(rules, PriceFloorRules::getData);
+        final String dataLevelProvider = ObjectUtil.getIfNotNull(floorData, PriceFloorData::getFloorProvider);
+
+        return StringUtils.isNotBlank(dataLevelProvider)
+                ? dataLevelProvider
+                : ObjectUtil.getIfNotNull(rules, PriceFloorRules::getFloorProvider);
     }
 
     private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
@@ -425,14 +435,21 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
 
         final ExtRequestPrebid updatedPrebid = (prebid != null ? prebid.toBuilder() : ExtRequestPrebid.builder())
-                .floors(skipFloors ? skippedFloors(floors) : floors)
+                .floors(skipFloors ? skippedFloors(floors) : enabledFloors(floors))
                 .build();
 
         return ExtRequest.of(updatedPrebid);
     }
 
+    private static PriceFloorRules enabledFloors(PriceFloorRules floors) {
+        return floors.toBuilder()
+                .enabled(true)
+                .build();
+    }
+
     private static PriceFloorRules skippedFloors(PriceFloorRules floors) {
         return floors.toBuilder()
+                .enabled(false)
                 .skipped(true)
                 .build();
     }
