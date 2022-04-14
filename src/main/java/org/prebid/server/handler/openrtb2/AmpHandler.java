@@ -225,11 +225,20 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
                 .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
 
-        if (bidResponse.getExt() != null && bidResponse.getExt().getAdditionalTargeting() != null) {
-            targeting.putAll(bidResponse.getExt().getAdditionalTargeting());
-        }
+        final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
+        targeting.putAll(additionalTargeting);
 
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
+    }
+
+    private Map<String, JsonNode> extractAdditionalTargeting(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = bidResponse.getExt();
+
+        final ExtBidResponsePrebid prebid = extBidResponse != null ? extBidResponse.getPrebid() : null;
+
+        final Map<String, JsonNode> targeting = prebid != null ? prebid.getTargeting() : null;
+
+        return targeting != null ? targeting : Collections.emptyMap();
     }
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {

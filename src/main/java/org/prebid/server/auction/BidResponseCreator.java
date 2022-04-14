@@ -753,7 +753,7 @@ public class BidResponseCreator {
                 .warnings(warnings)
                 .responsetimemillis(responseTimeMillis)
                 .tmaxrequest(auctionContext.getBidRequest().getTmax())
-                .prebid(ExtBidResponsePrebid.of(auctionTimestamp, null))
+                .prebid(ExtBidResponsePrebid.of(auctionTimestamp, null, null))
                 .build();
     }
 

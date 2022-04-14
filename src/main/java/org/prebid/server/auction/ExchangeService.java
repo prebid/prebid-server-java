@@ -1606,7 +1606,8 @@ public class ExchangeService {
 
         final ExtBidResponsePrebid updatedExtPrebid = ExtBidResponsePrebid.of(
                 extPrebid != null ? extPrebid.getAuctiontimestamp() : null,
-                extModules);
+                extModules,
+                extPrebid != null ? extPrebid.getTargeting() : Collections.emptyMap());
         final ExtBidResponse updatedExt = (ext != null ? ext.toBuilder() : ExtBidResponse.builder())
                 .prebid(updatedExtPrebid)
                 .build();

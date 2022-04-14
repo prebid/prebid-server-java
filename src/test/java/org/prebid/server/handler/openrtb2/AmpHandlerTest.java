@@ -56,6 +56,7 @@ import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -433,13 +434,6 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(httpResponse.headers()).hasSize(4)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"),
-                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
     }
@@ -450,34 +444,32 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
 
-        final Map<String, JsonNode> targeting = new HashMap<>();
-        targeting.put("key", TextNode.valueOf("value"));
-        targeting.put("test-key", TextNode.valueOf("test-value"));
+        final Map<String, JsonNode> targeting =
+                Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
+
+        final List<Bid> bids = singletonList(Bid.builder()
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(
+                                ExtBidPrebid.builder().build(),
+                                mapper.createObjectNode())))
+                .build());
+
+        final List<SeatBid> seatBids = singletonList(SeatBid.builder()
+                .seat("bidder1")
+                .bid(bids)
+                .build());
+
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, targeting);
 
         givenHoldAuction(BidResponse.builder()
-                .ext(ExtBidResponse.builder().additionalTargeting(targeting).build())
-                .seatbid(singletonList(SeatBid.builder()
-                        .seat("bidder1")
-                        .bid(singletonList(Bid.builder()
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(
-                                                ExtBidPrebid.builder().build(),
-                                                mapper.createObjectNode())))
-                                .build()))
-                        .build()))
+                .ext(ExtBidResponse.builder().prebid(extBidResponsePrebid).build())
+                .seatbid(seatBids)
                 .build());
 
         // when
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(httpResponse.headers()).hasSize(4)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"),
-                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
     }
 
@@ -487,11 +479,12 @@ public class AmpHandlerTest extends VertxTest {
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
 
-        final Map<String, JsonNode> targeting = new HashMap<>();
-        targeting.put("key", TextNode.valueOf("value"));
-        targeting.put("test-key", TextNode.valueOf("test-value"));
+        final Map<String, JsonNode> targeting =
+                Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
 
-        givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().additionalTargeting(targeting).build()));
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.of(1000L, null, targeting);
+
+        givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
 
         // when
         ampHandler.handle(routingContext);
@@ -512,7 +505,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.of(1000L, null, Collections.emptyMap()))
                         .build()));
 
         // when
@@ -540,7 +533,8 @@ public class AmpHandlerTest extends VertxTest {
                                                 "module1", singletonMap("hook1", singletonList("error1"))),
                                         singletonMap(
                                                 "module1", singletonMap("hook1", singletonList("warning1"))),
-                                        ExtModulesTrace.of(2L, emptyList()))))
+                                        ExtModulesTrace.of(2L, emptyList())),
+                                Collections.emptyMap()))
                         .build()));
 
         // when
