@@ -4,7 +4,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.BidRequest
 
-import static org.prebid.server.functional.model.bidder.BidderName.*
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 @ToString(includeNames = true, ignoreNulls = true)
 class SeatBid {
@@ -17,5 +17,4 @@ class SeatBid {
         def bids = Bid.getDefaultBids(bidRequest.imp)
         new SeatBid(bid: bids, seat: GENERIC)
     }
-
 }

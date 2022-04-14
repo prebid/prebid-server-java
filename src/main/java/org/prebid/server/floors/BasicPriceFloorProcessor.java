@@ -7,7 +7,10 @@ import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.bidder.model.Price;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -23,8 +26,10 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -41,14 +46,17 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
+    private final CurrencyConversionService conversionService;
     private final JacksonMapper mapper;
 
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
+                                    CurrencyConversionService conversionService,
                                     JacksonMapper mapper) {
 
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
+        this.conversionService = Objects.requireNonNull(conversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -57,13 +65,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final List<String> errors = auctionContext.getPrebidErrors();
+        final List<String> warnings = auctionContext.getDebugWarnings();
 
         if (isPriceFloorsDisabled(account, bidRequest)) {
             return auctionContext;
         }
 
         final PriceFloorRules floors = resolveFloors(account, bidRequest);
-        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors);
+        final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors, warnings);
 
         return auctionContext.with(updatedBidRequest);
     }
@@ -94,7 +103,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
 
-        if (fetchResult != null && fetchStatus == FetchStatus.success) {
+        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.success) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRules());
             return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
         }
@@ -106,22 +115,34 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
     }
 
-    private static PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
-                                               PriceFloorRules providerFloors) {
+    private static boolean shouldUseDynamicData(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+        final AccountPriceFloorsConfig floorsConfig =
+                ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+
+        return BooleanUtils.isNotFalse(
+                ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getUseDynamicData));
+    }
+
+    private PriceFloorRules mergeFloors(PriceFloorRules requestFloors,
+                                        PriceFloorRules providerFloors) {
 
         final Boolean floorsEnabledByRequest = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnabled);
         final PriceFloorEnforcement floorsRequestEnforcement =
                 ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getEnforcement);
         final Integer enforceRate =
                 ObjectUtil.getIfNotNull(floorsRequestEnforcement, PriceFloorEnforcement::getEnforceRate);
+        final Price floorMinPrice = resolveFloorMinPrice(requestFloors, providerFloors);
 
-        if (floorsEnabledByRequest != null || enforceRate != null) {
+        if (floorsEnabledByRequest != null || enforceRate != null || floorMinPrice != null) {
             final Boolean floorsEnabledByProvider =
                     ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
             final PriceFloorEnforcement floorsProviderEnforcement =
                     ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnforcement);
 
             return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
+                    .floorMinCur(ObjectUtil.getIfNotNull(floorMinPrice, Price::getCurrency))
+                    .floorMin(ObjectUtil.getIfNotNull(floorMinPrice, Price::getValue))
                     .enabled(resolveFloorsEnabled(floorsEnabledByRequest, floorsEnabledByProvider))
                     .enforcement(resolveFloorsEnforcement(floorsProviderEnforcement, enforceRate))
                     .build();
@@ -130,8 +151,60 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return providerFloors;
     }
 
+    private Price resolveFloorMinPrice(PriceFloorRules requestFloors,
+                                       PriceFloorRules providerFloors) {
+        final String requestDataCurrency =
+                ObjectUtil.getIfNotNull(
+                        ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getData), PriceFloorData::getCurrency);
+        final String requestFloorMinCur =
+                ObjectUtils.firstNonNull(ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getFloorMinCur),
+                        requestDataCurrency);
+        final BigDecimal requestFloorMin = ObjectUtil.getIfNotNull(requestFloors, PriceFloorRules::getFloorMin);
+
+        final String providerFloorMinCur =
+                ObjectUtil.getIfNotNull(
+                        ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getData), PriceFloorData::getCurrency);
+        final BigDecimal providerFloorMin = ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getFloorMin);
+
+        if (StringUtils.isNotBlank(requestFloorMinCur)) {
+            if (BidderUtil.isValidPrice(requestFloorMin)) {
+                return Price.of(requestFloorMinCur, requestFloorMin);
+            } else if (BidderUtil.isValidPrice(providerFloorMin)) {
+                if (StringUtils.equals(providerFloorMinCur, requestFloorMinCur)) {
+                    return Price.of(requestFloorMinCur, providerFloorMin);
+                }
+
+                return Price.of(
+                        requestFloorMinCur,
+                        conversionService.convertCurrency(
+                                providerFloorMin,
+                                Collections.emptyMap(),
+                                providerFloorMinCur,
+                                requestFloorMinCur,
+                                false));
+            }
+        }
+
+        if (StringUtils.isNotBlank(providerFloorMinCur)) {
+            if (BidderUtil.isValidPrice(requestFloorMin)) {
+                return Price.of(
+                        requestFloorMinCur,
+                        conversionService.convertCurrency(
+                                requestFloorMin,
+                                Collections.emptyMap(),
+                                requestFloorMinCur,
+                                providerFloorMinCur,
+                                false));
+            }
+
+            return Price.of(requestFloorMinCur, providerFloorMin);
+        }
+
+        return Price.of(null, ObjectUtils.firstNonNull(requestFloorMin, providerFloorMin));
+    }
+
     private static Boolean resolveFloorsEnabled(Boolean enabledByRequest, Boolean enabledByProvider) {
-        if (Boolean.FALSE.equals(enabledByRequest) || Boolean.FALSE.equals(enabledByProvider)) {
+        if (BooleanUtils.isFalse(enabledByRequest) || BooleanUtils.isFalse(enabledByProvider)) {
             return false;
         }
 
@@ -216,10 +289,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
-    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest, PriceFloorRules floors, List<String> errors) {
+    private BidRequest updateBidRequestWithFloors(BidRequest bidRequest,
+                                                  PriceFloorRules floors,
+                                                  List<String> errors,
+                                                  List<String> warnings) {
         final boolean skipFloors = shouldSkipFloors(floors);
 
-        final List<Imp> imps = skipFloors ? bidRequest.getImp() : updateImpsWithFloors(floors, bidRequest, errors);
+        final List<Imp> imps = skipFloors
+                ? bidRequest.getImp()
+                : updateImpsWithFloors(floors, bidRequest, errors, warnings);
         final ExtRequest extRequest = updateExtRequestWithFloors(bidRequest, floors, skipFloors);
 
         return bidRequest.toBuilder()
@@ -259,7 +337,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return value != null && value >= SKIP_RATE_MIN && value <= SKIP_RATE_MAX;
     }
 
-    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors, BidRequest bidRequest, List<String> errors) {
+    private List<Imp> updateImpsWithFloors(PriceFloorRules accountFloors,
+                                           BidRequest bidRequest,
+                                           List<String> errors,
+                                           List<String> warnings) {
+
         final List<Imp> imps = bidRequest.getImp();
 
         final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(bidRequest.getExt(), ExtRequest::getPrebid);
@@ -271,7 +353,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         return CollectionUtils.emptyIfNull(imps).stream()
-                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors))
+                .map(imp -> updateImpWithFloors(imp, modelGroup, bidRequest, errors, warnings))
                 .collect(Collectors.toList());
     }
 
@@ -285,13 +367,14 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private Imp updateImpWithFloors(Imp imp,
                                     PriceFloorModelGroup modelGroup,
                                     BidRequest bidRequest,
-                                    List<String> errors) {
+                                    List<String> errors,
+                                    List<String> warnings) {
 
         final PriceFloorResult priceFloorResult;
         try {
-            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp);
+            priceFloorResult = floorResolver.resolve(bidRequest, modelGroup, imp, warnings);
         } catch (IllegalStateException e) {
-            errors.add(String.format("Cannot resolve bid floor, error: %s", e.getMessage()));
+            errors.add("Cannot resolve bid floor, error: " + e.getMessage());
             return imp;
         }
 

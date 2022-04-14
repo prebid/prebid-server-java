@@ -20,6 +20,8 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.settings.model.Account;
@@ -50,12 +52,14 @@ public class BasicPriceFloorEnforcerTest {
 
     @Mock
     private CurrencyConversionService currencyConversionService;
+    @Mock
+    private Metrics metrics;
 
     private BasicPriceFloorEnforcer priceFloorEnforcer;
 
     @Before
     public void setUp() {
-        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService);
+        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService, metrics);
     }
 
     @Test
@@ -165,10 +169,10 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldNotEnforceIfRequestImpHasNoBidFloorDefined() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(request -> request.imp(givenImps(identity())));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                request -> request.imp(givenImps(identity())),
+                identity(),
                 identity(),
                 givenBidderSeatBid(identity()));
 
@@ -269,10 +273,11 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRejectBidsHavingPriceBelowFloor() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(request ->
+                request.imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE))));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                request -> request.imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE))),
+                identity(),
                 identity(),
                 givenBidderSeatBid(
                         bid -> bid.id("bidId1").price(BigDecimal.ZERO),
@@ -298,10 +303,11 @@ public class BasicPriceFloorEnforcerTest {
     @Test
     public void shouldRejectBidsHavingPriceBelowFloorAndRequestEnforceFloorsRateIs100() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.imp(givenImps(imp -> imp.bidfloor(BigDecimal.TEN))));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                request -> request.imp(givenImps(imp -> imp.bidfloor(BigDecimal.TEN))),
+                identity(),
                 enforcement -> enforcement.enforceRate(100),
                 givenBidderSeatBid(bid -> bid.price(BigDecimal.ONE)));
 
@@ -420,11 +426,12 @@ public class BasicPriceFloorEnforcerTest {
         given(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .willThrow(new PreBidException("error"));
 
-        final BidRequest bidRequest = givenBidRequest(request -> request.cur(singletonList("EUR")));
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .imp(givenImps(imp -> imp.bidfloorcur("USD").bidfloor(BigDecimal.ONE)))
+                .cur(singletonList("EUR")));
 
-        final AuctionParticipation auctionParticipation = givenAuctionParticipation(request -> request
-                        .cur(singletonList("USD"))
-                        .imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE))),
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                identity(),
                 identity(),
                 givenBidderSeatBid(bid -> bid.price(BigDecimal.TEN)));
 
@@ -436,7 +443,7 @@ public class BasicPriceFloorEnforcerTest {
         // then
         verify(currencyConversionService)
                 .convertCurrency(eq(BigDecimal.ONE), eq(bidRequest), eq("USD"), eq("EUR"));
-
+        verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
                 .extracting(BidderResponse::getSeatBid)
@@ -452,11 +459,12 @@ public class BasicPriceFloorEnforcerTest {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
 
-        final BidRequest bidRequest = givenBidRequest(request -> request.cur(singletonList("EUR")));
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .imp(givenImps(imp -> imp.bidfloorcur("USD").bidfloor(BigDecimal.ONE)))
+                .cur(singletonList("EUR")));
 
-        final AuctionParticipation auctionParticipation = givenAuctionParticipation(request -> request
-                        .cur(singletonList("USD"))
-                        .imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE))),
+        final AuctionParticipation auctionParticipation = givenAuctionParticipation(
+                identity(),
                 identity(),
                 givenBidderSeatBid(bid -> bid.price(BigDecimal.TEN)));
 
@@ -481,11 +489,12 @@ public class BasicPriceFloorEnforcerTest {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), any(), any())).willReturn(BigDecimal.TEN);
 
-        final BidRequest bidRequest = givenBidRequest(request -> request.cur(singletonList("EUR")));
+        final BidRequest bidRequest = givenBidRequest(request -> request
+                .imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("JPY")))
+                .cur(singletonList("EUR")));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(request -> request
-                        .cur(singletonList("USD"))
-                        .imp(givenImps(imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("JPY"))),
+                        .cur(singletonList("USD")),
                 identity(),
                 givenBidderSeatBid(bid -> bid.price(BigDecimal.TEN)));
 

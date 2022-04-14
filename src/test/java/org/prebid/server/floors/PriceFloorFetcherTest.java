@@ -19,7 +19,7 @@ import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
-import org.prebid.server.floors.model.PriceFloorTestingProperties;
+import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.metric.Metrics;
@@ -56,7 +56,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     private ApplicationSettings applicationSettings;
 
     @Mock
-    private PriceFloorTestingProperties testingProperties;
+    private PriceFloorDebugProperties debugProperties;
 
     @Mock
     private Metrics metrics;
@@ -74,13 +74,13 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     @Before
     public void setUp() {
-        testingProperties = new PriceFloorTestingProperties();
+        debugProperties = new PriceFloorDebugProperties();
         priceFloorFetcher = new PriceFloorFetcher(applicationSettings,
                 metrics,
                 vertx,
                 timeoutFactory,
                 httpClient,
-                testingProperties,
+                debugProperties,
                 jacksonMapper);
     }
 
@@ -180,7 +180,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Test
     public void fetchShouldTakePrecedenceForTestingPropertyToCacheResponse() {
         // given
-        testingProperties.setMinMaxAgeSec(1L);
+        debugProperties.setMinMaxAgeSec(1L);
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
@@ -198,7 +198,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Test
     public void fetchShouldTakePrecedenceForTestingPropertyToCreatePeriodicTimer() {
         // given
-        testingProperties.setMinPeriodSec(1L);
+        debugProperties.setMinPeriodSec(1L);
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
@@ -215,7 +215,7 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Test
     public void fetchShouldTakePrecedenceForTestingPropertyToChooseRequestTimeout() {
         // given
-        testingProperties.setMaxTimeoutMs(1L);
+        debugProperties.setMaxTimeoutMs(1L);
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
@@ -231,8 +231,8 @@ public class PriceFloorFetcherTest extends VertxTest {
     @Test
     public void fetchShouldTakePrecedenceForMinTimeoutTestingPropertyToChooseRequestTimeout() {
         // given
-        testingProperties.setMinTimeoutMs(1L);
-        testingProperties.setMaxTimeoutMs(2L);
+        debugProperties.setMinTimeoutMs(1L);
+        debugProperties.setMaxTimeoutMs(2L);
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),

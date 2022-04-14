@@ -7,7 +7,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.settings.model.Account;
@@ -28,19 +28,21 @@ import java.util.function.Function;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
+    private static final int ADJUSTMENT_SCALE = 4;
+
     @Override
     public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
-        final ExtRequestBidadjustmentfactors extBidadjustmentfactors = extractBidadjustmentfactors(bidRequest);
+        final ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors = extractBidAdjustmentFactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
-        if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null || extBidadjustmentfactors == null) {
+        if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null || extractBidAdjustmentFactors == null) {
             return impBidFloor;
         }
 
-        final BigDecimal factor = resolveAdjustmentFactor(imp, extBidadjustmentfactors, bidder);
+        final BigDecimal factor = resolveAdjustmentFactor(imp, extractBidAdjustmentFactors, bidder);
 
         return factor != null
-                ? BidderUtil.roundFloor(impBidFloor.divide(factor, 4, RoundingMode.HALF_EVEN))
+                ? BidderUtil.roundFloor(impBidFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN))
                 : impBidFloor;
     }
 
@@ -70,7 +72,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         return ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getAdjustForBidAdjustment);
     }
 
-    private static ExtRequestBidadjustmentfactors extractBidadjustmentfactors(BidRequest bidRequest) {
+    private static ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors(BidRequest bidRequest) {
         final ExtRequest extRequest = bidRequest.getExt();
         final ExtRequestPrebid extPrebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
 
@@ -78,7 +80,7 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     }
 
     private static BigDecimal resolveAdjustmentFactor(Imp imp,
-                                                      ExtRequestBidadjustmentfactors adjustmentFactors,
+                                                      ExtRequestBidAdjustmentFactors adjustmentFactors,
                                                       String bidder) {
 
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaTypes =
@@ -130,16 +132,14 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     }
 
     private static BigDecimal createFactorValue(BigDecimal mediaTypeFactor, BigDecimal adjustmentFactor) {
-        final BigDecimal effectiveFactor;
-
-        if (mediaTypeFactor == null) {
-            effectiveFactor = adjustmentFactor;
-        } else if (adjustmentFactor == null) {
-            effectiveFactor = mediaTypeFactor;
-        } else {
-            effectiveFactor = mediaTypeFactor.compareTo(adjustmentFactor) < 0 ? mediaTypeFactor : adjustmentFactor;
+        if (mediaTypeFactor != null && adjustmentFactor != null) {
+            return mediaTypeFactor.min(adjustmentFactor);
+        } else if (mediaTypeFactor != null) {
+            return mediaTypeFactor;
+        } else if (adjustmentFactor != null) {
+            return adjustmentFactor;
         }
 
-        return effectiveFactor != null ? effectiveFactor : BigDecimal.ONE;
+        return BigDecimal.ONE;
     }
 }

@@ -13,7 +13,7 @@ import java.util.Map;
 
 @Value(staticConstructor = "of")
 @Builder(toBuilder = true)
-public class ExtRequestBidadjustmentfactors {
+public class ExtRequestBidAdjustmentFactors {
 
     Map<String, BigDecimal> adjustments = new HashMap<>();
 

@@ -7,17 +7,23 @@ import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
+import java.util.List;
+
 public interface PriceFloorResolver {
 
     PriceFloorResult resolve(BidRequest bidRequest,
                              PriceFloorModelGroup modelGroup,
                              Imp imp,
                              ImpMediaType mediaType,
-                             Format format);
+                             Format format,
+                             List<String> warnings);
 
-    default PriceFloorResult resolve(BidRequest bidRequest, PriceFloorModelGroup modelGroup, Imp imp) {
+    default PriceFloorResult resolve(BidRequest bidRequest,
+                                     PriceFloorModelGroup modelGroup,
+                                     Imp imp,
+                                     List<String> warnings) {
 
-        return resolve(bidRequest, modelGroup, imp, null, null);
+        return resolve(bidRequest, modelGroup, imp, null, null, warnings);
     }
 
     static NoOpPriceFloorResolver noOp() {
@@ -31,7 +37,8 @@ public interface PriceFloorResolver {
                                         PriceFloorModelGroup modelGroup,
                                         Imp imp,
                                         ImpMediaType mediaType,
-                                        Format format) {
+                                        Format format,
+                                        List<String> warnings) {
 
             return null;
         }
