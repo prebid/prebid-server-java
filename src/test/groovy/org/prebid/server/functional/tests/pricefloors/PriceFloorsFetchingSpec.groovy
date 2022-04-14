@@ -696,7 +696,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with maxFileSizeKb in the DB"
         def accountId = bidRequest.app.publisher.id
-        def maxSize = PBSUtils.getRandomNumber(0, 10)
+        def maxSize = PBSUtils.getRandomNumber(1, 10)
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.fetch.maxFileSizeKb = maxSize
         }
