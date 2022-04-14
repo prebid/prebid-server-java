@@ -38,6 +38,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconAppExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconBannerExt;
@@ -1497,7 +1498,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
-                .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, idToImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
@@ -1568,6 +1569,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return bid.toBuilder()
                 .id(bidId)
                 .price(bidPrice)
+                .build();
+    }
+
+    private static BidderBid createBidderBid(Bid bid, Imp imp, BidType bidType, String currency) {
+
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(currency)
+                .priceFloorInfo(imp != null ? PriceFloorInfo.of(imp.getBidfloor(), imp.getBidfloorcur()) : null)
                 .build();
     }
 
