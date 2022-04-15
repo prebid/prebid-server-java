@@ -59,11 +59,18 @@ public class EventUtil {
     }
 
     public static void validateVType(RoutingContext routingContext) {
+        final String type = routingContext.request().params().get(TYPE_PARAMETER);
         final String vType = routingContext.request().params().get(V_TYPE_PARAMETER);
-        if (!POSSIBLE_V_TYPES.contains(vType)) {
-            throw new IllegalArgumentException(String.format(
-                    "Type '%s' is required query parameter. Possible values are %s, but was %s",
-                    V_TYPE_PARAMETER, POSSIBLE_V_TYPES, vType));
+
+        if (type.equals(VAST_TYPE)) {
+            if (!POSSIBLE_V_TYPES.contains(vType)) {
+                throw new IllegalArgumentException(String.format(
+                        "Type '%s' is required query parameter. Possible values are %s, but was %s",
+                        V_TYPE_PARAMETER, POSSIBLE_V_TYPES, vType));
+            }
+        } else if (StringUtils.isNotBlank(vType)) {
+            throw new IllegalArgumentException(String.format("Type '%s' is only required for when '%s=%s'",
+                    V_TYPE_PARAMETER, TYPE_PARAMETER, VAST_TYPE));
         }
     }
 

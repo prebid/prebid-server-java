@@ -533,7 +533,6 @@ public class ApplicationTest extends IntegrationTest {
     public void eventHandlerShouldRespondWithTrackingPixel() throws IOException {
         final Response response = given(SPEC)
                 .queryParam("t", "win")
-                .queryParam("vtype", "start")
                 .queryParam("b", "bidId")
                 .queryParam("a", "14062")
                 .queryParam("f", "i")
