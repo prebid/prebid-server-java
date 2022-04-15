@@ -74,7 +74,7 @@ public class PriceFloorRulesValidator {
         final BigDecimal defaultPrice = modelGroup.getDefaultFloor();
         if (defaultPrice != null && defaultPrice.compareTo(BigDecimal.ZERO) < 0) {
             throw new PreBidException(String.format("Price floor modelGroup default "
-                    + "must be positive float, but was %s", modelWeight));
+                    + "must be positive float, but was %s", defaultPrice));
         }
 
         final Map<String, BigDecimal> values = modelGroup.getValues();
