@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -11,6 +13,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -20,6 +23,7 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -39,9 +43,12 @@ import java.util.stream.Collectors;
 
 public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
+    private static final Logger logger = LoggerFactory.getLogger(BasicPriceFloorProcessor.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
-    private static final int MODEL_WEIGHT_MAX_VALUE = 1_000_000;
+    private static final int MODEL_WEIGHT_MAX_VALUE = 100;
     private static final int MODEL_WEIGHT_MIN_VALUE = 0;
 
     private final PriceFloorFetcher floorFetcher;
@@ -71,7 +78,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             return auctionContext.with(disableFloorsForRequest(bidRequest));
         }
 
-        final PriceFloorRules floors = resolveFloors(account, bidRequest);
+        final PriceFloorRules floors = resolveFloors(account, bidRequest, errors);
         final BidRequest updatedBidRequest = updateBidRequestWithFloors(bidRequest, floors, errors, warnings);
 
         return auctionContext.with(updatedBidRequest);
@@ -113,7 +120,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getFloors);
     }
 
-    private PriceFloorRules resolveFloors(Account account, BidRequest bidRequest) {
+    private PriceFloorRules resolveFloors(Account account, BidRequest bidRequest, List<String> errors) {
         final PriceFloorRules requestFloors = extractRequestFloors(bidRequest);
 
         final FetchResult fetchResult = floorFetcher.fetch(account);
@@ -125,7 +132,18 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         }
 
         if (requestFloors != null) {
-            return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
+            try {
+                PriceFloorRulesValidator.validate(requestFloors, Integer.MAX_VALUE);
+                return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
+            } catch (PreBidException e) {
+                errors.add(String.format("Failed to parse price floors from request,"
+                        + " with a reason : %s ", e.getMessage()));
+                conditionalLogger.error(
+                        String.format("Failed to parse price floors from request with id: '%s',"
+                                        + " with a reason : %s ",
+                                bidRequest.getId(),
+                                e.getMessage()), 0.01d);
+            }
         }
 
         return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);

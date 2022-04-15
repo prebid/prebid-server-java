@@ -100,8 +100,12 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         verifyNoInteractions(priceFloorFetcher);
 
         assertThat(result)
-                .isEqualTo(auctionContext.with(givenBidRequest(
-                        identity(), PriceFloorRules.builder().enabled(false).build())));
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getFloors)
+                .extracting(PriceFloorRules::getEnabled)
+                .isEqualTo(false);
     }
 
     @Test
@@ -193,10 +197,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result))
-                .isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .fetchStatus(FetchStatus.success)
-                        .location(PriceFloorLocation.noData)));
+                .extracting(PriceFloorRules::getFetchStatus)
+                .isEqualTo(FetchStatus.success);
+        assertThat(extractFloors(result))
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
     }
 
     @Test
@@ -265,9 +270,11 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
         // then
         assertThat(extractFloors(result))
-                .isEqualTo(givenFloors(floors -> floors
-                        .enabled(true)
-                        .location(PriceFloorLocation.noData)));
+                .extracting(PriceFloorRules::getEnabled)
+                .isEqualTo(true);
+        assertThat(extractFloors(result))
+                .extracting(PriceFloorRules::getLocation)
+                .isEqualTo(PriceFloorLocation.noData);
     }
 
     @Test
@@ -558,19 +565,30 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     private static PriceFloorRules givenFloors(
             UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
 
-        return floorsCustomizer.apply(PriceFloorRules.builder()).build();
+        return floorsCustomizer.apply(PriceFloorRules.builder()
+                .data(PriceFloorData.builder()
+                        .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                                .value("someKey", BigDecimal.ONE)
+                                .build()))
+                        .build())
+        ).build();
     }
 
     private static PriceFloorData givenFloorData(
             UnaryOperator<PriceFloorData.PriceFloorDataBuilder> floorDataCustomizer) {
 
-        return floorDataCustomizer.apply(PriceFloorData.builder()).build();
+        return floorDataCustomizer.apply(PriceFloorData.builder()
+                .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                        .value("someKey", BigDecimal.ONE)
+                        .build()))).build();
     }
 
     private static PriceFloorModelGroup givenModelGroup(
             UnaryOperator<PriceFloorModelGroup.PriceFloorModelGroupBuilder> modelGroupCustomizer) {
 
-        return modelGroupCustomizer.apply(PriceFloorModelGroup.builder()).build();
+        return modelGroupCustomizer.apply(PriceFloorModelGroup.builder()
+                        .value("someKey", BigDecimal.ONE))
+                .build();
     }
 
     private static PriceFloorRules extractFloors(AuctionContext auctionContext) {

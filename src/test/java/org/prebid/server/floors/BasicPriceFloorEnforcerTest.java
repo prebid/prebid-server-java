@@ -451,7 +451,7 @@ public class BasicPriceFloorEnforcerTest {
                 .containsExactly(
                         singletonList(BidderBid.of(
                                 Bid.builder().impid("impId").price(BigDecimal.TEN).build(), null, null)),
-                        singletonList(BidderError.badServerResponse("Price floors enforcement failed: error")));
+                        singletonList(BidderError.rejectedIpf("Price floors enforcement failed: error")));
     }
 
     @Test

@@ -1488,6 +1488,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                              List<BidderError> errors) {
         final Map<String, Imp> idToImp = prebidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
+        final Map<String, Imp> idToRubiconImp = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
         final Float cpmOverrideFromRequest = cpmOverrideFromRequest(prebidRequest);
         final BidType bidType = bidType(bidRequest);
 
@@ -1498,7 +1500,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> updateBid(bid, idToImp.get(bid.getImpid()), cpmOverrideFromRequest, bidResponse))
-                .map(bid -> createBidderBid(bid, idToImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, idToRubiconImp.get(bid.getImpid()), bidType, bidResponse.getCur()))
                 .collect(Collectors.toList());
     }
 
