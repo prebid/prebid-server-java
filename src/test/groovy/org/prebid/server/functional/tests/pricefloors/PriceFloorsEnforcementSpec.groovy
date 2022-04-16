@@ -79,7 +79,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS should log warning about bid suppression"
-        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [999]
+        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [6]
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
                          "price $lowerPrice is below the floor $floorValue" as String]
@@ -128,7 +128,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
 
         and: "PBS should log warning about suppression all bids below the floor value "
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [999, 999]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [6, 6]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Bid with id '${bidResponse.seatbid[0].bid[1].id}' was rejected by floor enforcement: " +
                          "price ${bidResponse.seatbid[0].bid[1].price} is below the floor $floorValue" as String,

@@ -32,11 +32,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     def "PBS should skip signalling for request with rules when ext.prebid.floors.enabled = false in request"() {
         given: "Default BidRequest with disabled floors"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = false
+            ext.prebid.floors.enabled = requestEnabled
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = accountEnabled
+        }
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -45,10 +47,15 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
-        assert bidderRequest.ext?.prebid?.floors?.enabled == bidRequest.ext.prebid.floors.enabled
+        assert !bidderRequest.ext?.prebid?.floors?.enabled
 
         and: "PBS should not fetch rules from floors provider"
         assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 0
+
+        where:
+        requestEnabled | accountEnabled
+        false          | true
+        true           | false
     }
 
     def "PBS should skip signalling for request without rules when ext.prebid.floors.enabled = false in request"() {
@@ -188,6 +195,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
         assert bidderRequest.imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+        assert !bidderRequest.ext?.prebid?.floors?.skipped
 
         where:
         skipRate << [0, null]
@@ -209,7 +217,9 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorRules.priceFloorRules.tap {
             data.modelGroups[0].values = [(rule): floorValue]
             data.modelGroups[0].currency = USD
-            data.modelGroups[0].skipRate = 100
+            data.modelGroups[0].skipRate = modelGroupSkipRate
+            data.skipRate = dataSkipRate
+            skipRate = rootSkipRate
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -223,9 +233,17 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
         assert bidderRequest.imp[0].bidFloorCur == bidRequest.imp[0].bidFloorCur
+        assert bidderRequest.ext?.prebid?.floors?.skipRate == 100
+        assert bidderRequest.ext?.prebid?.floors?.skipped
 
         and: "PBS should not made signalling"
         assert !bidderRequest.imp[0].ext?.prebid?.floors
+
+        where:
+        modelGroupSkipRate | dataSkipRate | rootSkipRate
+        100                | 0            | 0
+        null               | 100          | 0
+        null               | null         | 100
     }
 
     def "PBS should not emit error when request has more rules than fetch.max-rules"() {
