@@ -39,8 +39,8 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
             FloorsProvider.FLOORS_ENDPOINT
     protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
 
+    protected static final int MAX_MODEL_WEIGHT = 100
     private static final int DEFAULT_MODEL_WEIGHT = 1
-    private static final int MAX_MODEL_WEIGHT = 1000000
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
 

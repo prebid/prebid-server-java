@@ -9,8 +9,6 @@ import io.vertx.core.impl.ConcurrentHashSet;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -18,10 +16,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpStatus;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.model.PriceFloorData;
-import org.prebid.server.floors.model.PriceFloorModelGroup;
-import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorDebugProperties;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.json.DecodeException;
@@ -38,7 +34,6 @@ import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -175,8 +170,7 @@ public class PriceFloorFetcher {
         }
 
         final PriceFloorRules priceFloorRules = parsePriceFloorRules(body, accountId);
-
-        validatePriceFloorRules(priceFloorRules, fetchConfig);
+        PriceFloorRulesValidator.validate(priceFloorRules, resolveMaxRules(fetchConfig.getMaxRules()));
 
         return ResponseCacheInfo.of(priceFloorRules,
                 FetchStatus.success,
@@ -195,39 +189,10 @@ public class PriceFloorFetcher {
         return priceFloorRules;
     }
 
-    private void validatePriceFloorRules(PriceFloorRules priceFloorRules, AccountPriceFloorsFetchConfig fetchConfig) {
-        final PriceFloorData data = priceFloorRules.getData();
-
-        if (data == null) {
-            throw new PreBidException("Price floor rules data must be present");
-        }
-
-        if (CollectionUtils.isEmpty(data.getModelGroups())) {
-            throw new PreBidException("Price floor rules should contain at least one model group");
-        }
-
-        final int maxRules = resolveMaxRules(Math.toIntExact(fetchConfig.getMaxRules()));
-
-        CollectionUtils.emptyIfNull(data.getModelGroups()).stream()
-                .filter(Objects::nonNull)
-                .forEach(modelGroup -> validateModelGroup(modelGroup, maxRules));
-    }
-
-    private static int resolveMaxRules(Integer accountMaxRules) {
-        return Objects.equals(accountMaxRules, 0) ? Integer.MAX_VALUE : accountMaxRules;
-    }
-
-    private static void validateModelGroup(PriceFloorModelGroup modelGroup, Integer maxRules) {
-        final Map<String, BigDecimal> values = modelGroup.getValues();
-        if (MapUtils.isEmpty(values)) {
-            throw new PreBidException(String.format("Price floor rules values can't be null or empty, but were %s",
-                    values));
-        }
-
-        if (values.size() > maxRules) {
-            throw new PreBidException(String.format("Price floor rules number %s exceeded its maximum number %s",
-                    values.size(), maxRules));
-        }
+    private static int resolveMaxRules(Long accountMaxRules) {
+        return accountMaxRules != null && !accountMaxRules.equals(0L)
+                ? Math.toIntExact(accountMaxRules)
+                : Integer.MAX_VALUE;
     }
 
     private Long cacheTtlFromResponse(HttpClientResponse httpClientResponse, String fetchUrl) {
