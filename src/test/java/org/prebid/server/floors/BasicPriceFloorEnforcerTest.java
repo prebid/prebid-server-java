@@ -297,7 +297,7 @@ public class BasicPriceFloorEnforcerTest {
                         singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId").price(BigDecimal.TEN).build(), null, null)),
                         singletonList(BidderError.of("Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 0 is below the floor 1", BidderError.Type.generic)));
+                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf)));
     }
 
     @Test
@@ -451,7 +451,7 @@ public class BasicPriceFloorEnforcerTest {
                 .containsExactly(
                         singletonList(BidderBid.of(
                                 Bid.builder().impid("impId").price(BigDecimal.TEN).build(), null, null)),
-                        singletonList(BidderError.rejectedIpf("Price floors enforcement failed: error")));
+                        singletonList(BidderError.badServerResponse("Price floors enforcement failed: error")));
     }
 
     @Test
