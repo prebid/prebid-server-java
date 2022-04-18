@@ -124,8 +124,7 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params())
                 .willReturn(MultiMap.caseInsensitiveMultiMap()
-                        .add("t", "win")
-                        .add("vtype", "start"));
+                        .add("t", "win"));
 
         // when
         notificationHandler.handle(routingContext);
@@ -141,7 +140,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("bidder", "bidder")
                 .add("ts", "invalid"));
@@ -177,7 +175,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "invalid"));
@@ -196,7 +193,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "b")
@@ -216,7 +212,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("f", "b")
@@ -431,7 +426,6 @@ public class NotificationEventHandlerTest extends VertxTest {
         // given
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap()
                 .add("t", "win")
-                .add("vtype", "start")
                 .add("b", "bidId")
                 .add("a", "accountId")
                 .add("x", "0"));

@@ -168,7 +168,7 @@ public class EventUtilTest {
 
         // when and then
         assertThatIllegalArgumentException().isThrownBy(() -> EventUtil.validateVType(routingContext))
-                .withMessage("Type 'vtype' is only required for when 't=vast'");
+                .withMessage("Parameter 'vtype' is only required for t=vast");
     }
 
     @Test
