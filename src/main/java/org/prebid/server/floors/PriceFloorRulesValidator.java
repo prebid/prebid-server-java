@@ -50,7 +50,7 @@ public class PriceFloorRulesValidator {
             throw new PreBidException("Price floor rules should contain at least one model group");
         }
 
-        CollectionUtils.emptyIfNull(data.getModelGroups()).stream()
+        data.getModelGroups().stream()
                 .filter(Objects::nonNull)
                 .forEach(modelGroup -> validateModelGroup(modelGroup, maxRules));
     }
@@ -83,7 +83,7 @@ public class PriceFloorRulesValidator {
                     values));
         }
 
-        if (values.size() > maxRules) {
+        if (maxRules != null && values.size() > maxRules) {
             throw new PreBidException(String.format("Price floor rules number %s exceeded its maximum number %s",
                     values.size(), maxRules));
         }
