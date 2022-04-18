@@ -3,7 +3,7 @@ adapters:
     endpoint: http://colossusssp.com/?c=o&m=rtb
     aliases:
       colossusssp:
-        enabled: true
+        enabled: false
     meta-info:
       maintainer-email: support@huddledmasses.com
       app-media-types:
