@@ -2,20 +2,7 @@
   "data": {
     "modelGroups": [
       {
-        "modelWeight": 0,
-        "schema": {
-          "fields": [
-            "mediaType"
-          ]
-        },
-        "values": {
-          "video": 2,
-          "banner": 10,
-          "audio": 5
-        }
-      },
-      {
-        "modelWeight": 1000,
+        "modelWeight": 100,
         "currency": "NZD",
         "schema": {
           "fields": [

@@ -49,7 +49,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
     private static final int MODEL_WEIGHT_MAX_VALUE = 100;
-    private static final int MODEL_WEIGHT_MIN_VALUE = 0;
+    private static final int MODEL_WEIGHT_MIN_VALUE = 1;
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
@@ -317,7 +317,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final Integer modelWeight = modelGroup.getModelWeight();
         return modelWeight == null
-                || (modelWeight > MODEL_WEIGHT_MIN_VALUE && modelWeight < MODEL_WEIGHT_MAX_VALUE);
+                || (modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {

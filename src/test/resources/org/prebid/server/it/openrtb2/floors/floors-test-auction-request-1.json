@@ -33,7 +33,7 @@
           "modelGroups": [
             {
               "currency": "NZD",
-              "modelWeight": 1000,
+              "modelWeight": 100,
               "schema": {
                 "fields": [
                   "domain",
