@@ -169,6 +169,9 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(pbsService, bidRequest)
 
+        and: "Flush metrics"
+        flushMetrics(pbsService)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -185,8 +188,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                 "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur" as String]
 
         and: "Metric #GENERAL_ERROR_METRIC should be update"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert metrics[GENERAL_ERROR_METRIC] == 1
+        assert getCurrentMetricValue(pbsService, GENERAL_ERROR_METRIC) == 1
 
         and: "Bidder request should contain bidFloor, bidFloorCur from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -319,6 +321,9 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         and: "PBS fetch rules from floors provider"
         cacheFloorsProviderRules(bidRequest)
 
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
+
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -329,8 +334,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                 "to convert from currency $requestFloorCur to desired ad server currency $floorsProviderCur" as String]
 
         and: "Metric #GENERAL_ERROR_METRIC should be update"
-        def metrics = floorsPbsService.sendCollectedMetricsRequest()
-        assert metrics[GENERAL_ERROR_METRIC] == 1
+        assert getCurrentMetricValue(floorsPbsService, GENERAL_ERROR_METRIC) == 1
 
         and: "Bidder request should contain bidFloor, bidFloorCur from request"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()

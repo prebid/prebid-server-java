@@ -58,7 +58,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(pbsService, bidRequest)
 
         when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should fetch data"
         assert floorsProvider.getRequestCount(bidRequest.app.publisher.id) == 1
@@ -1049,9 +1049,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
-
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -1064,6 +1061,62 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert response.ext?.errors[PREBID]*.message ==
                 ["Failed to parse price floors from request, with a reason : Price floor floorMin " +
                          "must be positive float, but was $invalidFloorMin "]
+    }
+
+    def "PBS should validate rules from request when request doesn't contain modelGroups"() {
+        given: "Default BidRequest without modelGroups"
+        def floorValue = PBSUtils.randomFloorValue
+        def bidRequest = bidRequestWithFloors.tap {
+            imp[0].bidFloor = floorValue
+            ext.prebid.floors.data.modelGroups = null
+        }
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to request.imp.bidFloor"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloor == floorValue
+
+        and: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason : Price floor rules " +
+                         "should contain at least one model group "]
+    }
+
+    def "PBS should validate rules from request when request doesn't contain values"() {
+        given: "Default BidRequest without rules"
+        def floorValue = PBSUtils.randomFloorValue
+        def bidRequest = bidRequestWithFloors.tap {
+            imp[0].bidFloor = floorValue
+            ext.prebid.floors.data.modelGroups[0].values = null
+        }
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.fetch.enabled = false
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to request.imp.bidFloor"
+        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
+        assert bidderRequest.imp[0].bidFloor == floorValue
+
+        and: "Response should contain error"
+        assert response.ext?.errors[PREBID]*.code == [999]
+        assert response.ext?.errors[PREBID]*.message ==
+                ["Failed to parse price floors from request, with a reason : Price floor rules values " +
+                         "can't be null or empty, but were null "]
     }
 
     def "PBS should validate rules from request when modelWeight from request is invalid"() {
@@ -1279,9 +1332,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
         accountDao.save(account)
 
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
-
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
@@ -1376,7 +1426,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request floorMin should correspond to floorMin from request"
-        assert bidder.getRequestCount(bidRequest.id) == 2
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.ext?.prebid?.floors?.floorMin == floorMin
     }

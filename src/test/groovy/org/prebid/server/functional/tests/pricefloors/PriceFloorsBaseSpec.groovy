@@ -26,6 +26,7 @@ import org.prebid.server.functional.util.PBSUtils
 import java.math.RoundingMode
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 
 @PBSTest
 abstract class PriceFloorsBaseSpec extends BaseSpec {
@@ -113,8 +114,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     }
 
     protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
-        pbsService.sendAuctionRequest(bidRequest)
-        Thread.sleep(1000)
+        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext?.debug?.resolvedRequest?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+                5000,
+                1000)
     }
 
     protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
