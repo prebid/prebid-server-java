@@ -23,10 +23,10 @@ import org.prebid.server.proto.openrtb.ext.request.colossus.ExtImpColossus;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -77,12 +77,12 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("tagidStr").build()))
+                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("tagidString").build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .containsOnly(expectedRequest);
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(expectedRequest);
     }
 
     @Test
@@ -102,11 +102,11 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(2)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly("tagidStr", "otherTagId");
+                .containsExactly("tagidString", "otherTagId");
     }
 
     @Test
@@ -154,10 +154,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123")
-                                .banner(Banner.builder().build()).build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -165,15 +162,18 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnxNativerBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder().id("123")
-                                .xNative(Native.builder().build()).build()))
+                BidRequest.builder().imp(singletonList(Imp.builder()
+                                .id("123")
+                                .xNative(Native.builder().build())
+                                .build()))
                         .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -182,7 +182,8 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
     }
 
     @Test
@@ -199,7 +200,8 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
     }
 
     @Test
@@ -220,31 +222,28 @@ public class ColossusBidderTest extends VertxTest {
                 .containsExactly(BidderError.badServerResponse("Failed to find impression for ID: 123"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer,
+                                              UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(impCustomizer, identity());
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123"))
+                .id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
                 .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpColossus.of("tagidStr", "groupIdStr"))))
+                        ExtPrebid.of(null, ExtImpColossus.of("tagidString", "groupIdStr"))))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(
-            Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
