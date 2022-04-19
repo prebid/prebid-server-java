@@ -468,7 +468,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest)
 
         then: "Bidder request should contain 1 modelGroup"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()

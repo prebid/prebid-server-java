@@ -58,7 +58,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         cacheFloorsProviderRules(pbsService, bidRequest)
 
         when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
+        pbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should fetch data"
         assert floorsProvider.getRequestCount(bidRequest.app.publisher.id) == 1
@@ -1426,7 +1426,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request floorMin should correspond to floorMin from request"
-        assert bidder.getRequestCount(bidRequest.id) == 2
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.ext?.prebid?.floors?.floorMin == floorMin
     }

@@ -54,8 +54,8 @@ abstract class BaseSpec extends Specification {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 
-    protected static Number getCurrentMetricValue(String name) {
-        def response = defaultPbsService.sendCollectedMetricsRequest()
+    protected static Number getCurrentMetricValue(PrebidServerService pbsService = defaultPbsService, String name) {
+        def response = pbsService.sendCollectedMetricsRequest()
         response[name] ?: 0
     }
 
