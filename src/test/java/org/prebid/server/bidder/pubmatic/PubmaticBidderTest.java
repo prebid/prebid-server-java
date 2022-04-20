@@ -140,7 +140,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMergeWrappersFromImpAndBidRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenInitialBidRequestExt(123, null)),
+                bidRequestBuilder -> bidRequestBuilder.ext(expectedUpdatedBidRequest(123, null)),
                 identity(),
                 extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
 
@@ -952,7 +952,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
     }
 
-    private static ExtRequest givenInitialBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+    private static ExtRequest expectedUpdatedBidRequest(Integer wrapperProfile, Integer wrapperVersion) {
         final ObjectNode pubmaticNode = mapper.createObjectNode()
                 .set("pubmatic", mapper.createObjectNode()
                         .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion))));
