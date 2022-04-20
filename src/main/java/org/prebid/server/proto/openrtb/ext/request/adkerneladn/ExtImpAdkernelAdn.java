@@ -13,6 +13,4 @@ public class ExtImpAdkernelAdn {
 
     @JsonProperty("pubId")
     Integer pubId;
-
-    String host;
 }

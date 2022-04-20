@@ -17,7 +17,9 @@ public class BidderSeatBidInfo {
 
     List<BidderError> errors;
 
+    List<BidderError> warnings;
+
     public BidderSeatBidInfo with(List<BidInfo> bids) {
-        return BidderSeatBidInfo.of(bids, this.httpCalls, this.errors);
+        return BidderSeatBidInfo.of(bids, this.httpCalls, this.errors, this.warnings);
     }
 }

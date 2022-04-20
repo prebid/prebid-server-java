@@ -1,6 +1,6 @@
 adapters:
   adkernel:
-    endpoint: http://%s/hb?zone=%s
+    endpoint: https://pbs.adksrv.com/hb?zone=%s
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:

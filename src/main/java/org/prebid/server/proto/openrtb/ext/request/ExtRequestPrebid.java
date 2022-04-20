@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.IntegerFlagDeserializer;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class ExtRequestPrebid {
     /**
      * Defines the contract for bidrequest.ext.prebid.bidadjustmentfactors
      */
-    ExtRequestBidadjustmentfactors bidadjustmentfactors;
+    ExtRequestBidAdjustmentFactors bidadjustmentfactors;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.currency
@@ -142,4 +143,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.bidderparams
      */
     ObjectNode bidderparams;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.floors
+     */
+    PriceFloorRules floors;
 }
