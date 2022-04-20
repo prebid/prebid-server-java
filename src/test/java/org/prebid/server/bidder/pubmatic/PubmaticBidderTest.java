@@ -41,7 +41,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -174,7 +173,7 @@ public class PubmaticBidderTest extends VertxTest {
         // given
         final ObjectNode pubmaticNode = mapper.createObjectNode()
                 .set("pubmatic", mapper.createObjectNode()
-                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(21,33))));
+                        .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(21, 33))));
 
         final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
         final BidRequest bidRequest = givenBidRequest(
@@ -188,7 +187,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenUpdatedBidRequestExt(21,33));
+                .containsExactly(givenUpdatedBidRequestExt(21, 33));
     }
 
     @Test
