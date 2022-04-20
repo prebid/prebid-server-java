@@ -27,10 +27,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
@@ -87,20 +88,17 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90"))
                 .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
-                        .build()))
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .id("123")
                 .user(User.builder().ext(extUser).build())
-                .id("request_id")
-                .build();
+                .id("request_id"), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
 
         // then
-        final ExtUser givenFillExtUser = jacksonMapper.fillExtension(extUser,
+        final ExtUser expectedExtUser = jacksonMapper.fillExtension(extUser,
                 mapper.createObjectNode().set("consented_providers_settings",
                         mapper.createObjectNode()
                                 .set("consented_providers", mapper.createArrayNode().add(10).add(20).add(90))));
@@ -110,7 +108,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getExt)
-                .containsExactly(givenFillExtUser);
+                .containsExactly(expectedExtUser);
     }
 
     @Test
@@ -119,14 +117,9 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .consentedProvidersSettings(ConsentedProvidersSettings.of(null))
                 .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
-                        .build()))
-                .user(User.builder().ext(extUser).build())
-                .id("request_id")
-                .build();
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.user(User.builder().ext(extUser).build()).id("request_id"), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
@@ -146,14 +139,10 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final ExtUser extUser = ExtUser.builder()
                 .consentedProvidersSettings(ConsentedProvidersSettings.of("1~a.fv.90"))
                 .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1234))))
-                        .build()))
-                .user(User.builder().ext(extUser).build())
-                .id("request_id")
-                .build();
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                        .user(User.builder().ext(extUser).build()).id("request_id"),
+                identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
@@ -170,11 +159,8 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
@@ -190,12 +176,9 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorOnMissingPlacementId() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.id("request_id"),
+                impBuilder -> impBuilder.ext(
+                        mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
@@ -287,9 +270,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfBannerOrVideoNotPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.video(null)),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -306,9 +287,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidIfBannerIsPresent() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()).id("123")),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -326,10 +305,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         // given
         final ImprovedigitalBidExt bidExt = ImprovedigitalBidExt.of(null);
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -345,17 +321,14 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        banner,
+                        video,
                         "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -371,10 +344,9 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
+                        .video(null)
+                        .xNative(Native.builder().build())),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -390,10 +362,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpNotFoundForId() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
 
@@ -415,10 +384,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("classic")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -448,10 +414,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("classic")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -482,10 +445,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("deal")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -516,10 +476,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         .buyingType("rtb")
                         .build());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123").ext(mapper.valueToTree(bidExt))))
@@ -539,7 +496,28 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         "USD"));
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+    private static BidRequest givenBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("123")
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpImprovedigital.of(1)))))
+                .build();
+    }
+
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()

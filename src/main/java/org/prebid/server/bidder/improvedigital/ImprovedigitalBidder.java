@@ -30,7 +30,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -82,16 +81,18 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         final ExtUser extUser = request.getUser().getExt();
         final String consentedProviders = validateConsentedProvidersSettings(extUser.getConsentedProvidersSettings());
 
-        if (consentedProviders == null || StringUtils.isBlank(consentedProviders)) {
+        if (StringUtils.isBlank(consentedProviders)) {
             return null;
         }
 
-        final String substringAfterTilde = StringUtils.substringAfterLast(consentedProviders, "~");
-        final Object[] arrayOfSplitString =
-                Arrays.stream(substringAfterTilde.split(REGEX_SPLIT_STRING_BY_DOT)).toArray();
+        final String[] arrayOfSplitString = StringUtils.substringAfterLast(consentedProviders, "~")
+                .split(REGEX_SPLIT_STRING_BY_DOT);
 
+        return fillExtUser(extUser, arrayOfSplitString);
+    }
+
+    private ExtUser fillExtUser(ExtUser extUser, String[] arrayOfSplitString) {
         final JsonNode consentProviderSettingJsonNode;
-
         try {
             consentProviderSettingJsonNode = customJsonNode(arrayOfSplitString);
         } catch (IllegalArgumentException e) {
@@ -101,7 +102,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         return mapper.fillExtension(extUser, consentProviderSettingJsonNode);
     }
 
-    private JsonNode customJsonNode(Object[] arrayOfSplitString) {
+    private JsonNode customJsonNode(String[] arrayOfSplitString) {
         return mapper.mapper().createObjectNode().set(CONSENT_PROVIDERS_SETTINGS_OUT_KEY,
                 mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY,
                         mapper.mapper().convertValue(
@@ -131,9 +132,8 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
-                .user(bidRequest.getUser() != null ? bidRequest.getUser().toBuilder()
-                        .ext(getAdditionalConsentProvidersUserExt(bidRequest))
-                        .build()
+                .user(bidRequest.getUser() != null
+                        ? bidRequest.getUser().toBuilder().ext(getAdditionalConsentProvidersUserExt(bidRequest)).build()
                         : null)
                 .build();
 
