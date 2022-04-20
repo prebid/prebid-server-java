@@ -16,7 +16,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -126,11 +125,15 @@ public class PubmaticBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
 
         // then
+        final ExtRequest expectedExtRequest = ExtRequest.empty();
+        expectedExtRequest.addProperty("acat",
+                mapper.createArrayNode().add("test-Value").add("testValue1").add("testValue"));
+
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenExtRequest());
+                .containsExactly(expectedExtRequest);
     }
 
     @Test
@@ -962,13 +965,6 @@ public class PubmaticBidderTest extends VertxTest {
                 .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
         return jacksonMapper.fillExtension(ExtRequest.empty(), wrapperNode);
-    }
-
-    @NotNull
-    private ExtRequest givenExtRequest() {
-        final ExtRequest extRequest = ExtRequest.empty();
-        extRequest.addProperty("acat", mapper.createArrayNode().add("test-Value").add("testValue1").add("testValue"));
-        return extRequest;
     }
 
     private static BidRequest givenBidRequest(
