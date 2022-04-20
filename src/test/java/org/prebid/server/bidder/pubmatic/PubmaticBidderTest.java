@@ -195,7 +195,7 @@ public class PubmaticBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMergeWrappersFromImpAndBidRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(expectedUpdatedBidRequest(123, null)),
+                bidRequestBuilder -> bidRequestBuilder.ext(givenUpdatedBidRequest(123, null)),
                 identity(),
                 extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
 
@@ -207,7 +207,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenUpdatedBidRequestExt(123, 456));
+                .containsExactly(expectedUpdatedBidRequestExt(123, 456));
     }
 
     @Test
@@ -245,7 +245,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenUpdatedBidRequestExt(21, 33));
+                .containsExactly(expectedUpdatedBidRequestExt(21, 33));
     }
 
     @Test
@@ -583,7 +583,7 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .containsExactly(givenUpdatedBidRequestExt(1, 1));
+                .containsExactly(expectedUpdatedBidRequestExt(1, 1));
     }
 
     @Test
@@ -1011,7 +1011,7 @@ public class PubmaticBidderTest extends VertxTest {
         return mapper.valueToTree(ExtPrebid.of(null, ExtImpPubmatic.builder().kadfloor(kadfloor).build()));
     }
 
-    private static ExtRequest expectedUpdatedBidRequest(Integer wrapperProfile, Integer wrapperVersion) {
+    private static ExtRequest givenUpdatedBidRequest(Integer wrapperProfile, Integer wrapperVersion) {
         final ObjectNode pubmaticNode = mapper.createObjectNode()
                 .set("pubmatic", mapper.createObjectNode()
                         .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion))));
@@ -1019,7 +1019,7 @@ public class PubmaticBidderTest extends VertxTest {
         return ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
     }
 
-    private static ExtRequest givenUpdatedBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
+    private static ExtRequest expectedUpdatedBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {
         final ObjectNode wrapperNode = mapper.createObjectNode()
                 .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(wrapperProfile, wrapperVersion)));
 
