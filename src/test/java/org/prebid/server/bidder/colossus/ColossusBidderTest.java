@@ -53,9 +53,8 @@ public class ColossusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
+                .imp(singletonList(givenImp(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))))))
                 .build();
 
         // when
@@ -92,10 +91,8 @@ public class ColossusBidderTest extends VertxTest {
                 identity(),
                 requestBuilder -> requestBuilder.imp(Arrays.asList(
                         givenImp(identity()),
-                        Imp.builder()
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpColossus.of("otherTagId", null))))
-                                .build())));
+                        givenImp(impBuilder -> impBuilder.ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpColossus.of("otherTagId", null))))))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = colossusBidder.makeHttpRequests(bidRequest);
@@ -170,10 +167,8 @@ public class ColossusBidderTest extends VertxTest {
     public void makeBidsShouldReturnxNativerBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(Imp.builder()
-                                .id("123")
-                                .xNative(Native.builder().build())
-                                .build()))
+                BidRequest.builder().imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null).video(null)
+                                .xNative(Native.builder().build()))))
                         .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -191,8 +186,7 @@ public class ColossusBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
-                        .build(),
+                        .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)))).build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -209,7 +203,7 @@ public class ColossusBidderTest extends VertxTest {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null).video(null))))
                         .build(),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
@@ -224,9 +218,7 @@ public class ColossusBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer,
                                               UnaryOperator<BidRequest.BidRequestBuilder> requestCustomizer) {
-        return requestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        return requestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -234,12 +226,13 @@ public class ColossusBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
         return impCustomizer.apply(Imp.builder()
-                .id("123"))
-                .banner(Banner.builder().build())
-                .video(Video.builder().build())
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpColossus.of("tagidString", "groupIdStr"))))
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .video(Video.builder().build())
+                        .ext(mapper.valueToTree(
+                                ExtPrebid.of(null, ExtImpColossus.of("tagidString", "groupIdStr")))))
                 .build();
     }
 
