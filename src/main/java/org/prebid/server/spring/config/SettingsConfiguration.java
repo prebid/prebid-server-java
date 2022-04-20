@@ -343,12 +343,14 @@ public class SettingsConfiguration {
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
                 PriceFloorsConfigResolver priceFloorsConfigResolver,
-                JsonMerger jsonMerger) {
+                JsonMerger jsonMerger,
+                JacksonMapper jacksonMapper) {
 
             return new EnrichingApplicationSettings(defaultAccountConfig,
                     compositeApplicationSettings,
                     priceFloorsConfigResolver,
-                    jsonMerger);
+                    jsonMerger,
+                    jacksonMapper);
         }
     }
 

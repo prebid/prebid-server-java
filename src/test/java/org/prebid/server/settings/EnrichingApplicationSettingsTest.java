@@ -50,8 +50,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
-        enrichingApplicationSettings =
-                new EnrichingApplicationSettings(null, delegate, priceFloorsConfigResolver, jsonMerger);
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
+                null, delegate, priceFloorsConfigResolver, jsonMerger, jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -73,7 +73,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -96,7 +97,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
                 .id("123")
@@ -136,7 +138,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 
@@ -159,7 +162,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
-                jsonMerger);
+                jsonMerger,
+                jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
 

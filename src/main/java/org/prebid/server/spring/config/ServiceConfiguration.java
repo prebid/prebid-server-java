@@ -439,7 +439,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
+            HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
@@ -730,9 +730,10 @@ public class ServiceConfiguration {
     @Bean
     PriceFloorsConfigResolver accountValidator(
             @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            Metrics metrics) {
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
 
-        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics);
+        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
     }
 
     @Bean

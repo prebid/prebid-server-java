@@ -36,7 +36,8 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     public void setUp() {
         testingInstance = new PriceFloorsConfigResolver(
                 jacksonMapper.encodeToString(withDefaultFloorsConfig(identity())),
-                metrics);
+                metrics,
+                jacksonMapper);
     }
 
     @Test
