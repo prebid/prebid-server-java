@@ -41,6 +41,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -166,6 +167,28 @@ public class PubmaticBidderTest extends VertxTest {
                 .containsOnly(BidderError.badInput(
                         "Invalid MediaType. PubMatic only supports Banner and Video. Ignoring ImpID=123"));
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseWrapperFromBidRequestExtIfPresent() {
+        // given
+        final ObjectNode pubmaticNode = mapper.createObjectNode()
+                .set("pubmatic", mapper.createObjectNode()
+                .set("wrapper", mapper.valueToTree(PubmaticWrapper.of(21,33))));
+
+        final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .containsExactly(givenUpdatedBidRequestExt(21,33));
     }
 
     @Test

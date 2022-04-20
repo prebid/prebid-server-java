@@ -76,10 +76,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         String publisherId = null;
         PubmaticWrapper wrapper;
-        List<String> acat;
+        final List<String> acat;
         try {
-            wrapper = extractWrapper(request);
             acat = extractAcat(request);
+            wrapper = extractWrapper(request);
         } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -312,11 +312,11 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .app(modifyApp(request.getApp(), publisherId))
                 .site(modifySite(request.getSite(), publisherId))
-                .ext(resolveRequestExt(request, wrapper, acat))
+                .ext(resolveRequestExt(wrapper, acat))
                 .build();
     }
 
-    private ExtRequest resolveRequestExt(BidRequest bidRequest, PubmaticWrapper wrapper, List<String> acat) {
+    private ExtRequest resolveRequestExt(PubmaticWrapper wrapper, List<String> acat) {
         final ObjectNode extNode = mapper.mapper().createObjectNode();
 
         if (wrapper != null) {
