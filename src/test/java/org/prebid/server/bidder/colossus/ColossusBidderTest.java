@@ -52,10 +52,8 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(givenImp(impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))))))
-                .build();
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = colossusBidder.makeHttpRequests(bidRequest);
@@ -167,9 +165,7 @@ public class ColossusBidderTest extends VertxTest {
     public void makeBidsShouldReturnxNativerBid() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder().imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null).video(null)
-                                .xNative(Native.builder().build()))))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(null).video(null).xNative(Native.builder().build())),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -184,9 +180,7 @@ public class ColossusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null)))).build(),
+        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder.banner(null)),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
@@ -202,9 +196,7 @@ public class ColossusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfDoesHaveAnyBidType() throws JsonProcessingException {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(givenImp(impBuilder -> impBuilder.banner(null).video(null))))
-                        .build(),
+                givenBidRequest(impBuilder -> impBuilder.banner(null).video(null).id("0")),
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
