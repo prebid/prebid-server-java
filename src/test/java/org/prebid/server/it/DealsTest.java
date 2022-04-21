@@ -56,8 +56,8 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.prebid.server.it.IntegrationTest.equalToBidCacheRequest;
-import static org.prebid.server.it.IntegrationTest.jsonFrom;
 import static org.prebid.server.it.IntegrationTest.openrtbAuctionResponseFrom;
+import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
 import static org.skyscreamer.jsonassert.JSONCompare.compareJSON;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -174,7 +174,7 @@ public class DealsTest extends VertxTest {
                 .header("X-Forwarded-For", "185.199.110.153")
                 // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
                 .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
-                .body(IntegrationTest.jsonFrom("deals/test-auction-request.json"))
+                .body(jsonFrom("deals/test-auction-request.json"))
                 .post("/openrtb2/auction");
 
         // then

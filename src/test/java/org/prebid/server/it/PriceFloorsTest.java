@@ -11,18 +11,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.VertxTest;
 import org.prebid.server.model.Endpoint;
-import org.skyscreamer.jsonassert.Customization;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.skyscreamer.jsonassert.comparator.CustomComparator;
+import org.prebid.server.util.IntegrationTestsUtil;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
@@ -31,9 +25,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
-import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.prebid.server.util.IntegrationTestsUtil.assertJsonEquals;
+import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
+import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @RunWith(SpringRunner.class)
@@ -45,6 +41,10 @@ public class PriceFloorsTest extends VertxTest {
 
     private static final int APP_PORT = 55555;
     private static final int WIREMOCK_PORT = 8090;
+
+    private static final String PRICE_FLOORS = "Price Floors Test";
+    private static final String FLOORS_FROM_REQUEST = "Floors from request";
+    private static final String FLOORS_FROM_PROVIDER = "Floors from provider";
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
 
@@ -65,76 +65,49 @@ public class PriceFloorsTest extends VertxTest {
     public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
-                .inScenario("Price Floors Test")
+                .inScenario(PRICE_FLOORS)
                 .whenScenarioStateIs(STARTED)
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json")))
-                .willSetStateTo("Floors from request"));
+                .willSetStateTo(FLOORS_FROM_REQUEST));
 
         // when
-
-        final Response firstResponse = responseFor("openrtb2/floors/floors-test-auction-request-1.json",
-                Endpoint.openrtb2_auction);
+        final Response firstResponse = responseFor(
+                "openrtb2/floors/floors-test-auction-request-1.json",
+                Endpoint.openrtb2_auction,
+                SPEC);
 
         // then
         assertJsonEquals(
-                "openrtb2/floors/floors-test-auction-response.json", firstResponse, singletonList("generic"));
+                "openrtb2/floors/floors-test-auction-response.json",
+                firstResponse,
+                singletonList("generic"),
+                PriceFloorsTest::replaceBidderRelatedStaticInfo);
 
         // given
         final StubMapping stubMapping = WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
-                .inScenario("Price Floors Test")
-                .whenScenarioStateIs("Floors from request")
+                .inScenario(PRICE_FLOORS)
+                .whenScenarioStateIs(FLOORS_FROM_REQUEST)
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json")))
-                .willSetStateTo("Floors from provider"));
+                .willSetStateTo(FLOORS_FROM_PROVIDER));
 
         // when
-        final Response secondResponse = responseFor("openrtb2/floors/floors-test-auction-request-2.json",
-                Endpoint.openrtb2_auction);
+        final Response secondResponse = responseFor(
+                "openrtb2/floors/floors-test-auction-request-2.json",
+                Endpoint.openrtb2_auction,
+                SPEC);
 
         // then
-        assertThat(stubMapping.getNewScenarioState()).isEqualTo("Floors from provider");
+        assertThat(stubMapping.getNewScenarioState()).isEqualTo(FLOORS_FROM_PROVIDER);
         assertJsonEquals(
-                "openrtb2/floors/floors-test-auction-response.json", secondResponse, singletonList("generic"));
-    }
-
-    protected static void assertJsonEquals(String file,
-                                           Response response,
-                                           List<String> bidders,
-                                           Customization... customizations) throws IOException, JSONException {
-        final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
-        fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
-        fullCustomizations.add(new Customization("ext.responsetimemillis.cache", (o1, o2) -> true));
-        String expectedRequest = jsonFrom(file);
-        for (String bidder : bidders) {
-            expectedRequest = replaceBidderRelatedStaticInfo(expectedRequest, bidder);
-            fullCustomizations.add(new Customization(
-                    String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
-        }
-
-        JSONAssert.assertEquals(expectedRequest, response.asString(),
-                new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
-                        fullCustomizations.toArray(new Customization[0])));
+                "openrtb2/floors/floors-test-auction-response.json",
+                secondResponse,
+                singletonList("generic"),
+                PriceFloorsTest::replaceBidderRelatedStaticInfo);
     }
 
     private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
-
-        return json.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
-                "http://localhost:" + WIREMOCK_PORT + "/" + bidder + "-exchange");
-    }
-
-    private static Response responseFor(String file, Endpoint endpoint) throws IOException {
-        return given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .body(jsonFrom(file))
-                .post(endpoint.value());
-    }
-
-    private static String jsonFrom(String file) throws IOException {
-        // workaround to clear formatting
-        return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
+        return IntegrationTestsUtil.replaceBidderRelatedStaticInfo(json, bidder, WIREMOCK_PORT);
     }
 }
