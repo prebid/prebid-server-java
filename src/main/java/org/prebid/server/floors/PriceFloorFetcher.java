@@ -255,7 +255,7 @@ public class PriceFloorFetcher {
                                                                 String fetchUrl,
                                                                 String accountId) {
 
-        metrics.updatePriceFloorFetchMetric(MetricName.FAILED);
+        metrics.updatePriceFloorFetchMetric(MetricName.FAILURE);
 
         final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
