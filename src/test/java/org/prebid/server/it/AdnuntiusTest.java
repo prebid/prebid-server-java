@@ -10,7 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -24,10 +23,6 @@ public class AdnuntiusTest extends IntegrationTest {
         // given
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adnuntius-exchange"))
-                .withQueryParam("format", equalTo("json"))
-                .withQueryParam("tzo", notEmpty())
-                .withQueryParam("gdpr", equalTo("0"))
-                .withQueryParam("consentString", equalTo("some_consent"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adnuntius/test-adnuntius-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/adnuntius/test-adnuntius-bid-response.json"))));
 

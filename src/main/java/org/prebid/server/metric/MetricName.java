@@ -54,19 +54,20 @@ public enum MetricName {
     EVENT_UNKNOWN("unknown"),
 
     // request and adapter statuses
-    OK,
-    FAILED,
-    NOBID,
-    GOTBIDS,
-    BADINPUT,
-    BLACKLISTED_ACCOUNT,
-    BLACKLISTED_APP,
-    BADSERVERRESPONSE,
-    FAILEDTOREQUESTBIDS,
-    TIMEOUT,
-    UNKNOWN_ERROR,
-    ERR,
-    NETWORKERR,
+    ok,
+    failed,
+    nobid,
+    gotbids,
+    badinput,
+    blacklisted_account,
+    blacklisted_app,
+    badserverresponse,
+    failedtorequestbids,
+    timeout,
+    bid_validation,
+    unknown_error,
+    err,
+    networkerr,
 
     // bids validation
     WARN,
@@ -135,6 +136,9 @@ public enum MetricName {
     FAILURE,
     EXECUTION_ERROR("execution-error"),
     DURATION,
+
+    // price-floors
+    price_floors("price-floors"),
 
     // win notifications
     WIN_NOTIFICATIONS,

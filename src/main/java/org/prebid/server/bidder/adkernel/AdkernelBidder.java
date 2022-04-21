@@ -10,7 +10,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -79,9 +78,9 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     }
 
     private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format(
-                    "Invalid imp id=%s. Expected imp.banner or imp.video", imp.getId()));
+        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
+            throw new PreBidException("Invalid imp id=" + imp.getId()
+                    + ". Expected imp.banner / imp.video / imp.native");
         }
     }
 
@@ -99,9 +98,6 @@ public class AdkernelBidder implements Bidder<BidRequest> {
                     zoneId, imp.getId()));
         }
 
-        if (StringUtils.isBlank(extImpAdkernel.getHost())) {
-            throw new PreBidException(String.format("Host is empty. Ignoring imp id=%s", imp.getId()));
-        }
         return extImpAdkernel;
     }
 
@@ -112,10 +108,15 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     }
 
     private static Imp compatImpression(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null)
-                .audio(null)
-                .xNative(null);
-        return imp.getBanner() != null ? impBuilder.video(null).build() : impBuilder.build();
+        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null).audio(null);
+
+        if (imp.getBanner() != null) {
+            return impBuilder.video(null).xNative(null).build();
+        } else if (imp.getVideo() != null) {
+            return impBuilder.xNative(null).build();
+        } else {
+            return impBuilder.build();
+        }
     }
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
@@ -126,7 +127,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
                                                       BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = String.format(endpointTemplate, impExt.getHost(), impExt.getZoneId());
+        final String uri = String.format(endpointTemplate, impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");

@@ -12,7 +12,6 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.analytics.model.CookieSyncEvent;
@@ -247,7 +246,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         }
 
         final TcfContext tcfContext = cookieSyncContext.getPrivacyContext().getTcfContext();
-        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+        if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric();
             throw new InvalidRequestException("Consent string is invalid");
         }

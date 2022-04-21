@@ -168,7 +168,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final TcfContext tcfContext = setuidContext.getPrivacyContext().getTcfContext();
-        if (StringUtils.equals(tcfContext.getGdpr(), "1") && BooleanUtils.isFalse(tcfContext.getIsConsentValid())) {
+        if (tcfContext.isInGdprScope() && !tcfContext.isConsentValid()) {
             metrics.updateUserSyncTcfInvalidMetric(bidder);
             throw new InvalidRequestException("Consent string is invalid");
         }

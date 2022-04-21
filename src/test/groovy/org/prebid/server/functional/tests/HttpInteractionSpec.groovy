@@ -112,10 +112,6 @@ class HttpInteractionSpec extends BaseSpec {
         logs.findAll { it.contains("Request body to ${bidderName.value}:") }
     }
 
-    private static List<String> getLogsByText(List<String> logs, String text) {
-        logs.findAll { it.contains(text) }
-    }
-
     private static String getRequestFromLog(String log, String bidderName) {
         def logText = "Request body to ${bidderName}:"
 

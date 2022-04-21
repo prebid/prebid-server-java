@@ -10,8 +10,10 @@ adapters:
       maintainer-email: dsp-supply-prebid@verizonmedia.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
+        - video
       supported-vendors:
       vendor-id: 25
     usersync:

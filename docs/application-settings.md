@@ -104,6 +104,8 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        price-floors:
+          enabled: false
         debug-allow: true
       metrics:
         verbosity-level: basic
@@ -265,6 +267,9 @@ example:
     "events": {
       "enabled": true
     },
+    "price-floors": {
+      "enabled": false
+    },
     "debug-allow": true
   },
   "metrics": {
@@ -273,7 +278,7 @@ example:
   "privacy": {
     "ccpa": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
           "web": true,
           "amp": false,
           "app": true,
@@ -282,7 +287,7 @@ example:
     },
     "gdpr": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
         "video": true,
         "web": true,
         "app": true,

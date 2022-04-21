@@ -131,6 +131,8 @@ public class VideoRequestFactory {
 
                 .compose(ortb2RequestFactory::populateDealsInfo)
 
+                .map(ortb2RequestFactory::enrichWithPriceFloors)
+
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 
                 .map(this::updateContextWithDebugLog)

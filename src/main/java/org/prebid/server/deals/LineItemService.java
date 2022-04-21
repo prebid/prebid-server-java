@@ -262,7 +262,7 @@ public class LineItemService {
             return price;
         }
         final BigDecimal updatedCpm = conversionService
-                .convertCurrency(price.getCpm(), Collections.emptyMap(), adServerCurrency, receivedCur, null);
+                .convertCurrency(price.getCpm(), Collections.emptyMap(), receivedCur, adServerCurrency, null);
 
         return Price.of(updatedCpm, adServerCurrency);
     }

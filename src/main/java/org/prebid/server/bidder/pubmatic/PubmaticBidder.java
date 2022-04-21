@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -158,14 +159,28 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt) {
         final Banner banner = imp.getBanner();
         final ObjectNode keywordsNode = makeKeywords(impExt);
+        final ExtImpPubmatic impExtBidder = impExt.getBidder();
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(banner != null ? assignSizesIfMissing(banner) : null)
                 .ext(!keywordsNode.isEmpty() ? keywordsNode : null)
+                .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
                 .audio(null);
 
-        return enrichWithAdSlotParameters(impBuilder, impExt.getBidder().getAdSlot(), banner)
+        return enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner)
                 .build();
+    }
+
+    private BigDecimal resolveBidFloor(String kadfloor, BigDecimal existingFloor) {
+        if (StringUtils.isBlank(kadfloor)) {
+            return existingFloor;
+        }
+
+        try {
+            return new BigDecimal(StringUtils.trim(kadfloor));
+        } catch (NumberFormatException e) {
+            return existingFloor;
+        }
     }
 
     private static Imp.ImpBuilder enrichWithAdSlotParameters(Imp.ImpBuilder impBuilder, String adSlot, Banner banner) {

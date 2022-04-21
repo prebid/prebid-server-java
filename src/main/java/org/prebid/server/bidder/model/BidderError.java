@@ -22,12 +22,20 @@ public class BidderError {
         return BidderError.of(message, Type.GENERIC);
     }
 
+    public static BidderError invalidBid(String message) {
+        return BidderError.of(message, Type.invalid_bid);
+    }
+
     public static BidderError badInput(String message) {
         return BidderError.of(message, Type.BAD_INPUT);
     }
 
     public static BidderError badServerResponse(String message) {
         return BidderError.of(message, Type.BAD_SERVER_RESPONSE);
+    }
+
+    public static BidderError rejectedIpf(String message) {
+        return BidderError.of(message, Type.rejected_ipf);
     }
 
     public static BidderError failedToRequestBids(String message) {
@@ -69,8 +77,19 @@ public class BidderError {
          */
         FAILED_TO_REQUEST_BIDS(4),
 
-        TIMEOUT(1),
-        GENERIC(999);
+        /**
+         * Covers the case where a bid does not pass validation with error or warnings. One instance per invalid bid
+         * created with aggregation for all warnings and errors.
+         */
+        invalid_bid(5),
+
+        /**
+         * Covers the case where a bid was rejected by price-floors feature functionality
+         */
+        rejected_ipf(6),
+
+        timeout(1),
+        generic(999);
 
         private final Integer code;
 

@@ -18,10 +18,7 @@
   },
   "tmax": 5000,
   "user": {
-    "buyeruid": "buyer_id",
-    "ext": {
-      "consent": "consentValue"
-    }
+    "buyeruid": "buyer_id"
   },
   "regs": {
     "ext": {

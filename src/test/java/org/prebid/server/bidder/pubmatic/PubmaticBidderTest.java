@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -85,6 +86,60 @@ public class PubmaticBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateBidfloorIfImpExtKadfloorIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .bidfloor(BigDecimal.TEN)
+                .ext(givenExtImpWithKadfloor("invalid")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.TEN);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBidfloorIfImpExtKadfloorIsValid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("12.5")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(12.5));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnBidfloorIfImpExtKadfloorIsValidAndResolvedWhitespace() {
+        // given
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("  12.5  ")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.valueOf(12.5));
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -916,6 +971,10 @@ public class PubmaticBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.convertValue(expectedKeyWords, ObjectNode.class));
+    }
+
+    private ObjectNode givenExtImpWithKadfloor(String kadfloor) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpPubmatic.builder().kadfloor(kadfloor).build()));
     }
 
     private static ExtRequest givenInitialBidRequestExt(Integer wrapperProfile, Integer wrapperVersion) {

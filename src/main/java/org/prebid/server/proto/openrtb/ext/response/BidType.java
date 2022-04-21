@@ -3,6 +3,7 @@ package org.prebid.server.proto.openrtb.ext.response;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 import java.util.Arrays;
+import org.apache.commons.lang3.StringUtils;
 
 public enum BidType {
 
@@ -38,5 +39,13 @@ public enum BidType {
     public String toString() {
         return this == X_NATIVE ? "native"
                 : getValue();
+    }
+
+    public static BidType fromString(String bidType) {
+        try {
+            return StringUtils.equals(bidType, "native") ? xNative : valueOf(bidType);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

@@ -12,10 +12,15 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.grid.model.request.ExtImp;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridData;
+import org.prebid.server.bidder.grid.model.request.ExtImpGridDataAdServer;
+import org.prebid.server.bidder.grid.model.request.Keywords;
+import org.prebid.server.bidder.grid.model.response.GridBidResponse;
+import org.prebid.server.bidder.grid.model.response.GridSeatBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
@@ -24,11 +29,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.bidder.grid.model.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
-import org.prebid.server.bidder.grid.model.ExtImpGridData;
-import org.prebid.server.bidder.grid.model.ExtImpGridDataAdServer;
-import org.prebid.server.bidder.grid.model.Keywords;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.io.IOException;
@@ -260,7 +261,7 @@ public class GridBidderTest extends VertxTest {
                                 .id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -281,7 +282,7 @@ public class GridBidderTest extends VertxTest {
                                 .id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -300,7 +301,7 @@ public class GridBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -320,7 +321,7 @@ public class GridBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("321").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(givenBidNode())));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -332,19 +333,42 @@ public class GridBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnBidWithTypeFromGridBidContentTypeIfPresent() throws JsonProcessingException {
+        // given
+        final ObjectNode bidNode = givenBidNode()
+                .put("content_type", "banner");
+
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidNode)));
+
+        // when
+        final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
     public void makeBidsShouldModifyBidExtWithMetaIfDemandSourceIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .set("bidder", mapper.createObjectNode()
                         .set("grid", mapper.createObjectNode()
                                 .set("demandSource", TextNode.valueOf("demandSource"))));
+        final ObjectNode bidNode = givenBidNode().set("ext", bidExt);
 
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidExt))));
+                        givenBidResponse(bidNode)));
 
         // when
         final Result<List<BidderBid>> result = gridBidder.makeBids(httpCall, null);
@@ -363,19 +387,21 @@ public class GridBidderTest extends VertxTest {
                 .containsExactly(expectedBidExt);
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
-                                                UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return bidResponseCustomizer.apply(
-                        BidResponse.builder()
-                                .cur("USD")
-                                .seatbid(singletonList(SeatBid.builder()
-                                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                                        .build())))
+    private static GridBidResponse givenBidResponse(
+            UnaryOperator<GridBidResponse.GridBidResponseBuilder> gridBidResponse,
+            ObjectNode objectNode) {
+
+        final GridSeatBid gridSeatBid = GridSeatBid.builder()
+                .bid(singletonList(objectNode))
+                .build();
+
+        return gridBidResponse
+                .apply(GridBidResponse.builder().cur("USD").seatbid(singletonList(gridSeatBid)))
                 .build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return givenBidResponse(identity(), bidCustomizer);
+    private static GridBidResponse givenBidResponse(ObjectNode objectNode) {
+        return givenBidResponse(identity(), objectNode);
     }
 
     private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
@@ -387,5 +413,9 @@ public class GridBidderTest extends VertxTest {
 
     private static JsonNode jsonNodeFrom(String path) throws IOException {
         return mapper.readTree(GridBidderTest.class.getResourceAsStream(path));
+    }
+
+    private ObjectNode givenBidNode() {
+        return mapper.createObjectNode().put("impid", "123");
     }
 }

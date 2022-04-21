@@ -98,6 +98,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(debugResolver.debugContextFrom(any()))
                 .willReturn(DebugContext.of(true, null));
