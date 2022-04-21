@@ -168,7 +168,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 ObjectUtil.getIfNotNull(floorsRequestEnforcement, PriceFloorEnforcement::getEnforceRate);
         final Price floorMinPrice = resolveFloorMinPrice(requestFloors, providerFloors);
 
-        if (floorsEnabledByRequest != null || enforceRate != null || floorMinPrice != null) {
+        if (floorsEnabledByRequest != null || enforceRate != null) {
             final Boolean floorsEnabledByProvider =
                     ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
             final PriceFloorEnforcement floorsProviderEnforcement =
