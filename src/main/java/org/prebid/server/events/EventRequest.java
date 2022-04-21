@@ -36,7 +36,7 @@ public class EventRequest {
 
         @Override
         public String toString() {
-            return super.toString().toLowerCase();
+            return name().toLowerCase();
         }
     }
 
