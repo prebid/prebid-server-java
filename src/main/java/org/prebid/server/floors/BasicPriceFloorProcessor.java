@@ -49,7 +49,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private static final int SKIP_RATE_MIN = 0;
     private static final int SKIP_RATE_MAX = 100;
     private static final int MODEL_WEIGHT_MAX_VALUE = 100;
-    private static final int MODEL_WEIGHT_MIN_VALUE = 0;
+    private static final int MODEL_WEIGHT_MIN_VALUE = 1;
 
     private final PriceFloorFetcher floorFetcher;
     private final PriceFloorResolver floorResolver;
@@ -168,21 +168,17 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 ObjectUtil.getIfNotNull(floorsRequestEnforcement, PriceFloorEnforcement::getEnforceRate);
         final Price floorMinPrice = resolveFloorMinPrice(requestFloors, providerFloors);
 
-        if (floorsEnabledByRequest != null || enforceRate != null || floorMinPrice != null) {
-            final Boolean floorsEnabledByProvider =
-                    ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
-            final PriceFloorEnforcement floorsProviderEnforcement =
-                    ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnforcement);
+        final Boolean floorsEnabledByProvider =
+                ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnabled);
+        final PriceFloorEnforcement floorsProviderEnforcement =
+                ObjectUtil.getIfNotNull(providerFloors, PriceFloorRules::getEnforcement);
 
-            return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
-                    .floorMinCur(ObjectUtil.getIfNotNull(floorMinPrice, Price::getCurrency))
-                    .floorMin(ObjectUtil.getIfNotNull(floorMinPrice, Price::getValue))
-                    .enabled(resolveFloorsEnabled(floorsEnabledByRequest, floorsEnabledByProvider))
-                    .enforcement(resolveFloorsEnforcement(floorsProviderEnforcement, enforceRate))
-                    .build();
-        }
-
-        return providerFloors;
+        return (providerFloors != null ? providerFloors.toBuilder() : PriceFloorRules.builder())
+                .floorMinCur(ObjectUtil.getIfNotNull(floorMinPrice, Price::getCurrency))
+                .floorMin(ObjectUtil.getIfNotNull(floorMinPrice, Price::getValue))
+                .enabled(resolveFloorsEnabled(floorsEnabledByRequest, floorsEnabledByProvider))
+                .enforcement(resolveFloorsEnforcement(floorsProviderEnforcement, enforceRate))
+                .build();
     }
 
     private Price resolveFloorMinPrice(PriceFloorRules requestFloors,
@@ -317,7 +313,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
 
         final Integer modelWeight = modelGroup.getModelWeight();
         return modelWeight == null
-                || (modelWeight > MODEL_WEIGHT_MIN_VALUE && modelWeight < MODEL_WEIGHT_MAX_VALUE);
+                || (modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {

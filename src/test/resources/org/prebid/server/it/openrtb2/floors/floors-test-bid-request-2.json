@@ -1,0 +1,96 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "bidfloor": 4,
+      "bidfloorcur": "NZD",
+      "ext": {
+        "prebid": {
+          "floors": {
+            "floorRule": "www.example.com|banner|320x250",
+            "floorRuleValue": 2,
+            "floorValue": 4
+          }
+        },
+        "bidder": {}
+      }
+    }
+  ],
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "id": "12001",
+      "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
+    }
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": 5000,
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "bidadjustmentfactors": {
+        "mediatypes": {
+          "banner": {
+            "generic": 0.5
+          }
+        }
+      },
+      "channel": {
+        "name": "web"
+      },
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "floors": {
+        "data": {
+          "modelGroups": [
+            {
+              "currency": "NZD",
+              "modelWeight": 100,
+              "schema": {
+                "fields": [
+                  "domain",
+                  "mediaType",
+                  "size"
+                ]
+              },
+              "values": {
+                "*|banner|*": 10,
+                "*|banner|320x250": 8,
+                "*|*|320x250": 6,
+                "www.example.com|*|320x250": 4,
+                "www.example.com|banner|320x250": 2,
+                "www.example.com|banner|*": 1,
+                "*|video|*": 800,
+                "*|video|640x480": 333
+              }
+            }
+          ]
+        },
+        "enabled": true,
+        "fetchStatus": "success",
+        "location": "fetch"
+      }
+    }
+  }
+}
