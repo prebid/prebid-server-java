@@ -127,7 +127,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
             assertThat(bidderError.getType())
-                    .isEqualTo(BidderError.Type.bad_input);
+                    .isEqualTo(BidderError.Type.BAD_INPUT);
             assertThat(bidderError.getMessage())
                     .isEqualTo("Unable to convert provided bid floor currency from EUR to USD for imp `123`");
         });

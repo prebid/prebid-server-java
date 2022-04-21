@@ -139,7 +139,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             }
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.ERR);
         }
 
         return null;
@@ -205,25 +205,25 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private static List<ImpMediaType> mediaTypesFromImp(Imp imp) {
         final List<ImpMediaType> impMediaTypes = new ArrayList<>();
         if (imp.getBanner() != null) {
-            impMediaTypes.add(ImpMediaType.banner);
+            impMediaTypes.add(ImpMediaType.BANNER);
         }
 
         final Video video = imp.getVideo();
         if (video != null) {
             final Integer placement = video.getPlacement();
             if (placement == null || Objects.equals(placement, 1)) {
-                impMediaTypes.add(ImpMediaType.video);
+                impMediaTypes.add(ImpMediaType.VIDEO);
             } else {
-                impMediaTypes.add(ImpMediaType.video_outstream);
+                impMediaTypes.add(ImpMediaType.VIDEO_OUTSTREAM);
             }
         }
 
         if (imp.getXNative() != null) {
-            impMediaTypes.add(ImpMediaType.xNative);
+            impMediaTypes.add(ImpMediaType.X_NATIVE);
         }
 
         if (imp.getAudio() != null) {
-            impMediaTypes.add(ImpMediaType.audio);
+            impMediaTypes.add(ImpMediaType.AUDIO);
         }
 
         return impMediaTypes;
@@ -287,7 +287,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
         final ImpMediaType impMediaType = impMediaTypes.get(0);
 
-        if (impMediaType == ImpMediaType.video) {
+        if (impMediaType == ImpMediaType.VIDEO) {
             return List.of(impMediaType.toString(), VIDEO_ALIAS);
         }
 
@@ -300,10 +300,10 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         final ImpMediaType mediaType = mediaTypes.get(0);
-        if (mediaType == ImpMediaType.banner) {
+        if (mediaType == ImpMediaType.BANNER) {
             return resolveFormatFromBannerImp(imp);
         }
-        if (mediaType == ImpMediaType.video) {
+        if (mediaType == ImpMediaType.VIDEO) {
             return resolveFormatFromVideoImp(imp);
         }
 

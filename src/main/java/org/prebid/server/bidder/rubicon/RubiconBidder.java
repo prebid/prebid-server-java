@@ -415,7 +415,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
         final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp,
-                isVideo ? ImpMediaType.video : ImpMediaType.banner, priceFloorsWarnings);
+                isVideo ? ImpMediaType.VIDEO : ImpMediaType.BANNER, priceFloorsWarnings);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null

@@ -232,7 +232,7 @@ public class AuctionHandlerTest extends VertxTest {
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid config"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.bad_requests));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.OPENRTB2_WEB), eq(MetricName.BAD_REQUESTS));
     }
 
     @Test

@@ -183,7 +183,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                 status = HttpResponseStatus.FORBIDDEN;
                 body = message;
             } else if (exception instanceof InvalidAccountConfigException) {
-                metricRequestStatus = MetricName.bad_requests;
+                metricRequestStatus = MetricName.BAD_REQUESTS;
                 final String message = exception.getMessage();
                 conditionalLogger.error(exception.getMessage(), 0.01d);
 

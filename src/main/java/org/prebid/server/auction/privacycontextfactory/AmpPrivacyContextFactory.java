@@ -121,7 +121,7 @@ public class AmpPrivacyContextFactory {
     }
 
     private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        if (requestType == MetricName.openrtb2web) {
+        if (requestType == MetricName.OPENRTB2_WEB) {
             final Site site = bidRequest != null ? bidRequest.getSite() : null;
             final String refUrl = site != null ? site.getRef() : null;
             return RequestLogInfo.of(requestType, refUrl, accountId);

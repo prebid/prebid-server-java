@@ -209,7 +209,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                             e.getMessage());
             logger.debug(logMessage);
             conditionalLogger.error(logMessage, 0.01d);
-            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+            metrics.updatePriceFloorGeneralAlertsMetric(MetricName.ERR);
             errors.add(BidderError.badServerResponse(
                     String.format("Price floors enforcement failed: %s", e.getMessage())));
 

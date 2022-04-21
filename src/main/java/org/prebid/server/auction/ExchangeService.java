@@ -1644,8 +1644,8 @@ public class ExchangeService {
             case TIMEOUT:
                 errorMetric = MetricName.TIMEOUT;
                 break;
-            case invalid_bid:
-                errorMetric = MetricName.bid_validation;
+            case INVALID_BID:
+                errorMetric = MetricName.BID_VALIDATION;
                 break;
             case GENERIC:
             default:

@@ -286,7 +286,7 @@ public class TelariaBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), VIDEO, null));
     }
 
     @Test

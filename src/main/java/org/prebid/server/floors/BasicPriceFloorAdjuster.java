@@ -111,21 +111,21 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         final List<ImpMediaType> availableMediaTypes = new ArrayList<>();
 
         if (imp.getBanner() != null) {
-            availableMediaTypes.add(ImpMediaType.banner);
+            availableMediaTypes.add(ImpMediaType.BANNER);
         }
         if (imp.getVideo() != null) {
             final Integer placement = imp.getVideo().getPlacement();
             if (placement == null || Objects.equals(placement, 1)) {
-                availableMediaTypes.add(ImpMediaType.video);
+                availableMediaTypes.add(ImpMediaType.VIDEO);
             } else {
-                availableMediaTypes.add(ImpMediaType.video_outstream);
+                availableMediaTypes.add(ImpMediaType.VIDEO_OUTSTREAM);
             }
         }
         if (imp.getXNative() != null) {
-            availableMediaTypes.add(ImpMediaType.xNative);
+            availableMediaTypes.add(ImpMediaType.X_NATIVE);
         }
         if (imp.getAudio() != null) {
-            availableMediaTypes.add(ImpMediaType.audio);
+            availableMediaTypes.add(ImpMediaType.AUDIO);
         }
 
         return availableMediaTypes;

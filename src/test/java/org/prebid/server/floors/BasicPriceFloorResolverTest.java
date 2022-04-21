@@ -1131,7 +1131,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
                         .h(250)
                         .build())), null))
                 .isNull();
-        verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.err);
+        verify(metrics).updatePriceFloorGeneralAlertsMetric(MetricName.ERR);
     }
 
     @Test

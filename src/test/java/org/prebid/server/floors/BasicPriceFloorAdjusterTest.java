@@ -79,7 +79,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video,
+                                        ImpMediaType.VIDEO,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
                                 .build())
                         .floors(PriceFloorRules.builder()
@@ -123,7 +123,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         final ExtRequestBidAdjustmentFactors givenFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(givenMediaTypes(Map.of(
-                        ImpMediaType.video,
+                        ImpMediaType.VIDEO,
                         Map.of(RUBICON, BigDecimal.valueOf(3D)))))
                 .build();
         givenFactors.addFactor(RUBICON, BigDecimal.valueOf(2D));
@@ -174,7 +174,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video,
+                                        ImpMediaType.VIDEO,
                                         Map.of("bidder", BigDecimal.valueOf(0.8D)))))
                                 .build())
                         .build())));
@@ -226,7 +226,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video_outstream,
+                                        ImpMediaType.VIDEO_OUTSTREAM,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.8D)))))
                                 .build())
                         .build())));
@@ -246,11 +246,11 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video_outstream,
+                                        ImpMediaType.VIDEO_OUTSTREAM,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)),
-                                        ImpMediaType.audio,
+                                        ImpMediaType.AUDIO,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.75D), "bidder", BigDecimal.valueOf(0.6D)),
-                                        ImpMediaType.xNative,
+                                        ImpMediaType.X_NATIVE,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.6D), "bidder", BigDecimal.valueOf(0.7D)))))
                                 .build())
                         .build())));
@@ -275,7 +275,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                 .mediatypes(givenMediaTypes(Map.of(
-                                        ImpMediaType.video,
+                                        ImpMediaType.VIDEO,
                                         Map.of(RUBICON, BigDecimal.valueOf(0.8D), "bidder", BigDecimal.valueOf(0.8D)))))
                                 .build())
                         .build())));
@@ -295,7 +295,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
         final ExtRequestBidAdjustmentFactors givenFactors = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(givenMediaTypes(Map.of(
-                        ImpMediaType.video,
+                        ImpMediaType.VIDEO,
                         Map.of(RUBICON, BigDecimal.valueOf(0.7D), "bidder", BigDecimal.valueOf(0.5D)))))
                 .build();
         givenFactors.addFactor(RUBICON, BigDecimal.valueOf(0.6D));
@@ -318,7 +318,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                         .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
                                                 .mediatypes(givenMediaTypes(Map.of(
-                                                        ImpMediaType.video,
+                                                        ImpMediaType.VIDEO,
                                                         Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
                                                 .build())
                                         .build())))

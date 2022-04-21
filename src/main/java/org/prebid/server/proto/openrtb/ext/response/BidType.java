@@ -1,9 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonValue;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
-import org.apache.commons.lang3.StringUtils;
 
 public enum BidType {
 
@@ -22,6 +22,14 @@ public enum BidType {
         this.value = value;
     }
 
+    public static BidType fromString(String bidType) {
+        try {
+            return StringUtils.equalsIgnoreCase(bidType, "native") ? X_NATIVE : valueOf(bidType.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
     public static BidType getEnum(String value) {
         return Arrays.stream(values())
                 .filter(type -> type.getValue().equalsIgnoreCase(value))
@@ -37,15 +45,6 @@ public enum BidType {
     @JsonValue
     @Override
     public String toString() {
-        return this == X_NATIVE ? "native"
-                : getValue();
-    }
-
-    public static BidType fromString(String bidType) {
-        try {
-            return StringUtils.equals(bidType, "native") ? xNative : valueOf(bidType);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
+        return this == X_NATIVE ? "native" : getValue();
     }
 }

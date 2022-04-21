@@ -2985,7 +2985,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), banner));
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), BANNER));
     }
 
     @Test
@@ -3005,7 +3005,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), banner));
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), BANNER));
     }
 
     @Test
@@ -3026,7 +3026,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), video));
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), VIDEO));
     }
 
     @Test
@@ -3043,7 +3043,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), video));
+                .containsOnly(Tuple.tuple(Bid.builder().price(ONE).build(), VIDEO));
     }
 
     @Test
@@ -3161,7 +3161,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().id("bidid1").price(ONE).build(), banner));
+                .containsOnly(Tuple.tuple(Bid.builder().id("bidid1").price(ONE).build(), BANNER));
     }
 
     @Test
@@ -3182,7 +3182,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid, BidderBid::getType)
-                .containsOnly(Tuple.tuple(Bid.builder().id("non-zero").price(ONE).build(), banner));
+                .containsOnly(Tuple.tuple(Bid.builder().id("non-zero").price(ONE).build(), BANNER));
     }
 
     @Test

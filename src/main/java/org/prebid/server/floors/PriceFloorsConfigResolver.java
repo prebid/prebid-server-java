@@ -78,7 +78,7 @@ public class PriceFloorsConfigResolver {
                     String.format("Account with id '%s' has invalid config: %s", account.getId(), e.getMessage());
             final String accountId = ObjectUtil.getIfNotNull(account, Account::getId);
             if (StringUtils.isNotBlank(accountId)) {
-                metrics.updateAlertsConfigFailed(account.getId(), MetricName.price_floors);
+                metrics.updateAlertsConfigFailed(account.getId(), MetricName.PRICE_FLOORS);
             }
             conditionalLogger.error(message, 0.01d);
         }

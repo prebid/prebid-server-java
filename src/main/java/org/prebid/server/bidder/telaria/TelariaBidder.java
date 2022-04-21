@@ -211,6 +211,6 @@ public class TelariaBidder implements Bidder<BidRequest> {
 
     private static BidderBid makeBidderBid(Bid bid, BidResponse bidResponse, Imp imp) {
         final Bid modifyBid = bid.toBuilder().impid(imp.getId()).build();
-        return BidderBid.of(modifyBid, BidType.video, bidResponse.getCur());
+        return BidderBid.of(modifyBid, BidType.VIDEO, bidResponse.getCur());
     }
 }

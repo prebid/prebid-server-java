@@ -489,7 +489,7 @@ public class MetricsTest {
     @Test
     public void updateFetchWithFetchResultShouldCreateMetricsAsExpected() {
         // when
-        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+        metrics.updatePriceFloorFetchMetric(MetricName.FAILURE);
 
         // then
         assertThat(metricRegistry.counter("price-floors.fetch.failure").getCount()).isOne();
@@ -498,7 +498,7 @@ public class MetricsTest {
     @Test
     public void updatePriceFloorGeneralErrorsShouldCreateMetricsAsExpected() {
         // when
-        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.ERR);
 
         // then
         assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
@@ -507,9 +507,9 @@ public class MetricsTest {
     @Test
     public void updateAlertsConfigMetricsShouldCreateMetricsAsExpected() {
         // when
-        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
-        metrics.updateAlertsConfigFailed("anotherId", MetricName.failed);
-        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+        metrics.updateAlertsConfigFailed("accountId", MetricName.PRICE_FLOORS);
+        metrics.updateAlertsConfigFailed("anotherId", MetricName.FAILED);
+        metrics.updateAlertsConfigFailed("accountId", MetricName.PRICE_FLOORS);
 
         // then
         assertThat(metricRegistry.counter("alerts.account_config.accountId.price-floors")

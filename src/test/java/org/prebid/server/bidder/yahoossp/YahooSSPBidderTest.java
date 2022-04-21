@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
 
 public class YahooSSPBidderTest extends VertxTest {
 
@@ -394,7 +394,7 @@ public class YahooSSPBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), video, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("321").build(), VIDEO, "USD"));
     }
 
     private static BidRequest givenBidRequest(

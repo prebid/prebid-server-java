@@ -236,7 +236,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
         final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
                 auctionContextBuilder
-                        .requestTypeMetric(MetricName.openrtb2web)
+                        .requestTypeMetric(MetricName.OPENRTB2_WEB)
                         .httpRequest(givenHttpRequestContext("invalid"))
                         .bidRequest(bidRequest));
 
@@ -244,7 +244,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         ampPrivacyContextFactory.contextFrom(auctionContext);
 
         // then
-        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
+        final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.OPENRTB2_WEB, "refUrl", null);
         verify(tcfDefinerService)
                 .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any());
     }
