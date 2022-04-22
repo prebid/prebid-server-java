@@ -43,7 +43,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     private static final TypeReference<ExtPrebid<?, ExtImpMobfoxpb>> MOBFOXPB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMobfoxpb>>() {
+            new TypeReference<>() {
             };
 
     public MobfoxpbBidder(String endpoint, JacksonMapper mapper) {

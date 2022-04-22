@@ -5,12 +5,12 @@ adapters:
       maintainer-email: header-bidding@rubiconproject.com
       app-media-types:
         - banner
+        - video
       site-media-types:
         - banner
         - video
       supported-vendors:
         - activeview
-        - adform
         - comscore
         - doubleverify
         - integralads

@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.DebugHttpCall;
@@ -439,7 +438,7 @@ public class UserServiceTest extends VertxTest {
                         .responseStatus(200)
                         .responseBody(mapper.writeValueAsString(
                                 UserDetailsResponse.of(User.of(singletonList(UserData.of("1", "rubicon",
-                                        asList(Segment.of("2222"), Segment.of("3333")))),
+                                                asList(Segment.of("2222"), Segment.of("3333")))),
                                         ExtUser.of(asList("L-1111", "O-2222"))))))
                         .responseTimeMillis(0)
                         .build()));
@@ -504,10 +503,6 @@ public class UserServiceTest extends VertxTest {
     @Test
     public void processWinEventShouldCallMetricsWinRequestWithFalseWhenStatusIsNot200() {
         // given
-        final NotificationEvent event = NotificationEvent.builder()
-                .bidId("bidId")
-                .lineItemId("lineItem1")
-                .build();
         final List<FrequencyCap> frequencyCaps = singletonList(FrequencyCap.builder().fcapId("213").build());
 
         given(lineItemService.getLineItemById(any())).willReturn(LineItem.of(
@@ -593,6 +588,9 @@ public class UserServiceTest extends VertxTest {
                 .frequencyCaps(frequencyCaps)
                 .build();
 
-        assertThat(capturedRequest).isEqualToIgnoringGivenFields(expectedRequestWithoutWinTime, "winEventDateTime");
+        assertThat(capturedRequest)
+                .usingRecursiveComparison()
+                .ignoringFields("winEventDateTime")
+                .isEqualTo(expectedRequestWithoutWinTime);
     }
 }

@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
@@ -25,9 +24,9 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public class AdponeBidderTest extends VertxTest {
 
@@ -108,11 +107,11 @@ public class AdponeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).hasSize(1);
-        Assertions.assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
-        Assertions.assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -124,8 +123,8 @@ public class AdponeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -137,8 +136,8 @@ public class AdponeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -157,8 +156,8 @@ public class AdponeBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
 
         // then
-        Assertions.assertThat(result.getErrors()).isEmpty();
-        Assertions.assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
                 .containsOnly(BidderBid.of(bid, BidType.banner, "USD"));
     }
 

@@ -2,11 +2,17 @@ package org.prebid.server.functional.testcontainers
 
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.util.ObjectMapperWrapper
+import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
 import org.testcontainers.lifecycle.Startables
 
+import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
+
 class Dependencies {
+
+    private static final Boolean IS_LAUNCH_CONTAINERS = Boolean.valueOf(
+            SystemProperties.getPropertyOrDefault("launchContainers", "false"))
 
     static final ObjectMapperWrapper objectMapperWrapper = new ObjectMapperWrapper()
 
@@ -19,17 +25,21 @@ class Dependencies {
             .withInitScript("org/prebid/server/functional/db_schema.sql")
             .withNetwork(network)
 
-    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(System.getProperty("mockserver.version"))
+    static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
             .withNetwork(network)
 
     static void start() {
-        Startables.deepStart([networkServiceContainer, mysqlContainer])
-                  .join()
+        if (IS_LAUNCH_CONTAINERS) {
+            Startables.deepStart([networkServiceContainer, mysqlContainer])
+                      .join()
+        }
     }
 
     static void stop() {
-        [networkServiceContainer, mysqlContainer].parallelStream()
-                                                 .forEach({ it.stop() })
+        if (IS_LAUNCH_CONTAINERS) {
+            [networkServiceContainer, mysqlContainer].parallelStream()
+                                                     .forEach({ it.stop() })
+        }
     }
 
     private Dependencies() {} // should not be instantiated

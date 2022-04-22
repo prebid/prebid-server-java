@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class ZeroclickfraudBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpZeroclickfraud>> ZEROCLICKFRAUD_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpZeroclickfraud>>() {
+            new TypeReference<>() {
             };
 
     private static final String HOST = "{{Host}}";

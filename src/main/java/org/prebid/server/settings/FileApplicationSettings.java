@@ -41,7 +41,7 @@ import java.util.stream.Stream;
 public class FileApplicationSettings implements ApplicationSettings {
 
     private static final TypeReference<Map<String, Category>> CATEGORY_FORMAT_REFERENCE =
-            new TypeReference<Map<String, Category>>() {
+            new TypeReference<>() {
             };
     private static final String JSON_SUFFIX = ".json";
 

@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class GumgumBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpGumgum>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

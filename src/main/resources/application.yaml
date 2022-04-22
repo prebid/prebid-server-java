@@ -144,6 +144,7 @@ vtrack:
 cookie-sync:
   coop-sync:
     default: true
+    default-limit: 8
   default-timeout-ms: 2000
 logging:
   http-interaction:
@@ -168,14 +169,33 @@ settings:
     pool-size: 20
   targeting:
     truncate-attr-chars: 20
-  default-account-config:
+  default-account-config: >
+    {
+      "auction": {
+        "price-floors": {
+          "enabled": true,
+          "fetch": {
+            "enabled": false,
+            "timeout-ms": 5000,
+            "max-rules": 0,
+            "max-file-size-kb": 200,
+            "max-age-sec": 86400,
+            "period-sec": 3600
+          },
+          "enforce-floors-rate": 100,
+          "adjust-for-bid-adjustment": true,
+          "enforce-deal-floors": true,
+          "use-dynamic-data": true
+        }
+      }
+    }
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
   opt-out-url: http://prebid.org/optout
   opt-in-url: http://prebid.org/optin
   ttl-days: 90
-  max-cookie-size-bytes: 0
+  max-cookie-size-bytes: 4096
 gdpr:
   enabled: true
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
@@ -302,3 +322,5 @@ deals:
       pbs-planner-empty-response-error: 15
       pbs-register-client-error: 15
       pbs-delivery-stats-client-error: 15
+price-floors:
+  enabled: false

@@ -99,7 +99,7 @@ public class MaxMindGeoLocationService implements GeoLocationService, RemoteFile
         return StringUtils.lowerCase(isoCode);
     }
 
-    private static String resolveRegion(CityResponse cityResponse) throws IOException, GeoIp2Exception {
+    private static String resolveRegion(CityResponse cityResponse) {
         final List<Subdivision> subdivisions = cityResponse != null ? cityResponse.getSubdivisions() : null;
         final Subdivision firstSubdivision = CollectionUtils.isEmpty(subdivisions) ? null : subdivisions.get(0);
         return firstSubdivision != null ? firstSubdivision.getIsoCode() : null;

@@ -45,4 +45,9 @@ public class ExtImpPrebid {
      * Defines the contract for bidrequest.imp[i].ext.prebid.BIDDER
      */
     ObjectNode bidder;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.floors
+     */
+    ExtImpPrebidFloors floors;
 }

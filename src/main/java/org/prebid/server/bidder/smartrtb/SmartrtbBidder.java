@@ -35,7 +35,7 @@ import java.util.Objects;
 public class SmartrtbBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpSmartrtb>> SMARTRTB_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSmartrtb>>() {
+            new TypeReference<>() {
             };
 
     private static final String CREATIVE_TYPE_BANNER = "BANNER";

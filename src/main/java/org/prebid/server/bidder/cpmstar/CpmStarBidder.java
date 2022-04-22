@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 public class CpmStarBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpCpmStar>> CPM_STAR_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpCpmStar>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

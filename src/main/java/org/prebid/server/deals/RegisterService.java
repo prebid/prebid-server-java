@@ -139,7 +139,7 @@ public class RegisterService implements Initializable, Suspendable {
         logger.debug("Register request payload: {0}", body);
 
         httpClient.post(plannerProperties.getRegisterEndpoint(), headers, body, registerTimeout)
-                .setHandler(this::handleRegister);
+                .onComplete(this::handleRegister);
     }
 
     protected MultiMap headers() {

@@ -80,7 +80,7 @@ public class SpecialFeaturesOneStrategyTest {
         // then
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowSpecialFeature());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
                 vendorPermission2Changed);
 
         verifyNoInteractions(specialFeatureOptIns);
@@ -100,7 +100,9 @@ public class SpecialFeaturesOneStrategyTest {
                 vendorPermissions);
 
         // then
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1, vendorPermission2);
+        assertThat(result)
+                .usingRecursiveFieldByFieldElementComparator()
+                .containsOnly(vendorPermission1, vendorPermission2);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
     }
@@ -120,7 +122,7 @@ public class SpecialFeaturesOneStrategyTest {
 
         // then
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1,
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1,
                 vendorPermission2Changed);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);
@@ -147,7 +149,7 @@ public class SpecialFeaturesOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, null, allowSpecialFeature());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b1", allowSpecialFeature());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowSpecialFeature());
-        assertThat(result).usingFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().containsOnly(vendorPermission1Changed,
                 vendorPermission2Changed, vendorPermission3Changed);
 
         verify(specialFeatureOptIns).contains(SPECIAL_FEATURE_ID);

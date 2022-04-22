@@ -12,6 +12,7 @@ import org.prebid.server.functional.model.mock.services.prebidcache.response.Pre
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
+import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
@@ -55,13 +56,14 @@ class PrebidServerService {
     static final String CURRENCY_RATES_ENDPOINT = "/currency/rates"
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
+    static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
 
     private final PrebidServerContainer pbsContainer
     private final ObjectMapperWrapper mapper
     private final RequestSpecification requestSpecification
     private final RequestSpecification adminRequestSpecification
 
-    private final Logger log = LoggerFactory.getLogger(PrebidServerService.class)
+    private final Logger log = LoggerFactory.getLogger(PrebidServerService)
 
     PrebidServerService(PrebidServerContainer pbsContainer, ObjectMapperWrapper mapper) {
         def authenticationScheme = new BasicAuthScheme()
@@ -165,8 +167,9 @@ class PrebidServerService {
     }
 
     @Step("[GET] /event")
-    byte[] sendEventRequest(EventRequest eventRequest) {
-        def response = given(requestSpecification).queryParams(mapper.toMap(eventRequest))
+    byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
+        def response = given(requestSpecification).headers(headers)
+                                                  .queryParams(mapper.toMap(eventRequest))
                                                   .get(EVENT_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -250,6 +253,14 @@ class PrebidServerService {
         mapper.decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
+    @Step("[GET] /pbs-admin/force-deals-update")
+    void sendForceDealsUpdateRequest(ForceDealsUpdateRequest forceDealsUpdateRequest) {
+        def response = given(adminRequestSpecification).queryParams(mapper.toMap(forceDealsUpdateRequest))
+                                                       .get(FORCE_DEALS_UPDATE_ENDPOINT)
+
+        checkResponseStatusCode(response, 204)
+    }
+
     private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def payload = mapper.encode(bidRequest)
 
@@ -264,12 +275,12 @@ class PrebidServerService {
                                    .get(AMP_ENDPOINT)
     }
 
-    private void checkResponseStatusCode(Response response) {
-        def statusCode = response.statusCode
-        if (statusCode != 200) {
+    private void checkResponseStatusCode(Response response, int statusCode = 200) {
+        def responseStatusCode = response.statusCode
+        if (responseStatusCode != statusCode) {
             def responseBody = response.body.asString()
             log.error(responseBody)
-            throw new PrebidServerException(statusCode, responseBody, getHeaders(response))
+            throw new PrebidServerException(responseStatusCode, responseBody, getHeaders(response))
         }
     }
 

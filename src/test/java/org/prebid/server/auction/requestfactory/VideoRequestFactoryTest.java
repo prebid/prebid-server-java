@@ -98,6 +98,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(debugResolver.debugContextFrom(any()))
                 .willReturn(DebugContext.of(true, null));
@@ -326,7 +327,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.video));
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
-        verify(ortb2RequestFactory).validateRequest(bidRequest);
+        verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
         verify(paramsResolver).resolve(eq(bidRequest), any(), eq(timeoutResolver), eq(Endpoint.openrtb2_video.value()));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
                 argThat(context -> Objects.equals(context.getBidRequest(), bidRequest)));
@@ -384,7 +385,9 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(any())).willReturn(Future.succeededFuture());
 
-        given(ortb2RequestFactory.validateRequest(any())).willAnswer(answerWithFirstArgument());
+        given(ortb2RequestFactory.validateRequest(any(), any()))
+                .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
+
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .willAnswer(answerWithFirstArgument());
 

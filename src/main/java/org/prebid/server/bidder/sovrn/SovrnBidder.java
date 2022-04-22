@@ -42,7 +42,7 @@ public class SovrnBidder implements Bidder<BidRequest> {
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpSovrn>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

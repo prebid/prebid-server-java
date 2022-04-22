@@ -8,7 +8,7 @@ import java.util.List;
  * Defines the contract for bidresponse.ext.usersync.{bidder}
  */
 @Value
-final class ExtResponseSyncData {
+class ExtResponseSyncData {
 
     CookieStatus status;
 

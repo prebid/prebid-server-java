@@ -1,89 +1,179 @@
 package org.prebid.server.bidder.pulsepoint;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.bidder.OpenrtbBidder;
-import org.prebid.server.bidder.model.ImpWithExt;
+import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpCall;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.pulsepoint.ExtImpPulsepoint;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
-public class PulsepointBidder extends OpenrtbBidder<ExtImpPulsepoint> {
+public class PulsepointBidder implements Bidder<BidRequest> {
+
+    private static final TypeReference<ExtPrebid<?, ExtImpPulsepoint>> PULSEPOINT_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
+    private final String endpointUrl;
+    private final JacksonMapper mapper;
 
     public PulsepointBidder(String endpointUrl, JacksonMapper mapper) {
-        super(endpointUrl, RequestCreationStrategy.SINGLE_REQUEST, ExtImpPulsepoint.class, mapper);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
-    protected Imp modifyImp(Imp imp, ExtImpPulsepoint extImpPulsepoint) throws PreBidException {
-        return imp.toBuilder().tagid(Objects.toString(extImpPulsepoint.getTagId())).build();
+    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
+        String publisherId = null;
+
+        for (Imp imp : bidRequest.getImp()) {
+            final ExtImpPulsepoint extImpPulsepoint;
+            try {
+                extImpPulsepoint = parseImpExt(imp);
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+                continue;
+            }
+
+            modifiedImps.add(modifyImp(imp, extImpPulsepoint));
+
+            final Integer extPublisherId = extImpPulsepoint.getPublisherId();
+            if (publisherId == null && extPublisherId != null && extPublisherId > 0) {
+                publisherId = extPublisherId.toString();
+            }
+        }
+
+        if (modifiedImps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+        publisherId = StringUtils.defaultString(publisherId);
+
+        final BidRequest modifiedRequest = modifyRequest(bidRequest, publisherId, modifiedImps);
+        return Result.of(Collections.singletonList(createHttpRequest(modifiedRequest)), errors);
     }
 
-    @Override
-    protected void modifyRequest(BidRequest bidRequest, BidRequest.BidRequestBuilder requestBuilder,
-                                 List<ImpWithExt<ExtImpPulsepoint>> impsWithExts) {
-        final String pubId = impsWithExts.stream()
-                .map(ImpWithExt::getImpExt)
-                .map(ExtImpPulsepoint::getPublisherId)
-                .filter(this::isValidPublisherId)
-                .findFirst()
-                .map(Objects::toString)
-                .orElse(StringUtils.EMPTY);
-
-        final Site site = bidRequest.getSite();
-        final App app = bidRequest.getApp();
-        if (site != null) {
-            requestBuilder.site(modifySite(site, pubId));
-        } else if (app != null) {
-            requestBuilder.app(modifyApp(app, pubId));
+    private ExtImpPulsepoint parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), PULSEPOINT_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
         }
     }
 
-    private boolean isValidPublisherId(Integer publisherId) {
-        return publisherId != null && publisherId > 0;
+    private static Imp modifyImp(Imp imp, ExtImpPulsepoint extImpPulsepoint) {
+        return imp.toBuilder().tagid(extImpPulsepoint.getTagId().toString()).build();
+    }
+
+    private static BidRequest modifyRequest(BidRequest request, String publisherId, List<Imp> imps) {
+        return request.toBuilder()
+                .site(modifySite(request.getSite(), publisherId))
+                .app(modifyApp(request.getApp(), publisherId))
+                .imp(imps)
+                .build();
     }
 
     private static Site modifySite(Site site, String publisherId) {
-        return site.toBuilder()
-                .publisher(site.getPublisher() == null
-                        ? Publisher.builder().id(publisherId).build()
-                        : site.getPublisher().toBuilder().id(publisherId).build())
-                .build();
+        return site != null
+                ? site.toBuilder().publisher(modifyPublisher(site.getPublisher(), publisherId)).build()
+                : null;
     }
 
     private static App modifyApp(App app, String publisherId) {
-        return app.toBuilder()
-                .publisher(app.getPublisher() == null
-                        ? Publisher.builder().id(publisherId).build()
-                        : app.getPublisher().toBuilder().id(publisherId).build())
+        return app != null
+                ? app.toBuilder().publisher(modifyPublisher(app.getPublisher(), publisherId)).build()
+                : null;
+    }
+
+    private static Publisher modifyPublisher(Publisher publisher, String publisherId) {
+        return publisher != null
+                ? publisher.toBuilder().id(publisherId).build()
+                : Publisher.builder().id(publisherId).build();
+    }
+
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest request) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .headers(HttpUtil.headers())
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(request))
+                .payload(request)
                 .build();
     }
 
-    protected BidType getBidType(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
-        BidType bidType = null;
+    @Override
+    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
+
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
+        final BidType bidType = resolveBidType(bid.getImpid(), imps);
+        return bidType != null ? BidderBid.of(bid, bidType, currency) : null;
+    }
+
+    private static BidType resolveBidType(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
+            if (Objects.equals(impId, imp.getId())) {
                 if (imp.getBanner() != null) {
-                    bidType = BidType.banner;
+                    return BidType.banner;
                 } else if (imp.getVideo() != null) {
-                    bidType = BidType.video;
+                    return BidType.video;
                 } else if (imp.getAudio() != null) {
-                    bidType = BidType.audio;
+                    return BidType.audio;
                 } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
+                    return BidType.xNative;
                 }
+                break;
             }
         }
-        return bidType;
+
+        return null;
     }
 }

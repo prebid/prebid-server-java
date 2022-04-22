@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.80.0-SNAPSHOT</version>
+        <version>1.87.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -21,27 +21,30 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
         <java.version>11</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
 
         <!-- dependencies versions -->
-        <spring.boot.version>2.1.1.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.6</spring.boot.version>
         <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
-        <vertx.version>3.8.3</vertx.version>
-        <lombok.version>1.18.4</lombok.version>
+        <vertx.version>3.9.10</vertx.version>
+        <lombok.version>1.18.22</lombok.version>
         <commons.version>3.6</commons.version>
         <commons.collections.version>4.1</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
+        <commons-math3.version>3.6.1</commons-math3.version>
         <httpclient.version>4.5.13</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
-        <jackson.version>2.12.5</jackson.version>
+        <jackson.version>2.13.2</jackson.version>
+        <!--TODO: Replace this with jackson.version after dependencies update-->
+        <jackson.databind.version>2.13.2.2</jackson.databind.version>
         <json.schema.validator.version>0.1.7</json.schema.validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.16</mysql.version>
-        <postgresql.version>42.1.4</postgresql.version>
+        <postgresql.version>42.3.3</postgresql.version>
         <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
         <metrics.version>4.0.3</metrics.version>
@@ -50,22 +53,25 @@
         <iabtcf.version>2.0.7</iabtcf.version>
         <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
+        <logback.version>1.2.9</logback.version>
+        <log4j.version>2.17.1</log4j.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
+        <junit-jupiter.version>5.8.1</junit-jupiter.version>
         <mockito.version>4.0.0</mockito.version>
+        <mockito-junit-jupiter.version>4.0.0</mockito-junit-jupiter.version>
         <assertj.version>3.21.0</assertj.version>
-        <wiremock.version>2.27.2</wiremock.version>
-        <awaitility.version>4.1.0</awaitility.version>
-        <jetty.version>9.4.43.v20210629</jetty.version>
-        <restassured.version>3.0.7</restassured.version>
-        <h2.version>1.4.200</h2.version>
-        <spock.version>1.3-groovy-2.5</spock.version>
-        <testcontainers.version>1.15.3</testcontainers.version>
+        <wiremock.version>2.31.0</wiremock.version>
+        <awaitility.version>4.1.1</awaitility.version>
+        <jetty.version>9.4.44.v20210927</jetty.version>
+        <restassured.version>4.4.0</restassured.version>
+        <h2.version>2.1.210</h2.version>
+        <spock.version>2.0-groovy-3.0</spock.version>
+        <testcontainers.version>1.16.3</testcontainers.version>
         <mockserver-client.version>5.11.2</mockserver-client.version>
-        <allure.version>2.14.0</allure.version>
+        <allure.version>2.17.2</allure.version>
         <aspectj.version>1.9.7</aspectj.version>
-        <restassured.version>3.3.0</restassured.version>
         <h2.version>1.4.200</h2.version>
         <bytebuddy.version>1.11.19</bytebuddy.version>
 
@@ -73,13 +79,13 @@
         <checkstyle-plugin.version>3.1.0</checkstyle-plugin.version>
         <checkstyle.version>8.29</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.2</jacoco-plugin.version>
+        <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.8.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <docker-maven-plugin.version>0.36.0</docker-maven-plugin.version>
-        <gmavenplus-plugin.version>1.12.1</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>1.13.0</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
@@ -180,6 +186,11 @@
             <version>${commons.compress.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>${commons-math3.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>${httpclient.version}</version>
@@ -197,7 +208,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
+            <version>${jackson.databind.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -317,6 +328,27 @@
             <artifactId>geoip2</artifactId>
             <version>${maxmind-client.version}</version>
         </dependency>
+        <!--TODO: Remove this after bumping to new Spring Parent with safe log4j and logback -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
         <!-- Test -->
         <dependency>
             <groupId>junit</groupId>
@@ -325,9 +357,21 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>${junit-jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>${mockito.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <version>${mockito-junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -469,12 +513,6 @@
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>spock</artifactId>
-            <version>${testcontainers.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
             <artifactId>mockserver</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
@@ -493,8 +531,9 @@
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
-            <artifactId>allure-spock</artifactId>
+            <artifactId>allure-java-commons</artifactId>
             <version>${allure.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -512,6 +551,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <launchContainers>false</launchContainers>
+                        </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                     </configuration>
                 </plugin>
@@ -520,6 +562,9 @@
                     <artifactId>maven-failsafe-plugin</artifactId>
                     <version>${maven-failsafe-plugin.version}</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <launchContainers>true</launchContainers>
+                        </systemPropertyVariables>
                         <skipITs>${skipFunctionalTests}</skipITs>
                     </configuration>
                 </plugin>
@@ -711,6 +756,7 @@
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
+                        <max.containers.count>2</max.containers.count>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -768,4 +814,18 @@
             </plugin>
         </plugins>
     </reporting>
+
+    <profiles>
+        <profile>
+            <id>Java 17</id>
+            <activation>
+                <jdk>[17,)</jdk>
+            </activation>
+            <properties>
+                <java.version>17</java.version>
+                <maven.compiler.source>${java.version}</maven.compiler.source>
+                <maven.compiler.target>${java.version}</maven.compiler.target>
+            </properties>
+        </profile>
+    </profiles>
 </project>

@@ -15,14 +15,14 @@ class AmpRequest {
     Integer oh
     Integer w
     Integer h
-    Long ms
+    String ms
     Long timeout
     String slot
     String curl
     Integer account
     String gdprConsent
-    String targeting
-    Integer consentType
+    String consentString
+    ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
 

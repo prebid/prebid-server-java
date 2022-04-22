@@ -7,8 +7,10 @@ import io.vertx.ext.jdbc.JDBCClient;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
@@ -49,6 +51,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@UtilityClass
 public class SettingsConfiguration {
 
     @Configuration
@@ -125,7 +128,7 @@ public class SettingsConfiguration {
                 Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
             final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
-            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().setHandler(promise));
+            contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().onComplete(promise));
 
             return basicJdbcClient;
         }
@@ -323,8 +326,8 @@ public class SettingsConfiguration {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                            jdbcApplicationSettings,
-                            httpApplicationSettings)
+                                    jdbcApplicationSettings,
+                                    httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 
@@ -339,9 +342,13 @@ public class SettingsConfiguration {
         EnrichingApplicationSettings enrichingApplicationSettings(
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
+                PriceFloorsConfigResolver priceFloorsConfigResolver,
                 JsonMerger jsonMerger) {
 
-            return new EnrichingApplicationSettings(defaultAccountConfig, compositeApplicationSettings, jsonMerger);
+            return new EnrichingApplicationSettings(defaultAccountConfig,
+                    compositeApplicationSettings,
+                    priceFloorsConfigResolver,
+                    jsonMerger);
         }
     }
 

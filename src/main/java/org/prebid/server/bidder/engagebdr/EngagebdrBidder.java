@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class EngagebdrBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpEngagebdr>> ENGAGEBDR_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpEngagebdr>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointUrl;

@@ -3,7 +3,6 @@ package org.prebid.server.bidder;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,7 +39,7 @@ public class HttpBidderRequestEnricherTest {
     @Test
     public void shouldSendPopulatedPostRequest() {
         // given
-        final MultiMap headers = new CaseInsensitiveHeaders();
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("header1", "value1");
         headers.add("header2", "value2");
 
@@ -49,7 +48,7 @@ public class HttpBidderRequestEnricherTest {
                 requestEnricher.enrichHeaders(headers, CaseInsensitiveMultiMap.empty(), BidRequest.builder().build());
 
         // then
-        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
+        final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
         expectedHeaders.addAll(headers);
         expectedHeaders.add("x-prebid", "pbs-java/1.00");
         assertThat(resultHeaders).hasSize(3);
@@ -65,7 +64,7 @@ public class HttpBidderRequestEnricherTest {
 
         // when
         final MultiMap resultHeaders =
-                requestEnricher.enrichHeaders(new CaseInsensitiveHeaders(),
+                requestEnricher.enrichHeaders(MultiMap.caseInsensitiveMultiMap(),
                         originalHeaders, BidRequest.builder().build());
 
         // then
@@ -79,7 +78,7 @@ public class HttpBidderRequestEnricherTest {
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder()
                 .add("Sec-GPC", "1")
                 .build();
-        final MultiMap bidderRequestHeaders = new CaseInsensitiveHeaders().add("Sec-GPC", "0");
+        final MultiMap bidderRequestHeaders = MultiMap.caseInsensitiveMultiMap().add("Sec-GPC", "0");
 
         // when
         final MultiMap resultHeaders = requestEnricher.enrichHeaders(bidderRequestHeaders,
@@ -104,11 +103,11 @@ public class HttpBidderRequestEnricherTest {
                 .build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(new CaseInsensitiveHeaders(),
+        final MultiMap resultHeaders = requestEnricher.enrichHeaders(MultiMap.caseInsensitiveMultiMap(),
                 CaseInsensitiveMultiMap.empty(), bidRequest);
 
         // then
-        final MultiMap expectedHeaders = new CaseInsensitiveHeaders();
+        final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
         expectedHeaders.add("x-prebid", "pbjs/4.39,prebid-mobile/1.2.3,pbs-java/1.00");
         assertThat(isEqualsMultiMaps(resultHeaders, expectedHeaders)).isTrue();
     }

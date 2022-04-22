@@ -107,6 +107,49 @@ public class AmxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotUpdateImpTagIdIfAdUnitIdNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()).site(Site.builder().build()),
+                impBuilder -> impBuilder
+                        .tagid("someTagId")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpAmx.of("testTagId", null))))
+                        .banner(Banner.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = amxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("someTagId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpTagIdIfAdUnitIdIsPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()).site(Site.builder().build()),
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAmx.of("testTagId", "testAdUnitId"))))
+                        .banner(Banner.builder().build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = amxBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("testAdUnitId");
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -168,7 +211,7 @@ public class AmxBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfStartDelayIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.put("himp", mapper.convertValue(Arrays.asList("someHintVAlue1", "someHintValue2"), JsonNode.class));
+        bidExt.set("himp", mapper.convertValue(Arrays.asList("someHintVAlue1", "someHintValue2"), JsonNode.class));
         bidExt.put("startdelay", "2");
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(

@@ -87,11 +87,14 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
+import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.vast.VastModifier;
@@ -101,6 +104,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -120,6 +124,7 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
@@ -138,6 +143,8 @@ import static org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdserv
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category.pacing;
+import static org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal.Category.targeting;
 
 public class BidResponseCreatorTest extends VertxTest {
 
@@ -201,21 +208,16 @@ public class BidResponseCreatorTest extends VertxTest {
 
         clock = Clock.fixed(Instant.ofEpochMilli(1000L), ZoneOffset.UTC);
 
-        bidResponseCreator = new BidResponseCreator(
-                cacheService,
-                bidderCatalog,
-                vastModifier,
-                eventsService,
-                storedRequestProcessor,
-                winningBidComparatorFactory,
-                idGenerator,
-                hookStageExecutor,
-                categoryMappingService,
-                0,
-                clock,
-                jacksonMapper);
+        bidResponseCreator = givenBidResponseCreator(0);
 
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500);
+    }
+
+    @Test
+    public void shouldThrowErrorWhenTruncateAttrCharsLessThatZeroOrBiggestThatTwoHundredFiftyFive() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> givenBidResponseCreator(-5))
+                .withMessage("truncateAttrChars must be between 0 and 255");
     }
 
     @Test
@@ -649,7 +651,9 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         assertThat(bidResponse)
-                .isEqualToIgnoringGivenFields(responseWithExpectedFields, "nbr", "seatbid");
+                .usingRecursiveComparison()
+                .ignoringFields("nbr", "seatbid")
+                .isEqualTo(responseWithExpectedFields);
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -968,9 +972,9 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // when
         final Future<BidResponse> result = bidResponseCreator.create(toAuctionParticipant(bidderResponses),
-                        auctionContext,
-                        CACHE_INFO,
-                        MULTI_BIDS);
+                auctionContext,
+                CACHE_INFO,
+                MULTI_BIDS);
 
         // then
         // then
@@ -1134,6 +1138,126 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(adm -> mapper.readValue(adm, Response.class))
                 .flatExtracting(Response::getAssets)
                 .isEmpty();
+    }
+
+    @Test
+    public void shouldReturnEmptyAssetIfNoRelatedNativeAssetFound() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(null)
+                        .img(ImageObject.builder().type(null).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id(IMP_ID)
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(123)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(null).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .price(BigDecimal.ONE)
+                .impid(IMP_ID)
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1)))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                        .result();
+
+        // then
+
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .isEqualTo(Map.of("bidder1", singletonList(ExtBidderError.of(3,
+                        "Response has an Image asset with ID:'123' present that doesn't exist in the request"))));
+    }
+
+    @Test
+    public void shouldReturnEmptyAssetIfIdIsNotPresentRelatedNativeAssetFound() throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(singletonList(Asset.builder()
+                        .id(123)
+                        .img(ImageObject.builder().type(null).build())
+                        .data(DataObject.builder().type(2).build())
+                        .build()))
+                .build();
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .cur(singletonList("USD"))
+                .tmax(1000L)
+                .app(App.builder().build())
+                .imp(singletonList(Imp.builder()
+                        .id(IMP_ID)
+                        .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                        .build()))
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest);
+
+        final Response responseAdm = Response.builder()
+                .assets(singletonList(com.iab.openrtb.response.Asset.builder()
+                        .id(null)
+                        .img(com.iab.openrtb.response.ImageObject.builder().type(null).build())
+                        .data(com.iab.openrtb.response.DataObject.builder().build())
+                        .build()))
+                .build();
+
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .price(BigDecimal.ONE)
+                .impid(IMP_ID)
+                .adm(mapper.writeValueAsString(responseAdm))
+                .ext(mapper.valueToTree(singletonMap("bidExt", 1)))
+                .build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO, MULTI_BIDS)
+                        .result();
+
+        // then
+
+        assertThat(bidResponse.getSeatbid()).hasSize(1)
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getAdm)
+                .extracting(adm -> mapper.readValue(adm, Response.class))
+                .flatExtracting(Response::getAssets)
+                .isEmpty();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .isEqualTo(Map.of("bidder1", singletonList(ExtBidderError.of(3,
+                        "Response has an Image asset with ID:'' present that doesn't exist in the request"))));
     }
 
     @Test
@@ -1578,7 +1702,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO,
-                                multiBidMap).result();
+                        multiBidMap).result();
 
         // then
         assertThat(result.getSeatbid())
@@ -1680,7 +1804,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // when
         final BidResponse result =
                 bidResponseCreator.create(toAuctionParticipant(bidderResponses), auctionContext, CACHE_INFO,
-                                multiBidMap).result();
+                        multiBidMap).result();
 
         // then
         final Map<String, String> bidder1Bid4Targeting = new HashMap<>();
@@ -2080,12 +2204,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldAddExtPrebidEventsIfEventsAreEnabledAndAccountSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2306,12 +2432,14 @@ public class BidResponseCreatorTest extends VertxTest {
     @Test
     public void shouldNotAddExtPrebidEventsIfAccountDoesNotSupportEventsForChannel() {
         // given
+        final AccountAuctionEventConfig eventsConfig = AccountAuctionEventConfig.builder().build();
+        eventsConfig.addEvent("web", true);
         final Account account = Account.builder()
                 .id("accountId")
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(singletonMap("web", true), null))
+                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2546,7 +2674,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).adm("[]").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
-                        singletonList(BidderError.badInput("bad_input"))), 100));
+                        singletonList(BidderError.badInput("bad_input")),
+                        singletonList(BidderError.generic("some_warning"))), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         givenCacheServiceResult(CacheServiceResult.of(
@@ -2562,7 +2691,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final ExtBidResponse responseExt = bidResponse.getExt();
 
         assertThat(responseExt.getDebug()).isNull();
-        assertThat(responseExt.getWarnings()).isNull();
+        assertThat(responseExt.getWarnings())
+                .containsEntry("bidder1", singletonList(ExtBidderError.of(999, "some_warning")));
         assertThat(responseExt.getUsersync()).isNull();
         assertThat(responseExt.getTmaxrequest()).isEqualTo(1000L);
 
@@ -2894,6 +3024,435 @@ public class BidResponseCreatorTest extends VertxTest {
                         "http://imp-url?param=value&int=integration"));
     }
 
+    @Test
+    public void shouldPopulateExtensionResponseDebugAndDeepDebugLogIfEnabled() {
+        // given
+        final DeepDebugLog deepDebugLog = DeepDebugLog.create(true, clock);
+        deepDebugLog.add("line-item-id-1", pacing, () -> "test-1");
+        deepDebugLog.add("line-item-id-2", targeting, () -> "test-2");
+        deepDebugLog.add("", targeting, () -> "test-3");
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                builder -> builder.deepDebugLog(deepDebugLog));
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        final ExtDebugTrace extDebugTrace = bidResponse.getExt().getDebug().getTrace();
+
+        assertThat(extDebugTrace.getDeals())
+                .containsExactly(ExtTraceDeal.of("", ZonedDateTime.now(clock), targeting, "test-3"));
+
+        assertThat(extDebugTrace.getLineItems())
+                .containsExactly(
+                        entry("line-item-id-1", List.of(ExtTraceDeal.of("line-item-id-1",
+                                ZonedDateTime.now(clock), pacing, "test-1"))),
+                        entry("line-item-id-2", List.of(ExtTraceDeal.of("line-item-id-2",
+                                ZonedDateTime.now(clock), targeting, "test-2"))));
+    }
+
+    @Test
+    public void shouldBidResponseDebugReturnNullIfDeepDebugLogIsEnabledAndNotPopulated() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                builder -> builder.deepDebugLog(DeepDebugLog.create(true, clock)));
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getExt().getDebug()).isNull();
+    }
+
+    @Test
+    public void shouldPopulateBidResponseExtErrorIfImpExtIsInvalid() {
+        // given
+        final String errorMessage = "Incorrect Imp extension format for Imp with id imp-test: Cannot deserialize";
+        given(storedRequestProcessor.videoStoredDataResult(anyString(), anyList(), anyList(), any()))
+                .willReturn(Future.succeededFuture(VideoStoredDataResult.of(emptyMap(), List.of(errorMessage))));
+
+        final BidRequest bidRequest = givenBidRequest(Imp.builder()
+                .ext(mapper.createObjectNode().set("prebid", mapper.createObjectNode()
+                        .set("storedrequest", mapper.createObjectNode()
+                                .set("id", mapper.createObjectNode().putArray("id")
+                                        .add("id"))))).id(IMP_ID).build());
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, identity());
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getExt().getErrors().get("prebid").get(0).getMessage()).isEqualTo(errorMessage);
+    }
+
+    @Test
+    public void shouldThrowErrorIfBidIdAndCorrespondingImpIdNotEquals() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Imp.builder().id("312").build());
+
+        final AuctionContext auctionContext = givenAuctionContext(bidRequest, identity());
+
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid("123").build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final Future<BidResponse> bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS);
+
+        // when
+        assertThat(bidResponse.failed()).isTrue();
+        assertThat(bidResponse.cause()).hasMessage("Bid with impId 123 doesn't have matched imp");
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenBidAdmIsParsedButImpNativeNotFound() throws JsonProcessingException {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(givenImp("impId1")));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid("impId1")
+                .price(BigDecimal.valueOf(5.67))
+                .nurl(BID_NURL)
+                .adm(mapper.writeValueAsString(Response.builder()
+                        .assets(List.of(com.iab.openrtb.response.Asset.builder().build()))
+                        .build()))
+                .build();
+
+        final String bidder1 = "bidder1";
+        final List<BidderResponse> bidderResponses = List.of(BidderResponse.of(bidder1,
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .extracting(error -> error.get(bidder1))
+                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .isEqualTo(ExtBidderError.of(3, "Could not find native imp"));
+
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenNativeRequestIsInvalid() throws JsonProcessingException {
+        // given
+        final ObjectNode customObjectNode = mapper.createObjectNode();
+        customObjectNode.set("test-field", mapper
+                .createObjectNode().set("other-test-field", mapper
+                        .createArrayNode().add(22).add(33)));
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(Imp.builder()
+                .id("impId1")
+                .xNative(Native.builder().request(customObjectNode.asText()).build())
+                .build()));
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid("impId1")
+                .price(BigDecimal.valueOf(5.67))
+                .nurl(BID_NURL)
+                .adm(mapper.writeValueAsString(Response.builder()
+                        .assets(List.of(com.iab.openrtb.response.Asset.builder().build()))
+                        .build()))
+                .build();
+
+        final String bidder1 = "bidder1";
+        final List<BidderResponse> bidderResponses = List.of(BidderResponse.of(bidder1,
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getErrors)
+                .extracting(error -> error.get(bidder1))
+                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .isEqualTo(ExtBidderError.of(3, "No content to map due to end-of-input\n"
+                        + " at [Source: (String)\"\"; line: 1, column: 0]"));
+    }
+
+    @Test
+    public void shouldPopulateBidAdmIfResponseAssetsIsNull() throws JsonProcessingException {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(Imp.builder()
+                .id("impId1")
+                .xNative(Native.builder().build())
+                .build()));
+
+        final String adm = mapper.writeValueAsString(Response.builder()
+                .assets(null)
+                .dcourl("test-field")
+                .build());
+
+        final Bid bid = Bid.builder()
+                .id("bidId1")
+                .impid("impId1")
+                .price(BigDecimal.valueOf(5.67))
+                .nurl(BID_NURL)
+                .adm(adm)
+                .build();
+
+        final String bidder1 = "bidder1";
+        final List<BidderResponse> bidderResponses = List.of(BidderResponse.of(bidder1,
+                givenSeatBid(BidderBid.of(bid, xNative, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse)
+                .extracting(BidResponse::getSeatbid)
+                .extracting(seatBids -> seatBids.get(0))
+                .extracting(SeatBid::getBid)
+                .extracting(bids -> bids.get(0))
+                .extracting(Bid::getAdm)
+                .isEqualTo(adm);
+    }
+
+    @Test
+    public void shouldPopulateEventsContextForRequestIfEventsEnabledForRequest() {
+        // given
+        final AccountAuctionEventConfig accountAuctionEventConfig = AccountAuctionEventConfig.builder().build();
+        accountAuctionEventConfig.addEvent("pbjs", true);
+
+        final Account account = Account.builder()
+                .id("accountId")
+                .analytics(AccountAnalyticsConfig.of(accountAuctionEventConfig, emptyMap()))
+                .auction(AccountAuctionConfig.builder()
+                        .events(AccountEventsConfig.of(true))
+                        .build())
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(bidRequestBuilder ->
+                                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                        .channel(ExtRequestPrebidChannel.of("pbjs"))
+                                        .build())),
+                        givenImp()),
+                contextBuilder -> contextBuilder.account(account));
+
+        final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).price(BigDecimal.valueOf(5.67)).build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        final Events givenEvents = Events.of(
+                "http://win-url?auctionId=123&timestamp=1000",
+                "http://imp-url?auctionId=123&timestamp=1000");
+        given(eventsService.createEvent(anyString(), anyString(), anyString(), any(), anyBoolean(), any()))
+                .willReturn(givenEvents);
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(extractedBid -> toExtBidPrebid(extractedBid.getExt()).getEvents())
+                .containsOnly(givenEvents);
+    }
+
+    @Test
+    public void shouldNotPopulateBidExtTargetingWhenExtRequestTargetingPricegranularityIsNull() {
+        // given
+        final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder()
+                .pricegranularity(null)
+                .includewinners(true)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(extRequestTargeting),
+                givenImp("i1")));
+
+        final Bid bidder1Bid1 = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bidder1Bid1, banner, null)), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        final ObjectNode givenDefaultBidExt =
+                mapper.createObjectNode().set("prebid", mapper.createObjectNode().put("type", "banner"));
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenDefaultBidExt);
+    }
+
+    @Test
+    public void shouldPopulateBidExtWhenExtMediaTypePriceGranularityHasValidVideoExtPriceGranularity() {
+        // given
+        final ExtMediaTypePriceGranularity extMediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
+                null,
+                mapper.valueToTree(ExtPriceGranularity.of(
+                        3,
+                        singletonList(ExtGranularityRange.of(
+                                BigDecimal.valueOf(10), BigDecimal.valueOf(1))))),
+                null);
+
+        final ExtPriceGranularity extPriceGranularity = ExtPriceGranularity.of(2,
+                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))));
+
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(extPriceGranularity))
+                .mediatypepricegranularity(extMediaTypePriceGranularity)
+                .includebidderkeys(true)
+                .includewinners(true)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(targeting),
+                givenImp()));
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(extractedBid -> toExtBidPrebid(extractedBid.getExt()).getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_pb_bidder1", "5.00"),
+                        tuple("hb_bidder_bidder1", "bidder1"));
+    }
+
+    @Test
+    public void shouldPopulateBidExtWhenExtMediaTypePriceGranularityHasValidxNativeExtPriceGranularity() {
+        // given
+        final ExtMediaTypePriceGranularity extMediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
+                null, null,
+                mapper.valueToTree(ExtPriceGranularity.of(
+                        3,
+                        singletonList(ExtGranularityRange.of(BigDecimal.valueOf(10), BigDecimal.valueOf(1))))));
+
+        final ExtPriceGranularity extPriceGranularity = ExtPriceGranularity.of(2,
+                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))));
+
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(extPriceGranularity))
+                .mediatypepricegranularity(extMediaTypePriceGranularity)
+                .includewinners(true)
+                .includebidderkeys(true)
+                .build();
+
+        final TxnLog txnLog = TxnLog.create();
+        txnLog.lineItemsSentToBidder();
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                        identity(), extBuilder -> extBuilder.targeting(targeting), givenImp()),
+                auctionContextBuilder -> auctionContextBuilder.txnLog(txnLog));
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final BidResponse bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(extractedBid -> toExtBidPrebid(extractedBid.getExt()).getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_pb_bidder1", "5.00"),
+                        tuple("hb_bidder_bidder1", "bidder1"));
+    }
+
+    @Test
+    public void shouldThrowErrorIfExtMediaTypePriceGranularityCannotBeParsed() {
+        // given
+        final ExtMediaTypePriceGranularity extMediaTypePriceGranularity = ExtMediaTypePriceGranularity.of(
+                null,
+                null,
+                mapper.createObjectNode().put("precision", "2").put("ranges", "2"));
+
+        final ExtPriceGranularity extPriceGranularity = ExtPriceGranularity.of(2,
+                singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))));
+
+        final ExtRequestTargeting targeting = ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(extPriceGranularity))
+                .mediatypepricegranularity(extMediaTypePriceGranularity)
+                .includewinners(true)
+                .includebidderkeys(true)
+                .includeformat(false)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(givenBidRequest(
+                identity(),
+                extBuilder -> extBuilder.targeting(targeting),
+                givenImp()));
+
+        final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+
+        // when
+        final Future<BidResponse> bidResponse =
+                bidResponseCreator.create(toAuctionParticipant(bidderResponses),
+                        auctionContext, CACHE_INFO, MULTI_BIDS);
+
+        // then
+        assertThat(bidResponse.failed()).isTrue();
+        assertThat(bidResponse.cause())
+                .hasMessageStartingWith("Error decoding bidRequest.prebid.targeting.pricegranularity: "
+                        + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request"
+                        + ".ExtGranularityRange");
+    }
+
     private AuctionContext givenAuctionContext(BidRequest bidRequest,
                                                UnaryOperator<AuctionContext.AuctionContextBuilder> contextCustomizer) {
 
@@ -3035,6 +3594,22 @@ public class BidResponseCreatorTest extends VertxTest {
         } catch (JsonProcessingException e) {
             return rethrow(e);
         }
+    }
+
+    private BidResponseCreator givenBidResponseCreator(int truncateAttrChars) {
+        return new BidResponseCreator(
+                cacheService,
+                bidderCatalog,
+                vastModifier,
+                eventsService,
+                storedRequestProcessor,
+                winningBidComparatorFactory,
+                idGenerator,
+                hookStageExecutor,
+                categoryMappingService,
+                truncateAttrChars,
+                clock,
+                jacksonMapper);
     }
 
     private static String toTargetingByKey(Bid bid, String targetingKey) {

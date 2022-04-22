@@ -30,13 +30,15 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -51,32 +53,37 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class BeachfrontBidder implements Bidder<Void> {
 
-    private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final String NURL_VIDEO_TYPE = "nurl";
     private static final String ADM_VIDEO_TYPE = "adm";
     private static final String BEACHFRONT_NAME = "BF_PREBID_S2S";
-    private static final String BEACHFRONT_VERSION = "0.9.2";
+    private static final String BEACHFRONT_VERSION = "1.0.0";
     private static final String NURL_VIDEO_ENDPOINT_SUFFIX = "&prebidserver";
     private static final String FAKE_IP = "255.255.255.255";
 
-    private static final BigDecimal MIN_BID_FLOOR = BigDecimal.valueOf(0.01);
     private static final int DEFAULT_VIDEO_WIDTH = 300;
     private static final int DEFAULT_VIDEO_HEIGHT = 250;
 
     private static final TypeReference<ExtPrebid<?, ExtImpBeachfront>> BEACHFRONT_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpBeachfront>>() {
+            new TypeReference<>() {
             };
 
     private final String bannerEndpointUrl;
     private final String videoEndpointUrl;
+    private final BeachfrontFloorResolver beachfrontFloorResolver;
     private final JacksonMapper mapper;
 
-    public BeachfrontBidder(String bannerEndpointUrl, String videoEndpointUrl, JacksonMapper mapper) {
+    public BeachfrontBidder(String bannerEndpointUrl,
+                            String videoEndpointUrl,
+                            CurrencyConversionService currencyConversionService,
+                            JacksonMapper mapper) {
+
         this.bannerEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(bannerEndpointUrl));
         this.videoEndpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(videoEndpointUrl));
+        this.beachfrontFloorResolver = new BeachfrontFloorResolver(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -152,20 +159,32 @@ public class BeachfrontBidder implements Bidder<Void> {
         return isHeightNonZero && isWidthNonZero;
     }
 
-    private BeachfrontBannerRequest getBannerRequest(BidRequest bidRequest, List<Imp> bannerImps,
+    private BeachfrontBannerRequest getBannerRequest(BidRequest bidRequest,
+                                                     List<Imp> bannerImps,
                                                      List<BidderError> errors) {
         final List<BeachfrontSlot> slots = new ArrayList<>();
 
         for (Imp imp : bannerImps) {
+            final ExtImpBeachfront extImpBeachfront;
+            final String appId;
             try {
-                final ExtImpBeachfront extImpBeachfront = parseImpExt(imp);
-                final String appId = getAppId(extImpBeachfront, true);
-
-                slots.add(BeachfrontSlot.of(imp.getId(), appId, getBidFloor(
-                        extImpBeachfront.getBidfloor(), imp.getBidfloor()), makeBeachfrontSizes(imp.getBanner())));
+                extImpBeachfront = parseImpExt(imp);
+                appId = getAppId(extImpBeachfront, true);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+
+            final BeachfrontFloorResolver.BidFloorResult bidFloorResult =
+                    beachfrontFloorResolver.resolveBidFloor(extImpBeachfront.getBidfloor(), imp, bidRequest);
+            storeBidFloorConversionResultLog(bidFloorResult, errors);
+            if (bidFloorResult.isError()) {
+                continue;
+            }
+
+            final BeachfrontSlot beachfrontSlot = BeachfrontSlot.of(
+                    imp.getId(), appId, bidFloorResult.getPrice().getValue(), makeBeachfrontSizes(imp.getBanner()));
+            slots.add(beachfrontSlot);
         }
         if (slots.isEmpty()) {
             return null;
@@ -208,7 +227,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             requestBuilder.secure(firstImpSecure != null ? firstImpSecure : getSecure(bundle));
         }
 
-        final ExtRequestPrebidSchainSchain schain = getSchain(bidRequest);
+        final ExtSourceSchain schain = getSchain(bidRequest);
 
         if (schain != null) {
             requestBuilder.schain(schain);
@@ -243,22 +262,6 @@ public class BeachfrontBidder implements Bidder<Void> {
             return videoAppId;
         }
         throw new PreBidException("unable to determine the appId(s) from the supplied extension");
-    }
-
-    private static BigDecimal getBidFloor(BigDecimal extImpBidfloor, BigDecimal impBidfloor) {
-        final BigDecimal impNonNullBidfloor = zeroIfNull(impBidfloor);
-        final BigDecimal extImpNonNullBidfloor = zeroIfNull(extImpBidfloor);
-        if (impNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
-            return impNonNullBidfloor;
-        } else if (extImpNonNullBidfloor.compareTo(MIN_BID_FLOOR) > 0) {
-            return extImpNonNullBidfloor;
-        } else {
-            return BigDecimal.ZERO;
-        }
-    }
-
-    private static BigDecimal zeroIfNull(BigDecimal bigDecimal) {
-        return bigDecimal == null ? BigDecimal.ZERO : bigDecimal;
     }
 
     /**
@@ -310,20 +313,20 @@ public class BeachfrontBidder implements Bidder<Void> {
         return StringUtils.contains(page, "https") ? 1 : 0;
     }
 
-    private static ExtRequestPrebidSchainSchain getSchain(BidRequest bidRequest) {
+    private static ExtSourceSchain getSchain(BidRequest bidRequest) {
         final Source source = bidRequest.getSource();
         final ExtSource extSource = source != null ? source.getExt() : null;
 
         return extSource != null ? extSource.getSchain() : null;
     }
 
-    private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest, List<Imp> videoImps,
+    private List<BeachfrontVideoRequest> getVideoRequests(BidRequest bidRequest,
+                                                          List<Imp> videoImps,
                                                           List<BidderError> errors) {
         final List<BeachfrontVideoRequest> videoRequests = new ArrayList<>();
         for (Imp imp : videoImps) {
             final ExtImpBeachfront extImpBeachfront;
             final String appId;
-
             try {
                 extImpBeachfront = parseImpExt(imp);
                 appId = getAppId(extImpBeachfront, false);
@@ -379,11 +382,21 @@ public class BeachfrontBidder implements Bidder<Void> {
                 }
             }
 
+            final BeachfrontFloorResolver.BidFloorResult bidFloorResult =
+                    beachfrontFloorResolver.resolveBidFloor(extImpBeachfront.getBidfloor(), imp, bidRequest);
+            storeBidFloorConversionResultLog(bidFloorResult, errors);
+            if (bidFloorResult.isError()) {
+                continue;
+            }
+
+            final Price result = bidFloorResult.getPrice();
+
             final Imp.ImpBuilder impBuilder = imp.toBuilder()
                     .banner(null)
                     .ext(null)
                     .secure(secure)
-                    .bidfloor(getBidFloor(extImpBeachfront.getBidfloor(), imp.getBidfloor()));
+                    .bidfloor(result.getValue())
+                    .bidfloorcur(result.getCurrency());
 
             final Video video = imp.getVideo();
             final Integer videoHeight = video.getH();
@@ -395,7 +408,7 @@ public class BeachfrontBidder implements Bidder<Void> {
             bidRequestBuilder.imp(Collections.singletonList(impBuilder.build()));
 
             if (CollectionUtils.isEmpty(bidRequest.getCur())) {
-                bidRequestBuilder.cur(Collections.singletonList(DEFAULT_BID_CURRENCY));
+                bidRequestBuilder.cur(Collections.singletonList(BeachfrontFloorResolver.DEFAULT_BID_CURRENCY));
             }
 
             videoRequests.add(requestBuilder.request(bidRequestBuilder.build()).build());
@@ -408,6 +421,14 @@ public class BeachfrontBidder implements Bidder<Void> {
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.USER_AGENT_HEADER, device.getUa());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.ACCEPT_LANGUAGE_HEADER, device.getLanguage());
         HttpUtil.addHeaderIfValueIsNotEmpty(headers, HttpUtil.DNT_HEADER, Objects.toString(device.getDnt(), null));
+    }
+
+    private static void storeBidFloorConversionResultLog(BeachfrontFloorResolver.BidFloorResult result,
+                                                         List<BidderError> log) {
+
+        Stream.of(result.getError(), result.getWarning())
+                .filter(Objects::nonNull)
+                .forEach(log::add);
     }
 
     /**
@@ -438,7 +459,7 @@ public class BeachfrontBidder implements Bidder<Void> {
         return makeBeachfrontResponseSlots(responseBody).stream()
                 .filter(Objects::nonNull)
                 .map(BeachfrontBidder::makeBidFromBeachfrontSlot)
-                .map(bid -> BidderBid.of(bid, BidType.banner, DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, BidType.banner, BeachfrontFloorResolver.DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 

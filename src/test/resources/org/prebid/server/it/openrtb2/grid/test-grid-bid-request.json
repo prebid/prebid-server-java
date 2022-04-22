@@ -10,6 +10,17 @@
       "ext": {
         "bidder": {
           "uid": 1
+        },
+        "data": {
+          "adserver": {
+            "name": "some_name",
+            "adslot": "some_slot"
+          }
+        },
+        "gpid": "some_slot",
+        "skadn": {
+          "versions": [ "2.0", "2.1" ],
+          "sourceapp": "880047117"
         }
       }
     }

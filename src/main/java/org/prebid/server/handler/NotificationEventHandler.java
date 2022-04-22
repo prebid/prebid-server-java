@@ -12,9 +12,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -110,7 +110,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
         final EventRequest eventRequest = EventUtil.from(routingContext);
         getAccountById(eventRequest.getAccountId())
-                .setHandler(async -> handleEvent(async, eventRequest, routingContext));
+                .onComplete(async -> handleEvent(async, eventRequest, routingContext));
     }
 
     /**

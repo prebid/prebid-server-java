@@ -1,6 +1,7 @@
 package org.prebid.server.deals;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -9,6 +10,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -66,13 +68,21 @@ public class TargetingServiceTest extends VertxTest {
                         new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200))),
                         new IntersectsStrings(category(Type.mediaType), asList("banner", "video")),
                         new Or(asList(
-                                new DomainMetricAwareExpression(new Matches(category(Type.domain), "*nba.com*"),
-                                        "lineItemId"),
-                                new DomainMetricAwareExpression(new Matches(category(Type.domain), "nba.com*"),
-                                        "lineItemId"),
-                                new DomainMetricAwareExpression(
-                                        new InStrings(category(Type.domain), asList("nba.com", "cnn.com")),
-                                        "lineItemId")
+                                new Or(asList(
+                                        new DomainMetricAwareExpression(new Matches(category(Type.domain),
+                                                "*nba.com*"), "lineItemId"),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
+                                                "*nba.com*"), "lineItemId"))),
+                                new Or(asList(
+                                        new DomainMetricAwareExpression(new Matches(category(Type.domain),
+                                                "nba.com*"), "lineItemId"),
+                                        new DomainMetricAwareExpression(new Matches(category(Type.publisherDomain),
+                                                "nba.com*"), "lineItemId"))),
+                                new Or(asList(
+                                        new DomainMetricAwareExpression(new InStrings(category(Type.domain),
+                                                asList("nba.com", "cnn.com")), "lineItemId"),
+                                        new DomainMetricAwareExpression(new InStrings(category(Type.publisherDomain),
+                                                asList("nba.com", "cnn.com")), "lineItemId")))
                         )),
                         new Or(asList(
                                 new Matches(category(Type.referrer), "*sports*"),
@@ -399,7 +409,12 @@ public class TargetingServiceTest extends VertxTest {
                 new And(asList(
                         new IntersectsSizes(category(Type.size), asList(Size.of(300, 250), Size.of(400, 200))),
                         new IntersectsStrings(category(Type.mediaType), asList("banner", "video")),
-                        new DomainMetricAwareExpression(new Matches(category(Type.domain), "*nba.com*"), "lineItemId"),
+                        new DomainMetricAwareExpression(
+                                new Matches(category(Type.domain), "*nba.com*"), "lineItemId"),
+                        new DomainMetricAwareExpression(
+                                new Matches(category(Type.domain), "lakers.nba.com"), "lineItemId"),
+                        new DomainMetricAwareExpression(
+                                new Matches(category(Type.publisherDomain), "nba.com"), "lineItemId"),
                         new InIntegers(category(Type.pagePosition), asList(1, 3)),
                         new Within(category(Type.location), GeoRegion.of(50.424744f, 30.506435f, 10.0f)),
                         new InIntegers(category(Type.bidderParam, "rubicon.siteId"), asList(123, 321)),
@@ -409,6 +424,7 @@ public class TargetingServiceTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .site(Site.builder()
                         .domain("lakers.nba.com")
+                        .publisher(Publisher.builder().domain("nba.com").build())
                         .build())
                 .device(Device.builder()
                         .geo(Geo.builder()
@@ -458,6 +474,58 @@ public class TargetingServiceTest extends VertxTest {
         // when and then
         assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
         assertThat(txnLog.lineItemsMatchedDomainTargeting()).containsOnly("lineItemId");
+    }
+
+    @Test
+    public void matchesTargetingShouldReturnTrueForIntersectsStringsOnSingleString() {
+        // given
+        final TargetingDefinition targetingDefinition = TargetingDefinition.of(
+                new IntersectsStrings(category(Type.userFirstPartyData, "segment"), asList("test", "111")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .data(mapper.createObjectNode().set("segment", TextNode.valueOf("test")))
+                                .build())
+                        .build())
+                .build();
+
+        final TxnLog txnLog = TxnLog.create();
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .txnLog(txnLog)
+                .build();
+
+        final Imp imp = Imp.builder().build();
+
+        // when and then
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
+    }
+
+    @Test
+    public void matchesTargetingShouldReturnTrueForIntersectsIntegersOnSingleInteger() {
+        // given
+        final TargetingDefinition targetingDefinition = TargetingDefinition.of(
+                new IntersectsIntegers(category(Type.userFirstPartyData, "segment"), asList(123, 456)));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .data(mapper.createObjectNode().set("segment", IntNode.valueOf(123)))
+                                .build())
+                        .build())
+                .build();
+
+        final TxnLog txnLog = TxnLog.create();
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .txnLog(txnLog)
+                .build();
+
+        final Imp imp = Imp.builder().build();
+
+        // when and then
+        assertThat(targetingService.matchesTargeting(auctionContext, imp, targetingDefinition)).isTrue();
     }
 
     @Test

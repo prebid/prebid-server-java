@@ -1,16 +1,19 @@
 package org.prebid.server.proto.openrtb.ext.request.adf;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Value;
 
-/**
- * Defines the contract for bidrequest.imp[i].ext.adf
- */
-@AllArgsConstructor(staticName = "of")
+@Builder
 @Value
 public class ExtImpAdf {
 
     String mid;
+
     Integer inv;
+
     String mname;
+
+    @JsonProperty("priceType")
+    String priceType;
 }

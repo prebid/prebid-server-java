@@ -11,9 +11,8 @@
         "h": 600
       },
       "ext": {
-        "unruly": {
-          "uuid": "uu_id_1",
-          "siteid": "site_id_1"
+        "bidder": {
+          "siteid": 123
         }
       }
     }

@@ -158,7 +158,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
                         bidderResponse, primaryAdServer, publisher, timeout, withCategory, translateCategories))
                 .collect(Collectors.toList()));
 
-        compositeFuture.setHandler(ignored ->
+        compositeFuture.onComplete(ignored ->
                 collectCategoryFetchResults(compositeFuture, categoryBidContextsPromise, rejectedBids));
 
         return categoryBidContextsPromise.future();
@@ -452,7 +452,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
      * Returns true when bidder parameter is valid bidder name.
      */
     private static boolean isValidBidder(String bidder) {
-        return Ortb2ImplicitParametersResolver.isImpExtBidderField(bidder);
+        return Ortb2ImplicitParametersResolver.isImpExtBidder(bidder);
     }
 
     /**

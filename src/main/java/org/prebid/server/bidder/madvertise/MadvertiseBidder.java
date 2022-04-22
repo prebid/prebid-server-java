@@ -24,10 +24,8 @@ import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -36,14 +34,13 @@ import java.util.stream.Collectors;
 public class MadvertiseBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpMadvertise>> MADVERTISE_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpMadvertise>>() {
+            new TypeReference<>() {
             };
 
     private static final int ZONE_ID_MIN_LENGTH = 7;
     private static final String X_OPENRTB_VERSION = "2.5";
     private static final String ZONE_ID_MACRO = "{{ZoneID}}";
-    private static final Set<Integer> VIDEO_BID_ATTRS = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(16, 6, 7)));
+    private static final Set<Integer> VIDEO_BID_ATTRS = Set.of(16, 6, 7);
 
     private final JacksonMapper mapper;
     private final String endpointUrl;

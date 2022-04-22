@@ -26,6 +26,7 @@ public enum Stage {
         this.value = value;
     }
 
+    @SuppressWarnings("unused")
     @JsonCreator
     public static Stage fromString(String value) {
         return Arrays.stream(values())

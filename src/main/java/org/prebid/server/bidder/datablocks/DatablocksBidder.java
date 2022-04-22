@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class DatablocksBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpDatablocks>> DATABLOCKS_EXT_TYPE_REFERENCE =
-            new TypeReference<ExtPrebid<?, ExtImpDatablocks>>() {
+            new TypeReference<>() {
             };
 
     private final String endpointTemplate;

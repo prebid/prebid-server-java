@@ -1,12 +1,20 @@
 package org.prebid.server.functional.util
 
+import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.testcontainers.Dependencies
 import org.testcontainers.shaded.org.apache.commons.lang.RandomStringUtils
 
+import java.nio.file.Files
+import java.nio.file.Path
 import java.text.DecimalFormat
 import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
+import static java.math.RoundingMode.HALF_UP
+import static java.util.concurrent.TimeUnit.MILLISECONDS
+import static org.awaitility.Awaitility.with
+import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
 
 class PBSUtils {
 
@@ -18,11 +26,11 @@ class PBSUtils {
         getRandomNumber(min, max)
     }
 
-    static float getFractionalRandomNumber(int min = 0, int max = MAX_VALUE) {
+    static float getFractionalRandomNumber(float min = 0, float max = MAX_VALUE) {
         new Random().nextFloat() * (max - min) + min
     }
 
-    static float getRoundFractionalNumber(float number, int numberDecimalPlaces) {
+    static float getRoundedFractionalNumber(float number, int numberDecimalPlaces) {
         def stringBuilder = new StringBuilder().append("##.")
         IntStream.range(0, numberDecimalPlaces).forEach { index -> stringBuilder.append("#") }
         def format = new DecimalFormat(stringBuilder.toString())
@@ -31,5 +39,36 @@ class PBSUtils {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
+    }
+
+    static Path createJsonFile(BidRequest bidRequest) {
+        def data = Dependencies.objectMapperWrapper.encode(bidRequest)
+        createTempFile(data, ".json")
+    }
+
+    static BigDecimal getRandomFloorValue() {
+        getRoundedFractionalNumber(getFractionalRandomNumber(FLOOR_MIN, 2), 2)
+    }
+
+    private static Path createTempFile(String content, String suffix) {
+        def path = Files.createTempFile(null, suffix)
+        path.toFile().tap {
+            deleteOnExit()
+            it << content
+        }
+        path
+    }
+
+    static void waitUntil(Closure closure, long timeout = 1000, long pollInterval = 100) {
+        with().pollDelay(0, MILLISECONDS)
+              .pollInterval(pollInterval, MILLISECONDS)
+              .await()
+              .atMost(timeout, MILLISECONDS)
+              .until(closure)
+    }
+
+    static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
+        BigDecimal.valueOf(getFractionalRandomNumber(min, max))
+                  .setScale(scale, HALF_UP)
     }
 }

@@ -7,13 +7,24 @@
         "w": 300,
         "h": 250
       },
+      "video": {
+        "w": 320,
+        "h": 480,
+        "mimes": [
+          "video/mp4"
+        ]
+      },
       "tagid": "123",
       "ext": {
         "algorix": {
           "sid": "testSid",
           "token": "testToken",
           "placementId": "testPlacementId",
-          "appId": "testAppId"
+          "appId": "testAppId",
+          "region": "APAC"
+        },
+        "prebid": {
+          "is_rewarded_inventory": 1
         }
       }
     }

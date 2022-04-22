@@ -21,8 +21,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
@@ -132,7 +132,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 .map(context -> addToEvent(context.getBidResponse(), ampEventBuilder::bidResponse, context))
                 .compose(context -> prepareAmpResponse(context, routingContext))
                 .map(result -> addToEvent(result.getLeft().getTargeting(), ampEventBuilder::targeting, result))
-                .setHandler(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
+                .onComplete(responseResult -> handleResult(responseResult, ampEventBuilder, routingContext, startTime));
     }
 
     private static <T, R> R addToEvent(T field, Consumer<T> consumer, R result) {
@@ -235,12 +235,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         final ExtResponseDebug extDebug = ext != null ? ext.getDebug() : null;
 
         final Map<String, List<ExtBidderError>> extErrors = ext != null ? ext.getErrors() : null;
+        final Map<String, List<ExtBidderError>> extWarnings = ext != null ? ext.getWarnings() : null;
 
         final ExtModules extModules = extPrebid != null ? extPrebid.getModules() : null;
         final ExtAmpVideoPrebid extAmpVideoPrebid = extModules != null ? ExtAmpVideoPrebid.of(extModules) : null;
 
-        return ObjectUtils.anyNotNull(extDebug, extErrors, extAmpVideoPrebid)
-                ? ExtAmpVideoResponse.of(extDebug, extErrors, extAmpVideoPrebid)
+        return ObjectUtils.anyNotNull(extDebug, extErrors, extWarnings, extAmpVideoPrebid)
+                ? ExtAmpVideoResponse.of(extDebug, extErrors, extWarnings, extAmpVideoPrebid)
                 : null;
     }
 

@@ -6,7 +6,7 @@ import lombok.Value;
  * Defines the contract for bidresponse.ext.usersync.{bidder}.syncs[i]
  */
 @Value
-final class ExtUserSync {
+class ExtUserSync {
 
     String url;
 
