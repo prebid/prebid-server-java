@@ -6,15 +6,23 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
+    private final String VALID_PREFIX_REGEX = "[a-zA-Z_:]?([a-zA-Z0-9_:])*";
     private final SampleBuilder delegate;
     private final String prefix;
 
     public NamespaceSubsystemSampleBuilder(SampleBuilder sampleBuilder, String namespace, String subsystem) {
         delegate = Objects.requireNonNull(sampleBuilder);
         prefix = toPrefix(namespace) + toPrefix(subsystem);
+
+        final Pattern prefixPattern = Pattern.compile(VALID_PREFIX_REGEX);
+        if (!prefixPattern.matcher(prefix).matches()) {
+            throw new IllegalArgumentException(
+                    "Invalid prefix, namespace and subsystem should match regex: " + VALID_PREFIX_REGEX);
+        }
     }
 
     @Override
