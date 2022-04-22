@@ -10,7 +10,8 @@ import java.util.regex.Pattern;
 
 public class NamespaceSubsystemSampleBuilder implements SampleBuilder {
 
-    private final String VALID_PREFIX_REGEX = "[a-zA-Z_:]?([a-zA-Z0-9_:])*";
+    private static final String VALID_PREFIX_REGEX = "[a-zA-Z_:]?([a-zA-Z0-9_:])*";
+
     private final SampleBuilder delegate;
     private final String prefix;
 
