@@ -1,14 +1,18 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
+import spock.lang.PendingFeature
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
@@ -190,5 +194,45 @@ class AuctionSpec extends BaseSpec {
         DEFAULT_TIMEOUT | getRandomTimeout() | getRandomTimeout()
         null            | DEFAULT_TIMEOUT    | getRandomTimeout()
         null            | null               | DEFAULT_TIMEOUT
+    }
+
+    @PendingFeature
+    def "PBS should reject request with unauthorized account when settings.enforce-valid-account = true"() {
+        given: "Pbs config with enforce-valid-account, default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.enforce-valid-account" : "true",
+                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+
+        and: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody == "Unauthorized account id: $bidRequest.site.publisher.id"
+
+        where:
+        defaultAccountConfig << [null, new AccountConfig(status: ACTIVE)]
+    }
+
+    def "PBS should not reject request with unauthorized account when settings.enforce-valid-account = false"() {
+        given: "Pbs config with enforce-valid-account, default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.enforce-valid-account" : "false",
+                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+
+        and: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should not reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+
+        where:
+        defaultAccountConfig << [null, new AccountConfig(status: ACTIVE)]
     }
 }

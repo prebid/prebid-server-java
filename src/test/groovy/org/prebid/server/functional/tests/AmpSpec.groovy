@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -7,10 +8,13 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
@@ -265,5 +269,64 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
+    }
+
+    @PendingFeature
+    def "PBS should reject request with unauthorized account when settings.enforce-valid-account = true"() {
+        given: "Pbs config with enforce-valid-account, default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.enforce-valid-account" : "true",
+                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+
+        and: "Default AMP request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        pbsService.sendAmpRequest(ampRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody == "Unauthorized account id: $ampRequest.account"
+
+        where:
+        defaultAccountConfig << [null, new AccountConfig(status: ACTIVE)]
+    }
+
+    def "PBS should not reject request with unauthorized account when settings.enforce-valid-account = false"() {
+        given: "Pbs config with enforce-valid-account, default-account-config"
+        def pbsService = pbsServiceFactory.getService(
+                ["settings.enforce-valid-account" : "false",
+                 "settings.default-account-config": mapper.encode(defaultAccountConfig)])
+
+        and: "Default AMP request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            site.publisher.id = ampRequest.account
+        }
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = pbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should not reject request"
+        assert response.targeting
+        assert response.ext?.debug?.httpcalls
+
+        where:
+        defaultAccountConfig << [null, new AccountConfig(status: ACTIVE)]
     }
 }
