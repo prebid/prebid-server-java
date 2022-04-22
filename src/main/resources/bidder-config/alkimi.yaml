@@ -1,7 +1,7 @@
 adapters:
   alkimi:
     enabled: true
-    endpoint: http://127.0.0.1:8090/server/bid
+    endpoint: https://exchange.alkimi-onboarding.com/server/bid
     meta-info:
       maintainer-email: maintainer@email.com
       app-media-types:
