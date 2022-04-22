@@ -472,6 +472,43 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageWhenAliasesKeyDoesntContainAliasgvlidsKey() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("between", 2))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. vendorId between refers to unknown bidder alias: 2");
+    }
+
+    @Test
+    public void validateShouldReturnValidationMessageWhenAliasgvlidsValueLowerThatOne() {
+        // given
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .aliases(singletonMap("pubmatic", "rubicon"))
+                        .aliasgvlids(singletonMap("pubmatic", 0))
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = requestValidator.validate(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .containsExactly("request.ext.prebid.aliasgvlids. Invalid vendorId pubmatic for alias: 0. "
+                        + "Choose a different vendorId, or remove this entry.");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenBannerHasEmptyFormatAndZeroWidth() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1397,7 +1434,7 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getWarnings()).hasSize(2)
                 .containsOnly("WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: "
-                        + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
+                                + "request.imp[0].ext.prebid.bidder contains unknown bidder: rubicon",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
@@ -1421,7 +1458,7 @@ public class RequestValidatorTest extends VertxTest {
         assertThat(result.getWarnings()).hasSize(2)
                 .containsExactlyInAnyOrder(
                         "WARNING: request.imp[0].ext.prebid.bidder.rubicon was dropped with a reason: request.imp[0]"
-                        + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
+                                + ".ext.prebid.bidder.rubicon failed validation.\nerrorMessage1\nerrorMessage2",
                         "WARNING: request.imp[0].ext must contain at least one valid bidder");
         assertThat(bidRequest.getImp())
                 .extracting(Imp::getExt)
