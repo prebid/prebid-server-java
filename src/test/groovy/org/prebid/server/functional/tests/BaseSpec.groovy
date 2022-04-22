@@ -16,13 +16,15 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
 
+import static java.math.RoundingMode.DOWN
+
 @PBSTest
 abstract class BaseSpec extends Specification {
 
     protected static final ObjectMapperWrapper mapper = Dependencies.objectMapperWrapper
-    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
-    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
-    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, Dependencies.objectMapperWrapper)
+    protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(Dependencies.networkServiceContainer, mapper)
+    protected static final Bidder bidder = new Bidder(Dependencies.networkServiceContainer, mapper)
+    protected static final PrebidCache prebidCache = new PrebidCache(Dependencies.networkServiceContainer, mapper)
     protected static final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
@@ -32,8 +34,9 @@ abstract class BaseSpec extends Specification {
     protected static final StoredRequestDao storedRequestDao = repository.storedRequestDao
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
 
-    protected static final int MIN_TIMEOUT = 5000
     protected static final int MAX_TIMEOUT = 6000
+    private static final int MIN_TIMEOUT = 5000
+    private static final int DEFAULT_TARGETING_PRECISION = 1
 
     def setupSpec() {
         prebidCache.setResponse()
@@ -51,13 +54,21 @@ abstract class BaseSpec extends Specification {
         PBSUtils.getRandomNumber(MIN_TIMEOUT, MAX_TIMEOUT)
     }
 
-    protected static Number getCurrentMetricValue(String name) {
-        def response = defaultPbsService.sendCollectedMetricsRequest()
+    protected static Number getCurrentMetricValue(PrebidServerService pbsService = defaultPbsService, String name) {
+        def response = pbsService.sendCollectedMetricsRequest()
         response[name] ?: 0
     }
 
-    protected static void flushMetrics() {
+    protected static void flushMetrics(PrebidServerService pbsService = defaultPbsService) {
         // flushing PBS metrics by receiving collected metrics so that each new test works with a fresh state
-        defaultPbsService.sendCollectedMetricsRequest()
+        pbsService.sendCollectedMetricsRequest()
+    }
+
+    protected static List<String> getLogsByText(List<String> logs, String text) {
+        logs.findAll { it.contains(text) }
+    }
+
+    protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
+        "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
     }
 }

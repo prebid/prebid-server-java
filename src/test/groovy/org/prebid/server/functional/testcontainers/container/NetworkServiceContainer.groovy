@@ -15,7 +15,7 @@ class NetworkServiceContainer extends MockServerContainer {
     }
 
     String getRootUri() {
-        "http://${getHostAndPort()}"
+        "http://${hostAndPort}"
     }
 
     @Override

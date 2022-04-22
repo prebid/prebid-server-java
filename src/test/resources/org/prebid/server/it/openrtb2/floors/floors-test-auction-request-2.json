@@ -1,0 +1,43 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "bidfloor": 4,
+      "bidfloorcur": "USD",
+      "ext": {
+        "generic": {
+        }
+      }
+    }
+  ],
+  "site": {
+    "publisher": {
+      "id": "12001"
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "floors": {
+        "floorMinCur": "NZD"
+      },
+      "bidadjustmentfactors": {
+        "mediatypes": {
+          "banner": {
+            "generic": 0.5
+          }
+        }
+      }
+    }
+  }
+}

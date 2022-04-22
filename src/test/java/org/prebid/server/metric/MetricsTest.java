@@ -22,6 +22,7 @@ import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
+import org.prebid.server.settings.model.Account;
 
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -31,7 +32,7 @@ import java.util.function.Consumer;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -48,16 +49,16 @@ public class MetricsTest {
 
     private MetricRegistry metricRegistry;
     @Mock
-    private AccountMetricsVerbosity accountMetricsVerbosity;
+    private AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
 
     private Metrics metrics;
 
     @Before
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
-        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosity);
+        metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosityResolver);
     }
 
     @Test
@@ -445,7 +446,7 @@ public class MetricsTest {
     @Test
     public void updateAccountRequestMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
+        metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -486,11 +487,43 @@ public class MetricsTest {
     }
 
     @Test
+    public void updateFetchWithFetchResultShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorFetchMetric(MetricName.failure);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.fetch.failure").getCount()).isOne();
+    }
+
+    @Test
+    public void updatePriceFloorGeneralErrorsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updatePriceFloorGeneralAlertsMetric(MetricName.err);
+
+        // then
+        assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAlertsConfigMetricsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+        metrics.updateAlertsConfigFailed("anotherId", MetricName.failed);
+        metrics.updateAlertsConfigFailed("accountId", MetricName.price_floors);
+
+        // then
+        assertThat(metricRegistry.counter("alerts.account_config.accountId.price-floors")
+                .getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("alerts.account_config.anotherId.failed")
+                .getCount()).isOne();
+    }
+
+    @Test
     public void updateAdapterResponseTimeShouldUpdateMetrics() {
         // when
-        metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
-        metrics.updateAdapterResponseTime(CONVERSANT, ACCOUNT_ID, 500);
-        metrics.updateAdapterResponseTime(CONVERSANT, ACCOUNT_ID, 500);
+        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterResponseTime(CONVERSANT, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterResponseTime(CONVERSANT, Account.empty(ACCOUNT_ID), 500);
 
         // then
         assertThat(metricRegistry.timer("adapter.rubicon.request_time").getCount()).isOne();
@@ -502,9 +535,9 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestNobidMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterRequestNobidMetrics(CONVERSANT, ACCOUNT_ID);
-        metrics.updateAdapterRequestNobidMetrics(CONVERSANT, ACCOUNT_ID);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestNobidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestNobidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.nobid").getCount()).isOne();
@@ -517,9 +550,9 @@ public class MetricsTest {
     @Test
     public void updateAdapterRequestGotbidsMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, ACCOUNT_ID);
-        metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, ACCOUNT_ID);
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(CONVERSANT, Account.empty(ACCOUNT_ID));
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.requests.gotbids").getCount()).isOne();
@@ -533,10 +566,10 @@ public class MetricsTest {
     @Test
     public void updateAdapterBidMetricsShouldUpdateMetrics() {
         // when
-        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, true, "banner");
-        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, false, "video");
-        metrics.updateAdapterBidMetrics(CONVERSANT, ACCOUNT_ID, 1234L, false, "banner");
-        metrics.updateAdapterBidMetrics(CONVERSANT, ACCOUNT_ID, 1234L, false, "banner");
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, false, "video");
+        metrics.updateAdapterBidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID), 1234L, false, "banner");
+        metrics.updateAdapterBidMetrics(CONVERSANT, Account.empty(ACCOUNT_ID), 1234L, false, "banner");
 
         // then
         assertThat(metricRegistry.histogram("adapter.rubicon.prices").getCount()).isEqualTo(2);
@@ -944,14 +977,14 @@ public class MetricsTest {
     @Test
     public void shouldNotUpdateAccountMetricsIfVerbosityIsNone() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.none);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.none);
 
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
-        metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, true, "banner");
+        metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
+        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isZero();
@@ -966,14 +999,14 @@ public class MetricsTest {
     @Test
     public void shouldUpdateAccountRequestsMetricOnlyIfVerbosityIsBasic() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
-        metrics.updateAccountRequestMetrics(ACCOUNT_ID, MetricName.openrtb2web);
-        metrics.updateAdapterResponseTime(RUBICON, ACCOUNT_ID, 500);
-        metrics.updateAdapterRequestNobidMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, ACCOUNT_ID);
-        metrics.updateAdapterBidMetrics(RUBICON, ACCOUNT_ID, 1234L, true, "banner");
+        metrics.updateAccountRequestMetrics(Account.empty(ACCOUNT_ID), MetricName.openrtb2web);
+        metrics.updateAdapterResponseTime(RUBICON, Account.empty(ACCOUNT_ID), 500);
+        metrics.updateAdapterRequestNobidMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterRequestGotbidsMetrics(RUBICON, Account.empty(ACCOUNT_ID));
+        metrics.updateAdapterBidMetrics(RUBICON, Account.empty(ACCOUNT_ID), 1234L, true, "banner");
 
         // then
         assertThat(metricRegistry.counter("account.accountId.requests").getCount()).isOne();
@@ -1270,15 +1303,15 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         // when
         metrics.updateAccountHooksMetrics(
-                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update);
         metrics.updateAccountHooksMetrics(
-                "accountId", "module2", ExecutionStatus.failure, null);
+                Account.empty("accountId"), "module2", ExecutionStatus.failure, null);
         metrics.updateAccountHooksMetrics(
-                "accountId", "module3", ExecutionStatus.timeout, null);
+                Account.empty("accountId"), "module3", ExecutionStatus.timeout, null);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
@@ -1300,11 +1333,11 @@ public class MetricsTest {
     @Test
     public void updateAccountHooksMetricsShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
         metrics.updateAccountHooksMetrics(
-                "accountId", "module1", ExecutionStatus.success, ExecutionAction.update);
+                Account.empty("accountId"), "module1", ExecutionStatus.success, ExecutionAction.update);
 
         // then
         assertThat(metricRegistry.counter("account.accountId.modules.module.module1.call").getCount())
@@ -1316,13 +1349,13 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldIncrementMetricsIfVerbosityIsDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         // when
         metrics.updateAccountModuleDurationMetric(
-                "accountId", "module1", 5L);
+                Account.empty("accountId"), "module1", 5L);
         metrics.updateAccountModuleDurationMetric(
-                "accountId", "module2", 6L);
+                Account.empty("accountId"), "module2", 6L);
 
         // then
         assertThat(metricRegistry.timer("account.accountId.modules.module.module1.duration").getCount())
@@ -1334,11 +1367,11 @@ public class MetricsTest {
     @Test
     public void updateAccountModuleDurationMetricShouldNotIncrementMetricsIfVerbosityIsNotAtLeastDetailed() {
         // given
-        given(accountMetricsVerbosity.forAccount(anyString())).willReturn(AccountMetricsVerbosityLevel.basic);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.basic);
 
         // when
         metrics.updateAccountModuleDurationMetric(
-                "accountId", "module1", 5L);
+                Account.empty("accountId"), "module1", 5L);
 
         // then
         assertThat(metricRegistry.timer("account.accountId.modules.module.module1.duration").getCount())
@@ -1368,7 +1401,7 @@ public class MetricsTest {
 
             // when
             metricsConsumer.accept(new Metrics(metricRegistry, CounterType.valueOf(counterType.name()),
-                    accountMetricsVerbosity));
+                    accountMetricsVerbosityResolver));
 
             // then
             softly.assertThat(metricRegistry.getMetrics()).hasValueSatisfying(new Condition<>(

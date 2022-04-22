@@ -16,6 +16,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
+import java.util.List;
+
 /**
  * GDPR-aware utilities
  */

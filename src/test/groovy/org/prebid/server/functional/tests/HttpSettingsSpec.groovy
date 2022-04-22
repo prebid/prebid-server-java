@@ -1,22 +1,25 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.mock.services.httpsettings.HttpAccountsResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PBSTest
+import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 import spock.lang.Shared
+
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 @PBSTest
 class HttpSettingsSpec extends BaseSpec {
@@ -26,7 +29,7 @@ class HttpSettingsSpec extends BaseSpec {
     HttpSettings httpSettings = new HttpSettings(Dependencies.networkServiceContainer, mapper)
 
     @Shared
-    PrebidServerService prebidServerService = pbsServiceFactory.getService(pbsServiceFactory.httpSettings())
+    PrebidServerService prebidServerService = pbsServiceFactory.getService(PbsConfig.httpSettingsConfig)
 
     def "PBS should take account information from http data source on auction request"() {
         given: "Get basic BidRequest with generic bidder and set gdpr = 1"
@@ -43,7 +46,7 @@ class HttpSettingsSpec extends BaseSpec {
         then: "Response should contain basic fields"
         assert response.id
         assert response.seatbid?.size() == 1
-        assert response.seatbid.first().seat == "generic"
+        assert response.seatbid.first().seat == GENERIC
         assert response.seatbid?.first()?.bid?.size() == 1
 
         and: "There should be only one call to bidder"
@@ -120,7 +123,8 @@ class HttpSettingsSpec extends BaseSpec {
         assert response.uidsCookie.bday
         assert !response.uidsCookie.tempUIDs
         assert !response.uidsCookie.uids
-        assert response.responseBody == ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
+        assert response.responseBody ==
+                ResourceUtil.readByteArrayFromClassPath("org/prebid/server/functional/tracking-pixel.png")
 
         and: "There should be only one account request"
         assert httpSettings.getRequestCount(request.account) == 1

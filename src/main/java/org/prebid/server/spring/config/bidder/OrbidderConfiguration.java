@@ -2,6 +2,7 @@ package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.orbidder.OrbidderBidder;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -29,13 +30,14 @@ public class OrbidderConfiguration {
 
     @Bean
     BidderDeps orbidderBidderDeps(BidderConfigurationProperties orbidderConfigurationProperties,
+                                  CurrencyConversionService currencyConversionService,
                                   @NotBlank @Value("${external-url}") String externalUrl,
                                   JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(orbidderConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new OrbidderBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }

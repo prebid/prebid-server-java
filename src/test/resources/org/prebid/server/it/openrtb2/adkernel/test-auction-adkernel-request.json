@@ -9,8 +9,7 @@
       },
       "ext": {
         "adkernel": {
-          "zoneId": 101,
-          "host": "localhost:8090"
+          "zoneId": 101
         }
       }
     }

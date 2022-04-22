@@ -14,6 +14,7 @@ import io.qameta.allure.model.TestResult
 import io.qameta.allure.util.AnnotationUtils
 import org.spockframework.runtime.AbstractRunListener
 import org.spockframework.runtime.extension.IGlobalExtension
+import org.spockframework.runtime.extension.builtin.UnrollIterationNameProvider
 import org.spockframework.runtime.model.ErrorInfo
 import org.spockframework.runtime.model.FeatureInfo
 import org.spockframework.runtime.model.IterationInfo
@@ -45,6 +46,7 @@ import static io.qameta.allure.util.ResultsUtils.getStatus
 import static io.qameta.allure.util.ResultsUtils.getStatusDetails
 import static java.nio.charset.StandardCharsets.UTF_8
 import static java.util.Comparator.comparing
+import static org.apache.commons.lang3.StringUtils.EMPTY
 
 /**
  * This is a temporary port of https://github.com/allure-framework/allure-java/tree/master/allure-spock to add support
@@ -55,7 +57,15 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     private static final String FRAMEWORK = "spock"
     private static final String LANGUAGE = "groovy"
     private static final String MD5 = "md5"
+    private static final String GIVEN = "Given:"
+    private static final String WHEN = "When:"
+    private static final String THEN = "Then:"
+    private static final String EXPECT = "Expect:"
+    private static final String WHERE = "Where:"
+    private static final String AND = "And:"
+    private static final String CLEANUP = "Cleanup:"
 
+    private final Map<Serializable, String> stepSpockMap = new HashMap<>()
     private final ThreadLocal<String> testUuid
             = InheritableThreadLocal.withInitial({ UUID.randomUUID().toString() })
 
@@ -63,6 +73,14 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
 
     AllureReporter() {
         this(Allure.getLifecycle())
+
+        this.stepSpockMap.put("SETUP", GIVEN)
+        this.stepSpockMap.put("WHEN", WHEN)
+        this.stepSpockMap.put("THEN", THEN)
+        this.stepSpockMap.put("EXPECT", EXPECT)
+        this.stepSpockMap.put("WHERE", WHERE)
+        this.stepSpockMap.put("AND", AND)
+        this.stepSpockMap.put("CLEANUP", CLEANUP)
     }
 
     AllureReporter(AllureLifecycle lifecycle) {
@@ -85,7 +103,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
         String packageName = spec.package
         String specName = spec.name
         String testClassName = spec.reflection.name
-        String testMethodName = iteration.name
+        String testMethodName = iteration.displayName
 
         List<Label> labels = [createPackageLabel(packageName),
                               createTestClassLabel(testClassName),
@@ -107,7 +125,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
         TestResult result = new TestResult()
                 .setUuid(uuid)
                 .setHistoryId(getHistoryId(getQualifiedName(iteration), parameters))
-                .setName(firstNonEmpty(feature.displayName, testMethodName, getQualifiedName(iteration))
+                .setName(firstNonEmpty(testMethodName, getQualifiedName(iteration))
                         .orElse("Unknown"))
                 .setFullName(getQualifiedName(iteration))
                 .setStatusDetails(new StatusDetails()
@@ -119,6 +137,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
         processDescription(feature, result)
         lifecycle.scheduleTestCase(result)
         lifecycle.startTestCase(uuid)
+        writeBlocks(feature, iteration)
     }
 
     private static List<Label> getLabels(IterationInfo iterationInfo) {
@@ -135,7 +154,7 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
     }
 
     private static String getQualifiedName(IterationInfo iteration) {
-        return "${iteration.feature.spec.reflection.name}.${iteration.name}"
+        "${iteration.feature.spec.reflection.name}.${iteration.displayName}"
     }
 
     private static String getHistoryId(String name, List<Parameter> parameters) {
@@ -227,7 +246,6 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
 
     private static List<Parameter> getParameters(Map<String, ?> dataVariables) {
         return dataVariables.collect { createParameter(it.key, it.value) }
-
     }
 
     @Override
@@ -252,5 +270,45 @@ class AllureReporter extends AbstractRunListener implements IGlobalExtension {
         })
         lifecycle.stopTestCase(uuid)
         lifecycle.writeTestCase(uuid)
+    }
+
+
+    private void writeBlocks(FeatureInfo feature, IterationInfo iteration) {
+        def andBlockKind = "AND"
+        def emptyBlockText = "-----"
+        feature.blocks.each {
+            if (!isEmptyOrContainsOnlyEmptyStrings(it.texts)) {
+                it.texts.eachWithIndex { String entry, int i ->
+                    def blockText = iteration
+                            ? generationParams(entry, feature.dataVariables, iteration)
+                            : EMPTY
+                    def kind = i == 0 ? it.kind.name() : andBlockKind
+                    writeStep(kind, blockText)
+                }
+            } else {
+                writeStep(it.kind.name(), emptyBlockText)
+            }
+        }
+    }
+
+    private String generationParams(String input,
+                                    final List<String> dataVariables,
+                                    final IterationInfo iteration) {
+        new FeatureInfo().tap {
+            setName(input)
+            dataVariables.each { String variable -> it.addParameterName(variable) }
+            setIterationNameProvider(new UnrollIterationNameProvider(it, input, false))
+        }.iterationNameProvider.getName(iteration)
+    }
+
+    private boolean isEmptyOrContainsOnlyEmptyStrings(List<String> strings) {
+        strings.isEmpty() || strings.every { it.isEmpty() }
+    }
+
+    private void writeStep(String kind, String data) {
+        def kindText = stepSpockMap.get(kind)
+        def stringBuilder = new StringBuffer()
+        stringBuilder << kindText << '\t' << data
+        Allure.step(stringBuilder.toString())
     }
 }

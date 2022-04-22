@@ -41,11 +41,20 @@ public class BidderSeatBid {
      */
     List<BidderError> errors;
 
+    /**
+     * List of bidder warnings.
+     */
+    List<BidderError> warnings;
+
+    public static BidderSeatBid of(List<BidderBid> bids, List<ExtHttpCall> httpCalls, List<BidderError> errors) {
+        return BidderSeatBid.of(bids, httpCalls, errors, Collections.emptyList());
+    }
+
     public BidderSeatBid with(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors());
+        return BidderSeatBid.of(bids, this.getHttpCalls(), this.getErrors(), this.getWarnings());
     }
 
     public static BidderSeatBid empty() {
-        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        return of(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     }
 }
