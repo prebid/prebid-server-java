@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class AlkimiBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://alkimi.ex/server/bid";
+    private static final String ENDPOINT_URL = "https://exchange.alkimi-onboarding.com/server/bid";
     private static final String DIV_BANNER_ID = "div_banner_1";
     private static final String DIV_VIDEO_ID = "div_video_1";
     private static final String PUB_TOKEN = "testPubToken";
@@ -51,7 +51,7 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AmxBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AlkimiBidder("invalid_url", jacksonMapper));
     }
 
     @Test
