@@ -9,7 +9,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
-import spock.lang.PendingFeature
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -196,7 +195,6 @@ class AuctionSpec extends BaseSpec {
         null            | null               | DEFAULT_TIMEOUT
     }
 
-    @PendingFeature
     def "PBS should reject request with unauthorized account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account, default-account-config"
         def pbsService = pbsServiceFactory.getService(

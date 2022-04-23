@@ -11,7 +11,6 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.PendingFeature
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -271,7 +270,6 @@ class AmpSpec extends BaseSpec {
         assert bidderRequest.regs?.ext?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
-    @PendingFeature
     def "PBS should reject request with unauthorized account when settings.enforce-valid-account = true"() {
         given: "Pbs config with enforce-valid-account, default-account-config"
         def pbsService = pbsServiceFactory.getService(
