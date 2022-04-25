@@ -1,17 +1,14 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.testcontainers.utility.MountableFile
 import spock.lang.Shared
 
-import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.APP_WORKDIR
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
