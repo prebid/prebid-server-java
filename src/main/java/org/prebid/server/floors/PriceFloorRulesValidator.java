@@ -21,7 +21,7 @@ public class PriceFloorRulesValidator {
     private PriceFloorRulesValidator() {
     }
 
-    public static void validate(PriceFloorRules priceFloorRules, Integer maxRules) {
+    public static void validateRules(PriceFloorRules priceFloorRules, Integer maxRules) {
 
         final Integer rootSkipRate = priceFloorRules.getSkipRate();
         if (rootSkipRate != null && (rootSkipRate < SKIP_RATE_MIN || rootSkipRate > SKIP_RATE_MAX)) {
@@ -35,22 +35,25 @@ public class PriceFloorRulesValidator {
                     + "must be positive float, but was %s", floorMin));
         }
 
-        final PriceFloorData data = priceFloorRules.getData();
-        if (data == null) {
+        validateRulesData(priceFloorRules.getData(), maxRules);
+    }
+
+    public static void validateRulesData(PriceFloorData priceFloorData, Integer maxRules) {
+        if (priceFloorData == null) {
             throw new PreBidException("Price floor rules data must be present");
         }
 
-        final Integer dataSkipRate = data.getSkipRate();
+        final Integer dataSkipRate = priceFloorData.getSkipRate();
         if (dataSkipRate != null && (dataSkipRate < SKIP_RATE_MIN || dataSkipRate > SKIP_RATE_MAX)) {
             throw new PreBidException(String.format("Price floor data skipRate "
                     + "must be in range(0-100), but was %s", dataSkipRate));
         }
 
-        if (CollectionUtils.isEmpty(data.getModelGroups())) {
+        if (CollectionUtils.isEmpty(priceFloorData.getModelGroups())) {
             throw new PreBidException("Price floor rules should contain at least one model group");
         }
 
-        data.getModelGroups().stream()
+        priceFloorData.getModelGroups().stream()
                 .filter(Objects::nonNull)
                 .forEach(modelGroup -> validateModelGroup(modelGroup, maxRules));
     }
