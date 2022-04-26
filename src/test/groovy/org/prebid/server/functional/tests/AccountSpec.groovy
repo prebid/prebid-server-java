@@ -200,7 +200,7 @@ class AccountSpec extends BaseSpec {
         and: "Default stored request with non-existing account"
         def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
             site = Site.defaultSite
-            site.publisher.id = null
+            site.publisher.id = storedRequestAccount
         }
 
         and: "Save storedRequest into DB"
