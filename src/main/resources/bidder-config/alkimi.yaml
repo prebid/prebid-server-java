@@ -3,11 +3,10 @@ adapters:
     enabled: true
     endpoint: https://exchange.alkimi-onboarding.com/server/bid
     meta-info:
-      maintainer-email: maintainer@email.com
+      maintainer-email: abogdanov@asteriosoft.com
       app-media-types:
         - banner
         - video
-        - native
       site-media-types:
         - banner
         - video
