@@ -132,7 +132,8 @@ public class AlkimiBidderTest extends VertxTest {
 
         assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getErrors()).allMatch(error ->
-                error.getType() == BidderError.Type.bad_server_response && error.getMessage().startsWith("Failed to decode: Unrecognized token")
+                error.getType() == BidderError.Type.bad_server_response
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token")
         );
         assertThat(result.getValue()).isEmpty();
     }
@@ -148,7 +149,10 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(BidResponse.builder().build()));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(BidResponse.builder().build())
+        );
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
@@ -157,7 +161,10 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBidsForBannerAndVideoImps() throws JsonProcessingException {
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), mapper.writeValueAsString(givenBidResponse()));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse())
+        );
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
@@ -237,7 +244,10 @@ public class AlkimiBidderTest extends VertxTest {
             Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer
     ) {
         return bidResponseCustomizer.apply(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(List.of(givenBannerBid(bidCustomizer), givenVideoBid(bidCustomizer))).build()))
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(
+                        givenBannerBid(bidCustomizer),
+                        givenVideoBid(bidCustomizer))
+                ).build()))
         ).build();
     }
 
