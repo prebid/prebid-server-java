@@ -1,25 +1,25 @@
 {
-  "data": {
-    "modelGroups": [
-      {
-        "modelWeight": 100,
-        "currency": "NZD",
-        "schema": {
-          "fields": [
-            "domain","mediaType", "size"
-          ]
-        },
-        "values": {
-          "*|banner|*": 10,
-          "*|banner|320x250": 8,
-          "*|*|320x250": 6,
-          "www.example.com|*|320x250": 4,
-          "www.example.com|banner|320x250": 2,
-          "www.example.com|banner|*": 1,
-          "*|video|*": 800,
-          "*|video|640x480": 333
-        }
+  "modelGroups": [
+    {
+      "modelWeight": 100,
+      "currency": "NZD",
+      "schema": {
+        "fields": [
+          "domain",
+          "mediaType",
+          "size"
+        ]
+      },
+      "values": {
+        "*|banner|*": 10,
+        "*|banner|320x250": 8,
+        "*|*|320x250": 6,
+        "www.example.com|*|320x250": 4,
+        "www.example.com|banner|320x250": 2,
+        "www.example.com|banner|*": 1,
+        "*|video|*": 800,
+        "*|video|640x480": 333
       }
-    ]
-  }
+    }
+  ]
 }
