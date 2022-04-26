@@ -2,8 +2,8 @@ package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
 import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -17,7 +17,6 @@ import java.time.Instant
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
-import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -337,8 +336,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
@@ -534,8 +533,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response without modelGroups"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups = null
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups = null
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -576,8 +575,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response without rules"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = null
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = null
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -621,8 +620,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response with 2 rules"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values.put(new Rule(mediaType: BANNER, country: MULTIPLE).rule, 0.7)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values.put(new Rule(mediaType: BANNER, country: MULTIPLE).rule, 0.7)
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -708,7 +707,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response with Content-Length"
-        def floorsResponse = PriceFloorRules.priceFloorRules
+        def floorsResponse = PriceFloorData.priceFloorData
         def responseSize = convertKilobyteSizeToByte(maxSize) + 100
         floorsProvider.setResponse(accountId, floorsResponse, ["Content-Length": responseSize as String])
 
@@ -862,6 +861,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         given: "BidRequest with storedRequest"
         def bidRequest = bidRequestWithFloors.tap {
             ext.prebid.storedRequest = new PrebidStoredRequest(id: PBSUtils.randomNumber)
+            ext.prebid.floors.floorMin = FLOOR_MIN
         }
 
         and: "Default stored request with floors"
@@ -877,8 +877,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -889,19 +889,19 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
-            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
             imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
-            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
+            ext?.prebid?.floors?.floorMin == bidRequest.ext.prebid.floors.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
-            ext?.prebid?.floors?.data == floorsResponse.data
+            ext?.prebid?.floors?.data == floorsResponse
         }
     }
 
@@ -910,7 +910,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Default stored request with floors "
-        def ampStoredRequest = storedRequestWithFloors
+        def ampStoredRequest = storedRequestWithFloors.tap {
+            ext.prebid.floors.floorMin = FLOOR_MIN
+        }
         def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -920,8 +922,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(ampRequest.account as String, floorsResponse)
 
@@ -932,19 +934,19 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(ampStoredRequest.id).last()
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
-            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+            imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
 
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
             imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
-            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
+            ext?.prebid?.floors?.floorMin == ampStoredRequest.ext.prebid.floors.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
-            ext?.prebid?.floors?.data == floorsResponse.data
+            ext?.prebid?.floors?.data == floorsResponse
         }
     }
 
@@ -975,8 +977,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where:
         description | floorsResponse
-        "valid"     | PriceFloorRules.priceFloorRules
-        "invalid"   | PriceFloorRules.priceFloorRules.tap { data.modelGroups = null }
+        "valid"     | PriceFloorData.priceFloorData
+        "invalid"   | PriceFloorData.priceFloorData.tap { modelGroups = null }
     }
 
     def "PBS should continue to hold onto previously fetched rules when fetch.enabled = false in account config"() {
@@ -996,8 +998,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider #description response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
@@ -1019,18 +1021,18 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
-            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
             imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
-            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
+            !ext?.prebid?.floors?.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
-            ext?.prebid?.floors?.data == floorsResponse.data
+            ext?.prebid?.floors?.data == floorsResponse
         }
     }
 
@@ -1362,8 +1364,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider #description response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -1382,52 +1384,19 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         verifyAll(bidderRequest) {
             imp[0].bidFloor == floorValue
-            imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
-            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.data.modelGroups[0].values.keySet()[0]
+            imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
+            imp[0].ext?.prebid?.floors?.floorRule == floorsResponse.modelGroups[0].values.keySet()[0]
             imp[0].ext?.prebid?.floors?.floorRuleValue == floorValue
             imp[0].ext?.prebid?.floors?.floorValue == floorValue
 
             ext?.prebid?.floors?.location == FETCH
             ext?.prebid?.floors?.fetchStatus == SUCCESS
-            ext?.prebid?.floors?.floorMin == floorsResponse.floorMin
-            ext?.prebid?.floors?.floorProvider == floorsResponse.data.floorProvider
+            !ext?.prebid?.floors?.floorMin
+            ext?.prebid?.floors?.floorProvider == floorsResponse.floorProvider
 
             ext?.prebid?.floors?.skipRate == floorsResponse.skipRate
-            ext?.prebid?.floors?.data == floorsResponse.data
+            ext?.prebid?.floors?.data == floorsResponse
         }
-    }
-
-    def "PBS should prefer floorMin from request over floorMin from fetched data"() {
-        given: "Default BidRequest"
-        def floorMin = PBSUtils.randomFloorValue
-        def floorMinCur = USD
-        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            ext.prebid.floors = new ExtPrebidFloors(floorMin: floorMin, floorMinCur: floorMinCur)
-        }
-
-        and: "Account with enabled fetch, fetch.url in the DB"
-        def accountId = bidRequest.app.publisher.id
-        def account = getAccountWithEnabledFetch(accountId)
-        accountDao.save(account)
-
-        and: "Set Floors Provider #description response"
-        def floorValue = floorMin - 0.1
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            data.modelGroups[0].currency = floorMinCur
-            it.floorMin = floorValue
-        }
-        floorsProvider.setResponse(accountId, floorsResponse)
-
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
-
-        when: "PBS processes auction request"
-        floorsPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request floorMin should correspond to floorMin from request"
-        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert bidderRequest.ext?.prebid?.floors?.floorMin == floorMin
     }
 
     def "PBS should reject fetch when modelWeight from floors provider is invalid"() {
@@ -1447,12 +1416,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups.first().modelWeight = invalidModelWeight
-            data.modelGroups.last().values = [(rule): floorValue]
-            data.modelGroups.last().modelWeight = modelWeight
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups << ModelGroup.modelGroup
+            modelGroups.first().values = [(rule): floorValue + 0.1]
+            modelGroups.first().modelWeight = invalidModelWeight
+            modelGroups.last().values = [(rule): floorValue]
+            modelGroups.last().modelWeight = modelWeight
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -1488,66 +1457,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         invalidModelWeight << [0, MAX_MODEL_WEIGHT + 1]
     }
 
-    def "PBS should reject fetch when root skipRate from floors provider is invalid"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
-
-        and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Account with enabled fetch, fetch.url in the DB"
-        def accountId = bidRequest.site.publisher.id
-        def account = getAccountWithEnabledFetch(accountId)
-        accountDao.save(account)
-
-        and: "Set Floors Provider response"
-        def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups[0].skipRate = 0
-            data.skipRate = 0
-            skipRate = invalidSkipRate
-            data.modelGroups.last().values = [(rule): floorValue]
-            data.modelGroups.last().skipRate = 0
-        }
-        floorsProvider.setResponse(accountId, floorsResponse)
-
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
-
-        when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
-
-        and: "PBS processes collected metrics request"
-        def metrics = floorsPbsService.sendCollectedMetricsRequest()
-
-        then: "Bidder request bidFloor should not be passed"
-        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert !bidderRequest.imp[0].bidFloor
-        assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
-
-        and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
-
-        and: "PBS log should contain error"
-        def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
-        assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
-                "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor root skipRate" +
-                " must be in range(0-100), but was $invalidSkipRate")
-
-        and: "Floors validation failure cannot reject the entire auction"
-        assert !response.seatbid?.isEmpty()
-
-        where:
-        invalidSkipRate << [MIN_SKIP_RATE - 1, MAX_SKIP_RATE + 1]
-    }
-
     def "PBS should reject fetch when data skipRate from floors provider is invalid"() {
         given: "Test start time"
         def startTime = Instant.now()
@@ -1565,14 +1474,13 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups[0].skipRate = 0
-            data.skipRate = invalidSkipRate
-            skipRate = 0
-            data.modelGroups.last().values = [(rule): floorValue]
-            data.modelGroups.last().skipRate = 0
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups << ModelGroup.modelGroup
+            modelGroups.first().values = [(rule): floorValue + 0.1]
+            modelGroups[0].skipRate = 0
+            skipRate = invalidSkipRate
+            modelGroups.last().values = [(rule): floorValue]
+            modelGroups.last().skipRate = 0
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -1625,14 +1533,13 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups[0].skipRate = invalidSkipRate
-            data.skipRate = 0
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups << ModelGroup.modelGroup
+            modelGroups.first().values = [(rule): floorValue + 0.1]
+            modelGroups[0].skipRate = invalidSkipRate
             skipRate = 0
-            data.modelGroups.last().values = [(rule): floorValue]
-            data.modelGroups.last().skipRate = 0
+            modelGroups.last().values = [(rule): floorValue]
+            modelGroups.last().skipRate = 0
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -1686,12 +1593,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
         def invalidDefaultFloor = MIN_DEFAULT_FLOOR_VALUE - 1
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups[0].defaultFloor = invalidDefaultFloor
-            data.modelGroups.last().values = [(rule): floorValue]
-            data.modelGroups.last().defaultFloor = MIN_DEFAULT_FLOOR_VALUE
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups << ModelGroup.modelGroup
+            modelGroups.first().values = [(rule): floorValue + 0.1]
+            modelGroups[0].defaultFloor = invalidDefaultFloor
+            modelGroups.last().values = [(rule): floorValue]
+            modelGroups.last().defaultFloor = MIN_DEFAULT_FLOOR_VALUE
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -1724,57 +1631,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
     }
 
-    def "PBS should reject fetch when floorMin from floors provider is invalid"() {
-        given: "Test start time"
-        def startTime = Instant.now()
-
-        and: "Flush metrics"
-        flushMetrics(floorsPbsService)
-
-        and: "Default BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-
-        and: "Account with enabled fetch, fetch.url in the DB"
-        def accountId = bidRequest.site.publisher.id
-        def account = getAccountWithEnabledFetch(accountId)
-        accountDao.save(account)
-
-        and: "Set Floors Provider response"
-        def invalidFloorMin = MIN_FLOOR_MIN - 1
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            floorMin = invalidFloorMin
-        }
-        floorsProvider.setResponse(accountId, floorsResponse)
-
-        and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(bidRequest)
-
-        when: "PBS processes auction request"
-        def response = floorsPbsService.sendAuctionRequest(bidRequest)
-
-        and: "PBS processes collected metrics request"
-        def metrics = floorsPbsService.sendCollectedMetricsRequest()
-
-        then: "Bidder request bidFloor should not be passed"
-        def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
-        assert !bidderRequest.imp[0].bidFloor
-        assert bidderRequest.ext?.prebid?.floors?.fetchStatus == ERROR
-
-        and: "#FETCH_FAILURE_METRIC should be update"
-        assert metrics[FETCH_FAILURE_METRIC] == 1
-
-        and: "PBS log should contain error"
-        def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
-        assert floorsLogs.size() == 1
-        assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
-                "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor floorMin" +
-                " must be positive float, but was $invalidFloorMin")
-
-        and: "Floors validation failure cannot reject the entire auction"
-        assert !response.seatbid?.isEmpty()
-    }
-
     def "PBS should give preference to currency from modelGroups when signalling"() {
         given: "Default BidRequest with floors"
         def bidRequest = bidRequestWithFloors
@@ -1785,11 +1641,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            floorMin = floorValue
-            data.modelGroups[0].values = [(rule): floorValue]
-            data.modelGroups[0].currency = modelGroupCurrency
-            data.currency = dataCurrency
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+            modelGroups[0].currency = modelGroupCurrency
+            currency = dataCurrency
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
