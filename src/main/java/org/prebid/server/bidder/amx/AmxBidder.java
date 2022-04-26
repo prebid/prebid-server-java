@@ -42,10 +42,8 @@ public class AmxBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String ADAPTER_VERSION = "pbs1.1";
+    private static final String ADAPTER_VERSION = "pbs1.2";
     private static final String VERSION_PARAM = "v";
-    private static final String VAST_SEARCH_POINT = "</Impression>";
-    private static final String VAST_IMPRESSION_FORMAT = "<Impression><![CDATA[%s]]></Impression>";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -178,17 +176,7 @@ public class AmxBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        final BidType bidType = getMediaType(amxBidExt);
-
-        final Bid updatedBid;
-        try {
-            updatedBid = bidType == BidType.video ? updateVideoBid(bid, amxBidExt) : bid;
-        } catch (PreBidException e) {
-            errors.add(BidderError.badServerResponse(e.getMessage()));
-            return null;
-        }
-
-        return BidderBid.of(updatedBid, bidType, cur);
+        return BidderBid.of(bid, getBidType(amxBidExt), cur);
     }
 
     private AmxBidExt parseBidderExt(ObjectNode ext) {
@@ -203,53 +191,13 @@ public class AmxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidType getMediaType(AmxBidExt bidExt) {
-        return StringUtils.isNotBlank(bidExt.getStartDelay())
-                ? BidType.video
-                : BidType.banner;
-    }
-
-    private static Bid updateVideoBid(Bid bid, AmxBidExt bidExt) {
-        final String adm = bid.getAdm();
-        final String bidId = bid.getId();
-        validateAdm(adm, bidId);
-        return bid.toBuilder()
-                .nurl("")
-                .adm(updateAdm(bidExt, bid.getNurl(), adm, bidId))
-                .build();
-    }
-
-    private static void validateAdm(String adm, String bidId) {
-        if (StringUtils.isBlank(adm)) {
-            throw new PreBidException(String.format("Adm should not be blank in bidder: %s", bidId));
-        }
-
-        if (!adm.contains(VAST_SEARCH_POINT)) {
-            throw new PreBidException(String.format("Adm should contain vast search point in bidder: %s", bidId));
-        }
-    }
-
-    private static String updateAdm(AmxBidExt bidExt, String nurl, String adm, String bidId) {
-        final StringBuilder updatedAdm = new StringBuilder();
-        validateAdm(adm, bidId);
-
-        int lastInd = adm.lastIndexOf(VAST_SEARCH_POINT);
-
-        updatedAdm.append(adm, 0, lastInd + VAST_SEARCH_POINT.length());
-        addValueIfNotEmpty(nurl, updatedAdm);
-
-        for (String himp : bidExt.getHimp()) {
-            addValueIfNotEmpty(himp, updatedAdm);
-        }
-
-        return updatedAdm
-                .append(adm.substring(lastInd + VAST_SEARCH_POINT.length()))
-                .toString();
-    }
-
-    private static void addValueIfNotEmpty(String value, StringBuilder dest) {
-        if (StringUtils.isNotBlank(value)) {
-            dest.append(String.format(VAST_IMPRESSION_FORMAT, value));
+    private BidType getBidType(AmxBidExt amxBidExt) {
+        if (amxBidExt.getStartDelay() != null) {
+            return BidType.video;
+        } else if (amxBidExt.getCreativeType() != null && amxBidExt.getCreativeType() == 10) {
+            return BidType.xNative;
+        } else {
+            return BidType.banner;
         }
     }
 }
