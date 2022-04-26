@@ -14,6 +14,8 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -27,14 +29,11 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 
-import java.util.ArrayList;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -71,7 +70,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
                 .willReturn(emptyPrivacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -81,29 +80,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         ampPrivacyContextFactory.contextFrom(auctionContext);
 
         // then
-        verify(privacyExtractor).validPrivacyFrom(any(), anyList());
-    }
-
-    @Test
-    public void contextFromShouldAddTcfExtractionWarningsToAuctionDebugWarningsWhenInGdprScope() {
-        // given
-        final Privacy emptyPrivacy = Privacy.of("", "", Ccpa.EMPTY, null);
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(emptyPrivacy);
-        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any()))
-                .willReturn(emptyPrivacy);
-
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(Future.succeededFuture(TcfContext.builder().warnings(singletonList("Error")).build()));
-
-        final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext(null)));
-
-        // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
-
-        // then
-        assertThat(auctionContext.getDebugWarnings()).containsExactly("Error");
+        verify(privacyExtractor).validPrivacyFrom(any(), any());
     }
 
     @Test
@@ -112,7 +89,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         final Privacy privacy = Privacy.of("1", "consent_string", Ccpa.EMPTY, null);
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -123,7 +100,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
         // then
         assertThat(result.result().getPrivacy()).isEqualTo(privacy);
-        assertThat(auctionContext.getPrebidErrors()).isEmpty();
+        assertThat(auctionContext.getPrebidLog().getErrors()).isEmpty();
     }
 
     @Test
@@ -133,7 +110,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -144,7 +121,9 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
         // then
         assertThat(result.result().getPrivacy()).isEqualTo(privacy.withoutConsent());
-        assertThat(auctionContext.getPrebidErrors()).containsExactly("Consent type tcfV1 is no longer supported");
+        assertThat(auctionContext.getPrebidLog().getErrors())
+                .extracting(PrebidMessage::getMessage)
+                .containsExactly("Consent type tcfV1 is no longer supported");
     }
 
     private static AuctionContext givenAuctionContext(
@@ -153,9 +132,8 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         final AuctionContext.AuctionContextBuilder defaultAuctionContextBuilder =
                 AuctionContext.builder()
                         .httpRequest(givenHttpRequestContext(null))
-                        .debugWarnings(new ArrayList<>())
+                        .prebidLog(PrebidLog.empty())
                         .account(Account.builder().build())
-                        .prebidErrors(new ArrayList<>())
                         .bidRequest(givenBidRequest(identity()));
 
         return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
@@ -173,7 +151,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(ipAddressHelper.anonymizeIpv6(anyString()))
                 .willReturn("maskedIpV6");
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
@@ -203,7 +181,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(ipAddressHelper.anonymizeIpv6(anyString()))
                 .willReturn("maskedIpV6");
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
@@ -228,7 +206,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(privacyExtractor.validPrivacyFrom(any(), any()))
                 .willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
@@ -246,7 +224,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         // then
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
         verify(tcfDefinerService)
-                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any());
+                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any(), any());
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

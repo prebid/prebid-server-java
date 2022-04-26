@@ -169,8 +169,7 @@ public class AmpRequestFactory {
         }
 
         final ConsentParam consentParam = consentParamFromQueryStringParams(httpRequest);
-        final List<String> consentParamValidationErrors = validateConsentParam(consentParam, auctionContext.getPrebidLog());
-        auctionContext.getPrebidErrors().addAll(consentParamValidationErrors);
+        validateConsentParam(consentParam, auctionContext.getPrebidLog());
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
@@ -210,17 +209,16 @@ public class AmpRequestFactory {
                 Ccpa.isValid(consent));
     }
 
-    private List<String> validateConsentParam(ConsentParam consentParam, PrebidLog prebidLog) {
+    private void validateConsentParam(ConsentParam consentParam, PrebidLog prebidLog) {
 
         if (consentParam.getSpecifiedType() == ConsentType.UNKNOWN) {
-            errors.add("Invalid consent_type param passed");
+            prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic, "Invalid consent_type param passed"));
         }
         if (!consentParam.isValid() && consentParam.isConsentStringPresent()) {
-            errors.add("Amp request parameter " + consentParam.getSourceParam()
-                    + " has invalid format: " + consentParam.getConsentString());
+            prebidLog.addError(PrebidMessage.of(PrebidMessage.Type.generic,
+                    "Amp request parameter " + consentParam.getSourceParam()
+                    + " has invalid format: " + consentParam.getConsentString()));
         }
-
-        return errors;
     }
 
     private static Site createSite(HttpRequestContext httpRequest) {

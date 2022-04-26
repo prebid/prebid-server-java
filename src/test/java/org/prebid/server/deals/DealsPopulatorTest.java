@@ -20,6 +20,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.deals.deviceinfo.DeviceInfoService;
 import org.prebid.server.deals.lineitem.LineItem;
 import org.prebid.server.deals.model.DeviceInfo;
@@ -48,7 +49,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -659,7 +659,7 @@ public class DealsPopulatorTest extends VertxTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(account)
-                .debugWarnings(new ArrayList<>())
+                .prebidLog(PrebidLog.empty())
                 .build();
     }
 }

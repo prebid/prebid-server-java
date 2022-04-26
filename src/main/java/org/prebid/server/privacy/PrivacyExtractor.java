@@ -16,8 +16,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.CookieSyncRequest;
 
-import java.util.List;
-
 /**
  * GDPR-aware utilities
  */
@@ -76,11 +74,12 @@ public class PrivacyExtractor {
         return toValidPrivacy(gdpr, consent, usPrivacy, coppa, prebidLog);
     }
 
-    private static Privacy toValidPrivacy(String gdpr,
-                                          String consent,
-                                          String usPrivacy,
-                                          Integer coppa,
-                                          PrebidLog prebidLog) {
+    public Privacy toValidPrivacy(String gdpr,
+                                  String consent,
+                                  String usPrivacy,
+                                  Integer coppa,
+                                  PrebidLog prebidLog) {
+
         final String validGdpr = ObjectUtils.notEqual(gdpr, "1") && ObjectUtils.notEqual(gdpr, "0")
                 ? DEFAULT_GDPR_VALUE
                 : gdpr;

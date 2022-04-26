@@ -30,9 +30,7 @@ import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.settings.model.GdprConfig;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -111,9 +109,11 @@ public class TcfDefinerService {
                                                 AccountGdprConfig accountGdprConfig,
                                                 MetricName requestType,
                                                 RequestLogInfo requestLogInfo,
-                                                Timeout timeout) {
+                                                Timeout timeout,
+                                                PrebidLog prebidLog) {
 
-        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig, requestType, requestLogInfo, timeout);
+        return resolveTcfContext(privacy, null, ipAddress, accountGdprConfig,
+                requestType, requestLogInfo, timeout, prebidLog);
     }
 
     public Future<TcfResponse<Integer>> resultForVendorIds(Set<Integer> vendorIds, TcfContext tcfContext) {
@@ -179,8 +179,10 @@ public class TcfDefinerService {
                                             RequestLogInfo requestLogInfo,
                                             Timeout timeout,
                                             PrebidLog prebidLog) {
+
         final String consentString = privacy.getConsentString();
-        final TCStringParsingResult consentStringParsingResult = parseConsentString(consentString, requestLogInfo, prebidLog);
+        final TCStringParsingResult consentStringParsingResult =
+                parseConsentString(consentString, requestLogInfo, prebidLog);
         final TCString consent = consentStringParsingResult.getResult();
         final boolean consentValid = isConsentValid(consent);
 
@@ -194,7 +196,7 @@ public class TcfDefinerService {
                 .consentValid(consentValid)
                 .inEea(inEea)
                 .ipAddress(effectiveIpAddress)
-                .warnings(consentStringParsingResult.getWarnings())
+                .prebidLog(consentStringParsingResult.getWarnings())
                 .build();
 
         if (consentStringMeansInScope && consentValid) {
@@ -324,13 +326,13 @@ public class TcfDefinerService {
 
         if (StringUtils.isBlank(consentString)) {
             metrics.updatePrivacyTcfMissingMetric();
-            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+            return TCStringParsingResult.of(TCStringEmpty.create(), prebidLog);
         }
 
-        final TCString tcString = decodeTcString(consentString, requestLogInfo, warnings);
+        final TCString tcString = decodeTcString(consentString, requestLogInfo, prebidLog);
         if (tcString == null) {
             metrics.updatePrivacyTcfInvalidMetric();
-            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+            return TCStringParsingResult.of(TCStringEmpty.create(), prebidLog);
         }
 
         final int version = tcString.getVersion();
@@ -340,14 +342,12 @@ public class TcfDefinerService {
         if (version == 1) {
             if (prebidLog != null) {
                 prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
-                        String.format("Parsing consent string:\"%s\" failed. TCF version 1 is "
-                                + "deprecated and treated as corrupted TCF version 2", consentString)));
+                        String.format("Parsing consent string:\"" + consentString + "\" failed. TCF version 1 is "
+                                + "deprecated and treated as corrupted TCF version 2")));
             }
-            warnings.add("Parsing consent string:\"" + consentString + "\" failed. TCF version 1 is "
-                    + "deprecated and treated as corrupted TCF version 2");
-            return TCStringParsingResult.of(TCStringEmpty.create(), warnings);
+            return TCStringParsingResult.of(TCStringEmpty.create(), prebidLog);
         }
-        return TCStringParsingResult.of(tcString, warnings);
+        return TCStringParsingResult.of(tcString, prebidLog);
     }
 
     private TCString decodeTcString(String consentString, RequestLogInfo requestLogInfo, PrebidLog prebidLog) {
@@ -355,10 +355,8 @@ public class TcfDefinerService {
             return TCString.decode(consentString);
         } catch (Exception e) {
             logWarn(consentString, e.getMessage(), requestLogInfo);
-            warnings.add(
-                    String.format(
-                            "Parsing consent string:\"%s\" - failed. %s",
-                            consentString, e.getMessage()));
+            prebidLog.addWarning(PrebidMessage.of(PrebidMessage.Type.generic,
+                    String.format("Parsing consent string:\"%s\" - failed. %s", consentString, e.getMessage())));
             return null;
         }
     }
@@ -417,6 +415,6 @@ public class TcfDefinerService {
 
         TCString result;
 
-        List<String> warnings;
+        PrebidLog warnings;
     }
 }

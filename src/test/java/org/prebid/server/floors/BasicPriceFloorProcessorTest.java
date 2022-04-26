@@ -12,6 +12,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
@@ -29,7 +31,6 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -689,13 +690,14 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractImps(result))
                 .isEqualTo(imps);
 
-        assertThat(result.getPrebidErrors())
+        assertThat(result.getPrebidLog().getErrors())
+                .extracting(PrebidMessage::getMessage)
                 .containsOnly("Cannot resolve bid floor, error: error");
     }
 
     private static AuctionContext givenAuctionContext(Account account, BidRequest bidRequest) {
         return AuctionContext.builder()
-                .prebidErrors(new ArrayList<>())
+                .prebidLog(PrebidLog.empty())
                 .account(account)
                 .bidRequest(bidRequest)
                 .build();

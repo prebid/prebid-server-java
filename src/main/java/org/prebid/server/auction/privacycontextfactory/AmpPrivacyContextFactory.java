@@ -9,20 +9,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.privacy.gdpr.model.RequestLogInfo;
-import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 
-import java.util.List;
 import java.util.Objects;
 
 public class AmpPrivacyContextFactory {
@@ -50,9 +50,9 @@ public class AmpPrivacyContextFactory {
 
         final MetricName requestType = auctionContext.getRequestTypeMetric();
         final Timeout timeout = auctionContext.getTimeout();
-        final List<String> errors = auctionContext.getPrebidErrors();
+        final PrebidLog prebidLog = auctionContext.getPrebidLog();
 
-        final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
+        final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, prebidLog);
         final Privacy strippedPrivacy = stripPrivacy(initialPrivacy, auctionContext);
 
         final Device device = bidRequest.getDevice();
@@ -65,19 +65,20 @@ public class AmpPrivacyContextFactory {
                 extractGdprConfig(account),
                 requestType,
                 requestLogInfo(requestType, bidRequest, account.getId()),
-                timeout)
-                .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
+                timeout,
+                prebidLog)
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
 
     private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
-        final List<String> errors = auctionContext.getPrebidErrors();
+        final PrebidLog prebidLog = auctionContext.getPrebidLog();
 
         final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
         final ConsentType consentType = ConsentType.from(consentTypeParam);
 
         if (consentType == ConsentType.TCF_V1) {
-            errors.add("Consent type tcfV1 is no longer supported");
+            prebidLog.addError(
+                    PrebidMessage.of(PrebidMessage.Type.generic, "Consent type tcfV1 is no longer supported"));
             return privacy.withoutConsent();
         }
 
@@ -88,12 +89,6 @@ public class AmpPrivacyContextFactory {
         final AccountPrivacyConfig accountPrivacyConfig = account != null ? account.getPrivacy() : null;
 
         return accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
-    }
-
-    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
-        debugWarnings.addAll(tcfContext.getWarnings());
-
-        return tcfContext;
     }
 
     private String resolveAlpha2CountryCode(Device device) {

@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidLog;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -19,7 +21,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImp;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.settings.model.Account;
 
-import java.util.ArrayList;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -222,7 +223,8 @@ public class DealsProcessorTest extends VertxTest {
         dealsProcessor.removePgDealsOnlyBiddersWithoutDeals(auctionContext, imp, null);
 
         // then
-        assertThat(auctionContext.getDebugWarnings())
+        assertThat(auctionContext.getPrebidLog().getWarnings())
+                .extracting(PrebidMessage::getMessage)
                 .containsExactly("Not calling rubicon bidders for impression impId"
                         + " due to pgdealsonly flag and no available PG line items.");
     }
@@ -264,7 +266,7 @@ public class DealsProcessorTest extends VertxTest {
         return AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(account)
-                .debugWarnings(new ArrayList<>())
+                .prebidLog(PrebidLog.empty())
                 .build();
     }
 }

@@ -1324,11 +1324,11 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidLog().getErrors())
-                .flatExtracting(PrebidMessage::getMessage)
+                .extracting(PrebidMessage::getMessage)
                 .containsExactly("Invalid consent_type param passed");
+    }
 
-
-        @Test
+    @Test
     public void shouldAddErrorToAuctionContextWhenConsentStringQueryParamIsInvalid() {
         // given
         routingContext.queryParams().add("consent_string", "consent-value");
@@ -1339,10 +1339,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-            assertThat(result.getPrebidLog().getErrors())
-                    .flatExtracting(PrebidMessage::getMessage)
-                    .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
-        }
+        assertThat(result.getPrebidLog().getErrors())
+                .extracting(PrebidMessage::getMessage)
+                .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
+    }
 
     @Test
     public void shouldAddErrorToAuctionContextWhenGdprConsentQueryParamIsInvalid() {
@@ -1355,9 +1355,9 @@ public class AmpRequestFactoryTest extends VertxTest {
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
 
         // then
-            assertThat(result.getPrebidLog().getErrors())
-                    .flatExtracting(PrebidMessage::getMessage)
-                    .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
+        assertThat(result.getPrebidLog().getErrors())
+                .extracting(PrebidMessage::getMessage)
+                .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
     }
 
     @Test

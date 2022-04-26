@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Pmp;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.PrebidMessage;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
 import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
@@ -120,9 +121,9 @@ public class DealsProcessor {
                                            Imp imp,
                                            Set<String> pgDealsOnlyBiddersToRemove) {
 
-        auctionContext.getDebugWarnings().add(String.format(
+        auctionContext.getPrebidLog().addWarning(PrebidMessage.of(PrebidMessage.Type.generic, String.format(
                 "Not calling %s bidders for impression %s due to %s flag and no available PG line items.",
-                String.join(", ", pgDealsOnlyBiddersToRemove), imp.getId(), PG_DEALS_ONLY));
+                String.join(", ", pgDealsOnlyBiddersToRemove), imp.getId(), PG_DEALS_ONLY)));
     }
 
     private static boolean hasBidder(Imp imp) {
