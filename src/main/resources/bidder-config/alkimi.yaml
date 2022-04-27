@@ -1,6 +1,5 @@
 adapters:
   alkimi:
-    enabled: true
     endpoint: https://exchange.alkimi-onboarding.com/server/bid
     meta-info:
       maintainer-email: abogdanov@asteriosoft.com
