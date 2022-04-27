@@ -25,7 +25,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
         final PriceFloorRules priceFloorRules = givenPriceFloorRules(rulesBuilder -> rulesBuilder.skipRate(-1));
 
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor root skipRate must be in range(0-100), but was -1");
     }
 
@@ -37,7 +37,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor floorMin must be positive float, but was -1");
     }
 
@@ -48,7 +48,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor rules data must be present");
     }
 
@@ -59,7 +59,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor data skipRate must be in range(0-100), but was -1");
     }
 
@@ -71,7 +71,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor rules should contain at least one model group");
     }
 
@@ -83,7 +83,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor rules should contain at least one model group");
     }
 
@@ -95,7 +95,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor modelGroup modelWeight must be in range(1-100), but was -1");
     }
 
@@ -107,7 +107,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor modelGroup skipRate must be in range(0-100), but was -1");
     }
 
@@ -119,7 +119,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor modelGroup default must be positive float, but was -1");
     }
 
@@ -131,7 +131,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, 100))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, 100))
                 .withMessage("Price floor rules values can't be null or empty, but were {}");
     }
 
@@ -149,7 +149,7 @@ public class PriceFloorRulesValidatorTest extends VertxTest {
 
         // when and then
         assertThatExceptionOfType(PreBidException.class)
-                .isThrownBy(() -> PriceFloorRulesValidator.validate(priceFloorRules, maxRules))
+                .isThrownBy(() -> PriceFloorRulesValidator.validateRules(priceFloorRules, maxRules))
                 .withMessage(
                         "Price floor rules number %s exceeded its maximum number %s",
                         modelGroupValues.size(),

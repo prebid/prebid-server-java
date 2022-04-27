@@ -4,7 +4,7 @@ import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
-import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
+import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
@@ -39,6 +39,6 @@ class FloorsProvider extends NetworkScaffolding {
     }
 
     private String getDefaultResponse() {
-        mapper.encode(PriceFloorRules.priceFloorRules)
+        mapper.encode(PriceFloorData.priceFloorData)
     }
 }

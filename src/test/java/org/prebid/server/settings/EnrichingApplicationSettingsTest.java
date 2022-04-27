@@ -51,7 +51,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsNull() {
         // given
         enrichingApplicationSettings =
-                new EnrichingApplicationSettings(null, delegate, priceFloorsConfigResolver, jsonMerger);
+                new EnrichingApplicationSettings(true, null, delegate, priceFloorsConfigResolver, jsonMerger);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -70,6 +70,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldOmitMergingWhenDefaultAccountIsEmpty() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true,
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
@@ -92,6 +93,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldMergeAccountWithDefaultAccount() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true,
                 "{\"auction\": {\"banner-cache-ttl\": 100},"
                         + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
@@ -133,6 +135,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnDefaultAccountWhenDelegateFailed() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                false,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
                 priceFloorsConfigResolver,
@@ -153,9 +156,29 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getAccountByIdShouldReturnFailedFutureWhenDelegateFailedAndEnforceValidAccountIsTrue() {
+        // given
+        enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true,
+                "{\"auction\": {\"banner-cache-ttl\": 100}}",
+                delegate,
+                priceFloorsConfigResolver,
+                jsonMerger);
+
+        given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
+
+        // when
+        final Future<Account> accountFuture = enrichingApplicationSettings.getAccountById("123", timeout);
+
+        // then
+        assertThat(accountFuture).isFailed();
+    }
+
+    @Test
     public void getAccountByIdShouldPassOnFailureWhenDefaultAccountIsEmpty() {
         // given
         enrichingApplicationSettings = new EnrichingApplicationSettings(
+                true,
                 "{}",
                 delegate,
                 priceFloorsConfigResolver,
