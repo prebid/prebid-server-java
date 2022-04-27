@@ -44,6 +44,12 @@ class Imp {
         }
     }
 
+    static Imp getNativeImpression() {
+        defaultImp.tap {
+            nativeObj = Native.defaultNative
+        }
+    }
+
    private static Imp getDefaultImp() {
         new Imp().tap {
             id = UUID.randomUUID()

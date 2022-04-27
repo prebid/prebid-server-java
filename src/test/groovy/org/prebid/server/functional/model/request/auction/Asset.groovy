@@ -13,6 +13,10 @@ class Asset {
     AssetVideo video
     AssetData data
 
+    static Asset getDefaultAsset() {
+        new Asset(id: PBSUtils.randomNumber)
+    }
+
     static Asset getTitleAsset() {
         new Asset().tap {
             id = 1

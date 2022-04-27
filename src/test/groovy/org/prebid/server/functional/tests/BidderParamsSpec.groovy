@@ -17,6 +17,8 @@ import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.auction.Bid
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
@@ -411,7 +413,6 @@ class BidderParamsSpec extends BaseSpec {
         "site-media-types" | BidRequest.getDefaultBidRequest(SITE)
     }
 
-// TODO  Critical error while running the auction: null
     def "PBS should emit error when filter-imp-media-type = true and request contains media type that is not configured in bidder config"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(
@@ -425,6 +426,12 @@ class BidderParamsSpec extends BaseSpec {
             imp[0].nativeObj = Native.defaultNative
         }
 
+        and: "Default basic bid with adm"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
 
@@ -433,10 +440,8 @@ class BidderParamsSpec extends BaseSpec {
         assert !bidderRequest.imp[0]?.banner
         assert bidderRequest.imp[0]?.nativeObj
 
-        and: "Response should contain error"
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
-        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
-                ["Imp with id ${bidRequest.imp[0].id} uses banner, but this bidder doesn't this type" as String]
+        and: "Response should not contain warnings"
+        assert !response.ext?.warnings
     }
 
     def "PBS should not validate request when filter-imp-media-type = false and request contains only media type that is not configured in bidder config"() {
@@ -463,7 +468,7 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should not contain error"
         assert !response.ext?.errors
     }
-// TODO  Critical error while running the auction: null
+
     def "PBS should emit error for request with multiple impressions when filter-imp-media-type = true, one of imp doesn't contain supported media type"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(
@@ -471,12 +476,19 @@ class BidderParamsSpec extends BaseSpec {
                  "adapters.generic.meta-info.site-media-types": "native,video"])
 
         and: "Default basic BidRequest with banner, native"
+        def nativeImp = Imp.nativeImpression
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite
-            imp << Imp.defaultImpression
-            imp.first().banner = Banner.defaultBanner
-            imp.last().nativeObj = Native.defaultNative
+            imp = [Imp.defaultImpression, nativeImp]
         }
+
+        and: "Default basic bid with adm"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid = [Bid.getDefaultBid(nativeImp)]
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
         def response = pbsService.sendAuctionRequest(bidRequest)
@@ -484,12 +496,13 @@ class BidderParamsSpec extends BaseSpec {
         then: "PBS should remove banner imp from bidder request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp.size() == 1
+        assert !bidderRequest.imp[0].banner
         assert bidderRequest.imp[0].nativeObj
 
         and: "Response should contain error"
-        assert response.ext?.warnings[PREBID]*.code == [999]
-        assert response.ext?.warnings[PREBID]*.message ==
-                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $GENERIC.value and" +
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
+                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $BidderName.GENERIC.value and" +
                          " has been removed from the request for this bidder" as String]
 
         and: "seatbid should not be empty"

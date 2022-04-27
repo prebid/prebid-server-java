@@ -3,6 +3,7 @@ package org.prebid.server.functional.model.response.auction
 import com.fasterxml.jackson.annotation.JsonGetter
 import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
+import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.PBSUtils
@@ -49,6 +50,9 @@ class Bid {
             crid = 1
             h = imp.banner && imp.banner.format ? imp.banner.format.first().h : null
             w = imp.banner && imp.banner.format ? imp.banner.format.first().w : null
+            if (imp.nativeObj) {
+                adm = new Adm(assets: [Asset.defaultAsset])
+            }
         }
     }
 
