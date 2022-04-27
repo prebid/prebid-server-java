@@ -1454,8 +1454,8 @@ public class ExchangeService {
             }
         }
 
-        final BidderResponse resultBidderResponse =
-                bidderResponse.with(BidderSeatBid.of(updatedBidderBids, seatBid.getHttpCalls(), errors));
+        final BidderResponse resultBidderResponse = bidderResponse.with(BidderSeatBid.of(
+                updatedBidderBids, seatBid.getHttpCalls(), errors, seatBid.getWarnings()));
         return auctionParticipation.with(resultBidderResponse);
     }
 

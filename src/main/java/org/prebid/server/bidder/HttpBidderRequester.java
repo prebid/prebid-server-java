@@ -159,7 +159,9 @@ public class HttpBidderRequester {
                 ? Collections.singletonList(BidderError.failedToRequestBids(
                 "The bidder failed to generate any bid requests, but also failed to generate an error"))
                 : bidderErrors;
-        return Future.succeededFuture(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(), errors));
+
+        return Future.succeededFuture(BidderSeatBid.of(
+                Collections.emptyList(), Collections.emptyList(), errors, Collections.emptyList()));
     }
 
     /**
@@ -349,7 +351,7 @@ public class HttpBidderRequester {
 
             final List<BidderError> errors = errors(previousErrors, httpCalls, errorsRecorded);
 
-            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors);
+            return BidderSeatBid.of(bidsRecorded, extHttpCalls, errors, Collections.emptyList());
         }
 
         /**

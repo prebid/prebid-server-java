@@ -1019,8 +1019,8 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
-                .willReturn(Future.succeededFuture(BidderSeatBid.of(emptyList(),
-                        singletonList(ExtHttpCall.builder().build()), emptyList())));
+                .willReturn(Future.succeededFuture(BidderSeatBid.of(
+                        emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList())));
 
         given(bidResponseCreator.create(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
@@ -1046,8 +1046,8 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldAddDebugInfoIfDebugEnabledAndPublisherAndBidderAllowedDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(),
-                singletonList(ExtHttpCall.builder().build()), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(
+                emptyList(), singletonList(ExtHttpCall.builder().build()), emptyList(), emptyList());
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(true)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1083,7 +1083,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldNotAddDebugInfoIfPublisherIsNotAllowedToDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1114,7 +1114,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void shouldNotAddDebugInfoIfBidderDisabledDebug() {
         // given
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(emptyList(), emptyList(), emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.empty();
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), eq(false)))
                 .willReturn(Future.succeededFuture(bidderSeatBid));
 
@@ -1224,9 +1224,11 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(auctionParticipations)
                 .extracting(AuctionParticipation::getBidderResponse)
                 .containsOnly(
-                        BidderResponse.of("bidder2", BidderSeatBid.of(singletonList(
-                                BidderBid.of(expectedThirdBid, banner, null)), emptyList(), emptyList()), 0),
-                        BidderResponse.of("bidder1", BidderSeatBid.of(emptyList(), emptyList(), emptyList()), 0));
+                        BidderResponse.of(
+                                "bidder2",
+                                BidderSeatBid.of(singletonList(BidderBid.of(expectedThirdBid, banner, null))),
+                                0),
+                        BidderResponse.of("bidder1", BidderSeatBid.empty(), 0));
 
         final AuctionContext expectedAuctionContext = auctionContext.toBuilder()
                 .auctionParticipations(auctionParticipations)
@@ -1523,7 +1525,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), banner, "USD");
-        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid), null, emptyList());
+        final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid));
         given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
                 .willReturn(singletonList(
                         AuctionParticipation.builder()
@@ -2947,9 +2949,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(BidderSeatBid.of(
                 singletonList(BidderBid.of(
                         Bid.builder().id("bidId").impid("impId").price(price)
-                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null)),
-                emptyList(),
-                emptyList()));
+                                .ext(mapper.valueToTree(singletonMap("bidExt", 1))).build(), banner, null))));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 bidRequestBuilder -> bidRequestBuilder.app(App.builder()
@@ -3052,7 +3052,8 @@ public class ExchangeServiceTest extends VertxTest {
                                 BidderError.badServerResponse("rubicon error"),
                                 BidderError.failedToRequestBids("rubicon failed to request bids"),
                                 BidderError.timeout("timeout error"),
-                                BidderError.generic("timeout error")))));
+                                BidderError.generic("timeout error")),
+                        emptyList())));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
@@ -3302,7 +3303,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(AuctionParticipation.builder()
                         .bidder("bidder1")
                         .bidderResponse(BidderResponse.of(
-                                "bidder1", BidderSeatBid.of(singletonList(bidToAccept), null, emptyList()), 0))
+                                "bidder1", BidderSeatBid.of(singletonList(bidToAccept)), 0))
                         .build());
 
         // when
@@ -4089,7 +4090,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderSeatBid givenSeatBid(List<BidderBid> bids) {
-        return BidderSeatBid.of(bids, emptyList(), emptyList());
+        return BidderSeatBid.of(bids);
     }
 
     private static BidderSeatBid givenSingleSeatBid(BidderBid bid) {

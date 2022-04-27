@@ -293,9 +293,9 @@ public class StoredResponseProcessor {
         if (nonNullBidderSeatBid) {
             bidderBids.addAll(bidderSeatBid.getBids());
         }
-        return BidderSeatBid.of(bidderBids,
-                nonNullBidderSeatBid ? bidderSeatBid.getHttpCalls() : Collections.emptyList(),
-                nonNullBidderSeatBid ? bidderSeatBid.getErrors() : Collections.emptyList());
+        return nonNullBidderSeatBid
+                ? bidderSeatBid.with(bidderBids)
+                : BidderSeatBid.of(bidderBids);
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, Map<String, BidType> impIdToBidType) {
