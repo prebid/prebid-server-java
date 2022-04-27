@@ -14,7 +14,6 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.PrebidLog;
 import org.prebid.server.auction.model.PrebidMessage;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -31,8 +30,6 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 
 import java.math.BigDecimal;
-import java.util.Collections;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
