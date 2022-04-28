@@ -10,18 +10,15 @@ import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
-    private static final String DEFAULT_PORT = "8080"
-    private static final String DEFAULT_DEBUG_PORT = "8000"
-    private static final String DEFAULT_ADMIN_PORT = "8060"
+    private static final int DEFAULT_PORT = 8080
+    private static final int DEFAULT_DEBUG_PORT = 8000
+    private static final int DEFAULT_ADMIN_PORT = 8060
     private static final String ADMIN_ENDPOINT_USERNAME = "admin"
     private static final String ADMIN_ENDPOINT_PASSWORD = "admin"
     private static final String APP_WORKDIR = "/app/prebid-server/"
-    private static final int PORT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT));
-    private static final int DEBUG_PORT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT));
-    private static final int ADMIN_PORT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT));
+    private static final int PORT = SystemProperties.getIntPropertyOrDefault("port", DEFAULT_PORT)
+    private static final int DEBUG_PORT = SystemProperties.getIntPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
+    private static final int ADMIN_PORT = SystemProperties.getIntPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
     private static final boolean FIXED_EXPOSED_PORT = Boolean.parseBoolean(
             SystemProperties.getPropertyOrDefault("fixed.exposed.port", false))
 
@@ -32,7 +29,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     PrebidServerContainer(String dockerImage, Map<String, String> customConfig) {
         super(dockerImage)
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT)
-        withExposedPortsDebug()
+        withExposedDebugPorts()
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
                        .forStatusCode(200))
@@ -49,7 +46,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         withConfig(customConfig)
     }
 
-    private void withExposedPortsDebug() {
+    private void withExposedDebugPorts() {
         if (FIXED_EXPOSED_PORT) {
             addFixedExposedPort(PORT, PORT)
             addFixedExposedPort(DEBUG_PORT, DEBUG_PORT)

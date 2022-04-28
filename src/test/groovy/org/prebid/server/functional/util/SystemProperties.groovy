@@ -13,6 +13,10 @@ class SystemProperties {
         System.getProperty(property) ?: defaultValue
     }
 
+    static int getIntPropertyOrDefault(String property, int defaultValue) {
+        System.getProperty(property) ? Integer.parseInt(System.getProperty(property)) : defaultValue
+    }
+
     private SystemProperties() {
         throw new InstantiationException("This class should not be instantiated!")
     }
