@@ -198,6 +198,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsPopulator,
+                priceFloorProcessor,
                 countryCodeMapper,
                 metrics,
                 clock);
