@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
@@ -12,6 +11,8 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
+
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
 @PBSTest
 class BidValidationSpec extends BaseSpec {
@@ -156,7 +157,7 @@ class BidValidationSpec extends BaseSpec {
         given: "Default basic  BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.debug = 1
-        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: BidderName.GENERIC.value, maxBids: 2)]
+        bidRequest.ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
@@ -189,5 +190,26 @@ class BidValidationSpec extends BaseSpec {
         0                             | null
         null                          | PBSUtils.randomNumber
         null                          | null
+    }
+
+    def "PBS should update 'adapter.generic.requests.bid_validation' metric when bid validation error appears"() {
+        given: "Initial 'adapter.generic.requests.bid_validation' metric value"
+        def initialMetricValue = getCurrentMetricValue("adapter.generic.requests.bid_validation")
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Set invalid bid response"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].impid = PBSUtils.randomNumber as String
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Sending auction request to PBS"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid validation metric value is incremented"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 }

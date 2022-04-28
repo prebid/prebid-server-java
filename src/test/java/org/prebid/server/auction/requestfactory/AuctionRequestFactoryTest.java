@@ -135,6 +135,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
         given(ortb2RequestFactory.validateRequest(any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(paramsResolver.resolve(any(), any(), any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));

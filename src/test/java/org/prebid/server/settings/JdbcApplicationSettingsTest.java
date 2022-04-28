@@ -156,7 +156,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"privacy\": {"
                 + "\"gdpr\": {"
                 + "\"enabled\": true,"
-                + "\"integration-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
+                + "\"channel-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
                 + "}"
                 + "},"
                 + "\"metrics\": {\"verbosity-level\": \"detailed\"},"
