@@ -45,7 +45,8 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     public void priceFloorsConfigResolverShouldNotCreateInstanceIfDefaultAccountIsInvalid() {
         assertThatIllegalArgumentException().isThrownBy(() -> new PriceFloorsConfigResolver(
                 "{",
-                metrics));
+                metrics,
+                jacksonMapper));
     }
 
     @Test
