@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.deals.targeting.model.GeoLocation;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.model.Size;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 import org.prebid.server.exception.TargetingSyntaxException;
@@ -29,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
+import org.prebid.server.proto.openrtb.ext.request.ExtUserTime;
 
 import java.util.function.Function;
 
@@ -52,15 +54,13 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
-                request(r -> r.site(site(s -> s
-                        .domain("domain.com")
-                        .publisher(Publisher.builder().domain("anotherdomain.com").build())))),
+                request(r -> r.site(site(s -> s.domain("domain.com")))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("domain.com");
+        assertThat(context.lookupString(category).getValues()).containsExactly("domain.com");
     }
 
     @Test
@@ -69,17 +69,17 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
                 request(r -> r.site(site(s -> s
-                                .publisher(Publisher.builder().domain("domain.com").build())))),
+                        .publisher(Publisher.builder().domain("domain.com").build())))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("domain.com");
+        assertThat(context.lookupString(category).getValues()).containsExactly("domain.com");
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenDomainIsMissing() {
+    public void lookupStringShouldReturnEmptyResultWhenDomainIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
@@ -89,11 +89,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullForDomainWhenSiteIsMissing() {
+    public void lookupStringShouldReturnEmptyResultForDomainWhenSiteIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.domain);
         final RequestContext context = new RequestContext(
@@ -103,7 +103,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -119,18 +119,18 @@ public class RequestContextTest extends VertxTest {
                         jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("domain.com");
+        assertThat(context.lookupString(category).getValues()).containsExactly("domain.com");
     }
 
     @Test
-    public void lookupStringShouldReturnNullForPublisherDomainWhenSiteIsMissing() {
+    public void lookupStringShouldReturnEmptyResultForPublisherDomainWhenSiteIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.publisherDomain);
         final RequestContext context =
                 new RequestContext(request(identity()), imp(identity()), txnLog, jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -144,7 +144,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("https://domain.com/index");
+        assertThat(context.lookupString(category).getValues()).containsExactly("https://domain.com/index");
     }
 
     @Test
@@ -158,11 +158,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("com.google.calendar");
+        assertThat(context.lookupString(category).getValues()).containsExactly("com.google.calendar");
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenBundleIsMissing() {
+    public void lookupStringShouldReturnEmptyResultWhenBundleIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.appBundle);
         final RequestContext context = new RequestContext(
@@ -172,11 +172,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenAppIsMissing() {
+    public void lookupStringShouldReturnEmptyResultWhenAppIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.appBundle);
         final RequestContext context = new RequestContext(
@@ -186,7 +186,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -196,18 +196,14 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
-                                        .put("pbadslot", "/123/456")
-                                        .set("adserver", obj("adslot", "/234/567"))))
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                                        .put("pbadslot", "/123/456"))))),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("/123/456");
+        assertThat(context.lookupString(category).getValues()).containsExactly("/123/456");
     }
 
     @Test
@@ -217,17 +213,14 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .<ObjectNode>set("context", mapper.createObjectNode()
+                        .set("context", mapper.createObjectNode()
                                 .set("data", mapper.createObjectNode()
-                                        .set("adserver", obj("adslot", "/234/567"))))
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                                        .set("adserver", obj("adslot", "/234/567")))))),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("/234/567");
+        assertThat(context.lookupString(category).getValues()).containsExactly("/234/567");
     }
 
     @Test
@@ -237,14 +230,12 @@ public class RequestContextTest extends VertxTest {
         final RequestContext context = new RequestContext(
                 request(identity()),
                 imp(i -> i.ext(mapper.createObjectNode()
-                        .set("data", mapper.createObjectNode()
-                                .put("pbadslot", "/345/678")
-                                .set("adserver", obj("adslot", "/456/789"))))),
+                        .set("data", mapper.createObjectNode().put("pbadslot", "/345/678")))),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("/345/678");
+        assertThat(context.lookupString(category).getValues()).containsExactly("/345/678");
     }
 
     @Test
@@ -260,7 +251,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("/456/789");
+        assertThat(context.lookupString(category).getValues()).containsExactly("/456/789");
     }
 
     @Test
@@ -274,11 +265,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("/123/456");
+        assertThat(context.lookupString(category).getValues()).containsExactly("/123/456");
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenAdslotIsMissing() {
+    public void lookupStringShouldReturnEmptyResultWhenAdslotIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.adslot);
         final RequestContext context = new RequestContext(
@@ -288,7 +279,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -305,7 +296,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("value");
+        assertThat(context.lookupString(category).getValues()).containsExactly("value");
     }
 
     @Test
@@ -322,7 +313,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("value");
+        assertThat(context.lookupString(category).getValues()).containsExactly("value");
     }
 
     @Test
@@ -340,7 +331,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("value");
+        assertThat(context.lookupString(category).getValues()).containsExactly("value");
     }
 
     @Test
@@ -357,7 +348,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("value");
+        assertThat(context.lookupString(category).getValues()).containsExactly("value");
     }
 
     @Test
@@ -371,7 +362,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("123");
+        assertThat(context.lookupString(category).getValues()).containsExactly("123");
     }
 
     @Test
@@ -386,11 +377,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("123");
+        assertThat(context.lookupString(category).getValues()).containsExactly("123");
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenBidderParamIsNotString() {
+    public void lookupStringShouldReturnEmptyResultWhenBidderParamIsNotString() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -400,11 +391,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenBidderParamIsMissing() {
+    public void lookupStringShouldReturnEmptyResultWhenBidderParamIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -414,11 +405,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenImpExtIsMissingForBidderParam() {
+    public void lookupStringShouldReturnEmptyResultWhenImpExtIsMissingForBidderParam() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -428,7 +419,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -436,17 +427,14 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.userFirstPartyData, "buyeruid");
-        final ExtUser extUser = ExtUser.builder().data(obj("buyeruid", "456")).build();
         final RequestContext context = new RequestContext(
-                request(r -> r.user(user(u -> u
-                        .buyeruid("123")
-                        .ext(extUser)))),
+                request(r -> r.user(user(u -> u.buyeruid("123")))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("123");
+        assertThat(context.lookupString(category).getValues()).containsExactly("123");
     }
 
     @Test
@@ -462,7 +450,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("hockey");
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
@@ -478,7 +466,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("1900");
+        assertThat(context.lookupString(category).getValues()).containsExactly("1900");
     }
 
     @Test
@@ -494,11 +482,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("hockey");
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenUserFirstPartyDataIsNotString() {
+    public void lookupStringShouldReturnEmptyResultWhenUserFirstPartyDataIsNotString() {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.userFirstPartyData, "sport");
@@ -510,11 +498,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenUserExtIsMissingForUserFirstPartyData() {
+    public void lookupStringShouldReturnEmptyResultWhenUserExtIsMissingForUserFirstPartyData() {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.userFirstPartyData, "sport");
@@ -525,11 +513,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringShouldReturnNullWhenUserIsMissingForUserFirstPartyData() {
+    public void lookupStringShouldReturnEmptyResultWhenUserIsMissingForUserFirstPartyData() {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.userFirstPartyData, "sport");
@@ -540,7 +528,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isNull();
+        assertThat(context.lookupString(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -548,18 +536,14 @@ public class RequestContextTest extends VertxTest {
         // given
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.siteFirstPartyData, "section.sport");
-        final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "basketball")));
-        final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
-                request(r -> r
-                        .site(site(s -> s.ext(extSite)))
-                        .app(app(a -> a.ext(extApp)))),
+                request(identity()),
                 imp(i -> i.ext(obj("context", obj("data", obj("section", obj("sport", "hockey")))))),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("hockey");
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
@@ -568,17 +552,14 @@ public class RequestContextTest extends VertxTest {
         final TargetingCategory category = new TargetingCategory(
                 TargetingCategory.Type.siteFirstPartyData, "section.sport");
         final ExtSite extSite = ExtSite.of(null, obj("section", obj("sport", "hockey")));
-        final ExtApp extApp = ExtApp.of(null, obj("section", obj("sport", "baseball")));
         final RequestContext context = new RequestContext(
-                request(r -> r
-                        .site(site(s -> s.ext(extSite)))
-                        .app(app(a -> a.ext(extApp)))),
+                request(r -> r.site(site(s -> s.ext(extSite)))),
                 imp(identity()),
                 txnLog,
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("hockey");
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
@@ -594,15 +575,14 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupString(category)).isEqualTo("hockey");
+        assertThat(context.lookupString(category).getValues()).containsExactly("hockey");
     }
 
     @Test
     public void lookupIntegerShouldReturnDowFromUserExt() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.dow);
-        final ExtUser extUser = ExtUser.builder().build();
-        extUser.addProperty("time", obj("userdow", 5));
+        final ExtUser extUser = ExtUser.builder().time(ExtUserTime.of(5, 15)).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
@@ -610,15 +590,14 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isEqualTo(5);
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(5);
     }
 
     @Test
     public void lookupIntegerShouldReturnHourFromExt() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.hour);
-        final ExtUser extUser = ExtUser.builder().build();
-        extUser.addProperty("time", obj("userhour", 15));
+        final ExtUser extUser = ExtUser.builder().time(ExtUserTime.of(5, 15)).build();
         final RequestContext context = new RequestContext(
                 request(r -> r.user(user(u -> u.ext(extUser)))),
                 imp(identity()),
@@ -626,7 +605,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isEqualTo(15);
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(15);
     }
 
     @Test
@@ -640,11 +619,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isEqualTo(123);
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(123);
     }
 
     @Test
-    public void lookupIntegerShouldReturnNullWhenBidderParamIsNotInteger() {
+    public void lookupIntegerShouldReturnEmptyResultWhenBidderParamIsNotInteger() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -654,11 +633,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isNull();
+        assertThat(context.lookupInteger(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupIntegerShouldReturnNullWhenBidderParamIsMissing() {
+    public void lookupIntegerShouldReturnEmptyResultWhenBidderParamIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -668,7 +647,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isNull();
+        assertThat(context.lookupInteger(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -683,7 +662,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isEqualTo(123);
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(123);
     }
 
     @Test
@@ -698,7 +677,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupInteger(category)).isEqualTo(123);
+        assertThat(context.lookupInteger(category).getValues()).containsExactly(123);
     }
 
     @Test
@@ -712,7 +691,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("banner", "video");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("banner", "video"));
     }
 
     @Test
@@ -726,7 +705,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("video", "native");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("video", "native"));
     }
 
     @Test
@@ -741,11 +720,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("123", "456");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("123", "456"));
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenBidderParamIsNotArray() {
+    public void lookupStringsShouldReturnEmptyResultWhenBidderParamIsNotArray() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -756,7 +735,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -771,7 +750,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("value");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(singletonList("value"));
     }
 
     @Test
@@ -786,11 +765,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("123");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(singletonList("123"));
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenBidderParamIsMissing() {
+    public void lookupStringsShouldReturnEmptyResultWhenBidderParamIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -801,7 +780,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -816,7 +795,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("123", "456");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("123", "456"));
     }
 
     @Test
@@ -831,7 +810,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("123", "456");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("123", "456"));
     }
 
     @Test
@@ -848,11 +827,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("1", "2");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(asList("1", "2"));
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenDesiredSourceIsMissing() {
+    public void lookupStringsShouldReturnEmptyResultWhenDesiredSourceIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
         final RequestContext context = new RequestContext(
@@ -864,7 +843,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -879,11 +858,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).containsOnly("1");
+        assertThat(context.lookupStrings(category).getValues()).containsExactly(singletonList("1"));
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenSegmentsAreMissing() {
+    public void lookupStringsShouldReturnEmptyResultWhenSegmentsAreMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
         final RequestContext context = new RequestContext(
@@ -893,7 +872,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -907,11 +886,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenDataIsMissing() {
+    public void lookupStringsShouldReturnEmptyResultWhenDataIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
         final RequestContext context = new RequestContext(
@@ -921,11 +900,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupStringsShouldReturnEmptyListWhenUserIsMissing() {
+    public void lookupStringsShouldReturnEmptyResultWhenUserIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.userSegment, "rubicon");
         final RequestContext context = new RequestContext(
@@ -935,7 +914,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupStrings(category)).isEmpty();
+        assertThat(context.lookupStrings(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -950,11 +929,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).containsOnly(123, 456);
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(123, 456));
     }
 
     @Test
-    public void lookupIntegersShouldReturnEmptyListWhenBidderParamIsNotArray() {
+    public void lookupIntegersShouldReturnEmptyResultWhenBidderParamIsNotArray() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -965,7 +944,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).isEmpty();
+        assertThat(context.lookupIntegers(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -980,7 +959,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).containsOnly(123);
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(singletonList(123));
     }
 
     @Test
@@ -995,11 +974,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).containsOnly(123);
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(singletonList(123));
     }
 
     @Test
-    public void lookupIntegersShouldReturnEmptyListWhenBidderParamIsMissing() {
+    public void lookupIntegersShouldReturnEmptyResultWhenBidderParamIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.bidderParam, "rubicon.siteId");
         final RequestContext context = new RequestContext(
@@ -1010,7 +989,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).isEmpty();
+        assertThat(context.lookupIntegers(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
@@ -1025,7 +1004,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).containsOnly(123, 456);
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(123, 456));
     }
 
     @Test
@@ -1040,7 +1019,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupIntegers(category)).containsOnly(123, 456);
+        assertThat(context.lookupIntegers(category).getValues()).containsExactly(asList(123, 456));
     }
 
     @Test
@@ -1054,11 +1033,12 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupSizes(category)).containsOnly(Size.of(300, 250), Size.of(400, 300));
+        assertThat(context.lookupSizes(category).getValues())
+                .containsExactly(asList(Size.of(300, 250), Size.of(400, 300)));
     }
 
     @Test
-    public void lookupSizesShouldReturnEmptyListWhenFormatIsMissing() {
+    public void lookupSizesShouldReturnEmptyResultWhenFormatIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
         final RequestContext context = new RequestContext(
@@ -1068,11 +1048,11 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupSizes(category)).isEmpty();
+        assertThat(context.lookupSizes(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test
-    public void lookupSizesShouldReturnEmptyListWhenBannerIsMissing() {
+    public void lookupSizesShouldReturnEmptyResultWhenBannerIsMissing() {
         // given
         final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.size);
         final RequestContext context = new RequestContext(
@@ -1082,7 +1062,7 @@ public class RequestContextTest extends VertxTest {
                 jacksonMapper);
 
         // when and then
-        assertThat(context.lookupSizes(category)).isEmpty();
+        assertThat(context.lookupSizes(category)).isEqualTo(LookupResult.empty());
     }
 
     @Test

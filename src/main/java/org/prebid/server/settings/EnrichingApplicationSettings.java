@@ -9,6 +9,7 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 
 import java.util.Map;
 import java.util.Objects;
@@ -16,31 +17,41 @@ import java.util.Set;
 
 public class EnrichingApplicationSettings implements ApplicationSettings {
 
+    private final boolean enforceValidAccount;
     private final ApplicationSettings delegate;
+    private final PriceFloorsConfigResolver priceFloorsConfigResolver;
     private final JsonMerger jsonMerger;
     private final Account defaultAccount;
 
-    public EnrichingApplicationSettings(String defaultAccountConfig,
+    public EnrichingApplicationSettings(boolean enforceValidAccount,
+                                        String defaultAccountConfig,
                                         ApplicationSettings delegate,
+                                        PriceFloorsConfigResolver priceFloorsConfigResolver,
                                         JsonMerger jsonMerger) {
 
+        this.enforceValidAccount = enforceValidAccount;
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
+        this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
 
         this.defaultAccount = parseAccount(defaultAccountConfig);
     }
 
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        final Future<Account> accountFuture = delegate.getAccountById(accountId, timeout);
+        final Future<Account> accountFuture = delegate.getAccountById(accountId, timeout)
+                .compose(priceFloorsConfigResolver::updateFloorsConfig);
 
         if (defaultAccount == null) {
             return accountFuture;
         }
+        final Future<Account> mergedWithDefaultAccount = accountFuture
+                .map(this::mergeAccounts);
 
-        return accountFuture
-                .map(this::mergeAccounts)
-                .otherwise(mergeAccounts(Account.empty(accountId)));
+        // In case of invalid account return failed future
+        return enforceValidAccount
+                ? mergedWithDefaultAccount
+                : mergedWithDefaultAccount.otherwise(mergeAccounts(Account.empty(accountId)));
     }
 
     @Override

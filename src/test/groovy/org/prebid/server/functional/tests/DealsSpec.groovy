@@ -8,6 +8,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+
 @PBSTest
 class DealsSpec extends BaseSpec {
 
@@ -18,7 +20,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
+        bidResponse.seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "One of the bids has dealid"
         bidResponse.seatbid.first().bid.first().dealid = PBSUtils.randomNumber
@@ -51,7 +53,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
+        bidResponse.seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "Both of the bids have dealid"
         bidResponse.seatbid.first().bid.each { it.dealid = PBSUtils.randomNumber }
@@ -78,7 +80,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
+        bidResponse.seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "Set price for bids"
         def winningBidPrice = bidResponse.seatbid.first().bid.first().price + 1
@@ -102,12 +104,12 @@ class DealsSpec extends BaseSpec {
 
         and: "Set maxbids = 2 for default bidder"
         def maxBids = 2
-        def multiBid = new MultiBid(bidder: "generic", maxBids: maxBids)
+        def multiBid = new MultiBid(bidder: GENERIC, maxBids: maxBids)
         bidRequest.ext.prebid.multibid = [multiBid]
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
+        bidResponse.seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "Both of the bids have dealid"
         bidResponse.seatbid.first().bid.each { it.dealid = PBSUtils.randomNumber }
@@ -134,7 +136,7 @@ class DealsSpec extends BaseSpec {
 
         and: "Bid response with 2 bids"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
-        bidResponse.seatbid.first().bid.add(Bid.getDefaultBid(bidRequest.imp.first().id))
+        bidResponse.seatbid.first().bid << Bid.getDefaultBid(bidRequest.imp.first())
 
         and: "One of the bids has dealid"
         bidResponse.seatbid.first().bid.first().dealid = PBSUtils.randomNumber

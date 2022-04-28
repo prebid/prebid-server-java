@@ -36,7 +36,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.request.BidAdjustmentMediaType;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -46,7 +46,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtMediaTypePriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidadjustmentfactors;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidDataEidPermissions;
@@ -199,7 +199,7 @@ public class RequestValidator {
         }
     }
 
-    private void validateBidAdjustmentFactors(ExtRequestBidadjustmentfactors adjustmentFactors,
+    private void validateBidAdjustmentFactors(ExtRequestBidAdjustmentFactors adjustmentFactors,
                                               Map<String, String> aliases) throws ValidationException {
 
         final Map<String, BigDecimal> bidderAdjustments = adjustmentFactors != null
@@ -221,7 +221,7 @@ public class RequestValidator {
                         bidder, format(adjustmentFactor));
             }
         }
-        final Map<BidAdjustmentMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors =
+        final Map<ImpMediaType, Map<String, BigDecimal>> adjustmentsMediaTypeFactors =
                 adjustmentFactors != null
                         ? adjustmentFactors.getMediatypes()
                         : null;
@@ -230,13 +230,13 @@ public class RequestValidator {
             return;
         }
 
-        for (Map.Entry<BidAdjustmentMediaType, Map<String, BigDecimal>> entry
+        for (Map.Entry<ImpMediaType, Map<String, BigDecimal>> entry
                 : adjustmentsMediaTypeFactors.entrySet()) {
             validateBidAdjustmentFactorsByMediatype(entry.getKey(), entry.getValue(), aliases);
         }
     }
 
-    private void validateBidAdjustmentFactorsByMediatype(BidAdjustmentMediaType mediaType,
+    private void validateBidAdjustmentFactorsByMediatype(ImpMediaType mediaType,
                                                          Map<String, BigDecimal> bidderAdjustments,
                                                          Map<String, String> aliases) throws ValidationException {
 

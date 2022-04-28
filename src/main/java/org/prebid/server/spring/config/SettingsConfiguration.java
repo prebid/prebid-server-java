@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
@@ -339,11 +340,17 @@ public class SettingsConfiguration {
 
         @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
+                @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
+                PriceFloorsConfigResolver priceFloorsConfigResolver,
                 JsonMerger jsonMerger) {
 
-            return new EnrichingApplicationSettings(defaultAccountConfig, compositeApplicationSettings, jsonMerger);
+            return new EnrichingApplicationSettings(enforceValidAccount,
+                    defaultAccountConfig,
+                    compositeApplicationSettings,
+                    priceFloorsConfigResolver,
+                    jsonMerger);
         }
     }
 

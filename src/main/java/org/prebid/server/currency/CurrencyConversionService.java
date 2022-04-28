@@ -164,7 +164,7 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
-     * Converts price from fromCurrency to toCurrency using rates from {@link BidRequest} or external currency service.
+     * Converts price from one currency to another using rates from {@link BidRequest} or external currency service.
      * If bidrequest.prebid.currecy.usepbsrates is true it takes rates from prebid server, if false from request.
      * Default value of usepbsrates is true.
      * Throws {@link PreBidException} in case conversion is not possible.
@@ -174,18 +174,22 @@ public class CurrencyConversionService implements Initializable {
     }
 
     /**
-     * Converts price from bidCurrency to adServerCurrency using rates and usepbsrates flag defined in request.
+     * Converts price from one currency to another using rates and usepbsrates flag defined in request.
      * If usepbsrates is true it takes rates from prebid server, if false from request. Default value of usepbsrates
      * is true.
      * Throws {@link PreBidException} in case conversion is not possible.
      */
-    public BigDecimal convertCurrency(BigDecimal price, Map<String, Map<String, BigDecimal>> requestCurrencyRates,
-                                      String adServerCurrency, String bidCurrency, Boolean usepbsrates) {
+    public BigDecimal convertCurrency(BigDecimal price,
+                                      Map<String, Map<String, BigDecimal>> requestCurrencyRates,
+                                      String fromCurrency,
+                                      String toCurrency,
+                                      Boolean usepbsrates) {
         // use Default USD currency if bidder left this field empty. After, when bidder will implement multi currency
         // support it will be changed to throwing PrebidException.
-        final String effectiveBidCurrency = bidCurrency != null ? bidCurrency : DEFAULT_BID_CURRENCY;
+        final String effectiveFromCurrency = fromCurrency != null ? fromCurrency : DEFAULT_BID_CURRENCY;
+        final String effectiveToCurrency = toCurrency != null ? toCurrency : DEFAULT_BID_CURRENCY;
 
-        if (Objects.equals(adServerCurrency, effectiveBidCurrency)) {
+        if (Objects.equals(effectiveToCurrency, effectiveFromCurrency)) {
             return price;
         }
 
@@ -200,16 +204,18 @@ public class CurrencyConversionService implements Initializable {
             secondPriorityRates = requestCurrencyRates;
         }
 
-        final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates, secondPriorityRates,
-                adServerCurrency, effectiveBidCurrency);
+        final BigDecimal conversionRate = getConversionRateByPriority(firstPriorityRates,
+                secondPriorityRates,
+                effectiveFromCurrency,
+                effectiveToCurrency);
 
         if (conversionRate == null) {
             throw new PreBidException(
                     String.format("Unable to convert from currency %s to desired ad server currency %s",
-                            effectiveBidCurrency, adServerCurrency));
+                            effectiveFromCurrency, effectiveToCurrency));
         }
 
-        return price.divide(conversionRate, DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
+        return price.multiply(conversionRate).setScale(DEFAULT_PRICE_PRECISION, RoundingMode.HALF_EVEN);
     }
 
     private static Map<String, Map<String, BigDecimal>> currencyRates(BidRequest bidRequest) {
@@ -234,49 +240,50 @@ public class CurrencyConversionService implements Initializable {
      */
     private static BigDecimal getConversionRateByPriority(Map<String, Map<String, BigDecimal>> firstPriorityRates,
                                                           Map<String, Map<String, BigDecimal>> secondPriorityRates,
-                                                          String adServerCurrency,
-                                                          String effectiveBidCurrency) {
+                                                          String fromCurrency,
+                                                          String toCurrency) {
 
         return ObjectUtils.defaultIfNull(
-                getConversionRate(firstPriorityRates, adServerCurrency, effectiveBidCurrency),
-                getConversionRate(secondPriorityRates, adServerCurrency, effectiveBidCurrency));
+                getConversionRate(firstPriorityRates, fromCurrency, toCurrency),
+                getConversionRate(secondPriorityRates, fromCurrency, toCurrency));
     }
 
     /**
-     * Looking for rates for adServerCurrency - bidCurrency pair, using such approaches as straight, reverse and
+     * Looking for rates for a currency pair, using such approaches as straight, reverse and
      * intermediate rates.
      */
     private static BigDecimal getConversionRate(Map<String, Map<String, BigDecimal>> currencyConversionRates,
-                                                String adServerCurrency, String bidCurrency) {
+                                                String fromCurrency,
+                                                String toCurrency) {
         if (MapUtils.isEmpty(currencyConversionRates)) {
             return null;
         }
 
         BigDecimal conversionRate;
-        final Map<String, BigDecimal> serverCurrencyRates = currencyConversionRates.get(adServerCurrency);
+        final Map<String, BigDecimal> directCurrencyRates = currencyConversionRates.get(fromCurrency);
 
-        conversionRate = serverCurrencyRates != null ? serverCurrencyRates.get(bidCurrency) : null;
+        conversionRate = directCurrencyRates != null ? directCurrencyRates.get(toCurrency) : null;
         if (conversionRate != null) {
             return conversionRate;
         }
 
-        final Map<String, BigDecimal> bidCurrencyRates = currencyConversionRates.get(bidCurrency);
-        conversionRate = findReverseConversionRate(bidCurrencyRates, adServerCurrency);
+        final Map<String, BigDecimal> reverseCurrencyRates = currencyConversionRates.get(toCurrency);
+        conversionRate = findReverseConversionRate(reverseCurrencyRates, fromCurrency);
         if (conversionRate != null) {
             return conversionRate;
         }
 
-        return findIntermediateConversionRate(serverCurrencyRates, bidCurrencyRates);
+        return findIntermediateConversionRate(directCurrencyRates, reverseCurrencyRates);
     }
 
     /**
      * Finds reverse conversion rate.
      * If pair USD : EUR - 1.2 is present and EUR to USD conversion is needed, will return 1/1.2 conversion rate.
      */
-    private static BigDecimal findReverseConversionRate(Map<String, BigDecimal> bidCurrencyRates,
-                                                        String adServerCurrency) {
-        final BigDecimal reverseConversionRate = bidCurrencyRates != null
-                ? bidCurrencyRates.get(adServerCurrency)
+    private static BigDecimal findReverseConversionRate(Map<String, BigDecimal> currencyRates,
+                                                        String currency) {
+        final BigDecimal reverseConversionRate = currencyRates != null
+                ? currencyRates.get(currency)
                 : null;
 
         return reverseConversionRate != null
@@ -290,23 +297,23 @@ public class CurrencyConversionService implements Initializable {
      * If pairs USD : AUD - 1.2 and EUR : AUD - 1.5 are present, and EUR to USD conversion is needed, will return
      * (1/1.5) * 1.2 conversion rate.
      */
-    private static BigDecimal findIntermediateConversionRate(Map<String, BigDecimal> adServerCurrencyRates,
-                                                             Map<String, BigDecimal> bidCurrencyRates) {
+    private static BigDecimal findIntermediateConversionRate(Map<String, BigDecimal> directCurrencyRates,
+                                                             Map<String, BigDecimal> reverseCurrencyRates) {
         BigDecimal conversionRate = null;
-        if (MapUtils.isNotEmpty(adServerCurrencyRates) && MapUtils.isNotEmpty(bidCurrencyRates)) {
-            final List<String> sharedCurrencies = new ArrayList<>(adServerCurrencyRates.keySet());
-            sharedCurrencies.retainAll(bidCurrencyRates.keySet());
+        if (MapUtils.isNotEmpty(directCurrencyRates) && MapUtils.isNotEmpty(reverseCurrencyRates)) {
+            final List<String> sharedCurrencies = new ArrayList<>(directCurrencyRates.keySet());
+            sharedCurrencies.retainAll(reverseCurrencyRates.keySet());
 
             if (!sharedCurrencies.isEmpty()) {
                 // pick any found shared currency
                 final String sharedCurrency = sharedCurrencies.get(0);
-                final BigDecimal adServerCurrencyRateIntermediate = adServerCurrencyRates.get(sharedCurrency);
-                final BigDecimal bidCurrencyRateIntermediate = bidCurrencyRates.get(sharedCurrency);
-                conversionRate = adServerCurrencyRateIntermediate.divide(bidCurrencyRateIntermediate,
+                final BigDecimal directCurrencyRateIntermediate = directCurrencyRates.get(sharedCurrency);
+                final BigDecimal reverseCurrencyRateIntermediate = reverseCurrencyRates.get(sharedCurrency);
+                conversionRate = directCurrencyRateIntermediate.divide(reverseCurrencyRateIntermediate,
                         // chose largest precision among intermediate rates
-                        bidCurrencyRateIntermediate.compareTo(adServerCurrencyRateIntermediate) > 0
-                                ? bidCurrencyRateIntermediate.precision()
-                                : adServerCurrencyRateIntermediate.precision(),
+                        reverseCurrencyRateIntermediate.compareTo(directCurrencyRateIntermediate) > 0
+                                ? reverseCurrencyRateIntermediate.precision()
+                                : directCurrencyRateIntermediate.precision(),
                         RoundingMode.HALF_EVEN);
             }
         }
