@@ -10,9 +10,11 @@ import org.prebid.server.functional.util.SystemProperties
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
+    private static final int SINGLE_CONTAINER = 1;
     private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
             SystemProperties.getPropertyOrDefault("max.containers.count", "2"))
-
+    private static final boolean FIXED_EXPOSED_PORT = Boolean.parseBoolean(
+            SystemProperties.getPropertyOrDefault("fixed.exposed.port", false))
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
 
@@ -22,10 +24,12 @@ class PbsServiceFactory {
     }
 
     PrebidServerService getService(Map<String, String> config) {
+        final def containerCount = getContainersCount()
+
         if (containers.containsKey(config)) {
             return new PrebidServerService(containers.get(config), mapper)
         } else {
-            if (containers.size() >= MAX_CONTAINERS_COUNT) {
+            if (containers.size() >= containerCount) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }
@@ -50,5 +54,9 @@ class PbsServiceFactory {
             value.stop()
             containers.remove(key)
         }
+    }
+
+    private static int getContainersCount() {
+        return FIXED_EXPOSED_PORT ? SINGLE_CONTAINER : MAX_CONTAINERS_COUNT;
     }
 }

@@ -9,6 +9,10 @@ class SystemProperties {
         System.getProperty(property) ?: defaultValue
     }
 
+    static String getPropertyOrDefault(String property, boolean defaultValue) {
+        System.getProperty(property) ?: defaultValue
+    }
+
     private SystemProperties() {
         throw new InstantiationException("This class should not be instantiated!")
     }
