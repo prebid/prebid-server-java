@@ -470,10 +470,10 @@ class TargetingSpec extends BasePgSpec {
         given: "Bid request with set ad slot info in different request places"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
-                ext.context = new ImpExtContext(data: new ImpExtContextData(pbadslot: contextAdSlot,
-                        adserver: new ImpExtContextDataAdServer(adslot: contextAdServerAdSlot)))
-                ext.data = new ImpExtContextData(pbadslot: adSlot,
-                        adserver: new ImpExtContextDataAdServer(adslot: adServerAdSlot))
+                ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
+                ext.data = new ImpExtContextData(pbAdSlot: adSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
         }
 
@@ -511,10 +511,10 @@ class TargetingSpec extends BasePgSpec {
         def adServerAdSlot = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp = [Imp.defaultImpression.tap {
-                ext.context = new ImpExtContext(data: new ImpExtContextData(pbadslot: contextAdSlot,
-                        adserver: new ImpExtContextDataAdServer(adslot: contextAdServerAdSlot)))
-                ext.data = new ImpExtContextData(pbadslot: adSlot,
-                        adserver: new ImpExtContextDataAdServer(adslot: adServerAdSlot))
+                ext.context = new ImpExtContext(data: new ImpExtContextData(pbAdSlot: contextAdSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: contextAdServerAdSlot)))
+                ext.data = new ImpExtContextData(pbAdSlot: adSlot,
+                        adServer: new ImpExtContextDataAdServer(adSlot: adServerAdSlot))
             }]
         }
 

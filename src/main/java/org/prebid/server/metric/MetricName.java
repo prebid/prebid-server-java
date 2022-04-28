@@ -136,6 +136,9 @@ public enum MetricName {
     execution_error("execution-error"),
     duration,
 
+    // price-floors
+    price_floors("price-floors"),
+
     // win notifications
     win_notifications,
     win_requests,

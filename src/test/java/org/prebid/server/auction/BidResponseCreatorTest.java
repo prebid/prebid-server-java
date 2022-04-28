@@ -2674,7 +2674,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final Bid bid = Bid.builder().id("bidId1").impid(IMP_ID).adm("[]").price(BigDecimal.valueOf(5.67)).build();
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
                 BidderSeatBid.of(singletonList(BidderBid.of(bid, xNative, null)), null,
-                        singletonList(BidderError.badInput("bad_input"))), 100));
+                        singletonList(BidderError.badInput("bad_input")),
+                        singletonList(BidderError.generic("some_warning"))), 100));
         final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder().doCaching(true).build();
 
         givenCacheServiceResult(CacheServiceResult.of(
@@ -2690,7 +2691,8 @@ public class BidResponseCreatorTest extends VertxTest {
         final ExtBidResponse responseExt = bidResponse.getExt();
 
         assertThat(responseExt.getDebug()).isNull();
-        assertThat(responseExt.getWarnings()).isNull();
+        assertThat(responseExt.getWarnings())
+                .containsEntry("bidder1", singletonList(ExtBidderError.of(999, "some_warning")));
         assertThat(responseExt.getUsersync()).isNull();
         assertThat(responseExt.getTmaxrequest()).isEqualTo(1000L);
 
