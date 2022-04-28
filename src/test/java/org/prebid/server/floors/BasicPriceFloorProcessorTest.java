@@ -12,7 +12,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.floors.model.PriceFloorData;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorLocation;
@@ -50,8 +49,6 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     private PriceFloorFetcher priceFloorFetcher;
     @Mock
     private PriceFloorResolver floorResolver;
-    @Mock
-    private CurrencyConversionService conversionService;
 
     private BasicPriceFloorProcessor priceFloorProcessor;
 
@@ -60,7 +57,6 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         priceFloorProcessor = new BasicPriceFloorProcessor(
                 priceFloorFetcher,
                 floorResolver,
-                conversionService,
                 jacksonMapper);
     }
 
@@ -109,16 +105,18 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseFloorsFromProviderIfPresent() {
+    public void shouldUseFloorsDataFromProviderIfPresent() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(identity()),
                 givenBidRequest(
                         identity(),
-                        null));
+                        givenFloors(floors -> floors.floorMin(BigDecimal.ONE))));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -127,7 +125,9 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .floorProvider("provider.com")
                         .floorMin(BigDecimal.ONE)
+                        .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
     }
@@ -141,8 +141,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         identity(),
                         null));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -151,22 +153,25 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
-                        .floorMin(BigDecimal.ONE)
+                        .floorProvider("provider.com")
+                        .data(providerFloorsData)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
     }
 
     @Test
-    public void shouldNUseFloorsFromProviderIfUseDynamicDataIsTrue() {
+    public void shouldUseFloorsFromProviderIfUseDynamicDataIsTrue() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(
                 givenAccount(floorsConfig -> floorsConfig.useDynamicData(true)),
                 givenBidRequest(
                         identity(),
-                        null));
+                        givenFloors(floors -> floors.floorMin(BigDecimal.ONE))));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ONE));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -175,6 +180,8 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
+                        .floorProvider("provider.com")
+                        .data(providerFloorsData)
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
@@ -189,8 +196,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         identity(),
                         null));
 
-        final PriceFloorRules providerFloors = givenFloors(identity());
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -216,8 +225,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                                 .enforcement(PriceFloorEnforcement.builder().enforcePbs(false).enforceRate(100).build())
                                 .floorMin(BigDecimal.ONE))));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors.floorMin(BigDecimal.ZERO));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -226,10 +237,70 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .isEqualTo(givenFloors(floors -> floors
                         .enabled(true)
-                        .enforcement(PriceFloorEnforcement.builder().enforceRate(100).build())
+                        .floorProvider("provider.com")
+                        .enforcement(PriceFloorEnforcement.builder()
+                                .enforcePbs(false)
+                                .enforceRate(100
+                                ).build())
+                        .data(providerFloorsData)
                         .floorMin(BigDecimal.ONE)
                         .fetchStatus(FetchStatus.success)
                         .location(PriceFloorLocation.fetch)));
+    }
+
+    @Test
+    public void shouldReturnProviderFloorsWhenNotEnabledByRequestAndEnforceRateAndFloorPriceAreAbsent() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(floorsConfig -> floorsConfig.enabled(true)),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors.data(givenFloorData(identity())).enabled(null))));
+
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        final PriceFloorRules expectedResult =
+                givenFloors(floors -> floors
+                        .enabled(true)
+                        .floorProvider("provider.com")
+                        .data(providerFloorsData)
+                        .fetchStatus(FetchStatus.success)
+                        .location(PriceFloorLocation.fetch));
+
+        assertThat(extractFloors(result)).isEqualTo(expectedResult);
+    }
+
+    @Test
+    public void shouldReturnFloorsWithFloorMinAndCurrencyFromRequestWhenPresent() {
+        // given
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenAccount(identity()),
+                givenBidRequest(
+                        identity(),
+                        givenFloors(floors -> floors
+                                .enabled(true)
+                                .floorMin(BigDecimal.ONE)
+                                .data(givenFloorData(floorsDataConfig -> floorsDataConfig.currency("USD"))))));
+
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
+
+        // when
+        final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
+
+        // then
+        assertThat(extractFloors(result))
+                .extracting(PriceFloorRules::getFloorMin, PriceFloorRules::getFloorMinCur)
+                .containsExactly(BigDecimal.ONE, "USD");
     }
 
     @Test
@@ -425,10 +496,10 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                         givenFloors(floors -> floors
                                 .floorMin(BigDecimal.ONE))));
 
-        final PriceFloorRules providerFloors = givenFloors(floors -> floors
-                .data(PriceFloorData.builder().floorProvider("someProvider").build())
-                .floorMin(BigDecimal.ZERO));
-        given(priceFloorFetcher.fetch(any())).willReturn(FetchResult.of(providerFloors, FetchStatus.success));
+        final PriceFloorData providerFloorsData =
+                givenFloorData(floors -> floors.floorProvider("provider.com"));
+        given(priceFloorFetcher.fetch(any()))
+                .willReturn(FetchResult.of(providerFloorsData, FetchStatus.success));
 
         // when
         final AuctionContext result = priceFloorProcessor.enrichWithPriceFloors(auctionContext);
@@ -437,10 +508,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
         assertThat(extractFloors(result))
                 .extracting(PriceFloorRules::getData)
                 .extracting(PriceFloorData::getFloorProvider)
-                .isEqualTo("someProvider");
-        assertThat(extractFloors(result))
-                .extracting(PriceFloorRules::getFloorProvider)
-                .isEqualTo("someProvider");
+                .isEqualTo("provider.com");
     }
 
     @Test
