@@ -502,8 +502,8 @@ class BidderParamsSpec extends BaseSpec {
         and: "Response should contain error"
         assert response.ext?.warnings[ErrorType.GENERIC]*.code == [2]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
-                ["Imp ${bidRequest.imp[0].id} does not have a supported media type for the $BidderName.GENERIC.value and" +
-                         " has been removed from the request for this bidder" as String]
+                ["Imp ${bidRequest.imp[0].id} does not have a supported media type and has been removed from the " +
+                         "request for this bidder." as String]
 
         and: "seatbid should not be empty"
         assert !response.seatbid.isEmpty()
