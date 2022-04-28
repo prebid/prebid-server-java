@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pg
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -43,7 +44,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         given: "Bid request with set bidder alias and pgdealsonly flag"
         def bidderAliasName = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            def prebid = new Prebid(aliases: [(bidderAliasName): GENERIC.value], debug: 1)
+            def prebid = new Prebid(aliases: [(bidderAliasName): BidderName.GENERIC], debug: 1)
             ext = new BidRequestExt(prebid: prebid)
         }
         bidRequest.imp.first().ext.prebid.bidder.generic = new Generic(pgDealsOnly: true)
@@ -146,7 +147,7 @@ class PgDealsOnlySpec extends BasePgSpec {
         assert initialBidderRequestCount + 1 == bidder.requestCount
 
         and: "PBS added dealsonly flag to the bidder request"
-        assert auctionResponse.ext?.debug?.resolvedrequest?.imp?.first()?.ext?.prebid?.bidder?.generic?.dealsOnly
+        assert auctionResponse.ext?.debug?.resolvedRequest?.imp?.first()?.ext?.prebid?.bidder?.generic?.dealsOnly
 
         and: "PBS returns an error of missing 'dealid' field in bid"
         def bidErrors = auctionResponse.ext?.errors?.get(GENERIC)

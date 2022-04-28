@@ -38,15 +38,17 @@ class Bid {
     BidExt ext
 
     static List<Bid> getDefaultBids(List<Imp> imps) {
-        imps.collect { getDefaultBid(it.id) }
+        imps.collect { getDefaultBid(it) }
     }
 
-    static Bid getDefaultBid(String impId) {
+    static Bid getDefaultBid(Imp imp) {
         new Bid().tap {
             id = UUID.randomUUID()
-            impid = impId
-            price = PBSUtils.randomPrice
+            impid = imp.id
+            price = PBSUtils.getRandomPrice()
             crid = 1
+            h = imp.banner && imp.banner.format ? imp.banner.format.first().h : null
+            w = imp.banner && imp.banner.format ? imp.banner.format.first().w : null
         }
     }
 

@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 8.399,
+          "adid": "2068416",
+          "cid": "8048",
+          "crid": "24080",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 13,
+            "origbidcur":"GBP"
+          }
+        }
+      ],
+      "seat": "generic",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "generic": "{{ generic.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}
