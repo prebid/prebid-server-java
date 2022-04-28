@@ -32,7 +32,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     PrebidServerContainer(String dockerImage, Map<String, String> customConfig) {
         super(dockerImage)
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT)
-        wihExposedPortsDebug()
+        withExposedPortsDebug()
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
                        .forStatusCode(200))
@@ -49,7 +49,7 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
         withConfig(customConfig)
     }
 
-    private void wihExposedPortsDebug() {
+    private void withExposedPortsDebug() {
         if (FIXED_EXPOSED_PORT) {
             addFixedExposedPort(PORT, PORT)
             addFixedExposedPort(DEBUG_PORT, DEBUG_PORT)
