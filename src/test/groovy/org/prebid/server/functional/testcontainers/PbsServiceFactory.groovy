@@ -27,7 +27,7 @@ class PbsServiceFactory {
         if (containers.containsKey(config)) {
             return new PrebidServerService(containers.get(config), mapper)
         } else {
-            if (containers.size() >= containersCount()) {
+            if (containers.size() >= containersCount) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }
@@ -54,7 +54,7 @@ class PbsServiceFactory {
         }
     }
 
-    private static int containersCount() {
+    private static int getContainersCount() {
         FIXED_EXPOSED_PORT ? SINGLE_CONTAINER : MAX_CONTAINERS_COUNT
     }
 }

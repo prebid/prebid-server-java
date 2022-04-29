@@ -14,7 +14,8 @@ class SystemProperties {
     }
 
     static int getIntPropertyOrDefault(String property, int defaultValue) {
-        System.getProperty(property) ? Integer.parseInt(System.getProperty(property)) : defaultValue
+        def systemProperty = System.getProperty(property)
+        systemProperty ? Integer.parseInt(systemProperty) : defaultValue
     }
 
     private SystemProperties() {
