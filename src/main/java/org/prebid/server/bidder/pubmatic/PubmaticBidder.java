@@ -341,7 +341,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             extNode.set(ACAT_EXT_REQUEST, mapper.mapper().valueToTree(acat));
         }
 
-        return extNode.elements().hasNext() ? mapper.fillExtension(ExtRequest.empty(), extNode) : extRequest;
+        return extNode.isEmpty() ? extRequest : mapper.fillExtension(ExtRequest.empty(), extNode);
     }
 
     private static Site modifySite(Site site, String publisherId) {
