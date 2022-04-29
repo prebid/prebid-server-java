@@ -60,7 +60,6 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String ACAT_EXT_REQUEST = "acat";
     private static final String WRAPPER_EXT_REQUEST = "wrapper";
     private static final String BIDDER_NAME = "pubmatic";
-    private static final String REGEX_FIND_ALL_WHITESPACE = "\\s+";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -117,7 +116,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         return acatNode != null && acatNode.isArray()
                 ? Arrays.stream(mapper.mapper().convertValue(acatNode, String[].class))
-                .map(element -> element.replaceAll(REGEX_FIND_ALL_WHITESPACE, ""))
+                .map(StringUtils::trimToEmpty)
                 .collect(Collectors.toList())
                 : null;
     }
@@ -327,22 +326,22 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 .imp(imps)
                 .app(modifyApp(request.getApp(), publisherId))
                 .site(modifySite(request.getSite(), publisherId))
-                .ext(resolveRequestExt(wrapper, acat))
+                .ext(modifyExtRequest(request.getExt(), wrapper, acat))
                 .build();
     }
 
-    private ExtRequest resolveRequestExt(PubmaticWrapper wrapper, List<String> acat) {
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, PubmaticWrapper wrapper, List<String> acat) {
         final ObjectNode extNode = mapper.mapper().createObjectNode();
 
         if (wrapper != null) {
-            extNode.set("wrapper", mapper.mapper().valueToTree(wrapper));
+            extNode.set(WRAPPER_EXT_REQUEST, mapper.mapper().valueToTree(wrapper));
         }
 
         if (CollectionUtils.isNotEmpty(acat)) {
-            extNode.set("acat", mapper.mapper().valueToTree(acat));
+            extNode.set(ACAT_EXT_REQUEST, mapper.mapper().valueToTree(acat));
         }
 
-        return mapper.fillExtension(ExtRequest.empty(), extNode);
+        return extNode.elements().hasNext() ? mapper.fillExtension(ExtRequest.empty(), extNode) : extRequest;
     }
 
     private static Site modifySite(Site site, String publisherId) {
