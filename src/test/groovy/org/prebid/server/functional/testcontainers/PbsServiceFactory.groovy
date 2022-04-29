@@ -10,8 +10,7 @@ import org.prebid.server.functional.util.SystemProperties
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("max.containers.count", "2"))
+    private static final int MAX_CONTAINER_COUNT = SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
 
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
@@ -25,7 +24,7 @@ class PbsServiceFactory {
         if (containers.containsKey(config)) {
             return new PrebidServerService(containers.get(config), mapper)
         } else {
-            if (containers.size() >= MAX_CONTAINERS_COUNT) {
+            if (containers.size() >= MAX_CONTAINER_COUNT) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }

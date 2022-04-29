@@ -756,7 +756,8 @@
                         <allure.results.directory>target/allure-results</allure.results.directory>
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <max.containers.count>2</max.containers.count>
+                        <tests.max-container-count>2</tests.max-container-count>
+                        <tests.default-timeout-millis>5000</tests.default-timeout-millis>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
