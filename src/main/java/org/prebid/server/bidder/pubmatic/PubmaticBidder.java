@@ -116,7 +116,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
         return acatNode != null && acatNode.isArray()
                 ? Arrays.stream(mapper.mapper().convertValue(acatNode, String[].class))
-                .map(StringUtils::trimToEmpty)
+                .map(StringUtils::stripToEmpty)
                 .collect(Collectors.toList())
                 : null;
     }

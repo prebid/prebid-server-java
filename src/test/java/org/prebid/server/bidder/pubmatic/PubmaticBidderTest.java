@@ -170,7 +170,7 @@ public class PubmaticBidderTest extends VertxTest {
         final ObjectNode pubmaticNode = mapper.createObjectNode();
         pubmaticNode.set("pubmatic", mapper.createObjectNode()
                 .set("acat", mapper.createArrayNode()
-                        .add("te st  -Va lue").add("test Value 1").add("  test Value  ")));
+                        .add("\tte st Value\t").add("test Value").add("Value")));
 
         final ExtRequest bidRequestExt = ExtRequest.of(ExtRequestPrebid.builder().bidderparams(pubmaticNode).build());
         final BidRequest bidRequest = givenBidRequest(
@@ -182,7 +182,7 @@ public class PubmaticBidderTest extends VertxTest {
         // then
         final ExtRequest expectedExtRequest = ExtRequest.empty();
         expectedExtRequest.addProperty("acat",
-                mapper.createArrayNode().add("test-Value").add("testValue1").add("testValue"));
+                mapper.createArrayNode().add("te st Value").add("test Value").add("Value"));
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
