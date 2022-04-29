@@ -17,8 +17,9 @@ public class ExtImpAlkimi {
 
     Integer pos;
 
-    int width;
-    int height;
+    Integer width;
+
+    Integer height;
 
     @JsonProperty("impMediaType")
     String impMediaType;

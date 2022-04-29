@@ -26,7 +26,6 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -52,33 +51,82 @@ public class AlkimiBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        List<Imp> imps = request.getImp();
-        final List<Imp> updatedImps = new ArrayList<>(imps.size());
-
-        imps.forEach(imp -> {
-            ExtImpAlkimi ext = parseImpExt(imp);
-            updatedImps.add(updateImp(imp, ext));
-        });
+        final List<Imp> updatedImps = request.getImp().stream()
+                .map(imp -> updateImp(imp, parseImpExt(imp)))
+                .collect(Collectors.toList());
 
         final BidRequest outgoingRequest = request.toBuilder().imp(updatedImps).build();
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .headers(HttpUtil.headers())
-                                .payload(outgoingRequest)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .build()
-                ),
-                Collections.emptyList()
-        );
+        return Result.withValue(
+                HttpRequest.<BidRequest>builder()
+                        .method(HttpMethod.POST)
+                        .uri(endpointUrl)
+                        .headers(HttpUtil.headers())
+                        .payload(outgoingRequest)
+                        .body(mapper.encodeToBytes(outgoingRequest))
+                        .build());
+    }
+
+    private ExtImpAlkimi parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), ALKIMI_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
+        }
+    }
+
+    private Imp updateImp(Imp imp, ExtImpAlkimi extImpAlkimi) {
+        final Integer position = extImpAlkimi.getPos();
+        final Banner updatedBanner = updateBanner(imp.getBanner(), position);
+        final Video updatedVideo = updateVideo(imp.getVideo(), position);
+
+        return imp.toBuilder()
+                .bidfloor(extImpAlkimi.getBidFloor())
+                .banner(updatedBanner)
+                .video(updatedVideo)
+                .ext(makeImpExt(updatedBanner, updatedVideo, extImpAlkimi))
+                .build();
+    }
+
+    private Banner updateBanner(Banner banner, Integer position) {
+        if (banner == null || CollectionUtils.isEmpty(banner.getFormat())) {
+            return banner;
+        }
+
+        final Format firstFormat = banner.getFormat().get(0);
+        return banner.toBuilder()
+                .w(firstFormat.getW())
+                .h(firstFormat.getH())
+                .pos(position)
+                .build();
+    }
+
+    private Video updateVideo(Video video, Integer position) {
+        return video != null ? video.toBuilder().pos(position).build() : null;
+    }
+
+    private ObjectNode makeImpExt(Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
+        final ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = extImpAlkimi.toBuilder();
+
+        if (banner != null) {
+            extBuilder.width(banner.getW());
+            extBuilder.height(banner.getH());
+            extBuilder.impMediaType(TYPE_BANNER);
+        }
+
+        if (video != null) {
+            extBuilder.width(video.getW());
+            extBuilder.height(video.getH());
+            extBuilder.impMediaType(TYPE_VIDEO);
+        }
+
+        return mapper.mapper().valueToTree(ExtPrebid.of(null, extBuilder.build()));
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -117,60 +165,5 @@ public class AlkimiBidder implements Bidder<BidRequest> {
             }
         }
         return bidType;
-    }
-
-    private ExtImpAlkimi parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), ALKIMI_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
-        }
-    }
-
-    private ObjectNode writeImpExt(ExtImpAlkimi extImpAlkimi) {
-        try {
-            return mapper.mapper().convertValue(Map.of("bidder", extImpAlkimi), ObjectNode.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Error while writing Ext in Alkimi Bidder");
-        }
-    }
-
-    private Imp updateImp(Imp imp, ExtImpAlkimi ext) {
-        BigDecimal bidFloor = ext.getBidFloor();
-        Integer position = ext.getPos();
-
-        Imp.ImpBuilder impBuilder = imp.toBuilder();
-        ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = ext.toBuilder();
-        impBuilder.bidfloor(bidFloor);
-
-        if (imp.getBanner() != null) {
-            final Banner banner = imp.getBanner();
-            if (CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format firstFormat = banner.getFormat().get(0);
-                impBuilder
-                        .banner(banner.toBuilder()
-                                .w(firstFormat.getW())
-                                .h(firstFormat.getH())
-                                .pos(position)
-                                .build());
-                extBuilder.width(firstFormat.getW());
-                extBuilder.height(firstFormat.getH());
-                extBuilder.impMediaType(TYPE_BANNER);
-            }
-        }
-
-        if (imp.getVideo() != null) {
-            Video video = imp.getVideo();
-            impBuilder
-                    .video(video.toBuilder()
-                            .pos(position)
-                            .build());
-            extBuilder.width(video.getW());
-            extBuilder.height(video.getH());
-            extBuilder.impMediaType(TYPE_VIDEO);
-        }
-
-        impBuilder.ext(writeImpExt(extBuilder.build()));
-        return impBuilder.build();
     }
 }

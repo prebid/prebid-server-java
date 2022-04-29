@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.alkimi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -22,6 +23,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.alkimi.ExtImpAlkimi;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -59,7 +61,7 @@ public class AlkimiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = alkimiBidder.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly(ENDPOINT_URL);
     }
@@ -73,50 +75,14 @@ public class AlkimiBidderTest extends VertxTest {
                 .imp(List.of(Imp.builder()
                                 .id(DIV_BANNER_ID)
                                 .bidfloor(BigDecimal.valueOf(0.2))
-                                .banner(Banner.builder()
-                                        .pos(5)
-                                        .w(300)
-                                        .h(250)
-                                        .format(List.of(Format.builder()
-                                                .w(300)
-                                                .h(250)
-                                                .build())
-                                        ).build()
-                                )
-                                .ext(mapper.valueToTree(ExtPrebid.of(
-                                        null,
-                                        ExtImpAlkimi.builder()
-                                                .token(PUB_TOKEN)
-                                                .bidFloor(BigDecimal.valueOf(0.2))
-                                                .pos(5)
-                                                .width(300)
-                                                .height(250)
-                                                .impMediaType(TYPE_BANNER)
-                                                .build()
-                                )))
+                                .banner(expectedBanner())
+                                .ext(expectedBannerExt())
                                 .build(),
                         Imp.builder()
                                 .id(DIV_VIDEO_ID)
                                 .bidfloor(BigDecimal.valueOf(0.3))
-                                .video(Video.builder()
-                                        .pos(7)
-                                        .w(1024)
-                                        .h(768)
-                                        .mimes(List.of("video/mp4"))
-                                        .protocols(List.of(1, 2, 3, 4, 5))
-                                        .build()
-                                )
-                                .ext(mapper.valueToTree(ExtPrebid.of(
-                                        null,
-                                        ExtImpAlkimi.builder()
-                                                .token(PUB_TOKEN)
-                                                .bidFloor(BigDecimal.valueOf(0.3))
-                                                .pos(7)
-                                                .width(1024)
-                                                .height(768)
-                                                .impMediaType(TYPE_VIDEO)
-                                                .build()
-                                )))
+                                .video(expectedVideo())
+                                .ext(expectedVideoExt())
                                 .build())
                 ).build();
 
@@ -125,16 +91,64 @@ public class AlkimiBidderTest extends VertxTest {
                 .containsExactly(expectedBidRequest);
     }
 
+    private Banner expectedBanner() {
+        return Banner.builder()
+                .pos(5)
+                .w(300)
+                .h(250)
+                .format(Collections.singletonList(Format.builder()
+                        .w(300)
+                        .h(250)
+                        .build())
+                ).build();
+    }
+
+    private ObjectNode expectedBannerExt() {
+        return mapper.valueToTree(ExtPrebid.of(
+                null,
+                ExtImpAlkimi.builder()
+                        .token(PUB_TOKEN)
+                        .bidFloor(BigDecimal.valueOf(0.2))
+                        .pos(5)
+                        .width(300)
+                        .height(250)
+                        .impMediaType(TYPE_BANNER)
+                        .build()));
+    }
+
+    private Video expectedVideo() {
+        return Video.builder()
+                .pos(7)
+                .w(1024)
+                .h(768)
+                .mimes(List.of("video/mp4"))
+                .protocols(List.of(1, 2, 3, 4, 5))
+                .build();
+    }
+
+    private ObjectNode expectedVideoExt() {
+        return mapper.valueToTree(ExtPrebid.of(
+                null,
+                ExtImpAlkimi.builder()
+                        .token(PUB_TOKEN)
+                        .bidFloor(BigDecimal.valueOf(0.3))
+                        .pos(7)
+                        .width(1024)
+                        .height(768)
+                        .impMediaType(TYPE_VIDEO)
+                        .build()));
+    }
+
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).allMatch(error ->
-                error.getType() == BidderError.Type.bad_server_response
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
                         && error.getMessage().startsWith("Failed to decode: Unrecognized token")
-        );
+                );
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -193,20 +207,18 @@ public class AlkimiBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                 .id(DIV_BANNER_ID)
                 .banner(Banner.builder()
-                        .format(List.of(Format.builder()
+                        .format(Collections.singletonList(Format.builder()
                                 .w(300)
                                 .h(250)
                                 .build())
-                        ).build()
-                )
+                        ).build())
                 .ext(mapper.valueToTree(ExtPrebid.of(
                         null,
                         ExtImpAlkimi.builder()
                                 .token(PUB_TOKEN)
                                 .bidFloor(BigDecimal.valueOf(0.2))
                                 .pos(5)
-                                .build()
-                )))
+                                .build())))
         ).build();
     }
 
