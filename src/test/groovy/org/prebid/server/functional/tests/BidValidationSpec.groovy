@@ -213,10 +213,10 @@ class BidValidationSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 
-    def "PBS should return error invalid request format request.ext.aliasgvild unknown bidder alias"() {
+    def "PBS should return error when between refers to unknown bidder alias"() {
         given: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.aliasgvlids = ["unknown": 1]
+        bidRequest.ext.prebid.aliasgvlids = ["between": 1]
         bidRequest.ext.prebid.aliases = ["appnexus": GENERIC]
 
         when: "Sending auction request to PBS"
@@ -225,10 +225,10 @@ class BidValidationSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "vendorId unknown refers to unknown bidder alias: 1")
+                "vendorId between refers to unknown bidder alias: 1")
     }
 
-    def "PBS should return error invalid request format request.ext.prebid.aliasgvlids if invalid vendorId"() {
+    def "PBS should return error when aliasgvlids value lowest that one"() {
         given: "Default basic BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
         bidRequest.ext.prebid.aliasgvlids = ["appnexus": 0]
@@ -239,6 +239,7 @@ class BidValidationSpec extends BaseSpec {
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. Invalid vendorId appnexus for alias: 0. Choose a different vendorId, or remove this entry.")
+        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
+                "Invalid vendorId appnexus for alias: 0. Choose a different vendorId, or remove this entry.")
     }
 }
