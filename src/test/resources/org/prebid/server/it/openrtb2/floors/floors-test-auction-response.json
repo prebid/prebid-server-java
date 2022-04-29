@@ -6,30 +6,27 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 0.01,
+          "price": 8.399,
           "adid": "2068416",
           "cid": "8048",
           "crid": "24080",
-          "adm": "adm001",
-          "nurl": "nurl001",
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "banner"
             },
-            "origbidcpm": 0.01,
-            "ct": 0,
-            "startdelay": 0
+            "origbidcpm": 13,
+            "origbidcur":"GBP"
           }
         }
       ],
-      "seat": "amx",
+      "seat": "generic",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "amx": "{{ amx.response_time_ms }}"
+      "generic": "{{ generic.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

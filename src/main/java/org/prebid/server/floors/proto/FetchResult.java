@@ -1,12 +1,12 @@
 package org.prebid.server.floors.proto;
 
 import lombok.Value;
-import org.prebid.server.floors.model.PriceFloorRules;
+import org.prebid.server.floors.model.PriceFloorData;
 
 @Value(staticConstructor = "of")
 public class FetchResult {
 
-    PriceFloorRules rules;
+    PriceFloorData rulesData;
 
     FetchStatus fetchStatus;
 }

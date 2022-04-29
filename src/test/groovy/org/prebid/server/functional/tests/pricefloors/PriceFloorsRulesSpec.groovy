@@ -1,9 +1,10 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
+
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
 import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.auction.App
@@ -56,9 +57,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def floorValue = 0.8
         def invalidRule = new Rule(mediaType: BANNER, country: Country.MULTIPLE,
                 siteDomain: PBSUtils.randomString).rule
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY])
-            data.modelGroups[0].values = [(rule)       : floorValue,
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY])
+            modelGroups[0].values = [(rule)       : floorValue,
                                           (invalidRule): floorValue + 0.1]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
@@ -86,9 +87,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY], delimiter: delimiter)
-            data.modelGroups[0].values = [(new Rule(delimiter: delimiter, mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule)       : PBSUtils.randomFloorValue,
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE, COUNTRY], delimiter: delimiter)
+            modelGroups[0].values = [(new Rule(delimiter: delimiter, mediaType: MediaType.MULTIPLE, country: Country.MULTIPLE).rule)       : PBSUtils.randomFloorValue,
                                           (new Rule(delimiter: delimiter, mediaType: BANNER, country: Country.MULTIPLE).rule): floorValue]}
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -133,9 +134,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
+            modelGroups[0].values =
                     [(new Rule(domain: domain).rule.toUpperCase())               : floorValue,
                      (new Rule(domain: PBSUtils.randomString).rule.toUpperCase()): floorValue + 0.1]
         }
@@ -166,12 +167,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups <<  ModelGroup.modelGroup
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
-            data.modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue + 0.1]
-            data.modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
-            data.modelGroups[1].values = [(new Rule(domain: domain).rule) : floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups <<  ModelGroup.modelGroup
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BOGUS])
+            modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue + 0.1]
+            modelGroups[1].schema = new PriceFloorSchema(fields: [DOMAIN])
+            modelGroups[1].values = [(new Rule(domain: domain).rule) : floorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -215,9 +216,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.getRoundedFractionalNumber(PBSUtils.getFractionalRandomNumber(FLOOR_MIN, 2), 6) as BigDecimal
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            data.modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
+            modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -238,9 +239,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
+            modelGroups[0].values =
                     [(new Rule(mediaType: MediaType.MULTIPLE).rule): bothFloorValue,
                      (new Rule(mediaType: BANNER).rule)            : bannerFloorValue,
                      (new Rule(mediaType: VIDEO).rule)             : videoFloorValue]
@@ -282,9 +283,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def requestFloorValue = 0.8
         def floorsProviderFloorValue = requestFloorValue + 0.1
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
+            modelGroups[0].values =
                     [(new Rule(size: "*").rule)                           : floorsProviderFloorValue,
                      (new Rule(size: "${lowerWidth}x${lowerHigh}").rule)  : floorsProviderFloorValue + 0.1,
                      (new Rule(size: "${higherWidth}x${higherHigh}").rule): floorsProviderFloorValue + 0.2]
@@ -315,9 +316,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def requestFloorValue = 0.8
         def floorsProviderFloorValue = requestFloorValue + 0.1
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [SIZE])
+            modelGroups[0].values =
                     [(new Rule(size: "*").rule)                 : floorsProviderFloorValue + 0.1,
                      (new Rule(size: "${width}x${height}").rule): floorsProviderFloorValue]
         }
@@ -358,9 +359,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
+            modelGroups[0].values =
                     [(new Rule(domain: domain).rule)               : floorValue,
                      (new Rule(domain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -407,9 +408,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
+            modelGroups[0].values =
                     [(new Rule(siteDomain: domain).rule)               : floorValue,
                      (new Rule(siteDomain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -448,9 +449,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [PUB_DOMAIN])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [PUB_DOMAIN])
+            modelGroups[0].values =
                     [(new Rule(pubDomain: domain).rule)               : floorValue,
                      (new Rule(pubDomain: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -490,9 +491,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [BUNDLE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BUNDLE])
+            modelGroups[0].values =
                     [(new Rule(bundle: bundle).rule)               : floorValue,
                      (new Rule(bundle: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -522,9 +523,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [CHANNEL])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [CHANNEL])
+            modelGroups[0].values =
                     [(new Rule(channel: channel).rule)              : floorValue,
                      (new Rule(channel: APP).rule): floorValue + 0.1]
         }
@@ -552,9 +553,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [GPT_SLOT])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [GPT_SLOT])
+            modelGroups[0].values =
                     [(new Rule(gptSlot: gptSlot).rule)               : floorValue,
                      (new Rule(gptSlot: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -590,9 +591,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [PB_AD_SLOT])
+            modelGroups[0].values =
                     [(new Rule(pbAdSlot: pbAdSlot).rule)             : floorValue,
                      (new Rule(pbAdSlot: PBSUtils.randomString).rule): floorValue + 0.1]
         }
@@ -622,9 +623,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [COUNTRY])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [COUNTRY])
+            modelGroups[0].values =
                     [(new Rule(country: country).rule)         : floorValue,
                      (new Rule(country: Country.MULTIPLE).rule): floorValue + 0.1]
         }
@@ -652,9 +653,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
+            modelGroups[0].values =
                     [(new Rule(deviceType: PHONE).rule): phoneFloorValue,
                      (new Rule(deviceType: TABLET).rule): tabletFloorValue,
                      (new Rule(deviceType: DESKTOP).rule): desktopFloorValue,
@@ -698,9 +699,9 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with wildcard deviceType rule"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
-            data.modelGroups[0].values =
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [DEVICE_TYPE])
+            modelGroups[0].values =
                     [(new Rule(deviceType: PHONE).rule): floorValue + 0.1,
                      (new Rule(deviceType: TABLET).rule): floorValue + 0.2,
                      (new Rule(deviceType: DESKTOP).rule): floorValue + 0.3,
@@ -729,10 +730,10 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            data.modelGroups[0].values = [(new Rule(mediaType: VIDEO).rule): floorValue + 0.1]
-            data.modelGroups[0].defaultFloor = floorValue
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
+            modelGroups[0].values = [(new Rule(mediaType: VIDEO).rule): floorValue + 0.1]
+            modelGroups[0].defaultFloor = floorValue
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 

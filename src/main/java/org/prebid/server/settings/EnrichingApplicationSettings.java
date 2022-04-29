@@ -17,16 +17,19 @@ import java.util.Set;
 
 public class EnrichingApplicationSettings implements ApplicationSettings {
 
+    private final boolean enforceValidAccount;
     private final ApplicationSettings delegate;
     private final PriceFloorsConfigResolver priceFloorsConfigResolver;
     private final JsonMerger jsonMerger;
     private final Account defaultAccount;
 
-    public EnrichingApplicationSettings(String defaultAccountConfig,
+    public EnrichingApplicationSettings(boolean enforceValidAccount,
+                                        String defaultAccountConfig,
                                         ApplicationSettings delegate,
                                         PriceFloorsConfigResolver priceFloorsConfigResolver,
                                         JsonMerger jsonMerger) {
 
+        this.enforceValidAccount = enforceValidAccount;
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
@@ -42,10 +45,13 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         if (defaultAccount == null) {
             return accountFuture;
         }
+        final Future<Account> mergedWithDefaultAccount = accountFuture
+                .map(this::mergeAccounts);
 
-        return accountFuture
-                .map(this::mergeAccounts)
-                .otherwise(mergeAccounts(Account.empty(accountId)));
+        // In case of invalid account return failed future
+        return enforceValidAccount
+                ? mergedWithDefaultAccount
+                : mergedWithDefaultAccount.otherwise(mergeAccounts(Account.empty(accountId)));
     }
 
     @Override

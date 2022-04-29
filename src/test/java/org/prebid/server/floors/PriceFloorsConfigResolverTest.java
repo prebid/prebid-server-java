@@ -19,6 +19,7 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -37,6 +38,13 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         testingInstance = new PriceFloorsConfigResolver(
                 jacksonMapper.encodeToString(withDefaultFloorsConfig(identity())),
                 metrics);
+    }
+
+    @Test
+    public void priceFloorsConfigResolverShouldNotCreateInstanceIfDefaultAccountIsInvalid() {
+        assertThatIllegalArgumentException().isThrownBy(() -> new PriceFloorsConfigResolver(
+                "{",
+                metrics));
     }
 
     @Test
@@ -210,6 +218,86 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountEnforceFloorRateIsNotPresent() {
+        // given
+        final Account givenAccount = Account.builder()
+                .id("some-id")
+                .auction(AccountAuctionConfig.builder()
+                        .priceFloors(AccountPriceFloorsConfig.builder()
+                                .enforceFloorsRate(null).build())
+                        .build())
+                .build();
+
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(givenAccount);
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxFileSizeIsNotPresent() {
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(
+                accountWithFloorsFetchConfig(config -> config.maxFileSize(null)));
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountPeriodicSecIsNotPresent() {
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(
+                accountWithFloorsFetchConfig(config -> config.periodSec(null)));
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountFetchTimeoutIsNotPresent() {
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(
+                accountWithFloorsFetchConfig(config -> config.timeout(null)));
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxRulesIsNotPresent() {
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(
+                accountWithFloorsFetchConfig(config -> config.maxRules(null)));
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
+    @Test
+    public void updateFloorsConfigShouldValidateByDefaultConfigWhenAccountMaxAgeSecIsNotPresent() {
+        // when
+        final Future<?> future = testingInstance.updateFloorsConfig(
+                accountWithFloorsFetchConfig(config -> config.maxAgeSec(null)));
+
+        // then
+        assertThat(future.result())
+                .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+    }
+
     private static Account accountWithFloorsFetchConfig(
             UnaryOperator<AccountPriceFloorsFetchConfig.AccountPriceFloorsFetchConfigBuilder> configCustomizer) {
         return Account.builder()
@@ -235,7 +323,14 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                 .id("default-account-id")
                 .auction(AccountAuctionConfig.builder()
                         .priceFloors(AccountPriceFloorsConfig.builder()
-                                .enforceFloorsRate(20)
+                                .fetch(AccountPriceFloorsFetchConfig.builder()
+                                        .maxAgeSec(500L)
+                                        .periodSec(-1L)
+                                        .timeout(5L)
+                                        .maxRules(-1L)
+                                        .maxFileSize(-1L)
+                                        .build())
+                                .enforceFloorsRate(-1)
                                 .build())
                         .build())
         ).build();
