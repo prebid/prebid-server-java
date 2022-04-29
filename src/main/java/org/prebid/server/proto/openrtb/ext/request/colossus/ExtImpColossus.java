@@ -9,5 +9,6 @@ public class ExtImpColossus {
     @JsonProperty("TagID")
     String tagId;
 
+    @JsonProperty("groupId")
     String groupId;
 }
