@@ -9,25 +9,25 @@ class InfoBiddersSpec extends BaseSpec {
     @Unroll
     def "PBS should get info about active bidders when enabledonly = #enabledonly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest("true")
+        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
 
         then: "Response should contain only generic bidder"
         assert response == ["generic"]
 
         where:
-        enabledonly << ["true", "True", "truE"]
+        enabledOnly << ["true", "True", "truE"]
     }
 
     @Unroll
     def "PBS should get info about all bidders when enabledonly = #enabledonly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest("false")
+        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
 
         then: "Response should contain info about all bidders"
         assert response.size() > 1
 
         where:
-        enabledonly << ["false", "False", "falsE"]
+        enabledOnly << ["false", "False", "falsE"]
     }
 
     def "PBS should get info about all bidders when enabledonly isn't passed"() {

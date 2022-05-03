@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Format
+import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
@@ -17,6 +18,9 @@ import static org.prebid.server.functional.model.config.BidValidationEnforcement
 import static org.prebid.server.functional.model.config.BidValidationEnforcement.WARN
 
 class BannerFormatValidationSpec extends BaseSpec {
+
+    private static final String INSECURE_MARKUP = "http:"
+    private static final String SECURE_MARKUP = "https:"
 
     @Unroll
     def "Auction request should pass format validation when the correct values are passed"() {
@@ -173,7 +177,6 @@ class BannerFormatValidationSpec extends BaseSpec {
                          "${bidRequest.imp[0].banner.format[0].h}', bid response size=" +
                          "'${bidResponse.seatbid[0].bid[0].w}x${bidResponse.seatbid[0].bid[0].h}'"]
 
-
         where:
         requestWidth                       | requestHeight                      | bidderWidth      | bidderHeight
         PBSUtils.getRandomNumber(200, 300) | PBSUtils.getRandomNumber(200, 300) | requestWidth + 1 | requestHeight
@@ -215,5 +218,115 @@ class BannerFormatValidationSpec extends BaseSpec {
 
         where:
         bidValidation << [ENFORCE, SKIP, WARN]
+    }
+
+    @Unroll
+    def "PBS should skip format validation when banner-creative-max-size = skip in account config"() {
+        given: "Default basic BidRequest with w,h"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner.format[0].w = requestWidth
+            imp[0].banner.format[0].h = requestHeight
+        }
+
+        and: "Save account config into DB"
+        def bidValidations = new AccountBidValidationConfig(bannerMaxSizeEnforcement: SKIP)
+        def auction = new AccountAuctionConfig(bidValidations: bidValidations)
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: new AccountConfig(auction: auction))
+        accountDao.save(account)
+
+        and: "Default basic bid with w,h"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].w = bidderWidth
+            seatbid[0].bid[0].h = bidderHeight
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response bid should contain sizes from bidder response"
+        assert response.seatbid[0]?.bid[0]?.w == bidderWidth
+        assert response.seatbid[0]?.bid[0]?.h == bidderHeight
+
+        and: "Response should not contain errors"
+        assert !response.ext?.errors
+
+        where:
+        requestWidth          | requestHeight         | bidderWidth      | bidderHeight
+        PBSUtils.randomNumber | PBSUtils.randomNumber | requestWidth + 1 | requestHeight
+        PBSUtils.randomNumber | PBSUtils.randomNumber | requestWidth     | requestHeight + 1
+    }
+
+    @Unroll
+    def "PBS should ignore banner validation for video request"() {
+        given: "Default basic BidRequest with video"
+        def bidRequest = BidRequest.defaultVideoRequest.tap {
+            imp[0].video.w = requestWidth
+            imp[0].video.h = requestHeight
+        }
+
+        and: "Save account config into DB"
+        def bidValidations = new AccountBidValidationConfig(bannerMaxSizeEnforcement: ENFORCE)
+        def auction = new AccountAuctionConfig(bidValidations: bidValidations)
+        def account = new Account(uuid: bidRequest.site.publisher.id, config: new AccountConfig(auction: auction))
+        accountDao.save(account)
+
+        and: "Default basic bid with w,h"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].w = bidderWidth
+            seatbid[0].bid[0].h = bidderHeight
+            seatbid[0].bid[0].adm = PBSUtils.randomString
+            seatbid[0].bid[0].nurl = PBSUtils.randomString
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response bid should contain sizes from bidder response"
+        assert response.seatbid[0]?.bid[0]?.w == bidderWidth
+        assert response.seatbid[0]?.bid[0]?.h == bidderHeight
+
+        and: "Response should not contain errors"
+        assert !response.ext?.errors
+
+        where:
+        requestWidth          | requestHeight         | bidderWidth      | bidderHeight
+        PBSUtils.randomNumber | PBSUtils.randomNumber | requestWidth + 1 | requestHeight
+        PBSUtils.randomNumber | PBSUtils.randomNumber | requestWidth     | requestHeight + 1
+    }
+
+    @Unroll
+    def "PBS should not emit warning for #description when imp[].secure = #requestSecure"() {
+        given: "Default basic BidRequest with secure"
+        def bidRequest = request.tap {
+            imp[0].secure = requestSecure
+        }
+
+        and: "Default basic bid with adm"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = bidderAdm
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain seatbid"
+        assert response.seatbid
+
+        and: "Response should not contain errors"
+        assert !response.ext?.errors
+
+        where:
+        description               | requestSecure | request                        | bidderAdm
+        "insecure adm for banner" | 0             | BidRequest.defaultBidRequest   | INSECURE_MARKUP
+        "secure adm for video"    | 1             | BidRequest.defaultVideoRequest | SECURE_MARKUP
     }
 }

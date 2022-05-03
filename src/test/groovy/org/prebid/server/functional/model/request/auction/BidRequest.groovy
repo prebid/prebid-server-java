@@ -30,8 +30,16 @@ class BidRequest {
     BidRequestExt ext
 
     static BidRequest getDefaultBidRequest() {
+        getDefaultRequest(Imp.defaultImpression)
+    }
+
+    static BidRequest getDefaultVideoRequest() {
+        getDefaultRequest(Imp.videoImpression)
+    }
+
+    static BidRequest getDefaultRequest(Imp imp) {
         new BidRequest().tap {
-            it.addImp(Imp.defaultImpression)
+            it.addImp(imp)
             regs = Regs.defaultRegs
             id = UUID.randomUUID()
             tmax = 2500

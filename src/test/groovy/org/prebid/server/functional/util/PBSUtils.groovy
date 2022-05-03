@@ -7,6 +7,7 @@ import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
+import static java.math.RoundingMode.HALF_UP
 
 class PBSUtils {
 
@@ -31,5 +32,10 @@ class PBSUtils {
 
     static String getRandomString(int stringLength = 20) {
         RandomStringUtils.randomAlphanumeric(stringLength)
+    }
+
+    static BigDecimal getRandomPrice() {
+        BigDecimal.valueOf(getFractionalRandomNumber(0, 10))
+                  .setScale(3, HALF_UP)
     }
 }
