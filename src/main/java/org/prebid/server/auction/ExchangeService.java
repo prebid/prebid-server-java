@@ -127,6 +127,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -1127,9 +1128,12 @@ public class ExchangeService {
         final ObjectNode bidders = prebidParameters != null
                 ? mapper.mapper().valueToTree(ExtPrebidBidders.of(prebidParameters))
                 : null;
+        final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = Optional.ofNullable(extPrebid)
+                .map(ExtRequestPrebid::toBuilder)
+                .orElse(ExtRequestPrebid.builder());
 
         return ExtRequest.of(
-                Objects.requireNonNull(extPrebid).toBuilder()
+                extPrebidBuilder
                         .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
                         .bidderparams(prepareBidderParameters(extPrebid, bidder))
@@ -1365,8 +1369,8 @@ public class ExchangeService {
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
         final String validationErrors = Stream.concat(
-                validationResult.getErrors().stream().map(message -> "Error: " + message),
-                validationResult.getWarnings().stream().map(message -> "Warning: " + message))
+                        validationResult.getErrors().stream().map(message -> "Error: " + message),
+                        validationResult.getWarnings().stream().map(message -> "Warning: " + message))
                 .collect(Collectors.joining(". "));
 
         final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
