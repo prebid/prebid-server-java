@@ -65,6 +65,12 @@ class GeneralPlanner extends NetworkScaffolding {
         getLastRecordedRequestHeaders(plansRequest)
     }
 
+    @Override
+    void reset() {
+        super.reset(PLANS_ENDPOINT_PATH)
+        super.reset(REGISTER_ENDPOINT_PATH)
+    }
+
     private void setPlansResponse(PlansResponse plansResponse,
                                   HttpStatusCode statusCode,
                                   Times times = Times.exactly(1)) {

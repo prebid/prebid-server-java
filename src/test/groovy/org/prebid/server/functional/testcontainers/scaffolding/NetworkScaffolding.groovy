@@ -11,7 +11,7 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
-import static org.mockserver.model.ClearType.EXPECTATIONS
+import static org.mockserver.model.ClearType.ALL
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -133,7 +133,7 @@ abstract class NetworkScaffolding {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
-    void reset(String resetEndpoint = endpoint, ClearType clearType = EXPECTATIONS) {
+    void reset(String resetEndpoint = endpoint, ClearType clearType = ALL) {
         mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
 
