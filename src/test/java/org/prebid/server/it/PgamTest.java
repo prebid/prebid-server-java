@@ -28,7 +28,7 @@ public class PgamTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/pgam/test-auction-pgam-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/pgam/test-auction-pgam-response.json", response,

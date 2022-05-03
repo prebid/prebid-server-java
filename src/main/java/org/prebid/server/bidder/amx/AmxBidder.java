@@ -193,11 +193,11 @@ public class AmxBidder implements Bidder<BidRequest> {
 
     private BidType getBidType(AmxBidExt amxBidExt) {
         if (amxBidExt.getStartDelay() != null) {
-            return BidType.video;
+            return BidType.VIDEO;
         } else if (amxBidExt.getCreativeType() != null && amxBidExt.getCreativeType() == 10) {
-            return BidType.xNative;
+            return BidType.X_NATIVE;
         } else {
-            return BidType.banner;
+            return BidType.BANNER;
         }
     }
 }

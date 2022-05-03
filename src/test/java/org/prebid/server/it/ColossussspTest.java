@@ -28,7 +28,7 @@ public class ColossussspTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/colossus/aliases/test-auction-colossusssp-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/colossus/aliases/test-auction-colossusssp-response.json", response,

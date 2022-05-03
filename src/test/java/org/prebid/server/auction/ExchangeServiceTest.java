@@ -120,7 +120,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
@@ -190,10 +189,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.AUDIO;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ExchangeServiceTest extends VertxTest {
 
@@ -3233,10 +3232,10 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(List.of(
-                BidderBid.of(Bid.builder().impid("1234").price(BigDecimal.valueOf(2)).build(), video, null))));
+                BidderBid.of(Bid.builder().impid("1234").price(BigDecimal.valueOf(2)).build(), VIDEO, null))));
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
-                .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
+                .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.VIDEO,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3267,10 +3266,10 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(List.of(
-                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), video, null))));
+                BidderBid.of(Bid.builder().impid("123").price(BigDecimal.valueOf(2)).build(), VIDEO, null))));
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
-                .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.video,
+                .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.VIDEO,
                         singletonMap("bidder", BigDecimal.valueOf(3.456)))))
                 .build();
 
@@ -3302,8 +3301,8 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("bidder", bidder, givenSeatBid(List.of(
                 givenBid(Bid.builder().price(BigDecimal.valueOf(2)).build()),
-                BidderBid.builder().type(xNative).bid(givenBid(identity())).build(),
-                BidderBid.builder().type(audio).bid(givenBid(identity())).build())));
+                BidderBid.builder().type(X_NATIVE).bid(givenBid(identity())).build(),
+                BidderBid.builder().type(AUDIO).bid(givenBid(identity())).build())));
 
         final ExtRequestBidAdjustmentFactors givenAdjustments = ExtRequestBidAdjustmentFactors.builder()
                 .mediatypes(new EnumMap<>(singletonMap(ImpMediaType.BANNER,
@@ -3676,12 +3675,12 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes(givenAppliedToImpl(appliedToImplBuilder -> appliedToImplBuilder
                                 .impIds(asList("impId1", "impId2"))
                                 .response(true)
                                 .request(false)))))
-                .debugContext(DebugContext.of(false, TraceLevel.verbose))
+                .debugContext(DebugContext.of(false, TraceLevel.VERBOSE))
                 .build();
 
         given(httpBidderRequester.requestBids(any(), any(), any(), any(), anyBoolean()))
@@ -3723,9 +3722,9 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
                 .hookExecutionContext(HookExecutionContext.of(
-                        Endpoint.openrtb2_auction,
+                        Endpoint.OPENRTB2_AUCTION,
                         stageOutcomes(null)))
-                .debugContext(DebugContext.of(false, TraceLevel.verbose))
+                .debugContext(DebugContext.of(false, TraceLevel.VERBOSE))
                 .build();
 
         // when
@@ -4347,11 +4346,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     private static BidderBid givenBid(Bid bid) {
-        return BidderBid.of(bid, BidType.BANNER, null);
+        return BidderBid.of(bid, BANNER, null);
     }
 
     private static BidderBid givenBid(Bid bid, String cur) {
-        return BidderBid.of(bid, BidType.BANNER, cur);
+        return BidderBid.of(bid, BANNER, cur);
     }
 
     private static Bid givenBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidBuilder) {

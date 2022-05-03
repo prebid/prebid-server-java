@@ -237,7 +237,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     @Test
@@ -249,7 +249,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     @Test
@@ -261,7 +261,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     @Test
@@ -273,7 +273,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     @Test
@@ -285,7 +285,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     @Test
@@ -297,7 +297,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
         // then
         assertThat(future.result())
                 .isEqualTo(withDefaultFloorsConfig(accountBuilder -> accountBuilder.id("some-id")));
-        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
+        verify(metrics).updateAlertsConfigFailed("some-id", MetricName.PRICE_FLOORS);
     }
 
     private static Account accountWithFloorsFetchConfig(

@@ -74,7 +74,7 @@ public class PriceFloorsTest extends VertxTest {
         // when
         final Response firstResponse = responseFor(
                 "openrtb2/floors/floors-test-auction-request-1.json",
-                Endpoint.openrtb2_auction,
+                Endpoint.OPENRTB2_AUCTION,
                 SPEC);
 
         // then
@@ -95,7 +95,7 @@ public class PriceFloorsTest extends VertxTest {
         // when
         final Response secondResponse = responseFor(
                 "openrtb2/floors/floors-test-auction-request-2.json",
-                Endpoint.openrtb2_auction,
+                Endpoint.OPENRTB2_AUCTION,
                 SPEC);
 
         // then

@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.BANNER;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.VIDEO;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.X_NATIVE;
 
 public class AmxBidderTest extends VertxTest {
 
@@ -242,7 +243,7 @@ public class AmxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
                         .ext(bidExt)
-                        .build(), xNative, "USD"));
+                        .build(), X_NATIVE, "USD"));
     }
 
     @Test
@@ -259,7 +260,7 @@ public class AmxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().build(), BANNER, "USD"));
     }
 
     @Test
