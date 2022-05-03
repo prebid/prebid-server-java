@@ -1,8 +1,8 @@
 package org.prebid.server.functional.util
 
+import org.apache.commons.lang3.RandomStringUtils
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.testcontainers.shaded.org.apache.commons.lang.RandomStringUtils
 
 import java.nio.file.Files
 import java.nio.file.Path

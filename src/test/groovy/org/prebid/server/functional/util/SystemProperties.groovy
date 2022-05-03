@@ -4,10 +4,14 @@ class SystemProperties {
 
     public static final String PBS_VERSION = System.getProperty("pbs.version")?.split("-")?.first()
     public static final String MOCKSERVER_VERSION = System.getProperty("mockserver.version")
-    public static final int DEFAULT_TIMEOUT = getPropertyOrDefault("tests.default-timeout-millis", 5000)
+    public static final int DEFAULT_TIMEOUT = 5000
 
-    static <T> T getPropertyOrDefault(String property, T defaultValue) {
-        (System.getProperty(property) ?: defaultValue) as T
+    static int getPropertyOrDefault(String property, int defaultValue) {
+        System.getProperty(property) as Integer ?: defaultValue
+    }
+
+    static String getPropertyOrDefault(String property, String defaultValue) {
+        System.getProperty(property) ?: defaultValue
     }
 
     private SystemProperties() {
