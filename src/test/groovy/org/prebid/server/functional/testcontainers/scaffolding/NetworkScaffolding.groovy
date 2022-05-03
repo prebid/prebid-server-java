@@ -117,19 +117,19 @@ abstract class NetworkScaffolding {
                         .collect { it.body.toString() }
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
         getRecordedRequestsHeaders(httpRequest).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(httpRequest) as List<HttpRequest>)
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(String value) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(String value) {
         getRecordedRequestsHeaders(value).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(String value) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(String value) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
@@ -137,8 +137,8 @@ abstract class NetworkScaffolding {
         mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
 
-    private static List<Map<String, String>> getRequestsHeaders(List<HttpRequest> httpRequests) {
-        httpRequests*.headers*.entries*.collectEntries { header ->
+    private static List<Map<String, List<String>>> getRequestsHeaders(List<HttpRequest> httpRequests) {
+        httpRequests*.headerList*.collectEntries { header ->
             [header.name as String, header.values.collect { it as String }]
         }
     }

@@ -410,9 +410,6 @@ class ReportSpec extends BasePgSpec {
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
         bidder.setResponse(bidRequest.id, bidResponse)
 
-        and: "Initial Delivery Statistics Service request count"
-        def initialRequestCount = deliveryStatistics.requestCount
-
         and: "Set Planner response to return 1 line item"
         def plansResponse = PlansResponse.getDefaultPlansResponse(accountId)
         generalPlanner.initPlansResponse(plansResponse)
@@ -431,7 +428,7 @@ class ReportSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
 
         then: "PBS sends a report to Delivery Statistics"
-        PBSUtils.waitUntil { deliveryStatistics.requestCount == initialRequestCount + 1 }
+        PBSUtils.waitUntil { deliveryStatistics.requestCount == 1 }
 
         when: "Delivery Statistics Service response is set to return a success response"
         deliveryStatistics.reset()
@@ -441,7 +438,7 @@ class ReportSpec extends BasePgSpec {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
 
         then: "PBS for the second time sends the same report to the Delivery Statistics Service"
-        PBSUtils.waitUntil { deliveryStatistics.requestCount == initialRequestCount + 2 }
+        PBSUtils.waitUntil { deliveryStatistics.requestCount == 1 }
     }
 
     def "PBS shouldn't save reports for later sending when Delivery Statistics response is Conflict 409"() {

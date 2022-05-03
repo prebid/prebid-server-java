@@ -57,11 +57,11 @@ class GeneralPlanner extends NetworkScaffolding {
                         .respond(response().withStatusCode(statusCode.code()))
     }
 
-    Map<String, String> getLastRecordedRegisterRequestHeaders() {
+    Map<String, List<String>> getLastRecordedRegisterRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 
-    Map<String, String> getLastRecordedPlansRequestHeaders() {
+    Map<String, List<String>> getLastRecordedPlansRequestHeaders() {
         getLastRecordedRequestHeaders(plansRequest)
     }
 

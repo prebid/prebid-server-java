@@ -21,7 +21,7 @@ class DeliveryStatistics extends NetworkScaffolding {
         super(mockServerContainer, REPORT_DELIVERY_ENDPOINT_PATH, mapper)
     }
 
-    Map<String, String> getLastRecordedDeliveryRequestHeaders() {
+    Map<String, List<String>> getLastRecordedDeliveryRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 
