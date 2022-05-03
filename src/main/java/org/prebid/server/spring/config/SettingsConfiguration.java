@@ -340,15 +340,19 @@ public class SettingsConfiguration {
 
         @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
+                @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 CompositeApplicationSettings compositeApplicationSettings,
                 PriceFloorsConfigResolver priceFloorsConfigResolver,
-                JsonMerger jsonMerger) {
+                JsonMerger jsonMerger,
+                JacksonMapper jacksonMapper) {
 
-            return new EnrichingApplicationSettings(defaultAccountConfig,
+            return new EnrichingApplicationSettings(enforceValidAccount,
+                    defaultAccountConfig,
                     compositeApplicationSettings,
                     priceFloorsConfigResolver,
-                    jsonMerger);
+                    jsonMerger,
+                    jacksonMapper);
         }
     }
 
