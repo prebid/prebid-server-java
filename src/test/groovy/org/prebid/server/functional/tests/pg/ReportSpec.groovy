@@ -446,9 +446,6 @@ class ReportSpec extends BasePgSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def accountId = bidRequest.site.publisher.id
 
-        and: "Initial Delivery Statistics Service request count"
-        def initialRequestCount = deliveryStatistics.requestCount
-
         and: "Set Planner response to return 1 line item"
         def plansResponse = PlansResponse.getDefaultPlansResponse(accountId)
         generalPlanner.initPlansResponse(plansResponse)
@@ -462,6 +459,9 @@ class ReportSpec extends BasePgSpec {
         and: "Delivery Statistics Service response is set to return a Conflict status code"
         deliveryStatistics.reset()
         deliveryStatistics.setResponse(CONFLICT_409)
+
+        and: "Initial Delivery Statistics Service request count"
+        def initialRequestCount = deliveryStatistics.requestCount
 
         when: "PBS is requested to send a report to Delivery Statistics"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
