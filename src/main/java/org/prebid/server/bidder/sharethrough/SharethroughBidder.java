@@ -5,11 +5,11 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Source;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -116,12 +116,31 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                                      BidRequest bidRequest,
                                      ExtImpSharethrough extImpSharethrough,
                                      Price bidFloorPrice) {
+
         return bidRequest.toBuilder()
-                .bcat(extImpSharethrough.getBcat())
-                .badv(extImpSharethrough.getBadv())
+                .bcat(updateBcat(bidRequest, extImpSharethrough))
+                .badv(updateBadv(bidRequest, extImpSharethrough))
                 .imp(Collections.singletonList(modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice)))
                 .source(updateSource(bidRequest.getSource()))
                 .build();
+    }
+
+    private static List<String> updateBadv(BidRequest bidRequest, ExtImpSharethrough extImpSharethrough) {
+        final List<String> extImpSharethroughBadv = extImpSharethrough.getBadv();
+        final List<String> bidRequestBadv = bidRequest.getBadv();
+
+        return bidRequestBadv != null
+                ? ListUtils.union(extImpSharethroughBadv, bidRequestBadv)
+                : extImpSharethroughBadv;
+    }
+
+    private static List<String> updateBcat(BidRequest bidRequest, ExtImpSharethrough extImpSharethrough) {
+        final List<String> extImpSharethroughBcat = extImpSharethrough.getBcat();
+        final List<String> requestBcat = bidRequest.getBcat();
+
+        return requestBcat != null
+                ? ListUtils.union(extImpSharethroughBcat, requestBcat)
+                : extImpSharethroughBcat;
     }
 
     private static Imp modifyImp(Imp imp, String pKey, Price bidFloorPrice) {
@@ -159,31 +178,31 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final Video videoType = bidRequest.getImp().get(0).getVideo();
-            return Result.withValues(extractBids(bidResponse, videoType));
+            final BidRequest request = httpCall.getRequest().getPayload();
+            return Result.withValues(extractBids(bidResponse, request));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, Video videoType) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, videoType);
+        return bidsFromResponse(bidResponse, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, Video videoType) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolvedBidType(videoType), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, resolvedBidType(bidRequest), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolvedBidType(Video videoType) {
-        return videoType != null ? BidType.video : DEFAULT_BID_TYPE;
+    private static BidType resolvedBidType(BidRequest bidRequest) {
+        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
     }
 }

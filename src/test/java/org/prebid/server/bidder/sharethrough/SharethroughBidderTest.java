@@ -155,6 +155,23 @@ public class SharethroughBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldProperPopulateBidRequestBcatAndBadvIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .badv(singletonList("badv-1"))
+                .bcat(singletonList("bcat-2")), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getBcat, BidRequest::getBadv)
+                .containsExactly(tuple(List.of("test-2", "bcat-2"), List.of("test-1", "badv-1")));
+    }
+
+    @Test
     public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
         // given
         given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
@@ -256,7 +273,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -273,7 +290,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -291,7 +308,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
     @NotNull
