@@ -3,13 +3,16 @@ package org.prebid.server.bidder.improvedigital;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
@@ -30,11 +33,13 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
@@ -75,17 +80,18 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private ExtUser getAdditionalConsentProvidersUserExt(BidRequest request) {
-        if (request.getUser().getExt() == null) {
-            return null;
-        }
         final ExtUser extUser = request.getUser().getExt();
-        final String consentedProviders = validateConsentedProvidersSettings(extUser.getConsentedProvidersSettings());
-
-        if (StringUtils.isBlank(consentedProviders)) {
+        if (extUser == null) {
             return null;
         }
 
-        final String[] arrayOfSplitString = StringUtils.substringAfterLast(consentedProviders, "~")
+        final String consentedProviders = ObjectUtils.defaultIfNull(
+                extUser.getConsentedProvidersSettings().getConsentedProviders(), null);
+        if (StringUtils.isBlank(consentedProviders)) {
+            return extUser;
+        }
+
+        final String[] arrayOfSplitString = StringUtils.substringAfter(consentedProviders, "~")
                 .split(REGEX_SPLIT_STRING_BY_DOT);
 
         return fillExtUser(extUser, arrayOfSplitString);
@@ -99,20 +105,18 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
 
-        return mapper.fillExtension(extUser, consentProviderSettingJsonNode);
+        return mapper.fillExtension(extUser.toBuilder().build(), consentProviderSettingJsonNode);
     }
 
     private JsonNode customJsonNode(String[] arrayOfSplitString) {
-        return mapper.mapper().createObjectNode().set(CONSENT_PROVIDERS_SETTINGS_OUT_KEY,
-                mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY,
-                        mapper.mapper().convertValue(
-                                mapper.mapper().convertValue(arrayOfSplitString, Integer[].class), JsonNode.class)));
-    }
+        final Integer[] integers = mapper.mapper().convertValue(arrayOfSplitString, Integer[].class);
+        final ArrayNode arrayNode = mapper.mapper().createArrayNode();
+        for (Integer integer : integers) {
+            arrayNode.add(integer);
+        }
 
-    private static String validateConsentedProvidersSettings(ConsentedProvidersSettings consentedProvidersSettings) {
-        return consentedProvidersSettings != null && consentedProvidersSettings.getConsentedProviders() != null
-                ? consentedProvidersSettings.getConsentedProviders()
-                : null;
+        return mapper.mapper().createObjectNode().set(CONSENT_PROVIDERS_SETTINGS_OUT_KEY,
+                mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY, arrayNode));
     }
 
     private void parseAndValidateImpExt(Imp imp) {
@@ -130,10 +134,11 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp) {
+        final User user = bidRequest.getUser();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
-                .user(bidRequest.getUser() != null
-                        ? bidRequest.getUser().toBuilder().ext(getAdditionalConsentProvidersUserExt(bidRequest)).build()
+                .user(user != null
+                        ? user.toBuilder().ext(getAdditionalConsentProvidersUserExt(bidRequest)).build()
                         : null)
                 .build();
 

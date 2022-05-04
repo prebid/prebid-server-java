@@ -112,7 +112,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnNullIfConsentedProvidersSettingsIsEmpty() {
+    public void makeHttpRequestsShouldReturnUserExtIfConsentedProvidersIsNotProvided() {
         // given
         final ExtUser extUser = ExtUser.builder()
                 .consentedProvidersSettings(ConsentedProvidersSettings.of(null))
@@ -130,7 +130,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getUser)
                 .extracting(User::getExt)
-                .containsOnlyNulls();
+                .containsExactly(extUser);
     }
 
     @Test
