@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.rubicon.RubiconBidder;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.floors.PriceFloorResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -38,6 +39,7 @@ public class RubiconConfiguration {
     BidderDeps rubiconBidderDeps(RubiconConfigurationProperties rubiconConfigurationProperties,
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  CurrencyConversionService currencyConversionService,
+                                 PriceFloorResolver floorResolver,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.<RubiconConfigurationProperties>forBidder(BIDDER_NAME)
@@ -51,6 +53,7 @@ public class RubiconConfiguration {
                                 config.getMetaInfo().getSupportedVendors(),
                                 config.getGenerateBidId(),
                                 currencyConversionService,
+                                floorResolver,
                                 mapper))
                 .assemble();
     }

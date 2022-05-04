@@ -5,6 +5,8 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.version.PrebidVersionProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -18,11 +20,15 @@ import static java.util.Collections.singletonList;
 @RunWith(SpringRunner.class)
 public class SharethroughTest extends IntegrationTest {
 
+    @Autowired
+    private PrebidVersionProvider prebidVersionProvider;
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromSharethrough() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/sharethrough-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-request.json",
+                        prebidVersionProvider)))
                 .willReturn(
                         aResponse().withBody(jsonFrom("openrtb2/sharethrough/test-sharethrough-bid-response.json"))));
 

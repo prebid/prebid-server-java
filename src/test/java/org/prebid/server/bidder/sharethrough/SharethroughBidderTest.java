@@ -31,6 +31,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
@@ -137,6 +138,31 @@ public class SharethroughBidderTest extends VertxTest {
                 .extracting(Source::getExt)
                 .extracting(FlexibleExtension::getProperties)
                 .containsExactly(expectedResponse());
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPopulateProperSourceExtAndNotWipeData() {
+        // given
+        final TextNode givenTextNode = TextNode.valueOf("test");
+        final ExtSource givenExtSource = ExtSource.of(null);
+        givenExtSource.addProperty("test-field", givenTextNode);
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.source(Source.builder().ext(givenExtSource).build()),
+                identity());
+
+        // when
+        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, JsonNode> stringJsonNodeMap = expectedResponse();
+        stringJsonNodeMap.put("test-field", givenTextNode);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .containsExactly(stringJsonNodeMap);
     }
 
     @Test

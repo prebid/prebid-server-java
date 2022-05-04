@@ -37,7 +37,7 @@
   "source": {
     "ext": {
       "str": "10.0",
-      "version": "pbs-java/1.85.0"
+      "version": "{{ pbs.java.version }}"
     }
   },
   "regs": {

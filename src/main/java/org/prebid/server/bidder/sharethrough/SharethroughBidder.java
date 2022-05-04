@@ -27,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrou
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
@@ -42,20 +43,20 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     private static final String ADAPTER_VERSION = "10.0";
     private static final String DEFAULT_BID_CURRENCY = "USD";
     private static final BidType DEFAULT_BID_TYPE = BidType.banner;
-
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
     private final String endpointUrl;
-    private final PrebidVersionProvider prebidVersionProvider;
     private final CurrencyConversionService currencyConversionService;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
     public SharethroughBidder(String endpointUrl,
                               CurrencyConversionService currencyConversionService,
                               PrebidVersionProvider prebidVersionProvider,
                               JacksonMapper mapper) {
+
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
@@ -153,8 +154,16 @@ public class SharethroughBidder implements Bidder<BidRequest> {
 
     private Source updateSource(Source source) {
         return source != null
-                ? source.toBuilder().ext(createExtSource()).build()
+                ? source.toBuilder()
+                .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::updateExtSource, this::createExtSource))
+                .build()
                 : Source.builder().ext(createExtSource()).build();
+    }
+
+    private ExtSource updateExtSource(ExtSource ext) {
+        ext.addProperty("str", TextNode.valueOf(ADAPTER_VERSION));
+        ext.addProperty("version", TextNode.valueOf(prebidVersionProvider.getNameVersionRecord()));
+        return ext;
     }
 
     private ExtSource createExtSource() {
@@ -202,7 +211,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 .collect(Collectors.toList());
     }
 
-    private static BidType resolvedBidType(BidRequest bidRequest) {
+    private static BidType resolveBidType(BidRequest bidRequest) {
         return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
     }
 }

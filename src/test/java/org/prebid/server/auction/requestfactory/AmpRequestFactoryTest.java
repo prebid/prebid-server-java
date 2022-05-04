@@ -142,6 +142,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -1135,6 +1136,34 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenConsentAndAddtlConsentAreAbsent() {
+        // given
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithoutUserExtConsentWhenConsentTypeIsNotTcfAndAddtlConsentIsAbsent() {
+        // given
+        routingContext.queryParams()
+                .add("consent_type", "3")
+                .add("consent_string", "consent_string");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getUser()).isNull();
+    }
+
+    @Test
     public void shouldReturnBidRequestWithUserExtConsentWhenGdprConsentIsValidAndConsentTypeIsNotPresent() {
         // given
         routingContext.queryParams().add("gdpr_consent", "BONV8oqONXwgmADACHENAO7pqzAAppY");
@@ -1281,6 +1310,51 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getPrebidErrors()).isEmpty();
+    }
+
+    @Test
+    public void shouldAddErrorToAuctionContextWhenConsentTypeIsInvalid() {
+        // given
+        routingContext.queryParams().add("consent_type", "invalid");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Invalid consent_type param passed");
+    }
+
+    @Test
+    public void shouldAddErrorToAuctionContextWhenConsentStringQueryParamIsInvalid() {
+        // given
+        routingContext.queryParams().add("consent_string", "consent-value");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Amp request parameter consent_string has invalid format: consent-value");
+    }
+
+    @Test
+    public void shouldAddErrorToAuctionContextWhenGdprConsentQueryParamIsInvalid() {
+        // given
+        routingContext.queryParams().add("gdpr_consent", "consent-value");
+
+        givenBidRequest();
+
+        // when
+        final AuctionContext result = target.fromRequest(routingContext, 0L).result();
+
+        // then
+        assertThat(result.getPrebidErrors())
+                .containsExactly("Amp request parameter gdpr_consent has invalid format: consent-value");
     }
 
     @Test

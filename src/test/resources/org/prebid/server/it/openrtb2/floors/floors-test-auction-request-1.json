@@ -1,0 +1,67 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 320,
+        "h": 250
+      },
+      "bidfloor": 4,
+      "bidfloorcur": "USD",
+      "ext": {
+        "generic": {
+        }
+      }
+    }
+  ],
+  "site": {
+    "publisher": {
+      "id": "12001"
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "floors": {
+        "data": {
+          "modelGroups": [
+            {
+              "currency": "NZD",
+              "modelWeight": 100,
+              "schema": {
+                "fields": [
+                  "domain",
+                  "mediaType",
+                  "size"
+                ]
+              },
+              "values": {
+                "*|banner|*": 10,
+                "*|banner|320x250": 8,
+                "*|*|320x250": 6,
+                "www.example.com|*|320x250": 4,
+                "www.example.com|banner|320x250": 2,
+                "www.example.com|banner|*": 1,
+                "*|video|*": 800,
+                "*|video|640x480": 333
+              }
+            }
+          ]
+        }
+      },
+      "bidadjustmentfactors": {
+        "mediatypes": {
+          "banner": {
+            "generic": 0.5
+          }
+        }
+      }
+    }
+  }
+}

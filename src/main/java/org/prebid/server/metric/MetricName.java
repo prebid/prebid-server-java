@@ -64,6 +64,7 @@ public enum MetricName {
     badserverresponse,
     failedtorequestbids,
     timeout,
+    bid_validation,
     unknown_error,
     err,
     networkerr,
@@ -134,6 +135,9 @@ public enum MetricName {
     failure,
     execution_error("execution-error"),
     duration,
+
+    // price-floors
+    price_floors("price-floors"),
 
     // win notifications
     win_notifications,

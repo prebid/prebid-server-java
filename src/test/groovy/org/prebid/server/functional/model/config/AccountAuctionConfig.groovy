@@ -16,4 +16,5 @@ class AccountAuctionConfig {
     AccountBidValidationConfig bidValidations
     AccountEventsConfig events
     Boolean debugAllow
+    AccountPriceFloorsConfig priceFloors
 }

@@ -76,10 +76,7 @@ public class AmpPrivacyContextFactory {
         final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
         final ConsentType consentType = ConsentType.from(consentTypeParam);
 
-        if (consentType == ConsentType.UNKNOWN) {
-            errors.add("Invalid consent_type param passed");
-            return privacy.withoutConsent();
-        } else if (consentType == ConsentType.TCF_V1) {
+        if (consentType == ConsentType.TCF_V1) {
             errors.add("Consent type tcfV1 is no longer supported");
             return privacy.withoutConsent();
         }
