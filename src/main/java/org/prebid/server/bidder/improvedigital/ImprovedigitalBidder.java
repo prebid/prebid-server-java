@@ -102,7 +102,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage());
         }
 
-        return mapper.fillExtension(extUser.toBuilder().build(), consentProviderSettingJsonNode);
+        return mapper.fillExtension(extUser, consentProviderSettingJsonNode);
     }
 
     private JsonNode customJsonNode(String[] arrayOfSplitString) {
