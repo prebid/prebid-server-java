@@ -33,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
@@ -51,7 +52,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class SharethroughBidderTest extends VertxTest {
 
@@ -232,7 +232,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allSatisfy(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input));
+                .allSatisfy(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.BAD_INPUT));
     }
 
     @Test
@@ -246,7 +246,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.BAD_SERVER_RESPONSE);
                     assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
                 });
         assertThat(result.getValue()).isEmpty();
@@ -296,7 +296,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @Test
@@ -313,7 +313,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @Test
@@ -331,7 +331,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.BANNER, "USD"));
     }
 
     @NotNull

@@ -190,7 +190,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
+        return bidRequest.getImp().get(0).getVideo() != null ? BidType.VIDEO : DEFAULT_BID_TYPE;
     }
 
     private static List<BidderBid> extractBids(BidResponse bidResponse, BidType bidType) {
