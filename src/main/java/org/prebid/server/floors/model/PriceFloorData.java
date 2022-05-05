@@ -22,7 +22,7 @@ public class PriceFloorData {
     String floorsSchemaVersion;
 
     @JsonProperty("modelTimestamp")
-    Integer modelTimestamp;
+    Long modelTimestamp;
 
     @JsonProperty("modelGroups")
     List<PriceFloorModelGroup> modelGroups;

@@ -140,6 +140,11 @@ public class ExtRequestPrebid {
     ExtRequestPrebidPbs pbs;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.server
+     */
+    ExtRequestPrebidServer server;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.bidderparams
      */
     ObjectNode bidderparams;

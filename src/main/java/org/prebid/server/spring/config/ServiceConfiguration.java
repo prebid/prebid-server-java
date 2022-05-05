@@ -208,21 +208,25 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
+                cacheOnlyWinningBids,
                 adServerCurrency,
-                blacklistedApps,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
@@ -439,7 +443,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
+            HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
@@ -730,9 +734,10 @@ public class ServiceConfiguration {
     @Bean
     PriceFloorsConfigResolver accountValidator(
             @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            Metrics metrics) {
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
 
-        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics);
+        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
     }
 
     @Bean

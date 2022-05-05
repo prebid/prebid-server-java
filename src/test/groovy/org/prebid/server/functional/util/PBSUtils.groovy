@@ -1,8 +1,8 @@
 package org.prebid.server.functional.util
 
+import org.apache.commons.lang3.RandomStringUtils
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.Dependencies
-import org.testcontainers.shaded.org.apache.commons.lang.RandomStringUtils
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -15,6 +15,7 @@ import static java.math.RoundingMode.HALF_UP
 import static java.util.concurrent.TimeUnit.MILLISECONDS
 import static org.awaitility.Awaitility.with
 import static org.prebid.server.functional.tests.pricefloors.PriceFloorsBaseSpec.FLOOR_MIN
+import static org.prebid.server.functional.util.SystemProperties.DEFAULT_TIMEOUT
 
 class PBSUtils {
 
@@ -59,7 +60,7 @@ class PBSUtils {
         path
     }
 
-    static void waitUntil(Closure closure, long timeout = 1000, long pollInterval = 100) {
+    static void waitUntil(Closure closure, long timeout = DEFAULT_TIMEOUT, long pollInterval = 100) {
         with().pollDelay(0, MILLISECONDS)
               .pollInterval(pollInterval, MILLISECONDS)
               .await()

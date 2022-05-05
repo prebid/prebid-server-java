@@ -40,13 +40,15 @@
       }
     },
     {
-      "id" : "impId32",
-      "audio" : {
-        "mimes" : [ "video/mp4" ]
+      "id": "impId32",
+      "audio": {
+        "mimes": [
+          "video/mp4"
+        ]
       },
-      "ext" : {
-        "appnexus" : {
-          "placement_id" : 10433394
+      "ext": {
+        "appnexus": {
+          "placement_id": 10433394
         }
       }
     }
@@ -156,6 +158,11 @@
     },
     "prebid": {
       "debug": 1,
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      },
       "aliases": {
         "appnexusAlias": "appnexus"
       },

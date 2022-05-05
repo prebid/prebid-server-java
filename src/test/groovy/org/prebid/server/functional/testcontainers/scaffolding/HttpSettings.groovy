@@ -30,4 +30,10 @@ class HttpSettings extends NetworkScaffolding {
     void setResponse() {
 
     }
+
+    @Override
+    void reset() {
+        super.reset(ENDPOINT)
+        super.reset(AMP_ENDPOINT)
+    }
 }
