@@ -36,7 +36,8 @@ class PgDealsOnlySpec extends BasePgSpec {
         def auctionWarnings = auctionResponse.ext?.warnings?.get(PREBID)
         assert auctionWarnings.size() == 1
         assert auctionWarnings[0].code == 999
-        assert auctionWarnings[0].message == "Not calling $GENERIC.value bidders for impression ${bidRequest.imp[0].id}" +
+        assert auctionWarnings[0].message ==
+                "Not calling $GENERIC.value bidders for impression ${bidRequest.imp[0].id}" +
                 " due to pgdealsonly flag and no available PG line items."
     }
 
@@ -66,7 +67,8 @@ class PgDealsOnlySpec extends BasePgSpec {
         def auctionWarnings = auctionResponse.ext?.warnings?.get(PREBID)
         assert auctionWarnings.size() == 1
         assert auctionWarnings[0].code == 999
-        assert auctionWarnings[0].message == "Not calling $GENERIC.value bidders for impression ${bidRequest.imp[0].id}" +
+        assert auctionWarnings[0].message ==
+                "Not calling $GENERIC.value bidders for impression ${bidRequest.imp[0].id}" +
                 " due to pgdealsonly flag and no available PG line items."
     }
 
