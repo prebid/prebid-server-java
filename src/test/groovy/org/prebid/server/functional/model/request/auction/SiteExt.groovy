@@ -6,4 +6,5 @@ import groovy.transform.ToString
 class SiteExt {
 
     Integer amp
+    SiteExtData data
 }

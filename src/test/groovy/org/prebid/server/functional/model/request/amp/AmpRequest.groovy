@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.ConsentString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
@@ -16,14 +15,13 @@ class AmpRequest {
     Integer oh
     Integer w
     Integer h
-    Long ms
+    String ms
     Long timeout
     String slot
     String curl
     Integer account
     String gdprConsent
     String consentString
-    String targeting
     ConsentType consentType
     Boolean gdprApplies
     String addtlConsent

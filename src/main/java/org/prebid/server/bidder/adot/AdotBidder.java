@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.adot;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -18,9 +20,13 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adot.ExtImpAdot;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,6 +39,11 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
             BidType.xNative);
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
+    private static final String PUBLISHER_MACRO = "{PUBLISHER_PATH}";
+    private static final TypeReference<ExtPrebid<?, ExtImpAdot>> ADOT_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -46,15 +57,33 @@ public class AdotBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
+        final Imp firstImp = bidRequest.getImp().get(0);
+        final String publisherPath = StringUtils.defaultString(
+                ObjectUtil.getIfNotNull(parseImpExt(firstImp), ExtImpAdot::getPublisherPath));
+
         return Result.of(Collections.singletonList(
                         HttpRequest.<BidRequest>builder()
                                 .method(HttpMethod.POST)
-                                .uri(endpointUrl)
+                                .uri(resolveEndpointUrl(publisherPath))
                                 .headers(HttpUtil.headers())
                                 .payload(bidRequest)
                                 .body(mapper.encodeToBytes(bidRequest))
                                 .build()),
                 errors);
+    }
+
+    private String resolveEndpointUrl(String publisherPath) {
+        return StringUtils.replace(endpointUrl, PUBLISHER_MACRO, publisherPath);
+    }
+
+    private ExtImpAdot parseImpExt(Imp firstImp) {
+        try {
+            final ExtPrebid<?, ExtImpAdot> extImpAdot =
+                    mapper.mapper().convertValue(firstImp.getExt(), ADOT_EXT_TYPE_REFERENCE);
+            return extImpAdot != null ? extImpAdot.getBidder() : null;
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     @Override
@@ -79,6 +108,7 @@ public class AdotBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, bidResponse))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -86,10 +116,20 @@ public class AdotBidder implements Bidder<BidRequest> {
 
     private BidderBid createBidderBid(Bid bid, BidResponse bidResponse) {
         try {
-            return BidderBid.of(bid, getBidType(bid), bidResponse.getCur());
+            return BidderBid.of(resolveMacros(bid), getBidType(bid), bidResponse.getCur());
         } catch (PreBidException e) {
             return null;
         }
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
     private BidType getBidType(Bid bid) {
@@ -116,5 +156,4 @@ public class AdotBidder implements Bidder<BidRequest> {
             throw new PreBidException(String.format("Wrong Adot bid ext in bid with id : %s", bid.getId()));
         }
     }
-
 }

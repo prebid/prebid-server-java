@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.model;
 
 import com.iab.openrtb.response.Bid;
-import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -10,26 +10,22 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 /**
  * Bid returned by a {@link Bidder}.
  */
-@AllArgsConstructor(staticName = "of")
+@Builder(toBuilder = true)
 @Value
 public class BidderBid {
 
-    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
-        return BidderBid.of(bid, bidType, bidCurrency, null, null);
-    }
-
     /**
-     * bid.ext will become "response.seatbid[i].bid.ext.bidder" in the final OpenRTB response
+     * bid.ext will become response.seatbid[i].bid.ext.bidder in the final OpenRTB response.
      */
     Bid bid;
 
     /**
-     * This will become response.seatbid[i].bid.ext.prebid.type" in the final OpenRTB response
+     * Will become response.seatbid[i].bid.ext.prebid.type in the final OpenRTB response.
      */
     BidType type;
 
     /**
-     * Will be used for converting to ad server currency
+     * Will be used for converting to ad server currency.
      */
     String bidCurrency;
 
@@ -43,7 +39,17 @@ public class BidderBid {
      */
     ExtBidPrebidVideo videoInfo;
 
-    public BidderBid with(Bid bid) {
-        return BidderBid.of(bid, this.type, this.bidCurrency);
+    /**
+     * Will be used by price floor enforcement. The only bidder is responsible to populate this info
+     * if bidder overrides any of request.imp[i].bidfloor or request.imp[i].bidfloorcur fields.
+     */
+    PriceFloorInfo priceFloorInfo;
+
+    public static BidderBid of(Bid bid, BidType bidType, String bidCurrency) {
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidCurrency)
+                .build();
     }
 }

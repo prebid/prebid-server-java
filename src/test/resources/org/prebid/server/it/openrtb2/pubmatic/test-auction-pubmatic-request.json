@@ -33,7 +33,8 @@
           "wrapper": {
             "version": 1,
             "profile": 5123
-          }
+          },
+          "kadfloor": "0.12"
         },
         "data": {
           "adserver": {
@@ -49,6 +50,18 @@
   "regs": {
     "ext": {
       "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "bidderparams": {
+        "pubmatic": {
+          "acat": [
+            "testValue1",
+            "testValue2"
+          ]
+        }
+      }
     }
   }
 }

@@ -103,6 +103,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `cookie-sync.default-timeout-ms` - default operation timeout for requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.default` - default value for coopSync when it missing in requests to `/cookie_sync` endpoint.
 - `cookie-sync.coop-sync.pri` - lists of bidders prioritised in groups.
+- `cookie-sync.coop-sync.default-limit` - default bidder limit, that is applied when limit parameter is not sent in the request and absent in account config
+- `cookie-sync.coop-sync.max-limit` - default maximum possible limit value for the limit parameter, that is applied when maximum limit parameter is absent in account config
 
 ## Vtrack
 - `vtrack.allow-unknown-bidder` - flag that allows servicing requests with bidders who were not configured in Prebid Server.
@@ -127,6 +129,7 @@ There are several typical keys:
 - `adapters.<BIDDER_NAME>.usersync.cookie-family-name` - the family name by which user ids within adapter's realm are stored in uidsCookie.
 - `adapters.<BIDDER_NAME>.usersync.type` - usersync type (i.e. redirect, iframe).
 - `adapters.<BIDDER_NAME>.usersync.support-cors` - flag signals if CORS supported by usersync.
+- `adapters.<BIDDER_NAME>.debug.allow` - enables debug output in the auction response for the given bidder. Default `true`.
 
 In addition, each bidder could have arbitrary aliases configured that will look and act very much the same as the bidder itself.
 Aliases are configured by adding child configuration object at `adapters.<BIDDER_NAME>.aliases.<BIDDER_ALIAS>.`, aliases 
@@ -456,3 +459,10 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `deals.alert-proxy.username` - username for alert proxy BasicAuth.
 - `deals.alert-proxy.password` - password for alert proxy BasicAuth.
 - `deals.alert-proxy.alert-types` - key value pair of alert type and sampling factor to send high priority alert.
+
+## Debugging
+- `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.
+
+To override (force enable) account and/or bidder adapter debug setting, a client must include `x-pbs-debug-override`
+HTTP header in the auction call containing same token as in the `debug.override-token` property. This will make Prebid
+Server ignore account `auction.debug-allow` and/or `adapters.<BIDDER_NAME>.debug.allow` properties.

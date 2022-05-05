@@ -2,6 +2,7 @@ package org.prebid.server.bidder.adf;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -9,6 +10,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,6 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -33,6 +37,7 @@ import java.util.stream.Collectors;
 
 public class AdfBidder implements Bidder<BidRequest> {
 
+    private static final String REQUEST_EXT_PT = "pt";
     private static final TypeReference<ExtPrebid<?, ExtImpAdf>> ADF_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -49,26 +54,30 @@ public class AdfBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<Imp> modifiedImps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
+        String priceType = null;
 
         for (Imp imp : bidRequest.getImp()) {
+            final ExtImpAdf extImpAdf;
             try {
-                final ExtImpAdf adfImp = parseExt(imp);
-                final Imp modifiedImp = imp.toBuilder().tagid(adfImp.getMid()).build();
-                modifiedImps.add(modifiedImp);
+                extImpAdf = parseImpExt(imp);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+
+            modifiedImps.add(imp.toBuilder().tagid(extImpAdf.getMid()).build());
+            priceType = StringUtils.defaultIfEmpty(priceType, extImpAdf.getPriceType());
         }
 
         if (modifiedImps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
-        final HttpRequest<BidRequest> httpRequest = makeRequest(bidRequest, modifiedImps);
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, modifiedImps, priceType);
+        return Result.of(Collections.singletonList(makeRequest(modifiedBidRequest)), errors);
     }
 
-    private ExtImpAdf parseExt(Imp imp) throws PreBidException {
+    private ExtImpAdf parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), ADF_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
@@ -76,15 +85,30 @@ public class AdfBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, List<Imp> imps) {
-        final BidRequest outgoingRequest = bidRequest.toBuilder().imp(imps).build();
+    private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, String priceType) {
+        final ExtRequest extRequest = ObjectUtils.defaultIfNull(bidRequest.getExt(), ExtRequest.empty());
+        final ExtRequest modifiedExtRequest = StringUtils.isNotEmpty(priceType)
+                ? modifyExtRequest(extRequest, priceType)
+                : extRequest;
 
+        return bidRequest.toBuilder()
+                .imp(imps)
+                .ext(modifiedExtRequest)
+                .build();
+    }
+
+    private ExtRequest modifyExtRequest(ExtRequest extRequest, String priceType) {
+        final ObjectNode adfNode = mapper.mapper().createObjectNode().put(REQUEST_EXT_PT, priceType);
+        return mapper.fillExtension(extRequest, adfNode);
+    }
+
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
                 .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
+                .body(mapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
                 .build();
     }
 

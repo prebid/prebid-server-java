@@ -20,8 +20,10 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
@@ -167,6 +169,26 @@ public class UidsCookieServiceTest extends VertxTest {
     }
 
     @Test
+    public void toCookieShouldTrimUidsToNotExceedCookieBytesLengthLimit() {
+        // given
+        uidsCookieService = new UidsCookieService(
+                "trp_optout", "true", null, null, "cookie-domain", 90, 4096, jacksonMapper);
+
+        final Map<String, UidWithExpiry> uidWithExpiryMap = IntStream.range(0, 1000)
+                .mapToObj(i -> "a" + i)
+                .collect(Collectors.toMap(Function.identity(), UidWithExpiry::expired));
+
+        final Uids uids = Uids.builder().uids(uidWithExpiryMap).build();
+        final UidsCookie uidsCookie = new UidsCookie(uids, jacksonMapper);
+
+        // when
+        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
+
+        // then
+        assertThat(cookie.encode().getBytes().length).isLessThanOrEqualTo(4096);
+    }
+
+    @Test
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieHasNotExpectedValue() {
         // given
         final Map<String, Cookie> cookies = new HashMap<>();
@@ -269,34 +291,6 @@ public class UidsCookieServiceTest extends VertxTest {
         assertThat(uidsCookie).isNotNull();
         assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
         assertThat(uidsCookie.uidFrom("audienceNetwork")).isNull();
-    }
-
-    @Test
-    public void toCookieShouldEnforceMaxCookieSizeAndRemoveAUidWithCloserExpirationDate() throws IOException {
-        // given
-        final UidsCookie uidsCookie = new UidsCookie(Uids.builder().uids(new LinkedHashMap<>()).build(), jacksonMapper)
-                .updateUid("improvedigital", "improvedigitalUid")
-                .updateUid(RUBICON, "rubiconUid")
-                .updateUid("conversant", "conversantUid")
-                .updateUid(ADNXS, "adnxsUid")
-                .updateUid("sharethrough", "sharethroughUid")
-                .updateUid("somoaudience", "somoaudienceUid")
-                .updateUid("yahoossp", "yahoosspUid");
-
-        // the size of uidsCookie above is 530, therefore it is expected to be modified.
-        final int maxCookieSizeBytes = 500;
-        uidsCookieService = new UidsCookieService(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE, null,
-                null, HOST_COOKIE_DOMAIN, 90, maxCookieSizeBytes, jacksonMapper);
-
-        // when
-        final Cookie cookie = uidsCookieService.toCookie(uidsCookie);
-
-        // then
-        final Map<String, UidWithExpiry> uids = decodeUids(cookie.getValue()).getUids();
-
-        // 7 UIDs were added above.
-        // NOTE: order can be different, therefore unable to check what exact UID is missing
-        assertThat(uids).hasSize(6);
     }
 
     @Test

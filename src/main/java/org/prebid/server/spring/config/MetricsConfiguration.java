@@ -23,7 +23,7 @@ import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.prebid.server.metric.AccountMetricsVerbosity;
+import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
@@ -109,8 +109,8 @@ public class MetricsConfiguration {
 
     @Bean
     Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
-                    AccountMetricsVerbosity accountMetricsVerbosity) {
-        return new Metrics(metricRegistry, counterType, accountMetricsVerbosity);
+                    AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
+        return new Metrics(metricRegistry, counterType, accountMetricsVerbosityResolver);
     }
 
     @Bean
@@ -127,9 +127,11 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    AccountMetricsVerbosity accountMetricsVerbosity(AccountsProperties accountsProperties) {
-        return new AccountMetricsVerbosity(accountsProperties.getDefaultVerbosity(),
-                accountsProperties.getBasicVerbosity(), accountsProperties.getDetailedVerbosity());
+    AccountMetricsVerbosityResolver accountMetricsVerbosity(AccountsProperties accountsProperties) {
+        return new AccountMetricsVerbosityResolver(
+                accountsProperties.getDefaultVerbosity(),
+                accountsProperties.getBasicVerbosity(),
+                accountsProperties.getDetailedVerbosity());
     }
 
     @PostConstruct
