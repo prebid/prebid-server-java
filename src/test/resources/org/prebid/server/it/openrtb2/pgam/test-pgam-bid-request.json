@@ -3,19 +3,18 @@
   "imp": [
     {
       "id": "imp_id",
-      "video": {
-        "mimes": [
-          "mimes"
-        ],
+      "banner": {
         "w": 300,
-        "h": 600
+        "h": 250
       },
-      "tagid": "slot9",
-      "bidfloor" : 0.12,
+      "bidfloor": 20,
       "ext": {
-        "pmZoneId": "Zone1,Zone2",
-        "preference": "sports,movies",
-        "dfp_ad_unit_code": "thirdPbAdSlot"
+        "adtelligent": {
+          "aid": 1000,
+          "placementId": 10,
+          "siteId": 1234,
+          "bidFloor": 20
+        }
       }
     }
   ],
@@ -23,7 +22,6 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "publisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -42,16 +40,6 @@
   "regs": {
     "ext": {
       "gdpr": 0
-    }
-  },
-  "ext": {
-    "acat": [
-      "testValue1",
-      "testValue2"
-    ],
-    "wrapper": {
-      "version": 1,
-      "profile": 5123
     }
   }
 }

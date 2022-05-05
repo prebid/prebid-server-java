@@ -18,7 +18,6 @@ import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRe
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -90,7 +89,6 @@ class PgAuctionSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS shouldn't process line item with #reason"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -189,7 +187,6 @@ class PgAuctionSpec extends BasePgSpec {
         assert !auctionResponse.ext?.debug?.pgmetrics
     }
 
-    @Unroll
     def "PBS shouldn't allow line item with #reason delivery plan take part in auction"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
