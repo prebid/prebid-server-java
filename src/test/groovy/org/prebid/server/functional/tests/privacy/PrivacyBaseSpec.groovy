@@ -30,13 +30,13 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
+            device = new Device(geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
         }
     }
 
     protected static BidRequest getStoredRequestWithGeo() {
         BidRequest.defaultStoredRequest.tap {
-            device = new Device(geo: new Geo(lat: PBSUtils.getFractionalRandomNumber(0, 90), lon: PBSUtils.getFractionalRandomNumber(0, 90)))
+            device = new Device(geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
         }
     }
 
@@ -71,8 +71,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static Geo maskGeo(BidRequest bidRequest, int precision = GEO_PRECISION) {
         def geo = bidRequest.device.geo.clone()
-        geo.lat = PBSUtils.getRoundedFractionalNumber(bidRequest.device.geo.lat, precision)
-        geo.lon = PBSUtils.getRoundedFractionalNumber(bidRequest.device.geo.lon, precision)
+        geo.lat = PBSUtils.roundDecimal(bidRequest.device.geo.lat as BigDecimal, precision)
+        geo.lon = PBSUtils.roundDecimal(bidRequest.device.geo.lon as BigDecimal, precision)
         geo
     }
 

@@ -138,8 +138,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
+        def lat = PBSUtils.getRandomDecimal(0, 90)
+        def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
 
         when: "PBS processes auction request"
@@ -147,8 +147,8 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device?.geo?.lat == PBSUtils.getRoundedFractionalNumber(lat, 2)
-        assert bidderRequests.device?.geo?.lon == PBSUtils.getRoundedFractionalNumber(lon, 2)
+        assert bidderRequests.device?.geo?.lat == PBSUtils.roundDecimal(lat, 2)
+        assert bidderRequests.device?.geo?.lon == PBSUtils.roundDecimal(lon, 2)
 
         where:
         adapterDefault | generic
@@ -165,8 +165,8 @@ class BidderParamsSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
         bidRequest.regs.ext = new RegsExt(usPrivacy: validCcpa)
-        def lat = PBSUtils.getFractionalRandomNumber(0, 90)
-        def lon = PBSUtils.getFractionalRandomNumber(0, 90)
+        def lat = PBSUtils.getRandomDecimal(0, 90)
+        def lon = PBSUtils.getRandomDecimal(0, 90)
         bidRequest.device = new Device(geo: new Geo(lat: lat, lon: lon))
 
         when: "PBS processes auction request"

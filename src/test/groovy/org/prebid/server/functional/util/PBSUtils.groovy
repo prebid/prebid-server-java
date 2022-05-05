@@ -3,10 +3,9 @@ package org.prebid.server.functional.util
 import org.apache.commons.lang3.RandomStringUtils
 import org.prebid.server.functional.model.request.auction.BidRequest
 
+import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Path
-import java.text.DecimalFormat
-import java.util.stream.IntStream
 
 import static java.lang.Integer.MAX_VALUE
 import static java.lang.Integer.MIN_VALUE
@@ -26,15 +25,12 @@ class PBSUtils implements ObjectMapperWrapper {
         getRandomNumber(min, max)
     }
 
-    static float getFractionalRandomNumber(float min = 0, float max = MAX_VALUE) {
+    static BigDecimal getRandomDecimal(float min = 0, float max = MAX_VALUE) {
         new Random().nextFloat() * (max - min) + min
     }
 
-    static float getRoundedFractionalNumber(float number, int numberDecimalPlaces) {
-        def stringBuilder = new StringBuilder().append("##.")
-        IntStream.range(0, numberDecimalPlaces).forEach { index -> stringBuilder.append("#") }
-        def format = new DecimalFormat(stringBuilder.toString())
-        Float.valueOf(format.format(number))
+    static BigDecimal roundDecimal(BigDecimal number, int decimalPlaces) {
+        number.setScale(decimalPlaces, RoundingMode.HALF_EVEN)
     }
 
     static String getRandomString(int stringLength = 20) {
@@ -47,7 +43,7 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static BigDecimal getRandomFloorValue() {
-        getRoundedFractionalNumber(getFractionalRandomNumber(FLOOR_MIN, 2), 2)
+        roundDecimal(getRandomDecimal(FLOOR_MIN, 2), 2)
     }
 
     private static Path createTempFile(String content, String suffix) {
@@ -68,7 +64,6 @@ class PBSUtils implements ObjectMapperWrapper {
     }
 
     static BigDecimal getRandomPrice(int min = 0, int max = 10, int scale = 3) {
-        BigDecimal.valueOf(getFractionalRandomNumber(min, max))
-                  .setScale(scale, HALF_UP)
+        getRandomDecimal(min, max).setScale(scale, HALF_UP)
     }
 }
