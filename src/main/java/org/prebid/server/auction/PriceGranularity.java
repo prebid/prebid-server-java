@@ -2,7 +2,6 @@ package org.prebid.server.auction;
 
 import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.EnumUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
@@ -20,7 +19,22 @@ import java.util.Objects;
 public class PriceGranularity {
 
     enum PriceGranularityType {
-        LOW, MEDIUM, MED, HIGH, AUTO, DENSE
+        LOW, MEDIUM, MED, HIGH, AUTO, DENSE;
+
+        public static boolean isValidEnum(String stringPriceGranularity) {
+            return Arrays.stream(values())
+                    .map(Enum::name)
+                    .anyMatch(priceGranularityType -> priceGranularityType.equalsIgnoreCase(stringPriceGranularity));
+        }
+
+        public static PriceGranularityType getEnum(String stringPriceGranularity) {
+            return Arrays.stream(values())
+                    .filter(granularity -> granularity.name().equalsIgnoreCase(stringPriceGranularity))
+                    .findFirst()
+                    //should never occur
+                    .orElseThrow(() -> new PreBidException(String.format(
+                            "Invalid string price granularity with value: %s", stringPriceGranularity)));
+        }
     }
 
     private static final EnumMap<PriceGranularityType, PriceGranularity> STRING_TO_CUSTOM_PRICE_GRANULARITY =
@@ -62,11 +76,12 @@ public class PriceGranularity {
     }
 
     /**
+     * Checks if string price granularity is valid type and create {@link PriceGranularityType} from string.
      * Returns {@link PriceGranularity} by string representation if it is present in map, otherwise returns null.
      */
     public static PriceGranularity createFromString(String stringPriceGranularity) {
-        if (isValidStringPriceGranularityType(stringPriceGranularity)) {
-            return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
+        if (PriceGranularityType.isValidEnum(stringPriceGranularity)) {
+            return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.getEnum(stringPriceGranularity));
         } else {
             throw new PreBidException(String.format(
                     "Invalid string price granularity with value: %s", stringPriceGranularity));
@@ -126,12 +141,5 @@ public class PriceGranularity {
      */
     private static ExtGranularityRange range(int max, double increment) {
         return ExtGranularityRange.of(BigDecimal.valueOf(max), BigDecimal.valueOf(increment));
-    }
-
-    /**
-     * Checks if string price granularity is valid type.
-     */
-    private static boolean isValidStringPriceGranularityType(String stringPriceGranularity) {
-        return EnumUtils.isValidEnum(PriceGranularityType.class, stringPriceGranularity);
     }
 }

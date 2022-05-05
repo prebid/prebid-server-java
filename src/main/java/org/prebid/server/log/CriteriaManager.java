@@ -5,6 +5,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.deals.model.LogCriteriaFilter;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
@@ -49,14 +50,8 @@ public class CriteriaManager {
     }
 
     private BiConsumer<Logger, Object> resolveLogLevel(String rawLogLevel) {
-        final LogLevel logLevel;
-        try {
-            logLevel = LogLevel.valueOf(rawLogLevel);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(String.format("Invalid LoggingLevel: %s", rawLogLevel));
-        }
 
-        switch (logLevel) {
+        switch (LogLevel.getEnum(rawLogLevel)) {
             case INFO:
                 return Logger::info;
             case WARN:
@@ -70,11 +65,19 @@ public class CriteriaManager {
             case DEBUG:
                 return Logger::debug;
             default:
-                throw new IllegalArgumentException(String.format("Unknown LoggingLevel: %s", logLevel));
+                throw new IllegalArgumentException(String.format("Unknown LoggingLevel: %s", rawLogLevel));
         }
     }
 
     private enum LogLevel {
-        INFO, WARN, TRACE, ERROR, FATAL, DEBUG
+        INFO, WARN, TRACE, ERROR, FATAL, DEBUG;
+
+        public static LogLevel getEnum(String rawLogLevel) {
+            return Arrays.stream(values())
+                    .filter(logLevel -> logLevel.name().equalsIgnoreCase(rawLogLevel))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            String.format("Invalid LoggingLevel: %s", rawLogLevel)));
+        }
     }
 }

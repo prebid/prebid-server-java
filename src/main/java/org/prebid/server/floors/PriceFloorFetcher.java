@@ -94,20 +94,20 @@ public class PriceFloorFetcher {
         final Boolean fetchEnabled = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getEnabled);
 
         if (BooleanUtils.isFalse(fetchEnabled)) {
-            return FetchResult.of(null, FetchStatus.none);
+            return FetchResult.of(null, FetchStatus.NONE);
         }
 
         final String accountId = account.getId();
         final String fetchUrl = ObjectUtil.getIfNotNull(fetchConfig, AccountPriceFloorsFetchConfig::getUrl);
         if (!isUrlValid(fetchUrl)) {
             logger.error(String.format("Malformed fetch.url: '%s', passed for account %s", fetchUrl, accountId));
-            return FetchResult.of(null, FetchStatus.error);
+            return FetchResult.of(null, FetchStatus.ERROR);
         }
         if (!fetchInProgress.contains(accountId)) {
             fetchPriceFloorDataAsynchronous(fetchConfig, accountId);
         }
 
-        return FetchResult.of(null, FetchStatus.inprogress);
+        return FetchResult.of(null, FetchStatus.INPROGRESS);
     }
 
     private boolean isUrlValid(String url) {
@@ -173,7 +173,7 @@ public class PriceFloorFetcher {
         PriceFloorRulesValidator.validateRulesData(priceFloorData, resolveMaxRules(fetchConfig.getMaxRules()));
 
         return ResponseCacheInfo.of(priceFloorData,
-                FetchStatus.success,
+                FetchStatus.SUCCESS,
                 cacheTtlFromResponse(httpClientResponse, fetchConfig.getUrl()));
     }
 
@@ -259,13 +259,13 @@ public class PriceFloorFetcher {
 
         final FetchStatus fetchStatus;
         if (throwable instanceof TimeoutException || throwable instanceof ConnectTimeoutException) {
-            fetchStatus = FetchStatus.timeout;
+            fetchStatus = FetchStatus.TIMEOUT;
             logger.error(
                     String.format("Fetch price floor request timeout for fetch.url: '%s', account %s exceeded.",
                             fetchUrl,
                             accountId));
         } else {
-            fetchStatus = FetchStatus.error;
+            fetchStatus = FetchStatus.ERROR;
             logger.error(
                     String.format("Failed to fetch price floor from provider for fetch.url: '%s',"
                                     + " account = %s with a reason : %s ",

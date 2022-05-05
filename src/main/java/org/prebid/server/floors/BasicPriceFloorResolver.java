@@ -175,27 +175,27 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 : mediaTypesFromImp(imp);
 
         switch (field) {
-            case siteDomain:
+            case SITE_DOMAIN:
                 return siteDomainFromRequest(bidRequest);
-            case pubDomain:
+            case PUB_DOMAIN:
                 return pubDomainFromRequest(bidRequest);
-            case domain:
+            case DOMAIN:
                 return domainFromRequest(bidRequest);
-            case bundle:
+            case BUNDLE:
                 return bundleFromRequest(bidRequest);
-            case channel:
+            case CHANNEL:
                 return channelFromRequest(bidRequest);
-            case mediaType:
+            case MEDIA_TYPE:
                 return mediaTypeToRuleKey(resolvedMediaTypes);
-            case size:
+            case SIZE:
                 return sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
-            case gptSlot:
+            case GPT_SLOT:
                 return gptAdSlotFromImp(imp);
-            case pbAdSlot:
+            case PB_AD_SLOT:
                 return pbAdSlotFromImp(imp);
-            case country:
+            case COUNTRY:
                 return countryFromRequest(bidRequest);
-            case deviceType:
+            case DEVICE_TYPE:
                 return resolveDeviceTypeFromRequest(bidRequest);
             default:
                 throw new IllegalStateException("Unknown field type");
@@ -397,17 +397,17 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
         for (String pattern : PHONE_PATTERNS) {
             if (userAgent.matches(pattern)) {
-                return Collections.singletonList(DeviceType.phone.name());
+                return Collections.singletonList(DeviceType.PHONE.toLowerCaseString());
             }
         }
 
         for (String pattern : TABLET_PATTERNS) {
             if (userAgent.matches(pattern)) {
-                return Collections.singletonList(DeviceType.tablet.name());
+                return Collections.singletonList(DeviceType.TABLET.toLowerCaseString());
             }
         }
 
-        return Collections.singletonList(DeviceType.desktop.name());
+        return Collections.singletonList(DeviceType.DESKTOP.toLowerCaseString());
     }
 
     private static List<String> prepareFieldValues(List<String> fieldValues) {

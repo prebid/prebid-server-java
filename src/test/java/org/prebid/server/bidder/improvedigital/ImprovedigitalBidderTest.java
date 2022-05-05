@@ -321,7 +321,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         Bid.builder()
                                 .impid("123")
                                 .ext(mapper.valueToTree(bidExt)).build(),
-                        video,
+                        VIDEO,
                         "USD"));
     }
 

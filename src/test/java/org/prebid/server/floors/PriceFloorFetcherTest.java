@@ -95,7 +95,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount);
 
         // then
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(httpClient).get("http://test.host.com", 1300, 10240);
 
         verify(vertx).setTimer(eq(1700000L), any());
@@ -103,7 +103,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verifyNoMoreInteractions(httpClient);
 
         final FetchResult priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
-        assertThat(priceFloorRulesCached.getFetchStatus()).isEqualTo(FetchStatus.success);
+        assertThat(priceFloorRulesCached.getFetchStatus()).isEqualTo(FetchStatus.SUCCESS);
         assertThat(priceFloorRulesCached.getRulesData()).isEqualTo(givenPriceFloorData());
 
     }
@@ -119,7 +119,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         assertThat(fetchResult.getRulesData()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
     }
 
@@ -134,12 +134,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
     }
 
     @Test
@@ -153,12 +153,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.timeout);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.TIMEOUT);
     }
 
     @Test
@@ -268,7 +268,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRulesData()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoInteractions(vertx);
     }
 
@@ -280,7 +280,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRulesData()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoInteractions(vertx);
     }
 
@@ -292,7 +292,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRulesData()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoInteractions(vertx);
     }
 
@@ -304,7 +304,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verifyNoInteractions(httpClient);
         assertThat(fetchResult.getRulesData()).isNull();
-        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
+        assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.NONE);
         verifyNoInteractions(vertx);
     }
 
@@ -321,12 +321,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -343,12 +343,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -365,12 +365,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -387,12 +387,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -411,7 +411,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         verifyNoMoreInteractions(httpClient);
 
         assertThat(secondFetch.getRulesData()).isNull();
-        assertThat(secondFetch.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(secondFetch.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
 
         fetchPromise.tryComplete(
                 HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
@@ -441,12 +441,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         assertThat(firstInvocationResult.getRulesData()).isNull();
-        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
+        assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.INPROGRESS);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
         assertThat(secondInvocationResult.getRulesData()).isNull();
-        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
+        assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.ERROR);
         verifyNoMoreInteractions(vertx);
     }
 
@@ -481,7 +481,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .currency("USD")
                 .modelGroups(singletonList(PriceFloorModelGroup.builder()
                         .modelVersion("model version 1.0")
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.MEDIA_TYPE)))
                         .value("banner", BigDecimal.TEN)
                         .currency("EUR").build()))
                 .build();

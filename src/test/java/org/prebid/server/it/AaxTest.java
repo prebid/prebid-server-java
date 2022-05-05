@@ -27,7 +27,7 @@ public class AaxTest extends IntegrationTest {
 
         // when
         final Response response = responseFor("openrtb2/aax/test-auction-aax-request.json",
-                Endpoint.openrtb2_auction);
+                Endpoint.OPENRTB2_AUCTION);
 
         // then
         assertJsonEquals("openrtb2/aax/test-auction-aax-response.json", response,

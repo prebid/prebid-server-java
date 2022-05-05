@@ -3361,7 +3361,7 @@ public class RubiconBidderTest extends VertxTest {
             UnaryOperator<PriceFloorModelGroup.PriceFloorModelGroupBuilder> modelGroupCustomizer) {
 
         return modelGroupCustomizer.apply(PriceFloorModelGroup.builder()
-                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.MEDIA_TYPE)))
                         .value("video", BigDecimal.TEN))
                 .build();
     }

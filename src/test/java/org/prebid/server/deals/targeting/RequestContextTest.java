@@ -786,7 +786,8 @@ public class RequestContextTest extends VertxTest {
     @Test
     public void lookupStringsShouldReturnUserFirstPartyData() {
         // given
-        final TargetingCategory category = new TargetingCategory(TargetingCategory.Type.USER_FIRST_PARTY_DATA, "language");
+        final TargetingCategory category =
+                new TargetingCategory(TargetingCategory.Type.USER_FIRST_PARTY_DATA, "language");
         final ExtUser extUser = ExtUser.builder()
                 .data(obj("language", mapper.valueToTree(asList("UA", "EN"))))
                 .build();

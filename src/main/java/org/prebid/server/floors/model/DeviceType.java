@@ -2,5 +2,9 @@ package org.prebid.server.floors.model;
 
 public enum DeviceType {
 
-    desktop, phone, tablet
+    DESKTOP, PHONE, TABLET;
+
+    public String toLowerCaseString() {
+        return name().toLowerCase();
+    }
 }

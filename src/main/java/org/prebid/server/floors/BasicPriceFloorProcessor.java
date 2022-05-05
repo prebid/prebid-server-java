@@ -121,15 +121,15 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final FetchResult fetchResult = floorFetcher.fetch(account);
         final FetchStatus fetchStatus = ObjectUtil.getIfNotNull(fetchResult, FetchResult::getFetchStatus);
 
-        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.success) {
+        if (shouldUseDynamicData(account) && fetchResult != null && fetchStatus == FetchStatus.SUCCESS) {
             final PriceFloorRules mergedFloors = mergeFloors(requestFloors, fetchResult.getRulesData());
-            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.fetch);
+            return createFloorsFrom(mergedFloors, fetchStatus, PriceFloorLocation.FETCH);
         }
 
         if (requestFloors != null) {
             try {
                 PriceFloorRulesValidator.validateRules(requestFloors, Integer.MAX_VALUE);
-                return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.request);
+                return createFloorsFrom(requestFloors, fetchStatus, PriceFloorLocation.REQUEST);
             } catch (PreBidException e) {
                 errors.add(String.format("Failed to parse price floors from request,"
                         + " with a reason : %s ", e.getMessage()));
@@ -141,7 +141,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             }
         }
 
-        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.noData);
+        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.NODATA);
     }
 
     private static boolean shouldUseDynamicData(Account account) {

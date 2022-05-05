@@ -1,6 +1,14 @@
 package org.prebid.server.floors.proto;
 
+import com.fasterxml.jackson.annotation.JsonValue;
+
 public enum FetchStatus {
 
-    success, timeout, error, inprogress, none
+    SUCCESS, TIMEOUT, ERROR, INPROGRESS, NONE;
+
+    @Override
+    @JsonValue
+    public String toString() {
+        return name().toLowerCase();
+    }
 }
