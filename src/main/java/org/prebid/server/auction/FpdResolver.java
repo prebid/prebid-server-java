@@ -1,9 +1,11 @@
 package org.prebid.server.auction;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import org.apache.commons.collections4.CollectionUtils;
@@ -21,7 +23,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.request.Targeting;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -38,16 +39,18 @@ public class FpdResolver {
     private static final String SITE = "site";
     private static final String BIDDERS = "bidders";
     private static final String APP = "app";
-    private static final Set<String> KNOWN_FPD_ATTRIBUTES = new HashSet<>(Arrays.asList(USER, SITE, APP, BIDDERS));
+    private static final Set<String> KNOWN_FPD_ATTRIBUTES = Set.of(USER, SITE, APP, BIDDERS);
     private static final String ALLOW_ALL_BIDDERS = "*";
     private static final String EXT = "ext";
     private static final String CONTEXT = "context";
     private static final String DATA = "data";
     private static final Set<String> USER_DATA_ATTR = Collections.singleton("geo");
-    private static final Set<String> APP_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
-            "privacypolicy"));
-    private static final Set<String> SITE_DATA_ATTR = new HashSet<>(Arrays.asList("id", "content", "publisher",
-            "privacypolicy", "mobile"));
+    private static final Set<String> APP_DATA_ATTR = Set.of("id", "content", "publisher", "privacypolicy");
+    private static final Set<String> SITE_DATA_ATTR = Set.of("id", "content", "publisher", "privacypolicy", "mobile");
+
+    private static final TypeReference<List<Data>> USER_DATA_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
 
     private final JacksonMapper jacksonMapper;
     private final JsonMerger jsonMerger;
@@ -67,6 +70,7 @@ public class FpdResolver {
                 .keywords(getFirstNotNull(getString(fpdUser, "keywords"), resultUser.getKeywords()))
                 .gender(getFirstNotNull(getString(fpdUser, "gender"), resultUser.getGender()))
                 .yob(getFirstNotNull(getInteger(fpdUser, "yob"), resultUser.getYob()))
+                .data(getFirstNotNull(getFpdUserData(fpdUser), resultUser.getData()))
                 .ext(resolvedExtUser)
                 .build();
     }
@@ -85,6 +89,13 @@ public class FpdResolver {
         return originExtUser != null
                 ? originExtUser.toBuilder().data(resultData.isEmpty() ? null : resultData).build()
                 : resultData.isEmpty() ? null : ExtUser.builder().data(resultData).build();
+    }
+
+    private List<Data> getFpdUserData(ObjectNode fpdUser) {
+        final ArrayNode fpdUserDataNode = getValueFromJsonNode(
+                fpdUser, DATA, node -> (ArrayNode) node, JsonNode::isArray);
+
+        return toList(fpdUserDataNode, USER_DATA_TYPE_REFERENCE);
     }
 
     public App resolveApp(App originApp, ObjectNode fpdApp) {
@@ -335,6 +346,14 @@ public class FpdResolver {
 
     private static Integer getInteger(ObjectNode firstItem, String fieldName) {
         return getValueFromJsonNode(firstItem, fieldName, JsonNode::asInt, JsonNode::isInt);
+    }
+
+    private <T> List<T> toList(JsonNode node, TypeReference<List<T>> listTypeReference) {
+        try {
+            return jacksonMapper.mapper().convertValue(node, listTypeReference);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private static <T> T getValueFromJsonNode(ObjectNode firstItem, String fieldName,

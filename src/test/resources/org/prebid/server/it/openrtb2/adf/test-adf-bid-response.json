@@ -12,7 +12,8 @@
           "ext": {
             "prebid": {
               "type": "native"
-            }
+            },
+            "pt": "gross"
           }
         },
         {
@@ -25,7 +26,8 @@
           "ext": {
             "prebid": {
               "type": "banner"
-            }
+            },
+            "pt": "gross"
           }
         }
       ]

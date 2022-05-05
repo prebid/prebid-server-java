@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "imp_id:opa:banner",
       "banner": {
         "w": 300,
         "h": 250

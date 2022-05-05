@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.iab.openrtb.request.User;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchain;
+import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 
 import java.util.List;
 
@@ -52,5 +52,5 @@ public class BeachfrontBannerRequest {
 
     Boolean real204;
 
-    ExtRequestPrebidSchainSchain schain;
+    ExtSourceSchain schain;
 }

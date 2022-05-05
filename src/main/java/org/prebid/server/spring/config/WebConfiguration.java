@@ -13,7 +13,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.prebid.server.analytics.AnalyticsReporterDelegator;
+import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -276,7 +276,7 @@ public class WebConfiguration {
                 videoRequestFactory,
                 videoResponseFactory,
                 exchangeService,
-               cacheService, analyticsReporter,
+                cacheService, analyticsReporter,
                 metrics,
                 clock,
                 prebidVersionProvider,
@@ -296,6 +296,8 @@ public class WebConfiguration {
     CookieSyncHandler cookieSyncHandler(
             @Value("${external-url}") String externalUrl,
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${cookie-sync.coop-sync.default-limit:#{null}}") Integer coopSyncDefaultLimit,
+            @Value("${cookie-sync.coop-sync.max-limit:#{null}}") Integer coopSyncMaxLimit,
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
@@ -308,9 +310,23 @@ public class WebConfiguration {
             Metrics metrics,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
-        return new CookieSyncHandler(externalUrl, defaultTimeoutMs, uidsCookieService, applicationSettings,
-                bidderCatalog, tcfDefinerService, privacyEnforcementService, hostVendorId,
-                defaultCoopSync, coopSyncPriorities.getPri(), analyticsReporterDelegator, metrics, timeoutFactory,
+
+        return new CookieSyncHandler(
+                externalUrl,
+                defaultTimeoutMs,
+                coopSyncDefaultLimit,
+                coopSyncMaxLimit,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                tcfDefinerService,
+                privacyEnforcementService,
+                hostVendorId,
+                defaultCoopSync,
+                coopSyncPriorities.getPri(),
+                analyticsReporterDelegator,
+                metrics,
+                timeoutFactory,
                 mapper);
     }
 

@@ -13,7 +13,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -43,7 +42,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String DEFAULT_DOMAIN = "tag.adkernel.com";
-    private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
 
     private final String endpointUrl;
@@ -201,12 +199,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpoint(ExtImpAdkernelAdn impExt) {
-        final String impHost = impExt.getHost();
-        final String host = StringUtils.isNotBlank(impHost) ? impHost : DEFAULT_DOMAIN;
-
-        return endpointUrl
-                .replace(URL_HOST_MACRO, host)
-                .replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
+        return endpointUrl.replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
     }
 
     private static MultiMap headers() {

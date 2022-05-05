@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -8,7 +9,6 @@ import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
-import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
@@ -32,7 +32,7 @@ class SmokeSpec extends BaseSpec {
         then: "Response should contain basic fields"
         assert response.id == bidRequest.id
         assert response.seatbid?.size() == 1
-        assert response.seatbid[0]?.seat == "generic"
+        assert response.seatbid[0]?.seat == GENERIC
         assert response.seatbid[0]?.bid?.size() == 1
         assert response.seatbid[0]?.bid[0]?.impid == bidRequest.imp[0].id
 
