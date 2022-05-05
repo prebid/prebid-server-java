@@ -147,8 +147,7 @@ public class AlkimiBidderTest extends VertxTest {
         assertThat(result.getErrors())
                 .hasSize(1)
                 .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                        && error.getMessage().startsWith("Failed to decode: Unrecognized token")
-                );
+                        && error.getMessage().startsWith("Failed to decode: Unrecognized token"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -165,8 +164,7 @@ public class AlkimiBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 null,
-                mapper.writeValueAsString(BidResponse.builder().build())
-        );
+                mapper.writeValueAsString(BidResponse.builder().build()));
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
@@ -177,8 +175,7 @@ public class AlkimiBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidsForBannerAndVideoImps() throws JsonProcessingException {
         final HttpCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
-                mapper.writeValueAsString(givenBidResponse())
-        );
+                mapper.writeValueAsString(givenBidResponse()));
         final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
@@ -230,16 +227,14 @@ public class AlkimiBidderTest extends VertxTest {
                         .h(768)
                         .mimes(List.of("video/mp4"))
                         .protocols(List.of(1, 2, 3, 4, 5))
-                        .build()
-                )
+                        .build())
                 .ext(mapper.valueToTree(ExtPrebid.of(
                         null,
                         ExtImpAlkimi.builder()
                                 .token(PUB_TOKEN)
                                 .bidFloor(BigDecimal.valueOf(0.3))
                                 .pos(7)
-                                .build()
-                )))
+                                .build())))
         ).build();
     }
 
