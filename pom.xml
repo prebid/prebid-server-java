@@ -51,7 +51,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
-        <metrics-prometheus.version>0.5.0</metrics-prometheus.version>
+        <metrics-prometheus.version>0.12.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <logback.version>1.2.9</logback.version>
         <log4j.version>2.17.1</log4j.version>
@@ -757,6 +757,7 @@
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
                         <tests.max-container-count>2</tests.max-container-count>
+                        <tests.fixed-container-ports>false</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -826,6 +827,23 @@
                 <maven.compiler.source>${java.version}</maven.compiler.source>
                 <maven.compiler.target>${java.version}</maven.compiler.target>
             </properties>
+        </profile>
+        <profile>
+            <!-- Run only one application container instance on fixed ports for debugging purposes -->
+            <id>Container debugging</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <tests.fixed-container-ports>true</tests.fixed-container-ports>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>
