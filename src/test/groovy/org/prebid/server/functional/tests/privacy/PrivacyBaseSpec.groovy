@@ -71,8 +71,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static Geo maskGeo(BidRequest bidRequest, int precision = GEO_PRECISION) {
         def geo = bidRequest.device.geo.clone()
-        geo.lat = PBSUtils.roundDecimal(bidRequest.device.geo.lat as BigDecimal, precision)
-        geo.lon = PBSUtils.roundDecimal(bidRequest.device.geo.lon as BigDecimal, precision)
+        geo.lat = PBSUtils.roundDecimal(bidRequest.device.geo.lat, precision)
+        geo.lon = PBSUtils.roundDecimal(bidRequest.device.geo.lon, precision)
         geo
     }
 

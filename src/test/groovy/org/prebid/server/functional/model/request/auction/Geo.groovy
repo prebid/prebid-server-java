@@ -10,8 +10,8 @@ import org.prebid.server.functional.model.pricefloors.Country
 @ToString(includeNames = true, ignoreNulls = true)
 class Geo {
 
-    Float lat
-    Float lon
+    BigDecimal lat
+    BigDecimal lon
     Integer type
     Integer accuracy
     Integer lastfix

@@ -215,7 +215,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorValue = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(FLOOR_MIN, 2), 6) as BigDecimal
+        def floorValue = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(FLOOR_MIN, 2), 6)
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [DOMAIN])
             modelGroups[0].values = [(new Rule(domain: domain).rule) : floorValue]
