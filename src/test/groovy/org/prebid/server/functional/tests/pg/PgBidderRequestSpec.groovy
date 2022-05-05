@@ -100,7 +100,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         }
     }
 
-    @Ignore(value = "https://jira.magnite-core.com/browse/HB-13821")
+    @Ignore
     def "PBS shouldn't add already top matched line item by first impression to the second impression deals bidder request section"() {
         given: "Bid request with two impressions"
         def bidRequest = BidRequest.defaultBidRequest.tap {

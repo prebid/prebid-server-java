@@ -17,6 +17,7 @@ class ImpExt {
     @JsonProperty("appnexus")
     AppNexus appNexus
     ImpExtContext context
+    ImpExtContextData data
 
     static ImpExt getDefaultImpExt() {
         new ImpExt().tap {

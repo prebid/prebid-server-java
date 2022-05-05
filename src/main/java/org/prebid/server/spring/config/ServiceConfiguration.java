@@ -48,6 +48,10 @@ import org.prebid.server.deals.DealsProcessor;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorAdjuster;
+import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
@@ -204,21 +208,25 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
+                cacheOnlyWinningBids,
                 adServerCurrency,
-                blacklistedApps,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
@@ -240,6 +248,7 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) DealsPopulator dealsPopulator,
             CountryCodeMapper countryCodeMapper,
+            PriceFloorProcessor priceFloorProcessor,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
@@ -256,6 +265,7 @@ public class ServiceConfiguration {
                 ipAddressHelper,
                 hookStageExecutor,
                 dealsPopulator,
+                priceFloorProcessor,
                 countryCodeMapper,
                 clock);
     }
@@ -433,7 +443,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
+            HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
@@ -597,6 +607,8 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             HttpInteractionLogger httpInteractionLogger,
+            PriceFloorAdjuster priceFloorAdjuster,
+            PriceFloorEnforcer priceFloorEnforcer,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
@@ -619,6 +631,8 @@ public class ServiceConfiguration {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
                 metrics,
                 clock,
                 mapper,
@@ -718,6 +732,15 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    PriceFloorsConfigResolver accountValidator(
+            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
+
+        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
+    }
+
+    @Bean
     BidderParamValidator bidderParamValidator(BidderCatalog bidderCatalog, JacksonMapper mapper) {
         return BidderParamValidator.create(bidderCatalog, "static/bidder-params", mapper);
     }
@@ -730,7 +753,11 @@ public class ServiceConfiguration {
             JacksonMapper mapper,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
+        return new ResponseBidValidator(
+                bannerMaxSizeEnforcement,
+                secureMarkupEnforcement,
+                metrics,
+                mapper,
                 dealsEnabled);
     }
 
