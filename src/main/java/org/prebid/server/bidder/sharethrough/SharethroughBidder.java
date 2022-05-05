@@ -67,16 +67,20 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        BidRequest modifiedBidRequest = null;
 
         for (Imp imp : request.getImp()) {
+            final ExtImpSharethrough extImpSharethrough;
+            final Price bidFloorPrice;
             try {
-                final ExtImpSharethrough extImpSharethrough = parseImpExt(imp);
-                final Price bidFloorPrice = resolveBidFloor(imp, request);
-                modifiedBidRequest = modifyRequest(imp, request, extImpSharethrough, bidFloorPrice);
+                extImpSharethrough = parseImpExt(imp);
+                bidFloorPrice = resolveBidFloor(imp, request);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
+                continue;
             }
+
+            final Imp modifiedImp = modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice);
+            final BidRequest modifiedBidRequest = modifyRequest(request, modifiedImp, extImpSharethrough);
 
             httpRequests.add(makeHttpRequest(modifiedBidRequest));
         }
@@ -100,70 +104,60 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     }
 
     private Price convertBidFloor(Price bidFloorPrice, BidRequest bidRequest) {
-        try {
-            final BigDecimal convertedPrice = currencyConversionService
-                    .convertCurrency(bidFloorPrice.getValue(),
-                            bidRequest,
-                            bidFloorPrice.getCurrency(),
-                            DEFAULT_BID_CURRENCY);
+        final BigDecimal convertedPrice = currencyConversionService.convertCurrency(
+                bidFloorPrice.getValue(),
+                bidRequest,
+                bidFloorPrice.getCurrency(),
+                DEFAULT_BID_CURRENCY);
 
-            return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
-        } catch (PreBidException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
-    private BidRequest modifyRequest(Imp imp,
-                                     BidRequest bidRequest,
-                                     ExtImpSharethrough extImpSharethrough,
-                                     Price bidFloorPrice) {
-
-        return bidRequest.toBuilder()
-                .bcat(updateBcat(bidRequest, extImpSharethrough))
-                .badv(updateBadv(bidRequest, extImpSharethrough))
-                .imp(Collections.singletonList(modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice)))
-                .source(updateSource(bidRequest.getSource()))
-                .build();
-    }
-
-    private static List<String> updateBadv(BidRequest bidRequest, ExtImpSharethrough extImpSharethrough) {
-        final List<String> extImpSharethroughBadv = extImpSharethrough.getBadv();
-        final List<String> bidRequestBadv = bidRequest.getBadv();
-
-        return bidRequestBadv != null
-                ? ListUtils.union(extImpSharethroughBadv, bidRequestBadv)
-                : extImpSharethroughBadv;
-    }
-
-    private static List<String> updateBcat(BidRequest bidRequest, ExtImpSharethrough extImpSharethrough) {
-        final List<String> extImpSharethroughBcat = extImpSharethrough.getBcat();
-        final List<String> requestBcat = bidRequest.getBcat();
-
-        return requestBcat != null
-                ? ListUtils.union(extImpSharethroughBcat, requestBcat)
-                : extImpSharethroughBcat;
-    }
-
-    private static Imp modifyImp(Imp imp, String pKey, Price bidFloorPrice) {
+    private static Imp modifyImp(Imp imp, String tagId, Price bidFloorPrice) {
         return imp.toBuilder()
-                .tagid(pKey)
+                .tagid(tagId)
                 .bidfloor(bidFloorPrice.getValue())
                 .bidfloorcur(bidFloorPrice.getCurrency())
                 .build();
     }
 
-    private Source updateSource(Source source) {
+    private BidRequest modifyRequest(BidRequest bidRequest, Imp imp, ExtImpSharethrough extImpSharethrough) {
+        return bidRequest.toBuilder()
+                .imp(Collections.singletonList(imp))
+                .bcat(union(bidRequest.getBcat(), extImpSharethrough.getBcat()))
+                .badv(union(bidRequest.getBadv(), extImpSharethrough.getBadv()))
+                .source(modifySource(bidRequest.getSource()))
+                .build();
+    }
+
+    private static List<String> union(List<String> first, List<String> second) {
+        if (CollectionUtils.isEmpty(first)) {
+            return second;
+        }
+
+        if (CollectionUtils.isEmpty(second)) {
+            return first;
+        }
+
+        return ListUtils.union(first, second);
+    }
+
+    private Source modifySource(Source source) {
         return source != null
                 ? source.toBuilder()
-                .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::updateExtSource, this::createExtSource))
+                .ext(ObjectUtil.getIfNotNullOrDefault(source.getExt(), this::modifyExtSource, this::createExtSource))
                 .build()
                 : Source.builder().ext(createExtSource()).build();
     }
 
-    private ExtSource updateExtSource(ExtSource ext) {
-        ext.addProperty("str", TextNode.valueOf(ADAPTER_VERSION));
-        ext.addProperty("version", TextNode.valueOf(prebidVersionProvider.getNameVersionRecord()));
-        return ext;
+    private ExtSource modifyExtSource(ExtSource ext) {
+        final ExtSource copy = ExtSource.of(ext.getSchain());
+        copy.addProperties(ext.getProperties());
+
+        copy.addProperty("str", TextNode.valueOf(ADAPTER_VERSION));
+        copy.addProperty("version", TextNode.valueOf(prebidVersionProvider.getNameVersionRecord()));
+
+        return copy;
     }
 
     private ExtSource createExtSource() {
@@ -187,31 +181,29 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final BidRequest request = httpCall.getRequest().getPayload();
-            return Result.withValues(extractBids(bidResponse, request));
+            final BidType bidType = resolveBidType(httpCall.getRequest().getPayload());
+
+            return Result.withValues(extractBids(bidResponse, bidType));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest) {
+    private static BidType resolveBidType(BidRequest bidRequest) {
+        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
+    }
+
+    private static List<BidderBid> extractBids(BidResponse bidResponse, BidType bidType) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, bidRequest);
-    }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bidRequest), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
-    }
-
-    private static BidType resolveBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
     }
 }

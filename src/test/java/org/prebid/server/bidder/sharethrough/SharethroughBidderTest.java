@@ -177,15 +177,15 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getBcat, BidRequest::getBadv)
-                .containsExactly(tuple(singletonList("test-2"), singletonList("test-1")));
+                .containsExactly(tuple(singletonList("imp.ext.bcat"), singletonList("imp.ext.badv")));
     }
 
     @Test
     public void makeHttpRequestsShouldProperPopulateBidRequestBcatAndBadvIfPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .badv(singletonList("badv-1"))
-                .bcat(singletonList("bcat-2")), identity());
+                .bcat(singletonList("req.bcat"))
+                .badv(singletonList("req.badv")), identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
@@ -194,7 +194,7 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getBcat, BidRequest::getBadv)
-                .containsExactly(tuple(List.of("test-2", "bcat-2"), List.of("test-1", "badv-1")));
+                .containsExactly(tuple(List.of("req.bcat", "imp.ext.bcat"), List.of("req.badv", "imp.ext.badv")));
     }
 
     @Test
@@ -232,10 +232,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .allSatisfy(bidderError -> {
-                    assertThat(bidderError.getType())
-                            .isEqualTo(BidderError.Type.bad_input);
-                });
+                .allSatisfy(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input));
     }
 
     @Test
@@ -259,7 +256,7 @@ public class SharethroughBidderTest extends VertxTest {
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
@@ -362,9 +359,10 @@ public class SharethroughBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of("pkey",
-                                singletonList("test-1"),
-                                singletonList("test-2"))))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                                "pkey",
+                                singletonList("imp.ext.badv"),
+                                singletonList("imp.ext.bcat"))))))
                 .build();
     }
 
