@@ -26,7 +26,7 @@ class Alert extends NetworkScaffolding {
         mapper.decode(body, new TypeReference<List<AlertEvent>>() {})[0]
     }
 
-    Map<String, String> getLastRecordedAlertRequestHeaders() {
+    Map<String, List<String>> getLastRecordedAlertRequestHeaders() {
         getLastRecordedRequestHeaders(request)
     }
 

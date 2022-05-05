@@ -16,31 +16,25 @@ import static org.prebid.server.functional.util.HttpUtil.UUID_REGEX
 class PlansSpec extends BasePgSpec {
 
     def "PBS should be able to send a request to General Planner"() {
-        given: "Initial request count"
-        def initialRequestCount = generalPlanner.recordedPlansRequestCount
-
-        and: "General Planner response is set"
+        given: "General Planner response is set"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(PBSUtils.randomString), OK_200)
 
         when: "PBS sends request to General Planner"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         then: "Request is sent"
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialRequestCount + 1 }
+        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == 1 }
     }
 
     def "PBS should retry request to General Planner when first request fails"() {
-        given: "Initial request count"
-        def initialRequestCount = generalPlanner.recordedPlansRequestCount
-
-        and: "Bad General Planner response is set"
+        given: "Bad General Planner response"
         generalPlanner.initPlansResponse(PlansResponse.getDefaultPlansResponse(PBSUtils.randomString), INTERNAL_SERVER_ERROR_500)
 
         when: "PBS sends request to General Planner"
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.updateLineItemsRequest)
 
         then: "Request is sent two times"
-        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == initialRequestCount + 2 }
+        PBSUtils.waitUntil { generalPlanner.recordedPlansRequestCount == 2 }
     }
 
     def "PBS should send appropriate headers when requests plans from General Planner"() {

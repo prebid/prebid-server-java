@@ -37,14 +37,16 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     public void setUp() {
         testingInstance = new PriceFloorsConfigResolver(
                 jacksonMapper.encodeToString(withDefaultFloorsConfig(identity())),
-                metrics);
+                metrics,
+                jacksonMapper);
     }
 
     @Test
     public void priceFloorsConfigResolverShouldNotCreateInstanceIfDefaultAccountIsInvalid() {
         assertThatIllegalArgumentException().isThrownBy(() -> new PriceFloorsConfigResolver(
                 "{",
-                metrics));
+                metrics,
+                jacksonMapper));
     }
 
     @Test

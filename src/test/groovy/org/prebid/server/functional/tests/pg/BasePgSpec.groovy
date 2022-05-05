@@ -36,12 +36,10 @@ abstract class BasePgSpec extends Specification {
     protected final PrebidServerService pgPbsService = pbsServiceFactory.getService(pgConfig.properties)
 
     def setupSpec() {
+        bidder.setResponse()
         generalPlanner.setResponse()
-
         deliveryStatistics.setResponse()
-
         alert.setResponse()
-
         userData.setResponse()
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse)
     }
@@ -50,6 +48,11 @@ abstract class BasePgSpec extends Specification {
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.createReportRequest)
         pgPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.sendReportRequest)
+        generalPlanner.reset()
+        deliveryStatistics.reset()
+        alert.reset()
+        userData.reset()
+        bidder.reset()
     }
 
     protected void updateLineItemsAndWait() {

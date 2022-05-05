@@ -6,30 +6,27 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 0.01,
-          "adid": "2068416",
-          "cid": "8048",
-          "crid": "24080",
-          "adm": "adm001",
-          "nurl": "nurl001",
+          "price": 8.43,
+          "adm": "adm14",
+          "crid": "crid14",
+          "w": 300,
+          "h": 250,
           "ext": {
             "prebid": {
-              "type": "video"
+              "type": "banner"
             },
-            "origbidcpm": 0.01,
-            "ct": 0,
-            "startdelay": 0
+            "origbidcpm": 8.43
           }
         }
       ],
-      "seat": "amx",
+      "seat": "pgam",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "amx": "{{ amx.response_time_ms }}"
+      "pgam": "{{ pgam.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

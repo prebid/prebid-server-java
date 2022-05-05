@@ -47,6 +47,12 @@ class UserData extends NetworkScaffolding {
     }
 
     @Override
+    void reset() {
+        super.reset(USER_DETAILS_ENDPOINT_PATH)
+        super.reset(WIN_EVENT_ENDPOINT_PATH)
+    }
+
+    @Override
     void setResponse() {
         mockServerClient.when(request().withPath(endpoint))
                         .respond(response().withStatusCode(OK_200.code()))
