@@ -828,5 +828,22 @@
                 <maven.compiler.target>${java.version}</maven.compiler.target>
             </properties>
         </profile>
+        <profile>
+            <!-- Run only one application container instance on fixed ports for debugging purposes -->
+            <id>Container debugging</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <systemPropertyVariables>
+                                <tests.fixed-container-ports>true</tests.fixed-container-ports>
+                            </systemPropertyVariables>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>

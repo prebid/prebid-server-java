@@ -26,7 +26,10 @@ class PbsServiceFactory {
         if (containers.containsKey(config)) {
             return new PrebidServerService(containers.get(config), mapper)
         } else {
-            if (containers.size() >= MAX_CONTAINER_COUNT) {
+            if (containers.size() == 1 && MAX_CONTAINER_COUNT == 1) {
+                def container = containers.entrySet().first()
+                remove([(container.key): container.value])
+            } else if (containers.size() >= MAX_CONTAINER_COUNT) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }
