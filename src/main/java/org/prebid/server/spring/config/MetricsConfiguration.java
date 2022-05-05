@@ -13,6 +13,7 @@ import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
+import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
@@ -231,6 +232,9 @@ public class MetricsConfiguration {
         @Autowired
         private MetricRegistry metricRegistry;
 
+        @Autowired
+        private SampleBuilder sampleBuilder;
+
         @Value("${metrics.prometheus.port}")
         private int prometheusPort;
 
@@ -240,7 +244,7 @@ public class MetricsConfiguration {
             final Router router = Router.router(vertx);
             router.route("/metrics").handler(new MetricsHandler());
 
-            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry));
+            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry, sampleBuilder));
 
             contextRunner.<HttpServer>runOnServiceContext(promise ->
                     vertx.createHttpServer().requestHandler(router).listen(prometheusPort, promise));

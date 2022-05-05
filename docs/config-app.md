@@ -250,6 +250,7 @@ For `console` backend type available next options:
 
 For `prometheus` backend type available next options:
 - `metrics.prometheus.port` - if a port is specified a prometheus reporter will start on that port 
+- `metrics.prometheus.labels.enabled` - If set to `true` it enables tags/labels for prometheus metrics instead of including them in the metrics path
 
 It is possible to define how many account-level metrics will be submitted on per-account basis.
 See [metrics documentation](metrics.md) for complete list of metrics submitted at each verbosity level.

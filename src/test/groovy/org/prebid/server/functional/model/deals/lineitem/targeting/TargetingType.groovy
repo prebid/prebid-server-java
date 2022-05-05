@@ -27,6 +27,7 @@ enum TargetingType {
     UFPD_KEYWORDS(UFPD.value + "keywords"),
     UFPD_BUYER_ID(UFPD.value + "buyerid"),
     UFPD_BUYER_IDS(UFPD.value + "buyerids"),
+    UFPD_YOB(UFPD.value + "yob"),
     SFPD("sfpd."),
     SFPD_AMP(SFPD.value + "amp"),
     SFPD_LANGUAGE(SFPD.value + "language"),

@@ -59,11 +59,16 @@
     }
   },
   "ext": {
-    "appnexus" : {
-      "is_amp" : 1,
-      "hb_source" : 5
+    "appnexus": {
+      "is_amp": 1,
+      "hb_source": 5
     },
     "prebid": {
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      },
       "currency": {
         "rates": {
           "EUR": {

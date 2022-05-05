@@ -70,9 +70,6 @@
     "buyeruid": "J5VLCWQP-26-CWFT",
     "data": [
       {
-        "ext": {
-          "segtax": 4
-        },
         "segment": [
           {
             "id": "segmentId1"
@@ -80,7 +77,10 @@
           {
             "id": "segmentId2"
           }
-        ]
+        ],
+        "ext": {
+          "segtax": 4
+        }
       }
     ],
     "ext": {
