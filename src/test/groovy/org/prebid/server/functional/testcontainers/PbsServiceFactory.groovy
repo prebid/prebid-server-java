@@ -12,9 +12,9 @@ class PbsServiceFactory {
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
     private static final int SINGLE_CONTAINER = 1
     private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("max.containers.count", "2"))
+            SystemProperties.getPropertyOrDefault("tests.max-container-count", "2"))
     private static final boolean FIXED_EXPOSED_PORT = Boolean.parseBoolean(
-            SystemProperties.getPropertyOrDefault("fixed.exposed.port", false))
+            SystemProperties.getPropertyOrDefault("tests.fixed-exposed-port", false))
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
 

@@ -757,6 +757,7 @@
                         <mockserver.version>${mockserver-client.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
                         <tests.max-container-count>2</tests.max-container-count>
+                        <tests.fixed-exposed-port>false</tests.fixed-exposed-port>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
