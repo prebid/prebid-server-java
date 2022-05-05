@@ -135,6 +135,11 @@
           "prebid": {
             "debug": 1,
             "trace": "verbose",
+            "server": {
+              "externalurl": "http://localhost:8080",
+              "gvlid": 1,
+              "datacenter": "local"
+            },
             "targeting": {
               "pricegranularity": {
                 "precision": 2,

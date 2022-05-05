@@ -79,30 +79,21 @@ public class ApplicationTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromRubiconAndAppnexus() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withQueryParam("tk_xint", equalTo("dmbjs"))
-                .withBasicAuth("rubicon_user", "rubicon_password")
-                .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=utf-8"))
-                .withHeader("Accept", equalTo("application/json"))
-                .withHeader("User-Agent", equalTo("prebid-server/1.0"))
-                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-1.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-rubicon-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-rubicon-bid-response-2.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-1.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-1.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
-                .withHeader("Sec-GPC", equalTo("1"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/rubicon_appnexus/test-appnexus-bid-request-2.json")))
                 .willReturn(aResponse().withBody(jsonFrom(
                         "openrtb2/rubicon_appnexus/test-appnexus-bid-response-2.json"))));

@@ -1,9 +1,9 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.ModelGroup
+import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.pricefloors.PriceFloorSchema
 import org.prebid.server.functional.model.pricefloors.Rule
 import org.prebid.server.functional.model.request.amp.AmpRequest
@@ -32,11 +32,13 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     def "PBS should skip signalling for request with rules when ext.prebid.floors.enabled = false in request"() {
         given: "Default BidRequest with disabled floors"
         def bidRequest = bidRequestWithFloors.tap {
-            ext.prebid.floors.enabled = false
+            ext.prebid.floors.enabled = requestEnabled
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id)
+        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
+            config.auction.priceFloors.enabled = accountEnabled
+        }
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -45,10 +47,15 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
-        assert bidderRequest.ext?.prebid?.floors?.enabled == bidRequest.ext.prebid.floors.enabled
+        assert !bidderRequest.ext?.prebid?.floors?.enabled
 
         and: "PBS should not fetch rules from floors provider"
         assert floorsProvider.getRequestCount(bidRequest.site.publisher.id) == 0
+
+        where:
+        requestEnabled | accountEnabled
+        false          | true
+        true           | false
     }
 
     def "PBS should skip signalling for request without rules when ext.prebid.floors.enabled = false in request"() {
@@ -85,8 +92,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorsProviderFloorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorsProviderFloorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -111,8 +118,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set invalid Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = null
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = null
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -139,8 +146,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set invalid Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = null
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = null
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -171,10 +178,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with skipRate"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            data.modelGroups[0].currency = USD
-            data.modelGroups[0].skipRate = skipRate
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+            modelGroups[0].currency = USD
+            modelGroups[0].skipRate = skipRate
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -187,7 +194,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         then: "Bidder request bidFloor should correspond to floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == floorValue
-        assert bidderRequest.imp[0].bidFloorCur == floorsResponse.data.modelGroups[0].currency
+        assert bidderRequest.imp[0].bidFloorCur == floorsResponse.modelGroups[0].currency
+        assert !bidderRequest.ext?.prebid?.floors?.skipped
 
         where:
         skipRate << [0, null]
@@ -206,10 +214,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response with skipRate"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            data.modelGroups[0].currency = USD
-            data.modelGroups[0].skipRate = 100
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
+            modelGroups[0].currency = USD
+            modelGroups[0].skipRate = modelGroupSkipRate
+            skipRate = dataSkipRate
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -223,9 +232,16 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
         assert bidderRequest.imp[0].bidFloor == bidRequest.imp[0].bidFloor
         assert bidderRequest.imp[0].bidFloorCur == bidRequest.imp[0].bidFloorCur
+        assert bidderRequest.ext?.prebid?.floors?.skipRate == 100
+        assert bidderRequest.ext?.prebid?.floors?.skipped
 
         and: "PBS should not made signalling"
         assert !bidderRequest.imp[0].ext?.prebid?.floors
+
+        where:
+        modelGroupSkipRate | dataSkipRate
+        100                | 0
+        null               | 100
     }
 
     def "PBS should not emit error when request has more rules than fetch.max-rules"() {
@@ -326,8 +342,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorsProviderFloorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorsProviderFloorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
@@ -373,8 +389,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorsProviderFloorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorsProviderFloorValue]
         }
         floorsProvider.setResponse(accountId, floorsResponse)
 
@@ -410,8 +426,8 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
@@ -441,16 +457,16 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups << ModelGroup.modelGroup
-            data.modelGroups.first().values = [(rule): floorValue + 0.1]
-            data.modelGroups.last().schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
-            data.modelGroups.last().values = [(new Rule(siteDomain: domain).rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups << ModelGroup.modelGroup
+            modelGroups.first().values = [(rule): floorValue + 0.1]
+            modelGroups.last().schema = new PriceFloorSchema(fields: [SITE_DOMAIN])
+            modelGroups.last().values = [(new Rule(siteDomain: domain).rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest)
 
         then: "Bidder request should contain 1 modelGroup"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -470,10 +486,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def bannerFloorValue = PBSUtils.randomFloorValue
         def videoFloorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
-            data.modelGroups[0].values = [(new Rule(mediaType: BANNER).rule): bannerFloorValue,
-                                          (new Rule(mediaType: VIDEO).rule) : videoFloorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
+            modelGroups[0].values = [(new Rule(mediaType: BANNER).rule): bannerFloorValue,
+                                     (new Rule(mediaType: VIDEO).rule) : videoFloorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 

@@ -1,15 +1,15 @@
 package org.prebid.server.settings;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.floors.PriceFloorsConfigResolver;
 
 import java.util.Map;
 import java.util.Objects;
@@ -17,21 +17,38 @@ import java.util.Set;
 
 public class EnrichingApplicationSettings implements ApplicationSettings {
 
+    private final boolean enforceValidAccount;
     private final ApplicationSettings delegate;
     private final PriceFloorsConfigResolver priceFloorsConfigResolver;
     private final JsonMerger jsonMerger;
+
     private final Account defaultAccount;
 
-    public EnrichingApplicationSettings(String defaultAccountConfig,
+    public EnrichingApplicationSettings(boolean enforceValidAccount,
+                                        String defaultAccountConfig,
                                         ApplicationSettings delegate,
                                         PriceFloorsConfigResolver priceFloorsConfigResolver,
-                                        JsonMerger jsonMerger) {
+                                        JsonMerger jsonMerger,
+                                        JacksonMapper mapper) {
 
+        this.enforceValidAccount = enforceValidAccount;
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
 
-        this.defaultAccount = parseAccount(defaultAccountConfig);
+        defaultAccount = parseAccount(defaultAccountConfig, mapper);
+    }
+
+    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
+        try {
+            final Account account = StringUtils.isNotBlank(accountConfig)
+                    ? mapper.decodeValue(accountConfig, Account.class)
+                    : null;
+
+            return isNotEmpty(account) ? account : null;
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
     }
 
     @Override
@@ -42,10 +59,13 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         if (defaultAccount == null) {
             return accountFuture;
         }
+        final Future<Account> mergedWithDefaultAccount = accountFuture
+                .map(this::mergeAccounts);
 
-        return accountFuture
-                .map(this::mergeAccounts)
-                .otherwise(mergeAccounts(Account.empty(accountId)));
+        // In case of invalid account return failed future
+        return enforceValidAccount
+                ? mergedWithDefaultAccount
+                : mergedWithDefaultAccount.otherwise(mergeAccounts(Account.empty(accountId)));
     }
 
     @Override
@@ -83,18 +103,6 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
                                                        Timeout timeout) {
 
         return delegate.getVideoStoredData(accountId, requestIds, impIds, timeout);
-    }
-
-    private static Account parseAccount(String accountConfig) {
-        try {
-            final Account account = StringUtils.isNotBlank(accountConfig)
-                    ? new ObjectMapper().readValue(accountConfig, Account.class)
-                    : null;
-
-            return isNotEmpty(account) ? account : null;
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Could not parse default account configuration", e);
-        }
     }
 
     private static boolean isNotEmpty(Account account) {
