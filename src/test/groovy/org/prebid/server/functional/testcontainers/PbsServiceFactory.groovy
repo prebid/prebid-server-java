@@ -6,15 +6,14 @@ import org.prebid.server.functional.testcontainers.container.PrebidServerContain
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.SystemProperties
 
+import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
+
 // TODO make container instance into a POGO and add the ability for any given container to live through stopContainers()
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final int SINGLE_CONTAINER = 1
-    private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
-            SystemProperties.getPropertyOrDefault("tests.max-container-count", "2"))
-    private static final boolean FIXED_EXPOSED_PORT = Boolean.parseBoolean(
-            SystemProperties.getPropertyOrDefault("tests.fixed-exposed-port", false))
+    private static final int MAX_CONTAINER_COUNT = maxContainerCount
+
     private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
 
@@ -27,7 +26,7 @@ class PbsServiceFactory {
         if (containers.containsKey(config)) {
             return new PrebidServerService(containers.get(config), mapper)
         } else {
-            if (containers.size() >= containersCount) {
+            if (containers.size() >= MAX_CONTAINER_COUNT) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }
@@ -54,7 +53,9 @@ class PbsServiceFactory {
         }
     }
 
-    private static int getContainersCount() {
-        FIXED_EXPOSED_PORT ? SINGLE_CONTAINER : MAX_CONTAINERS_COUNT
+    private static int getMaxContainerCount() {
+        USE_FIXED_CONTAINER_PORTS
+                ? 1
+                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
     }
 }
