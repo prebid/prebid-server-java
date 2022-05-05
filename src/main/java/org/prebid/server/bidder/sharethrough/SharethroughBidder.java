@@ -207,7 +207,7 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolvedBidType(bidRequest), DEFAULT_BID_CURRENCY))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bidRequest), DEFAULT_BID_CURRENCY))
                 .collect(Collectors.toList());
     }
 
