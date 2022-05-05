@@ -93,11 +93,13 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     @Override
     public PriceFloorResult resolve(BidRequest bidRequest,
-                                    PriceFloorModelGroup modelGroup,
+                                    PriceFloorRules floorRules,
                                     Imp imp,
                                     ImpMediaType mediaType,
                                     Format format,
                                     List<String> warnings) {
+
+        final PriceFloorModelGroup modelGroup = extractFloorModelGroup(floorRules);
 
         if (modelGroup == null) {
             return null;
@@ -124,7 +126,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final String modelGroupCurrency = modelGroup.getCurrency();
         final String floorCurrency = StringUtils.isNotEmpty(modelGroupCurrency)
                 ? modelGroupCurrency
-                : getDataCurrency(bidRequest);
+                : getDataCurrency(floorRules);
 
         try {
             return resolveResult(floor, rule, floorForRule, bidRequest, floorCurrency);
@@ -141,6 +143,13 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         return null;
+    }
+
+    private static PriceFloorModelGroup extractFloorModelGroup(PriceFloorRules floors) {
+        final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
+        final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
+
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
     }
 
     private List<List<String>> createRuleKey(PriceFloorSchema schema,
@@ -427,8 +436,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
     }
 
-    private static String getDataCurrency(BidRequest bidRequest) {
-        final PriceFloorRules rules = extractRules(bidRequest);
+    private static String getDataCurrency(PriceFloorRules rules) {
         final PriceFloorData data = ObjectUtil.getIfNotNull(rules, PriceFloorRules::getData);
 
         return ObjectUtil.getIfNotNull(data, PriceFloorData::getCurrency);

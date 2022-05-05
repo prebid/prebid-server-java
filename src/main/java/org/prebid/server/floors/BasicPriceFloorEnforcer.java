@@ -135,7 +135,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids);
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-        final List<BidderError> warnings = new ArrayList<>(seatBid.getErrors());
+        final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
         final BidRequest bidderBidRequest = auctionParticipation.getBidderRequest().getBidRequest();
         final PriceFloorRules floors = extractFloors(auctionParticipation);
@@ -153,7 +153,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
 
             if (isPriceBelowFloor(price, floor)) {
-                warnings.add(BidderError.generic(
+                warnings.add(BidderError.rejectedIpf(
                         String.format("Bid with id '%s' was rejected by floor enforcement: "
                                 + "price %s is below the floor %s", bid.getId(), price, floor)));
 

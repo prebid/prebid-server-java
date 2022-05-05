@@ -15,11 +15,11 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.model.PriceFloorData;
+import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.floors.model.PriceFloorField;
 import org.prebid.server.floors.model.PriceFloorModelGroup;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.floors.model.PriceFloorSchema;
-import org.prebid.server.floors.model.PriceFloorDebugProperties;
 import org.prebid.server.floors.proto.FetchResult;
 import org.prebid.server.floors.proto.FetchStatus;
 import org.prebid.server.metric.Metrics;
@@ -90,7 +90,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         final Account givenAccount = givenAccount(identity());
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                        jacksonMapper.encodeToString(givenPriceFloorData()))));
         // when
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount);
 
@@ -104,7 +104,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         final FetchResult priceFloorRulesCached = priceFloorFetcher.fetch(givenAccount);
         assertThat(priceFloorRulesCached.getFetchStatus()).isEqualTo(FetchStatus.success);
-        assertThat(priceFloorRulesCached.getRules()).isEqualTo(givenPriceFloorRules());
+        assertThat(priceFloorRulesCached.getRulesData()).isEqualTo(givenPriceFloorData());
 
     }
 
@@ -118,7 +118,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult fetchResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
     }
@@ -133,12 +133,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
     }
 
@@ -152,12 +152,12 @@ public class PriceFloorFetcherTest extends VertxTest {
         final FetchResult firstInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
 
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.timeout);
     }
 
@@ -168,7 +168,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
-                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -185,7 +185,7 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL, "max-age=700"),
-                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -202,7 +202,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -219,7 +219,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -236,7 +236,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap(),
-                                jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -251,7 +251,7 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap().add(HttpHeaders.CACHE_CONTROL, "invalid"),
-                        jacksonMapper.encodeToString(givenPriceFloorRules()))));
+                        jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
@@ -267,7 +267,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
@@ -279,7 +279,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
@@ -291,7 +291,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoInteractions(vertx);
     }
@@ -303,7 +303,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verifyNoInteractions(httpClient);
-        assertThat(fetchResult.getRules()).isNull();
+        assertThat(fetchResult.getRulesData()).isNull();
         assertThat(fetchResult.getFetchStatus()).isEqualTo(FetchStatus.none);
         verifyNoInteractions(vertx);
     }
@@ -320,12 +320,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
@@ -342,12 +342,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
@@ -364,12 +364,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
@@ -386,12 +386,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
@@ -410,16 +410,16 @@ public class PriceFloorFetcherTest extends VertxTest {
         verify(httpClient).get(anyString(), anyLong(), anyLong());
         verifyNoMoreInteractions(httpClient);
 
-        assertThat(secondFetch.getRules()).isNull();
+        assertThat(secondFetch.getRulesData()).isNull();
         assertThat(secondFetch.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
 
         fetchPromise.tryComplete(
                 HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                 .add(HttpHeaders.CACHE_CONTROL, "max-age==3"),
-                        jacksonMapper.encodeToString(givenPriceFloorRules())));
+                        jacksonMapper.encodeToString(givenPriceFloorData())));
 
-        final PriceFloorRules thirdFetch = priceFloorFetcher.fetch(givenAccount(identity())).getRules();
-        assertThat(thirdFetch).isEqualTo(givenPriceFloorRules());
+        final PriceFloorData thirdFetch = priceFloorFetcher.fetch(givenAccount(identity())).getRulesData();
+        assertThat(thirdFetch).isEqualTo(givenPriceFloorData());
     }
 
     @Test
@@ -428,13 +428,11 @@ public class PriceFloorFetcherTest extends VertxTest {
         given(httpClient.get(anyString(), anyLong(), anyLong()))
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200,
                         MultiMap.caseInsensitiveMultiMap(),
-                        jacksonMapper.encodeToString(givenPriceFloorRules().toBuilder()
-                                .data(PriceFloorData.builder()
+                        jacksonMapper.encodeToString(PriceFloorData.builder()
                                         .modelGroups(singletonList(PriceFloorModelGroup.builder()
                                                 .value("video", BigDecimal.ONE).value("banner", BigDecimal.TEN)
                                                 .build()))
-                                        .build())
-                                .build()))));
+                                        .build()))));
 
         // when
         final FetchResult firstInvocationResult =
@@ -442,12 +440,12 @@ public class PriceFloorFetcherTest extends VertxTest {
 
         // then
         verify(httpClient).get(anyString(), anyLong(), anyLong());
-        assertThat(firstInvocationResult.getRules()).isNull();
+        assertThat(firstInvocationResult.getRulesData()).isNull();
         assertThat(firstInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.inprogress);
         verify(vertx).setTimer(eq(1700000L), any());
         verify(vertx).setTimer(eq(1500000L), any());
         final FetchResult secondInvocationResult = priceFloorFetcher.fetch(givenAccount(identity()));
-        assertThat(secondInvocationResult.getRules()).isNull();
+        assertThat(secondInvocationResult.getRulesData()).isNull();
         assertThat(secondInvocationResult.getFetchStatus()).isEqualTo(FetchStatus.error);
         verifyNoMoreInteractions(vertx);
     }
@@ -478,17 +476,14 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .build();
     }
 
-    private PriceFloorRules givenPriceFloorRules() {
-        return PriceFloorRules.builder()
-                .data(PriceFloorData.builder()
-                        .currency("USD")
-                        .modelGroups(singletonList(PriceFloorModelGroup.builder()
-                                .modelVersion("model version 1.0")
-                                .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
-                                .value("banner", BigDecimal.TEN)
-                                .currency("EUR").build()))
-                        .build())
-                .skipRate(60)
+    private PriceFloorData givenPriceFloorData() {
+        return PriceFloorData.builder()
+                .currency("USD")
+                .modelGroups(singletonList(PriceFloorModelGroup.builder()
+                        .modelVersion("model version 1.0")
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.mediaType)))
+                        .value("banner", BigDecimal.TEN)
+                        .currency("EUR").build()))
                 .build();
     }
 }

@@ -29,4 +29,10 @@ class PubStackAnalytics extends NetworkScaffolding {
     protected HttpRequest getRequest(String value) {
         request().withPath(ANALYTICS_ENDPOINT)
     }
+
+    @Override
+    void reset() {
+        super.reset(CONFIG_ENDPOINT)
+        super.reset(ANALYTICS_ENDPOINT)
+    }
 }

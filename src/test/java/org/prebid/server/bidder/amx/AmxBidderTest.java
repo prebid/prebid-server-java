@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.amx;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -24,7 +23,6 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.amx.ExtImpAmx;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 
@@ -34,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AmxBidderTest extends VertxTest {
 
@@ -77,7 +76,7 @@ public class AmxBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.com/prebid/bid?v=pbs1.1");
+                .containsExactly("https://test.com/prebid/bid?v=pbs1.2");
     }
 
     @Test
@@ -211,51 +210,57 @@ public class AmxBidderTest extends VertxTest {
     public void makeBidsShouldReturnVideoBidIfStartDelayIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.set("himp", mapper.convertValue(Arrays.asList("someHintVAlue1", "someHintValue2"), JsonNode.class));
-        bidExt.put("startdelay", "2");
+        bidExt.put("startdelay", 2);
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .adm("<Impression>ExistingAdm</Impression>")
-                                .nurl("nurlValue")
-                                .ext(bidExt))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
         final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final String expectedAdm = "<Impression>ExistingAdm</Impression>"
-                + "<Impression><![CDATA[nurlValue]]></Impression>"
-                + "<Impression><![CDATA[someHintVAlue1]]></Impression>"
-                + "<Impression><![CDATA[someHintValue2]]></Impression>";
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder()
-                        .nurl("")
                         .ext(bidExt)
-                        .adm(expectedAdm)
                         .build(), video, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfAdmNotContainSearchPoint() throws JsonProcessingException {
+    public void makeBidsShouldReturnxNativeBidIfCreativeTypeIsPresentInBidExt() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.put("startdelay", "2");
+        bidExt.put("ct", 10);
         final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .id("bidId")
-                                .adm("no_point")
-                                .ext(bidExt))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
         final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors())
-                .containsExactly(
-                        BidderError.badServerResponse("Adm should contain vast search point in bidder: bidId"));
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .ext(bidExt)
+                        .build(), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfCreativeTypeAndStartDelayNotPresentInBidExt()
+            throws JsonProcessingException {
+        // given
+        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(identity())));
+
+        // when
+        final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().build(), banner, "USD"));
     }
 
     @Test
@@ -281,25 +286,6 @@ public class AmxBidderTest extends VertxTest {
                             .element(0).asString().startsWith("Cannot deserialize value");
                 });
         assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfAdmIsNotPresent() throws JsonProcessingException {
-        // given
-        final ObjectNode bidExt = mapper.createObjectNode();
-        bidExt.put("startdelay", "2");
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder().build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder
-                                .id("bidId")
-                                .ext(bidExt))));
-
-        // when
-        final Result<List<BidderBid>> result = amxBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Adm should not be blank in bidder: bidId"));
     }
 
     private static BidRequest givenBidRequest(

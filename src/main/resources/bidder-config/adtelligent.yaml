@@ -23,6 +23,7 @@ adapters:
           redirect-url:
           cookie-family-name: viewdeos
       streamkey:
+        enabled: false
         endpoint: http://ghb.hb.streamkey.net/pbs/ortb
         meta-info:
           maintainer-email: contact@streamkey.tv
@@ -36,6 +37,7 @@ adapters:
           redirect-url:
           cookie-family-name: streamkey
       janet:
+        enabled: false
         endpoint: http://ghb.bidder.jmgads.com/pbs/ortb
         meta-info:
           maintainer-email: info@thejmg.com
@@ -50,6 +52,16 @@ adapters:
             url:
             redirect-url:
             cookie-family-name: janet
+      pgam:
+        enabled: false
+        endpoint: http://ghb.pgamssp.com/pbs/ortb
+        meta-info:
+          maintainer-email: ppatel@pgammedia.com
+          vendor-id: 0
+        usersync:
+          url:
+          redirect-url:
+          cookie-family-name: pgam
     meta-info:
       maintainer-email: hb@adtelligent.com
       app-media-types:
