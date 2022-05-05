@@ -4,7 +4,7 @@ class SystemProperties {
 
     public static final String PBS_VERSION = System.getProperty("pbs.version")?.split("-")?.first()
     public static final String MOCKSERVER_VERSION = System.getProperty("mockserver.version")
-    public static final boolean USE_FIXED_CONTAINER_PORTS = getPropertyOrDefault("tests.fixed-exposed-port", false)
+    public static final boolean USE_FIXED_CONTAINER_PORTS = getPropertyOrDefault("tests.fixed-container-ports", false)
     public static final int DEFAULT_TIMEOUT = 5000
 
     static int getPropertyOrDefault(String property, int defaultValue) {
