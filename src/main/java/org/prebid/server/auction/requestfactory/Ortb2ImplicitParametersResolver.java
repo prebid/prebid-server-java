@@ -86,7 +86,9 @@ public class Ortb2ImplicitParametersResolver {
     public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
                                            String adServerCurrency,
                                            List<String> blacklistedApps,
-                                           ExtRequestPrebidServer serverInfo,
+                                           String externalUrl,
+                                           Integer hostVendorId,
+                                           String datacenterRegion,
                                            ImplicitParametersExtractor paramsExtractor,
                                            IpAddressHelper ipAddressHelper,
                                            IdGenerator sourceIdGenerator,
@@ -96,7 +98,7 @@ public class Ortb2ImplicitParametersResolver {
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
         this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
-        this.serverInfo = Objects.requireNonNull(serverInfo);
+        this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.sourceIdGenerator = Objects.requireNonNull(sourceIdGenerator);

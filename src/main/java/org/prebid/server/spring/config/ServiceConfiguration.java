@@ -67,7 +67,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
@@ -225,7 +224,9 @@ public class ServiceConfiguration {
                 cacheOnlyWinningBids,
                 adServerCurrency,
                 splitToList(blacklistedAppsString),
-                ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
                 ipAddressHelper,
                 sourceIdGenerator,
