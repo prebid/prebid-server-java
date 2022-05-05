@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
@@ -26,10 +25,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.improvedigital.ExtImpImprovedigital;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -76,22 +77,21 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         return Result.withValues(httpRequests);
     }
 
-    private ExtUser getAdditionalConsentProvidersUserExt(BidRequest request) {
-        final ExtUser extUser = request.getUser().getExt();
-        if (extUser == null) {
-            return null;
-        }
+    private ExtUser getAdditionalConsentProvidersUserExt(ExtUser extUser) {
+        final String consentedProviders = ObjectUtil.getIfNotNull(
+                ObjectUtil.getIfNotNull(extUser, ExtUser::getConsentedProvidersSettings),
+                ConsentedProvidersSettings::getConsentedProviders);
 
-        final String consentedProviders = ObjectUtils.defaultIfNull(
-                extUser.getConsentedProvidersSettings().getConsentedProviders(), null);
         if (StringUtils.isBlank(consentedProviders)) {
             return extUser;
         }
 
-        final String[] arrayOfSplitString = StringUtils.substringAfter(consentedProviders, "~")
-                .split(REGEX_SPLIT_STRING_BY_DOT);
+        final String consentedProvidersPart = StringUtils.substringAfter(consentedProviders, "~");
+        if (StringUtils.isEmpty(consentedProvidersPart)) {
+            return extUser;
+        }
 
-        return fillExtUser(extUser, arrayOfSplitString);
+        return fillExtUser(extUser, consentedProvidersPart.split(REGEX_SPLIT_STRING_BY_DOT));
     }
 
     private ExtUser fillExtUser(ExtUser extUser, String[] arrayOfSplitString) {
@@ -135,7 +135,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         final BidRequest modifiedRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .user(user != null
-                        ? user.toBuilder().ext(getAdditionalConsentProvidersUserExt(bidRequest)).build()
+                        ? user.toBuilder().ext(getAdditionalConsentProvidersUserExt(user.getExt())).build()
                         : null)
                 .build();
 
