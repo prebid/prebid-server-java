@@ -79,10 +79,6 @@
     }
   },
   "ext": {
-    "appnexus": {
-      "is_amp": 0,
-      "hb_source": 5
-    },
     "prebid": {
       "debug": 0,
       "currency": {
@@ -121,15 +117,24 @@
       "channel": {
         "name": "web"
       },
-      "pbs": {
-        "endpoint": "/openrtb2/auction"
-      },
       "multibid": [
         {
           "bidder": "appnexus",
           "maxbids": 2
         }
-      ]
+      ],
+      "pbs": {
+        "endpoint": "/openrtb2/auction"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local"
+      }
+    },
+    "appnexus": {
+      "is_amp": 0,
+      "hb_source": 5
     }
   }
 }

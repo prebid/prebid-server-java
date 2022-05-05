@@ -362,4 +362,27 @@ class BidderParamsSpec extends BaseSpec {
         and: "targeting should be empty"
         assert response.targeting.isEmpty()
     }
+
+    def "PBS should send server specific info to bidder when such is set in PBS config"() {
+        given: "PBS with server info configuration"
+        def serverDataCenter = PBSUtils.randomString
+        def serverExternalUrl = "https://${PBSUtils.randomString}.com/"
+        def serverHostVendorId = PBSUtils.randomNumber
+        def pbsService = pbsServiceFactory.getService(["datacenter-region"  : serverDataCenter,
+                                                       "external-url"       : serverExternalUrl as String,
+                                                       "gdpr.host-vendor-id": serverHostVendorId as String])
+
+        and: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS auction is requested"
+        pbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS has sent server info to bidder during auction"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert bidderRequest?.ext?.prebid?.server?.externalUrl == serverExternalUrl
+        assert bidderRequest.ext.prebid.server.datacenter == serverDataCenter
+        assert bidderRequest.ext.prebid.server.gvlId == serverHostVendorId
+    }
 }
