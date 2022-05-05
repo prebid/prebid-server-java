@@ -3,13 +3,14 @@ package org.prebid.server.functional.model.pricefloors
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.ResponseModel
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-class PriceFloorData {
+class PriceFloorData implements ResponseModel {
 
     String floorProvider
     Currency currency
