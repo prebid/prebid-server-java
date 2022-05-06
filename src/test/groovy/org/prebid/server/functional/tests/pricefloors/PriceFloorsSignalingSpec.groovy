@@ -489,7 +489,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [MEDIA_TYPE])
             modelGroups[0].values = [(new Rule(mediaType: BANNER).rule): bannerFloorValue,
-                                          (new Rule(mediaType: VIDEO).rule) : videoFloorValue]
+                                     (new Rule(mediaType: VIDEO).rule) : videoFloorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 

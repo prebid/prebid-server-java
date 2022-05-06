@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.mock.services.generalplanner.PlansResp
 import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -102,7 +101,6 @@ class AlertSpec extends BasePgSpec {
         generalPlanner.initRegisterResponse()
     }
 
-    @Unroll
     def "PBS should send an alert when fetching line items response status wasn't OK ('#httpStatusCode')"() {
         given: "Changed Planner line items endpoint response to return bad status code"
         // PBS will make 2 requests to the planner: 1 normal, 2 - recovery request
@@ -145,7 +143,6 @@ class AlertSpec extends BasePgSpec {
         httpStatusCode << [NO_CONTENT_204, NOT_FOUND_404, INTERNAL_SERVER_ERROR_500]
     }
 
-    @Unroll
     def "PBS should send an alert when register PBS instance response status wasn't OK ('#httpStatusCode')"() {
         given: "Changed Planner register endpoint response to return bad status code"
         generalPlanner.initRegisterResponse(httpStatusCode)
@@ -187,7 +184,6 @@ class AlertSpec extends BasePgSpec {
         httpStatusCode << [NOT_FOUND_404, INTERNAL_SERVER_ERROR_500]
     }
 
-    @Unroll
     def "PBS should send an alert when send delivery statistics report response status wasn't OK ('#httpStatusCode')"() {
         given: "Changed Delivery Statistics endpoint response to return bad status code"
         deliveryStatistics.reset()
