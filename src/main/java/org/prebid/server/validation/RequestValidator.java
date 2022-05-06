@@ -140,7 +140,7 @@ public class RequestValidator {
                 }
                 aliases = ObjectUtils.defaultIfNull(extRequestPrebid.getAliases(), Collections.emptyMap());
                 validateAliases(aliases);
-                validateAliasesGVLIDs(extRequestPrebid, aliases);
+                validateAliasesGvlIds(extRequestPrebid, aliases);
                 validateBidAdjustmentFactors(extRequestPrebid.getBidadjustmentfactors(), aliases);
                 validateExtBidPrebidData(extRequestPrebid.getData(), aliases);
                 validateSchains(extRequestPrebid.getSchains());
@@ -200,24 +200,22 @@ public class RequestValidator {
         }
     }
 
-    private void validateAliasesGVLIDs(ExtRequestPrebid extRequestPrebid,
+    private void validateAliasesGvlIds(ExtRequestPrebid extRequestPrebid,
                                        Map<String, String> aliases) throws ValidationException {
 
-        final Map<String, Integer> aliasgvlids = extRequestPrebid.getAliasgvlids() != null
-                ? extRequestPrebid.getAliasgvlids()
-                : Collections.emptyMap();
+        final Map<String, Integer> aliasGvlIds = MapUtils.emptyIfNull(extRequestPrebid.getAliasgvlids());
 
-        for (Map.Entry<String, Integer> aliasgvlid : aliasgvlids.entrySet()) {
+        for (Map.Entry<String, Integer> aliasToGvlId : aliasGvlIds.entrySet()) {
 
-            if (!aliases.containsKey(aliasgvlid.getKey())) {
+            if (!aliases.containsKey(aliasToGvlId.getKey())) {
                 throw new ValidationException("request.ext.prebid.aliasgvlids. vendorId %s refers to"
-                        + " unknown bidder alias: %s", aliasgvlid.getKey(), aliasgvlid.getValue());
+                        + " unknown bidder alias: %s", aliasToGvlId.getValue(), aliasToGvlId.getKey());
             }
 
-            if (aliasgvlid.getValue() < 1) {
+            if (aliasToGvlId.getValue() < 1) {
                 throw new ValidationException("request.ext.prebid.aliasgvlids. "
                         + "Invalid vendorId %s for alias: %s. Choose a different vendorId, or "
-                        + "remove this entry.", aliasgvlid.getKey(), aliasgvlid.getValue());
+                        + "remove this entry.", aliasToGvlId.getValue(), aliasToGvlId.getKey());
             }
         }
     }

@@ -486,7 +486,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly("request.ext.prebid.aliasgvlids. vendorId between refers to unknown bidder alias: 2");
+                .containsExactly("request.ext.prebid.aliasgvlids. vendorId 2 refers to unknown bidder alias: between");
     }
 
     @Test
@@ -504,7 +504,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .containsExactly("request.ext.prebid.aliasgvlids. Invalid vendorId pubmatic for alias: 0. "
+                .containsExactly("request.ext.prebid.aliasgvlids. Invalid vendorId 0 for alias: pubmatic. "
                         + "Choose a different vendorId, or remove this entry.");
     }
 
