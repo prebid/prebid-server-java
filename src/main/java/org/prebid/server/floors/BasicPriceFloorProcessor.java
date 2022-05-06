@@ -141,7 +141,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
             }
         }
 
-        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.NODATA);
+        return createFloorsFrom(null, fetchStatus, PriceFloorLocation.NO_DATA);
     }
 
     private static boolean shouldUseDynamicData(Account account) {

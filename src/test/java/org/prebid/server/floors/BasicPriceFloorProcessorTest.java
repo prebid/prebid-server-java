@@ -210,7 +210,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .isEqualTo(FetchStatus.SUCCESS);
         assertThat(extractFloors(result))
                 .extracting(PriceFloorRules::getLocation)
-                .isEqualTo(PriceFloorLocation.NODATA);
+                .isEqualTo(PriceFloorLocation.NO_DATA);
     }
 
     @Test
@@ -345,7 +345,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
                 .isEqualTo(true);
         assertThat(extractFloors(result))
                 .extracting(PriceFloorRules::getLocation)
-                .isEqualTo(PriceFloorLocation.NODATA);
+                .isEqualTo(PriceFloorLocation.NO_DATA);
     }
 
     @Test
