@@ -1,17 +1,25 @@
 package org.prebid.server.bidder.sharethrough;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.App;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,300 +27,355 @@ import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.sharethrough.model.SharethroughRequestBody;
-import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreative;
-import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughCreativeMetadata;
-import org.prebid.server.bidder.sharethrough.model.bidresponse.ExtImpSharethroughResponse;
+import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUserEidUid;
-import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtData;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.sharethrough.ExtImpSharethrough;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class SharethroughBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private static final long TIMEOUT = 2000L;
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private static final ZonedDateTime TEST_TIME =
-            ZonedDateTime.ofInstant(Instant.ofEpochMilli(1604455678999L), ZoneId.systemDefault());
-    private static final DateTimeFormatter DATE_FORMAT = new DateTimeFormatterBuilder()
-            .appendPattern("yyyy-MM-dd'T'HH:mm:ssXXX")
-            .toFormatter();
-    private static final String URLENCODED_TEST_FORMATTED_TIME = HttpUtil.encodeUrl(DATE_FORMAT.format(TEST_TIME));
-    private static final String DEADLINE_FORMATTED_TIME =
-            DATE_FORMAT.format(TEST_TIME.plusNanos(TimeUnit.MILLISECONDS.toNanos(TIMEOUT)));
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
 
     private SharethroughBidder sharethroughBidder;
 
     @Before
     public void setUp() {
-        sharethroughBidder = new SharethroughBidder(ENDPOINT_URL, jacksonMapper);
+        sharethroughBidder = new SharethroughBidder(ENDPOINT_URL,
+                currencyConversionService,
+                prebidVersionProvider,
+                jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new SharethroughBidder("invalid_url", jacksonMapper));
+                () -> new SharethroughBidder("invalid_url",
+                        currencyConversionService,
+                        prebidVersionProvider,
+                        jacksonMapper));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenSiteIsNotPresent() {
+    public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .id("request_id")
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
-                bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("site.page is required");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                        .build()))
-                .id("request_id")
-                .site(Site.builder().page("http://page.com").build())
-                .device(Device.builder().build())
-                .tmax(100L)
-                .build();
-
-        // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
-                bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Error occurred parsing sharethrough parameters");
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeaders() throws JsonProcessingException {
-        // given
-        final String pageString = "http://page.com";
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("abc")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpSharethrough.of("pkey", false, Arrays.asList(10, 20),
-                                        BigDecimal.ONE, ExtData.of("pbAdSlot")))))
-                        .banner(Banner.builder().w(40).h(30).build())
-                        .build()))
-                .app(App.builder().ext(ExtApp.of(null, null)).build())
-                .site(Site.builder().page(pageString).build())
-                .device(Device.builder().ua("Android Chrome/60.0.3112").ip("127.0.0.1").build())
-                .badv(singletonList("testBlocked"))
-                .test(1)
-                .tmax(TIMEOUT)
-                .build();
-
-        // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
-                bidRequest);
-
-        // then
-        final String expectedParameters = "?placement_key=pkey&bidId=abc&consent_required=false&consent_string="
-                + "&us_privacy=&instant_play_capable=true&stayInIframe=false&height=10&width=20"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME + "&supplyId=FGMrCMMc&strVersion=8"
-                + "&gpid=pbAdSlot";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(singletonList("testBlocked"), 2000L,
-                DEADLINE_FORMATTED_TIME, true, BigDecimal.ONE);
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull()
-                .hasSize(1).element(0)
-                .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
-                .returns(expectedPayload, HttpRequest::getPayload)
-                .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsOnly(
-                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
-                        tuple(HttpUtil.ORIGIN_HEADER.toString(), pageString),
-                        tuple(HttpUtil.REFERER_HEADER.toString(), pageString),
-                        tuple(HttpUtil.X_FORWARDED_FOR_HEADER.toString(), "127.0.0.1"),
-                        tuple(HttpUtil.USER_AGENT_HEADER.toString(), "Android Chrome/60.0.3112"),
-                        tuple(HttpUtil.ACCEPT_HEADER.toString(), "application/json"));
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnRequestWithCorrectUriAndHeadersDefaultParameters()
-            throws JsonProcessingException {
+    public void makeHttpRequestsShouldCreateSourceIfDoesNotExistAndReturnProperExtSourceVersionAndStr() {
         // given
-        final List<ExtUserEidUid> uids = Arrays.asList(
-                ExtUserEidUid.of("first", null, null),
-                ExtUserEidUid.of("second", null, null));
-        final ExtUserEid extUserEid = ExtUserEid.of("adserver.org", null, uids, null);
-        final ExtUser extUser = ExtUser.builder()
-                .consent("consent")
-                .eids(singletonList(extUserEid))
-                .build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
-                                "pkey", false, null, null, null))))
-                        .build()))
-                .site(Site.builder().page("http://page.com").build())
-                .device(Device.builder().build())
-                .user(User.builder().buyeruid("buyer").ext(extUser).build())
-                .test(1)
-                .tmax(TIMEOUT)
-                .build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<SharethroughRequestBody>>> result = sharethroughBidder.makeHttpRequests(
-                bidRequest);
+        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedParameters = "?placement_key=pkey&bidId&consent_required=false&consent_string=consent"
-                + "&us_privacy=&instant_play_capable=false&stayInIframe=false&height=1&width=1"
-                + "&adRequestAt=" + URLENCODED_TEST_FORMATTED_TIME
-                + "&supplyId=FGMrCMMc&strVersion=8&ttduid=first&stxuid=buyer";
-        final SharethroughRequestBody expectedPayload = SharethroughRequestBody.of(null, 2000L,
-                DEADLINE_FORMATTED_TIME, true, null);
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull()
-                .hasSize(1).element(0)
-                .returns(HttpMethod.POST, HttpRequest::getMethod)
-                .returns(mapper.writeValueAsBytes(expectedPayload), HttpRequest::getBody)
-                .returns(expectedPayload, HttpRequest::getPayload)
-                .returns(ENDPOINT_URL + expectedParameters, HttpRequest::getUri);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .containsExactly(expectedResponse());
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
+    public void makeHttpRequestsShouldAddExtToTheSourceIfExistAndReturnProperExtSourceVersionAndStr() {
         // given
-        final ExtImpSharethroughCreativeMetadata creativeMetadata = ExtImpSharethroughCreativeMetadata.builder()
-                .campaignKey("cmpKey")
-                .creativeKey("creaKey")
-                .dealId("dealId")
-                .build();
-
-        final ExtImpSharethroughCreative metadata = ExtImpSharethroughCreative.of(null, BigDecimal.valueOf(10),
-                creativeMetadata);
-
-        final ExtImpSharethroughResponse response = ExtImpSharethroughResponse.builder()
-                .adserverRequestId("arid")
-                .bidId("bid")
-                .creatives(singletonList(metadata))
-                .build();
-
-        final String uri = "http://uri.com?placement_key=pkey&bidId=bidid&height=20&width=30";
-        final HttpCall<SharethroughRequestBody> httpCall = givenHttpCallWithUri(uri,
-                mapper.writeValueAsString(response));
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.source(Source.builder().build()), identity());
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
+        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
 
         // then
-        final String adm = "<img src=\"//b.sharethrough.com/butler?type=s2s-win&arid=arid&adReceivedAt=1604455678999"
-                + "\" />\n"
-                + "\t\t<div data-str-native-key=\"pkey\" data-stx-response-name=\"str_response_bid\"></div>\n"
-                // Decoded: {"adserverRequestId":"arid","bidId":"bid","creatives":[{"cpm":10,
-                // "creative":{"campaign_key":"cmpKey","creative_key":"creaKey","deal_id":"dealId"}]}
-                + "\t\t<script>var str_response_bid = "
-                + "\"eyJhZHNlcnZlclJlcXVlc3RJZCI6ImFyaWQiLCJiaWRJZCI6ImJpZCIsImNyZWF0aXZlcyI6W3siY3BtIjoxMCwiY3JlYX"
-                + "RpdmUiOnsiY2FtcGFpZ25fa2V5IjoiY21wS2V5IiwiY3JlYXRpdmVfa2V5IjoiY3JlYUtleSIsImRlYWxfaWQiOiJkZWFsSW"
-                + "QifX1dfQ==\"</script>\n\t\t\t<script src=\"//native.sharethrough.com/assets/sfp-set-targeting"
-                + ".js\"></script>\n"
-                + "\t    \t<script>\n"
-                + "\t     (function() {\n"
-                + "\t     if (!(window.STR && window.STR.Tag) && !(window.top.STR && window.top.STR.Tag)){\n"
-                + "\t         var sfp_js = document.createElement('script');\n"
-                + "\t         sfp_js.src = \"//native.sharethrough.com/assets/sfp.js\";\n"
-                + "\t         sfp_js.type = 'text/javascript';\n"
-                + "\t         sfp_js.charset = 'utf-8';\n"
-                + "\t         try {\n"
-                + "\t             window.top.document.getElementsByTagName('body')[0].appendChild(sfp_js);\n"
-                + "\t         } catch (e) {\n"
-                + "\t           console.log(e);\n"
-                + "\t         }\n"
-                + "\t       }\n"
-                + "\t     })()\n"
-                + "\t\t   </script>\n";
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .containsExactly(expectedResponse());
+    }
 
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .adid("arid")
-                        .id("bid")
-                        .impid("bidid")
-                        .price(BigDecimal.valueOf(10))
-                        .cid("cmpKey")
-                        .crid("creaKey")
-                        .dealid("dealId")
-                        .w(30)
-                        .h(20)
-                        .adm(adm)
-                        .build(),
-                BidType.banner, "USD");
+    @Test
+    public void makeHttpRequestsShouldPopulateProperSourceExtAndNotWipeData() {
+        // given
+        final TextNode givenTextNode = TextNode.valueOf("test");
+        final ExtSource givenExtSource = ExtSource.of(null);
+        givenExtSource.addProperty("test-field", givenTextNode);
+        final BidRequest bidRequest = givenBidRequest(
+                bidRequestBuilder -> bidRequestBuilder.source(Source.builder().ext(givenExtSource).build()),
+                identity());
 
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        // when
+        when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        final Map<String, JsonNode> stringJsonNodeMap = expectedResponse();
+        stringJsonNodeMap.put("test-field", givenTextNode);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getExt)
+                .extracting(FlexibleExtension::getProperties)
+                .containsExactly(stringJsonNodeMap);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnProperBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getBcat, BidRequest::getBadv)
+                .containsExactly(tuple(singletonList("imp.ext.bcat"), singletonList("imp.ext.badv")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldProperPopulateBidRequestBcatAndBadvIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .bcat(singletonList("req.bcat"))
+                .badv(singletonList("req.badv")), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getBcat, BidRequest::getBadv)
+                .containsExactly(tuple(List.of("req.bcat", "imp.ext.bcat"), List.of("req.badv", "imp.ext.badv")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldConvertCurrencyIfRequestCurrencyDoesNotMatchBidderCurrency() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willReturn(BigDecimal.TEN);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull()
-                .hasSize(1).element(0).isEqualTo(expected);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(AssertionsForClassTypes.tuple(BigDecimal.TEN, "USD"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorMessageOnFailedCurrencyConversion() {
+        // given
+        given(currencyConversionService.convertCurrency(any(), any(), anyString(), anyString()))
+                .willThrow(PreBidException.class);
+
+        final BidRequest bidRequest = givenBidRequest(
+                impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        // when
+        Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors())
+                .allSatisfy(bidderError -> assertThat(bidderError.getType()).isEqualTo(BidderError.Type.bad_input));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<SharethroughRequestBody> httpCall = givenHttpCall(null, "invalid");
+        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
         final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+                });
         assertThat(result.getValue()).isEmpty();
     }
 
-    private static HttpCall<SharethroughRequestBody> givenHttpCall(SharethroughRequestBody bidRequest, String body) {
-        return HttpCall.success(
-                HttpRequest.<SharethroughRequestBody>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
-    private static HttpCall<SharethroughRequestBody> givenHttpCallWithUri(String uri, String body) {
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(BidResponse.builder().build()));
+
+        // when
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final HttpCall<BidRequest> httpCall = givenHttpCall(
+                bidRequest,
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+    }
+
+    @NotNull
+    private static Map<String, JsonNode> expectedResponse() {
+        final Map<String, JsonNode> stringToJsonNode = new HashMap<>();
+        stringToJsonNode.put("str", TextNode.valueOf("10.0"));
+        stringToJsonNode.put("version", TextNode.valueOf("v2"));
+        return stringToJsonNode;
+    }
+
+    private static BidRequest givenBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSharethrough.of(
+                                "pkey",
+                                singletonList("imp.ext.badv"),
+                                singletonList("imp.ext.bcat"))))))
+                .build();
+    }
+
+    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return BidResponse.builder()
+                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
         return HttpCall.success(
-                HttpRequest.<SharethroughRequestBody>builder().uri(uri)
-                        .payload(SharethroughRequestBody.of(null, null, null, true, null)).build(),
+                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }

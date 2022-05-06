@@ -11,7 +11,7 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
 
 import static java.util.concurrent.TimeUnit.SECONDS
-import static org.mockserver.model.ClearType.EXPECTATIONS
+import static org.mockserver.model.ClearType.ALL
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
 import static org.mockserver.model.HttpStatusCode.OK_200
@@ -117,28 +117,28 @@ abstract class NetworkScaffolding {
                         .collect { it.body.toString() }
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(HttpRequest httpRequest) {
         getRecordedRequestsHeaders(httpRequest).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(HttpRequest httpRequest) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(httpRequest) as List<HttpRequest>)
     }
 
-    Map<String, String> getLastRecordedRequestHeaders(String value) {
+    Map<String, List<String>> getLastRecordedRequestHeaders(String value) {
         getRecordedRequestsHeaders(value).last()
     }
 
-    List<Map<String, String>> getRecordedRequestsHeaders(String value) {
+    List<Map<String, List<String>>> getRecordedRequestsHeaders(String value) {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
-    void reset(String resetEndpoint = endpoint, ClearType clearType = EXPECTATIONS) {
+    void reset(String resetEndpoint = endpoint, ClearType clearType = ALL) {
         mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
 
-    private static List<Map<String, String>> getRequestsHeaders(List<HttpRequest> httpRequests) {
-        httpRequests*.headers*.entries*.collectEntries { header ->
+    private static List<Map<String, List<String>>> getRequestsHeaders(List<HttpRequest> httpRequests) {
+        httpRequests*.headerList*.collectEntries { header ->
             [header.name as String, header.values.collect { it as String }]
         }
     }
