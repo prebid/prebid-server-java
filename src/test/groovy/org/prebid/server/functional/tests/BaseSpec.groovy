@@ -12,6 +12,8 @@ import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
+import org.prebid.server.functional.testcontainerswip.ContainerFactory
+import org.prebid.server.functional.testcontainerswip.ContainerWrapper
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
@@ -36,8 +38,12 @@ abstract class BaseSpec extends Specification {
     protected static final StoredResponseDao storedResponseDao = repository.storedResponseDao
 
     protected static final int MAX_TIMEOUT = MIN_TIMEOUT + 1000
+
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
+
+    private static final ContainerFactory containerFactory = new ContainerFactory(10)
+    private final ThreadLocal<Set<ContainerWrapper>> acquiredContainers = ThreadLocal.withInitial { [:] } as ThreadLocal<Set<ContainerWrapper>>
 
     def setupSpec() {
         prebidCache.setResponse()
@@ -48,6 +54,8 @@ abstract class BaseSpec extends Specification {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+
+        releaseContainers()
     }
 
     protected static int getRandomTimeout() {
@@ -70,5 +78,17 @@ abstract class BaseSpec extends Specification {
 
     protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
         "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
+    }
+
+    protected acquireContainer(Map<String, String> config) {
+        containerFactory.acquireContainer(config).tap {
+            acquiredContainers.get().add(it)
+        }
+    }
+
+    private void releaseContainers() {
+        acquiredContainers.get()
+                          .each { containerFactory.releaseContainer(it) }
+                          .clear()
     }
 }
