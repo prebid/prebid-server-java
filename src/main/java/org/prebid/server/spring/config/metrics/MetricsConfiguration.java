@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class MetricsConfiguration {
 
-    static final String METRIC_REGISTRY_NAME = "metric-registry";
+    public static final String METRIC_REGISTRY_NAME = "metric-registry";
 
     @Autowired(required = false)
     private List<ScheduledReporter> reporters = Collections.emptyList();

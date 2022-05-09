@@ -3,7 +3,9 @@ package org.prebid.server.spring.config.metrics;
 import com.codahale.metrics.MetricRegistry;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.dropwizard.DropwizardExports;
+import io.prometheus.client.dropwizard.samplebuilder.CustomMappingSampleBuilder;
 import io.prometheus.client.dropwizard.samplebuilder.DefaultSampleBuilder;
+import io.prometheus.client.dropwizard.samplebuilder.MapperConfig;
 import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
@@ -26,15 +28,22 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 @Configuration
 public class PrometheusConfiguration {
 
     @Bean
     @ConditionalOnBean(PrometheusConfigurationProperties.class)
-    public SampleBuilder sampleBuilder(PrometheusConfigurationProperties prometheusConfigurationProperties) {
+    public SampleBuilder sampleBuilder(PrometheusConfigurationProperties prometheusConfigurationProperties,
+                                       List<MapperConfig> mapperConfigs) {
+
+        final SampleBuilder sampleBuilder = mapperConfigs.isEmpty()
+                ? new DefaultSampleBuilder()
+                : new CustomMappingSampleBuilder(mapperConfigs);
+
         return new NamespaceSubsystemSampleBuilder(
-                new DefaultSampleBuilder(),
+                sampleBuilder,
                 prometheusConfigurationProperties.getNamespace(),
                 prometheusConfigurationProperties.getSubsystem());
     }
