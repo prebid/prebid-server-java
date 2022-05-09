@@ -100,6 +100,7 @@ and verify response status is `200 OK`.
 - [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
 - [Stored Requests](docs/developers/stored-requests.md)
 - [Unit Tests](docs/developers/unit-tests.md)
+- [Functional Tests](docs/developers/functional-tests.md)
 - [GDPR](docs/gdpr.md)
 
 ## Maintenance

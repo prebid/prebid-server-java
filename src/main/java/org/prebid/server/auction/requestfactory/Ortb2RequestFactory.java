@@ -30,6 +30,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.HookStageExecutor;
@@ -82,6 +83,7 @@ public class Ortb2RequestFactory {
     private final DealsPopulator dealsPopulator;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
+    private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
     private final Clock clock;
@@ -97,6 +99,7 @@ public class Ortb2RequestFactory {
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
                                DealsPopulator dealsPopulator,
+                               PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
                                Metrics metrics,
                                Clock clock) {
@@ -112,6 +115,7 @@ public class Ortb2RequestFactory {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
         this.dealsPopulator = dealsPopulator;
+        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -259,6 +263,10 @@ public class Ortb2RequestFactory {
         return dealsPopulator != null
                 ? dealsPopulator.populate(auctionContext)
                 : Future.succeededFuture(auctionContext);
+    }
+
+    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
+        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
     /**

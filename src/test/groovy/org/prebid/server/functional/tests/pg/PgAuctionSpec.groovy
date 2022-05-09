@@ -76,7 +76,7 @@ class PgAuctionSpec extends BasePgSpec {
         and: "Seat bid corresponds to the request seat bid"
         assert auctionResponse.seatbid?.size() == bidRequest.imp.size()
         def seatBid = auctionResponse.seatbid[0]
-        assert seatBid.seat == GENERIC.value
+        assert seatBid.seat == GENERIC
 
         assert seatBid.bid?.size() == 1
 
@@ -290,7 +290,7 @@ class PgAuctionSpec extends BasePgSpec {
         given: "Bid request with set bidder alias"
         def lineItemSource = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC.value], debug: 1)
+            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC], debug: 1)
             ext = new BidRequestExt(prebid: prebid)
         }
 

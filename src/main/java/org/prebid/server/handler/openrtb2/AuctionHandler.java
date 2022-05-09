@@ -18,6 +18,7 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -178,6 +179,14 @@ public class AuctionHandler implements Handler<RoutingContext> {
 
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN;
+                body = message;
+            } else if (exception instanceof InvalidAccountConfigException) {
+                metricRequestStatus = MetricName.bad_requests;
+                final String message = exception.getMessage();
+                conditionalLogger.error(exception.getMessage(), 0.01d);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
             } else {
                 metricRequestStatus = MetricName.err;
