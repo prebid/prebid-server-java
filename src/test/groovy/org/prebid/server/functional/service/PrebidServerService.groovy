@@ -2,6 +2,7 @@ package org.prebid.server.functional.service
 
 import com.fasterxml.jackson.core.type.TypeReference
 import io.qameta.allure.Step
+import io.restassured.authentication.AuthenticationScheme
 import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
 import io.restassured.response.Response
@@ -330,7 +331,7 @@ class PrebidServerService {
         filteredLogs
     }
 
-    private static RequestSpecification buildAndGetRequestSpecification(String uri, BasicAuthScheme authScheme) {
+    private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {
         new RequestSpecBuilder().setBaseUri(uri)
                                 .setAuth(authScheme)
                                 .build()

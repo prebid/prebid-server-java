@@ -22,6 +22,9 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
     PrebidServerContainer(Map<String, String> customConfig) {
         super(PBS_DOCKER_IMAGE_NAME)
         withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
+        waitingFor(Wait.forHttp("/status")
+                       .forPort(PORT)
+                       .forStatusCode(200))
         withDebug()
         withNetwork(Dependencies.network)
         def commonConfig = [:] << DEFAULT_ENV
@@ -33,12 +36,6 @@ class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
                 << PbsConfig.mySqlConfig
         withConfig(commonConfig)
         withConfig(customConfig)
-    }
-
-    void withServiceStartWaiter() {
-        waitingFor(Wait.forHttp("/status")
-                       .forPort(PORT)
-                       .forStatusCode(200))
     }
 
     void withDebug() {

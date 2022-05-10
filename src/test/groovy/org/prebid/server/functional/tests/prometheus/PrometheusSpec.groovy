@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
+import org.testcontainers.containers.wait.strategy.Wait
 
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.PROMETHEUS_PORT
 
@@ -47,8 +48,11 @@ class PrometheusSpec extends BaseSpec {
                       "metrics.prometheus.namespace": namespace,
                       "metrics.prometheus.subsystem": subsystem]
 
-        when: "PBS is started"
+        and: "PBS container is prepared"
         def pbsContainer = new PrebidServerContainer(config)
+        pbsContainer.setWaitStrategy(Wait.defaultWaitStrategy())
+
+        when: "PBS is started"
         pbsContainer.start()
 
         then: "PBS is failed to start"

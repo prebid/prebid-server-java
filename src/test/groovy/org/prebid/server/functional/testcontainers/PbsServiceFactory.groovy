@@ -30,7 +30,6 @@ class PbsServiceFactory {
                 remove([(container.key): container.value])
             }
             def pbsContainer = new PrebidServerContainer(config)
-            pbsContainer.withServiceStartWaiter()
             pbsContainer.start()
             containers.put(config, pbsContainer)
             return new PrebidServerService(pbsContainer, mapper)
