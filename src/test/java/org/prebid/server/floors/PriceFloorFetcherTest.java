@@ -178,6 +178,23 @@ public class PriceFloorFetcherTest extends VertxTest {
     }
 
     @Test
+    public void fetchShouldCacheResponseForTimeFromResponseCacheControlHeaderToleratingOtherHeaderData() {
+        // given
+        given(httpClient.get(anyString(), anyLong(), anyLong()))
+                .willReturn(Future.succeededFuture(
+                        HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
+                                        .add(HttpHeaders.CACHE_CONTROL,
+                                                "no-cache, no-store, max-age=700, must-revalidate"),
+                                jacksonMapper.encodeToString(givenPriceFloorData()))));
+
+        // when
+        priceFloorFetcher.fetch(givenAccount(identity()));
+
+        // then
+        verify(vertx).setTimer(eq(700000L), any());
+    }
+
+    @Test
     public void fetchShouldTakePrecedenceForTestingPropertyToCacheResponse() {
         // given
         debugProperties.setMinMaxAgeSec(1L);
