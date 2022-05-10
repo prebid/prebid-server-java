@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
@@ -64,5 +65,6 @@ public class ExtRequestTargeting {
      */
     Boolean appendbiddernames;
 
+    @JsonAlias("alwaysIncludeDeals")
     Boolean alwaysincludedeals;
 }
