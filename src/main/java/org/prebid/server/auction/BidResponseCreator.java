@@ -1275,13 +1275,15 @@ public class BidResponseCreator {
         final Map<String, String> targetingKeywords;
         final String bidderCode = targetingInfo.getBidderCode();
         if (targeting != null && targetingInfo.isTargetingEnabled() && targetingInfo.isBidderWinningBid()) {
-            final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(bidType, targeting, isApp,
-                    bidRequest, account);
+            final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
+                    bidType, targeting, isApp, bidRequest, account);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
             final String categoryDuration = bidInfo.getCategory();
-            targetingKeywords = keywordsCreator != null ? keywordsCreator.makeFor(bid, bidderCode, isWinningBid,
-                            cacheId, bidType.getName(), videoCacheId, categoryDuration) : null;
+            targetingKeywords = keywordsCreator != null
+                    ? keywordsCreator.makeFor(
+                    bid, bidderCode, isWinningBid, cacheId, bidType.getName(), videoCacheId, categoryDuration)
+                    : null;
         } else {
             targetingKeywords = null;
         }
@@ -1554,8 +1556,9 @@ public class BidResponseCreator {
 
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
-                targeting.getIncludewinners(),
-                targeting.getIncludebidderkeys(),
+                BooleanUtils.toBoolean(targeting.getIncludewinners()),
+                BooleanUtils.toBoolean(targeting.getIncludebidderkeys()),
+                BooleanUtils.toBoolean(targeting.getAlwaysincludedeals()),
                 BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
                 resolveTruncateAttrChars(targeting, account),

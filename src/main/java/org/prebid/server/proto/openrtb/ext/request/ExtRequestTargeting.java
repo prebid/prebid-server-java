@@ -63,4 +63,6 @@ public class ExtRequestTargeting {
      * Defines the contract for bidrequest.ext.prebid.targeting.appendbiddernames
      */
     Boolean appendbiddernames;
+
+    Boolean alwaysincludedeals;
 }
