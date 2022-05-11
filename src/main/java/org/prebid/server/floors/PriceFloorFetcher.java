@@ -236,9 +236,12 @@ public class PriceFloorFetcher {
         return fetchContext.getRulesData();
     }
 
-    private long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
+    private static long resolveCacheTtl(ResponseCacheInfo cacheInfo, AccountPriceFloorsFetchConfig fetchConfig) {
+        final Long headerCacheTtl = cacheInfo.getCacheTtl();
 
-        return ObjectUtils.defaultIfNull(cacheInfo.getCacheTtl(), fetchConfig.getMaxAgeSec());
+        return headerCacheTtl != null && headerCacheTtl != 0L
+                ? headerCacheTtl
+                : fetchConfig.getMaxAgeSec();
     }
 
     private Long createMaxAgeTimer(String accountId, long cacheTtl) {

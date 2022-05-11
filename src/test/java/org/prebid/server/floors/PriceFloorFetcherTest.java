@@ -184,14 +184,14 @@ public class PriceFloorFetcherTest extends VertxTest {
                 .willReturn(Future.succeededFuture(
                         HttpClientResponse.of(200, MultiMap.caseInsensitiveMultiMap()
                                         .add(HttpHeaders.CACHE_CONTROL,
-                                                "no-cache, no-store, max-age=700, must-revalidate"),
+                                                "no-cache, no-store, max-age=800, must-revalidate"),
                                 jacksonMapper.encodeToString(givenPriceFloorData()))));
 
         // when
         priceFloorFetcher.fetch(givenAccount(identity()));
 
         // then
-        verify(vertx).setTimer(eq(700000L), any());
+        verify(vertx).setTimer(eq(800000L), any());
     }
 
     @Test
