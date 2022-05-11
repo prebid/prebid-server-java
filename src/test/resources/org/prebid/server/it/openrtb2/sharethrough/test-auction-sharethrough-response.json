@@ -6,18 +6,15 @@
         {
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 10,
-          "adm": "",
-          "adid": "arid",
-          "cid": "cmpKey",
-          "crid": "creaKey",
-          "w": 50,
-          "h": 50,
+          "price": 0.01,
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
           "ext": {
             "prebid": {
               "type": "banner"
             },
-            "origbidcpm": 10,
+            "origbidcpm": 0.01,
             "origbidcur": "USD"
           }
         }
@@ -29,7 +26,7 @@
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "sharethrough": 0
+      "sharethrough": "{{ sharethrough.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

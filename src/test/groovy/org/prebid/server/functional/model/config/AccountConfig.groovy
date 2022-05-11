@@ -18,4 +18,8 @@ class AccountConfig {
     AccountAnalyticsConfig analytics
     AccountCookieSyncConfig cookieSync
     AccountHooksConfiguration hooks
+
+    static getDefaultAccountConfig() {
+        new AccountConfig(status: AccountStatus.ACTIVE)
+    }
 }

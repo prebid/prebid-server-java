@@ -1,15 +1,18 @@
 {
-  "adserverRequestId": "arid",
-  "bidId": "bid_id",
-  "creatives": [
+  "id": "request_id",
+  "seatbid": [
     {
-      "cpm": 10,
-      "creative": {
-        "campaign_key": "cmpKey",
-        "creative_key": "creaKey"
-      },
-      "version": 0
+      "bid": [
+        {
+          "crid": "crid",
+          "adid": "adid",
+          "price": 0.01,
+          "id": "bid_id",
+          "impid": "imp_id",
+          "cid": "cid"
+        }
+      ],
+      "type": "banner"
     }
   ]
 }
-

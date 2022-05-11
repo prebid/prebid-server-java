@@ -3,8 +3,7 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
-import org.prebid.server.functional.model.mock.services.floorsprovider.PriceFloorRules
-import org.prebid.server.functional.model.pricefloors.PriceFloorEnforcement
+import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidAdjustmentFactors
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -46,8 +45,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(ampRequest.account as String, floorsResponse)
 
@@ -79,7 +78,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
 
         and: "PBS should log warning about bid suppression"
-        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [999]
+        assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.code == [6]
         assert response.ext?.warnings[ErrorType.GENERIC_ALIAS]*.message ==
                 ["Bid with id '${aliasBidResponse.seatbid[0].bid[0].id}' was rejected by floor enforcement: " +
                          "price $lowerPrice is below the floor $floorValue" as String]
@@ -103,8 +102,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -128,7 +127,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
 
         and: "PBS should log warning about suppression all bids below the floor value "
-        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [999, 999]
+        assert response.ext?.warnings[ErrorType.GENERIC]*.code == [6, 6]
         assert response.ext?.warnings[ErrorType.GENERIC]*.message ==
                 ["Bid with id '${bidResponse.seatbid[0].bid[1].id}' was rejected by floor enforcement: " +
                          "price ${bidResponse.seatbid[0].bid[1].price} is below the floor $floorValue" as String,
@@ -143,6 +142,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         given: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.multibid = [new MultiBid(bidder: GENERIC, maxBids: 2)]
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(enforcePbs: false))
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -151,9 +151,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            enforcement = new PriceFloorEnforcement(enforcePbs: false)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -231,6 +230,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         and: "Default basic  BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: true))
         }
 
         and: "Account with enabled fetch, fetch.url,enforceDealFloors in the DB"
@@ -241,9 +241,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            enforcement = new PriceFloorEnforcement(floorDeals: true)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -280,6 +279,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         and: "Default basic BidRequest with generic bidder with preferdeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(preferdeals: true)
+            ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(floorDeals: floorDeals, enforcePbs: enforcePbs))
         }
 
         and: "Account with enabled fetch, fetch.url, enforceDealFloors in the DB"
@@ -290,9 +290,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            enforcement = new PriceFloorEnforcement(floorDeals: floorDeals, enforcePbs: enforcePbs)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -347,9 +346,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            enforcement = new PriceFloorEnforcement(floorDeals: true)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -403,9 +401,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Set Floors Provider response"
         def floorValue = PBSUtils.randomFloorValue
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
-            enforcement = new PriceFloorEnforcement(floorDeals: true)
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
@@ -452,8 +449,8 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "Set Floors Provider response"
-        def floorsResponse = PriceFloorRules.priceFloorRules.tap {
-            data.modelGroups[0].values = [(rule): floorValue]
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].values = [(rule): floorValue]
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 

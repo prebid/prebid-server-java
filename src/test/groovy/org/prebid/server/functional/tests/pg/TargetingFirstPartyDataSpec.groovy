@@ -32,6 +32,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_IDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_KEYWORDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_LANGUAGE
+import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_YOB
 
 class TargetingFirstPartyDataSpec extends BasePgSpec {
 
@@ -204,11 +205,18 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         SFPD_BUYER_IDS | new ImpExtContextData(buyerIds: [integerTargetingValue])
     }
 
-    def "PBS shouldn't throw a NPE for '#targetingType' when its Ext is absent and targeting Intersects matching type is selected"() {
-        given: "Planner response"
+    def "PBS shouldn't throw a NPE for Site First Party Data when its Ext is absent and targeting INTERSECTS matching type is selected"() {
+        given: "Bid request with set site first party data in bidRequest.site"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            site = Site.defaultSite.tap {
+                keywords = stringTargetingValue
+            }
+        }
+
+        and: "Planner response"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
-                                              .addTargeting(targetingType, INTERSECTS, [stringTargetingValue])
+                                              .addTargeting(SFPD_KEYWORDS, INTERSECTS, [stringTargetingValue])
                                               .build()
         }
         generalPlanner.initPlansResponse(plansResponse)
@@ -224,20 +232,65 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
         and: "PBS hasn't had PG auction as request targeting is not specified in the right place"
         assert !auctionResponse.ext?.debug?.pgmetrics
+    }
+
+    def "PBS should support taking User FPD from bidRequest.user by #matchingFunction matching function"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                updateUserFieldGeneric(it)
+            }
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(ufpdTargetingType, matchingFunction, [targetingValue])
+                                              .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        targetingType | bidRequest
-        SFPD_KEYWORDS | BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite.tap {
-                keywords = stringTargetingValue
+        ufpdTargetingType | updateUserFieldGeneric                 | targetingValue        | matchingFunction
+        UFPD_LANGUAGE     | { it.language = stringTargetingValue } | stringTargetingValue  | INTERSECTS
+        UFPD_LANGUAGE     | { it.language = stringTargetingValue } | stringTargetingValue  | IN
+        UFPD_YOB          | { it.yob = integerTargetingValue }     | integerTargetingValue | INTERSECTS
+        UFPD_YOB          | { it.yob = integerTargetingValue }     | integerTargetingValue | IN
+    }
+
+    def "PBS should support taking User FPD from bidRequest.user by MATCHES matching function"() {
+        given: "Bid request"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                it.language = stringTargetingValue
             }
         }
 
-        UFPD_LANGUAGE | BidRequest.defaultBidRequest.tap {
-            user = User.defaultUser.tap {
-                language = stringTargetingValue
-            }
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                                              .addTargeting(UFPD_LANGUAGE, MATCHES, stringTargetingValue)
+                                              .build()
         }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
     }
 
     def "PBS should be able to match site FPD targeting taken from different sources by INTERSECTS matching function"() {

@@ -13,7 +13,6 @@ import org.prebid.server.functional.testcontainers.scaffolding.HttpSettings
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
-import spock.lang.Unroll
 
 import java.time.format.DateTimeFormatter
 
@@ -62,8 +61,7 @@ class UserDetailsSpec extends BasePgSpec {
         assert userDetailsRequest.ids[0].type == pgConfig.userIdType
     }
 
-    @Unroll
-    def "PBS should validate bad user details response status code ('#statusCode')"() {
+    def "PBS should validate bad user details response status code #statusCode"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -78,11 +76,11 @@ class UserDetailsSpec extends BasePgSpec {
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
 
-        and: "Initial user details request count is taken"
-        def initialRequestCount = userData.recordedUserDetailsRequestCount
-
         and: "User Service response is set"
         userData.setUserDataResponse(UserDetailsResponse.defaultUserResponse, statusCode)
+
+        and: "Initial user details request count is taken"
+        def initialRequestCount = userData.recordedUserDetailsRequestCount
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
@@ -106,7 +104,6 @@ class UserDetailsSpec extends BasePgSpec {
         statusCode << [NO_CONTENT_204, NOT_FOUND_404, INTERNAL_SERVER_ERROR_500]
     }
 
-    @Unroll
     def "PBS should invalidate user details response body when response has absent #fieldName field"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -250,7 +247,6 @@ class UserDetailsSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS shouldn't send win notification request to the User Service when #reason line item id is given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -297,7 +293,6 @@ class UserDetailsSpec extends BasePgSpec {
         "non-existent" | PBSUtils.randomNumber as String
     }
 
-    @Unroll
     def "PBS shouldn't send win notification request to the User Service when #reason cookies header was given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
