@@ -150,7 +150,6 @@ public class HttpBidderRequestEnricherTest {
         assertThat(resultHeaders.get("Content-Encoding")).isEqualTo("gzip");
     }
 
-
     private static boolean isEqualsMultiMaps(MultiMap left, MultiMap right) {
         return left.size() == right.size() && left.entries().stream()
                 .allMatch(entry -> right.contains(entry.getKey(), entry.getValue(), true));
