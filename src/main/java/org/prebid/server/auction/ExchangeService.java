@@ -122,6 +122,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -170,6 +171,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final AdjustmentFactorResolver adjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
     private final JacksonMapper mapper;
@@ -193,6 +195,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           AdjustmentFactorResolver adjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
@@ -219,6 +222,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.adjustmentFactorResolver = Objects.requireNonNull(adjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
@@ -1463,70 +1467,20 @@ public class ExchangeService {
         return bidderBid.toBuilder().bid(bidBuilder.build()).build();
     }
 
-    private static ImpMediaType resolveBidAdjustmentMediaType(String bidImpId,
-                                                              List<Imp> imps,
-                                                              BidType bidType) {
-
-        switch (bidType) {
-            case banner:
-                return ImpMediaType.banner;
-            case xNative:
-                return ImpMediaType.xNative;
-            case audio:
-                return ImpMediaType.audio;
-            case video:
-                return resolveBidAdjustmentVideoMediaType(bidImpId, imps);
-            default:
-                throw new PreBidException("BidType not present for bidderBid");
-        }
-    }
-
-    private static ImpMediaType resolveBidAdjustmentVideoMediaType(String bidImpId, List<Imp> imps) {
-        final Video bidImpVideo = imps.stream()
-                .filter(imp -> imp.getId().equals(bidImpId))
-                .map(Imp::getVideo)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
-
-        if (bidImpVideo == null) {
+    private BigDecimal bidAdjustmentForBidder(String bidder, BidRequest bidRequest, BidderBid bidderBid) {
+        final ExtRequestBidAdjustmentFactors adjustmentFactors = extBidAdjustmentFactors(bidRequest);
+        if (adjustmentFactors == null) {
             return null;
         }
+        final ImpMediaType mediaType = ImpMediaTypeConverter.toImpMediaType(
+                bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
 
-        final Integer placement = bidImpVideo.getPlacement();
-        return placement == null || Objects.equals(placement, 1)
-                ? ImpMediaType.video
-                : ImpMediaType.video_outstream;
+        return adjustmentFactorResolver.resolve(mediaType, adjustmentFactors, bidder);
     }
 
-    private static BigDecimal bidAdjustmentForBidder(String bidder,
-                                                     BidRequest bidRequest,
-                                                     BidderBid bidderBid) {
+    private static ExtRequestBidAdjustmentFactors extBidAdjustmentFactors(BidRequest bidRequest) {
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final ExtRequestBidAdjustmentFactors extBidAdjustmentFactors = prebid != null
-                ? prebid.getBidadjustmentfactors()
-                : null;
-        if (extBidAdjustmentFactors == null) {
-            return null;
-        }
-        final ImpMediaType mediaType =
-                resolveBidAdjustmentMediaType(bidderBid.getBid().getImpid(), bidRequest.getImp(), bidderBid.getType());
-
-        return resolveBidAdjustmentFactor(extBidAdjustmentFactors, mediaType, bidder);
-    }
-
-    private static BigDecimal resolveBidAdjustmentFactor(ExtRequestBidAdjustmentFactors extBidAdjustmentFactors,
-                                                         ImpMediaType mediaType,
-                                                         String bidder) {
-        final Map<ImpMediaType, Map<String, BigDecimal>> mediatypes =
-                extBidAdjustmentFactors.getMediatypes();
-        final Map<String, BigDecimal> adjustmentsByMediatypes = mediatypes != null ? mediatypes.get(mediaType) : null;
-        final BigDecimal adjustmentFactorByMediaType =
-                adjustmentsByMediatypes != null ? adjustmentsByMediatypes.get(bidder) : null;
-        if (adjustmentFactorByMediaType != null) {
-            return adjustmentFactorByMediaType;
-        }
-        return extBidAdjustmentFactors.getAdjustments().get(bidder);
+        return prebid != null ? prebid.getBidadjustmentfactors() : null;
     }
 
     private static BigDecimal adjustPrice(BigDecimal priceAdjustmentFactor, BigDecimal price) {

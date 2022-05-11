@@ -9,9 +9,11 @@ import com.iab.openrtb.request.Video;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.AdjustmentFactorResolver;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -30,6 +32,9 @@ import java.util.function.UnaryOperator;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.BDDMockito.given;
 
 public class BasicPriceFloorAdjusterTest extends VertxTest {
 
@@ -38,11 +43,16 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private AdjustmentFactorResolver adjustmentFactorResolver;
+
     private BasicPriceFloorAdjuster basicPriceFloorAdjuster;
 
     @Before
     public void setUp() {
-        basicPriceFloorAdjuster = new BasicPriceFloorAdjuster();
+        given(adjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(BigDecimal.ONE);
+
+        basicPriceFloorAdjuster = new BasicPriceFloorAdjuster(adjustmentFactorResolver);
     }
 
     @Test
