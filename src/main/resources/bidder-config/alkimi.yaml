@@ -2,7 +2,7 @@ adapters:
   alkimi:
     endpoint: https://exchange.alkimi-onboarding.com/server/bid
     meta-info:
-      maintainer-email: abogdanov@asteriosoft.com
+      maintainer-email: kalidas@alkimiexchange.com
       app-media-types:
         - banner
         - video
