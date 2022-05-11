@@ -20,7 +20,9 @@ import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
+import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
 import static org.prebid.server.functional.model.request.auction.FetchStatus.NONE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.SUCCESS
 import static org.prebid.server.functional.model.request.auction.Location.FETCH
@@ -1575,9 +1577,12 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         invalidSkipRate << [MIN_SKIP_RATE - 1, MAX_SKIP_RATE + 1]
     }
 
-    def "PBS should reject fetch when response header is invalid"() {
+    def "PBS should not reject the auction when the header is invalid"() {
         given: "Test start time"
         def startTime = Instant.now()
+
+        and: "Flush metrics"
+        flushMetrics(floorsPbsService)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest
