@@ -1575,6 +1575,38 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         invalidSkipRate << [MIN_SKIP_RATE - 1, MAX_SKIP_RATE + 1]
     }
 
+    def "PBS should reject fetch when response header is invalid"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Default BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def accountId = bidRequest.site.publisher.id
+        def account = getAccountWithEnabledFetch(accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response with header"
+        def floorsResponse = PriceFloorData.priceFloorData
+        def headerKey = "Cache-Control"
+        def header = [(headerKey): "no-cache, no-store, max-age=0, must-revalidate"]
+        floorsProvider.setResponse(accountId, floorsResponse, header)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS log should contain error"
+        def logs = floorsPbsService.getLogsByTime(startTime)
+        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        assert floorsLogs.size() == 1
+        assert floorsLogs[0].contains("Can't parse Cache Control header '${header.get(headerKey) as String}', "
+                + "fetch.url: '$basicFetchUrl$accountId'")
+
+        and: "Floors validation failure cannot reject the entire auction"
+        assert !response.seatbid?.isEmpty()
+    }
+
     def "PBS should reject fetch when default floor value from floors provider is invalid"() {
         given: "Test start time"
         def startTime = Instant.now()
